@@ -248,8 +248,8 @@ public class Chain {
      * @return member
      */
     public Member getMember(String name) {
-        if (null == keyValStore) throw new RuntimeException("No key value store was found.  You must first call Chain.configureKeyValStore or Chain.setKeyValStore");
-        if (null == memberServices) throw new RuntimeException("No member services was found.  You must first call Chain.configureMemberServices or Chain.setMemberServices");
+        if (null == keyValStore) throw new RuntimeException("No key value store was found.  You must first call Chain.setKeyValStore");
+        if (null == memberServices) throw new RuntimeException("No member services was found.  You must first call Chain.setMemberServices or Chain.setMemberServicesUrl");
 
         // Try to get the member state from the cache
         Member member = (Member) members.get(name);
