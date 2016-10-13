@@ -1,6 +1,7 @@
 package org.hyperledger.fabric.sdk;
 
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
+import org.hyperledger.fabric.sdk.exception.NoValidPeerException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
 import org.junit.Assert;
 import org.junit.Before;
@@ -29,6 +30,29 @@ public class MemberTest {
             Assert.fail("Failed to initialize registrar");
         }
 
+    }
+    
+    @Test
+    public void testNoChain() {
+    	try {
+    		Member member = new Member("test", null);
+    		Assert.fail("Should have failed as chain is null");
+    	} catch(IllegalArgumentException ex) {}
+    }
+    
+    @Test
+    public void testNoPeers() {
+    	try {
+    		Chain testChain = new Chain("chain2");
+    		Member member = new Member("test", testChain);
+    		member.deploy(null);
+    		Assert.fail("Should have failed as there are no peers");
+    	} catch(NoValidPeerException ex) {
+    	} catch(Exception ex) {
+    		ex.printStackTrace();
+    		Assert.fail("Expected NoValidPeerException, found "+ex.getClass().getName());
+    	}
+    	
     }
 
     @Test

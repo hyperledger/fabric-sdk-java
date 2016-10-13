@@ -26,6 +26,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.util.encoders.Hex;
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
+import org.hyperledger.fabric.sdk.exception.NoValidPeerException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
 
 import io.netty.util.internal.StringUtil;
@@ -55,6 +56,10 @@ class Member implements Serializable {
      */
 
     public Member(String name, Chain chain) {
+    	if (chain == null) {
+    		throw new IllegalArgumentException("A valid chain must be provided");
+    	}
+
     	this.name = name;
     	this.chain = chain;
         this.memberServices = chain.getMemberServices();
@@ -229,7 +234,11 @@ class Member implements Serializable {
     public void deploy(DeployRequest deployRequest) {
         logger.debug("Member.deploy");
 
-        getChain().getPeers().get(0).deploy(deployRequest); //TODO add error checks
+        if (getChain().getPeers().isEmpty()) {
+        	throw new NoValidPeerException(String.format("chain %s has no peers", getChain().getName()));
+        }
+
+        getChain().getPeers().get(0).deploy(deployRequest);
     }
 
     /**
@@ -239,7 +248,11 @@ class Member implements Serializable {
     public void invoke(InvokeRequest invokeRequest) {
         logger.debug("Member.invoke");
 
-        getChain().getPeers().get(0).invoke(invokeRequest); //TODO add error checks
+        if (getChain().getPeers().isEmpty()) {
+        	throw new NoValidPeerException(String.format("chain %s has no peers", getChain().getName()));
+        }
+
+        getChain().getPeers().get(0).invoke(invokeRequest);
     }
 
     /**
@@ -249,7 +262,11 @@ class Member implements Serializable {
     public void query(QueryRequest queryRequest) {
         logger.debug("Member.query");
 
-        getChain().getPeers().get(0).query(queryRequest); //TODO add error checks
+        if (getChain().getPeers().isEmpty()) {
+        	throw new NoValidPeerException(String.format("chain %s has no peers", getChain().getName()));
+        }
+
+        getChain().getPeers().get(0).query(queryRequest);
     }
 
     /**
@@ -350,5 +367,5 @@ class Member implements Serializable {
 
     String toKeyValStoreName(String name) {
         return "member." + name;
-    }
+    }    
 }
