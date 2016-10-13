@@ -49,3 +49,9 @@ Enroll a member:<br>
 <code>
   Member member = testChain.enroll("user", "secret");
 </code><br>
+
+## SDK dependencies
+SDK depends on few third party libraries that must be included in your classpath when using the JAR file. To get a list of dependencies, refer to pom.xml file or run
+<code>mvn dependency:tree</code> or <code>mvn dependency:list</code>.
+
+Alternatively, <code> mvn dependency:analyze-report </code> will produce a report in HTML format in target directory listing all the dependencies in a more readable format.
