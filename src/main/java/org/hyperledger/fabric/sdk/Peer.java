@@ -21,7 +21,7 @@ import org.hyperledger.protos.Fabric.Response;
 /**
  * The Peer class represents a peer to which SDK sends deploy, invoke, or query requests.
  */
-class Peer {
+public class Peer {
 	private static final Log logger = LogFactory.getLog(Peer.class);
 
     private String url;

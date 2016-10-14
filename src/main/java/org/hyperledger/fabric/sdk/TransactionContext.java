@@ -34,7 +34,7 @@ import java.util.ArrayList;
  * A transaction context emits events 'submitted', 'complete', and 'error'.
  * Each transaction context uses exactly one tcert.
  */
-class TransactionContext  {
+public class TransactionContext  {
 	private static final Log logger = LogFactory.getLog(TransactionContext.class);
     private Member member;
     private Chain chain;

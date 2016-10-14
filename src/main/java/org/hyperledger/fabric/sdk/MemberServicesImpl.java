@@ -39,7 +39,7 @@ import java.util.ArrayList;
 /**
  * MemberServicesImpl is the default implementation of a member services client.
  */
-class MemberServicesImpl implements MemberServices {
+public class MemberServicesImpl implements MemberServices {
 	private static final Log logger = LogFactory.getLog(MemberServices.class);
 
     private ECAABlockingStub ecaaClient;

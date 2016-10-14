@@ -31,7 +31,7 @@ import org.hyperledger.fabric.sdk.exception.RegistrationException;
 
 import io.netty.util.internal.StringUtil;
 
-class Member implements Serializable {
+public class Member implements Serializable {
 	private static final long serialVersionUID = 8077132186383604355L;
 
 	private static final Log logger = LogFactory.getLog(Member.class);
