@@ -279,7 +279,7 @@ public class Chain {
      * @throws RegistrationException if the registration fails
      */
     public Member register(RegistrationRequest registrationRequest) throws RegistrationException {
-        Member member = getMember(registrationRequest.enrollmentID);
+        Member member = getMember(registrationRequest.getEnrollmentID());
 	    member.register(registrationRequest);
 	    return member;
     }
@@ -291,7 +291,7 @@ public class Chain {
      * @throws EnrollmentException
      */
 
-    Member enroll(String name, String secret) throws EnrollmentException {
+    public Member enroll(String name, String secret) throws EnrollmentException {
         Member member = getMember(name);
         member.enroll(secret);
         members.put(name, member);
@@ -306,8 +306,8 @@ public class Chain {
      * @throws RegistrationException
      * @throws EnrollmentException
      */
-    Member registerAndEnroll(RegistrationRequest registrationRequest) throws RegistrationException, EnrollmentException {
-        Member member = getMember(registrationRequest.enrollmentID);
+    public Member registerAndEnroll(RegistrationRequest registrationRequest) throws RegistrationException, EnrollmentException {
+        Member member = getMember(registrationRequest.getEnrollmentID());
         member.registerAndEnroll(registrationRequest);
         return member;
     }

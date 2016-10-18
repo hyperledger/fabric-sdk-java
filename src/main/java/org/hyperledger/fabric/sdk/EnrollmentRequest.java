@@ -16,9 +16,9 @@ package org.hyperledger.fabric.sdk;
 
 public class EnrollmentRequest {
     // The enrollment ID
-    String enrollmentID;
+    private String enrollmentID;
     // The enrollment secret (a one-time password)
-    String enrollmentSecret;
+    private String enrollmentSecret;
 
 	public String getEnrollmentID() {
 		return enrollmentID;

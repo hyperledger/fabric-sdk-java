@@ -192,7 +192,7 @@ public class Member implements Serializable {
      * @throws RegistrationException
      */
     public void register(RegistrationRequest registrationRequest) throws RegistrationException {
-        if (!registrationRequest.enrollmentID.equals(getName())) {
+        if (!registrationRequest.getEnrollmentID().equals(getName())) {
             throw new RuntimeException("registration enrollment ID and member name are not equal");
         }
 
@@ -365,7 +365,7 @@ public class Member implements Serializable {
 		this.enrollment = enrollment;
 	}
 
-    String toKeyValStoreName(String name) {
+    private String toKeyValStoreName(String name) {
         return "member." + name;
     }    
 }

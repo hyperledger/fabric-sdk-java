@@ -471,14 +471,14 @@ public class TransactionContext  {
 
     	//Construct the chaincodeID
         Chaincode.ChaincodeID chaincodeID =  Chaincode.ChaincodeID.newBuilder()
-        		.setPath(request.chaincodePath)
+        		.setPath(request.getChaincodePath())
         		.build();
 //        logger.debug("newDevModeTransaction: chaincodeID: " + JSON.stringify(chaincodeID));
 
 
         //convert all args to ByteString
-        ArrayList<ByteString> args = new ArrayList<>(request.args.size());
-        for(String arg : request.args) {
+        ArrayList<ByteString> args = new ArrayList<>(request.getArgs().size());
+        for(String arg : request.getArgs()) {
         	args.add(ByteString.copyFrom(arg.getBytes()));
         }
 
@@ -502,7 +502,7 @@ public class TransactionContext  {
         		.setExecEnv(ExecutionEnvironment.DOCKER)
         		.build();
 
-        ConfidentialityLevel confidentialityLevel = request.confidential ? Chaincode.ConfidentialityLevel.CONFIDENTIAL : Chaincode.ConfidentialityLevel.PUBLIC;
+        ConfidentialityLevel confidentialityLevel = request.isConfidential() ? Chaincode.ConfidentialityLevel.CONFIDENTIAL : Chaincode.ConfidentialityLevel.PUBLIC;
 
         Fabric.Transaction tx = Fabric.Transaction.newBuilder()
         		.setType(transactionType)
@@ -536,7 +536,7 @@ public class TransactionContext  {
                 }
                     */
 
-        return new Transaction(tx, request.chaincodeName);
+        return new Transaction(tx, request.getChaincodeName());
 
     }
 
@@ -548,7 +548,7 @@ public class TransactionContext  {
         logger.debug("newDevModeTransaction");
 
         // Verify that chaincodeName is being passed
-        if (null == request.chaincodeName || request.chaincodeName.equals("")) {
+        if (null == request.getChaincodeName() || request.getChaincodeName().equals("")) {
           throw new RuntimeException("missing chaincodeName in DeployRequest");
         }
 
