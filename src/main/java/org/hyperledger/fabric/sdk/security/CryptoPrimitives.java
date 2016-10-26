@@ -36,6 +36,7 @@ import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.jce.spec.ECPublicKeySpec;
 import org.bouncycastle.util.Arrays;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.helper.SDKUtil;
 
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
@@ -178,7 +179,7 @@ public class CryptoPrimitives {
 
 	public byte[][] ecdsaSign(PrivateKey privateKey, byte[] data) throws CryptoException {
 		try {
-			byte[] encoded = hash(data, getHashDigest());
+			byte[] encoded = SDKUtil.hash(data, getHashDigest());
 			X9ECParameters params = SECNamedCurves.getByName(this.curveName);
 			ECDomainParameters ecParams = new ECDomainParameters(params.getCurve(), params.getG(), params.getN(),
 					params.getH());
@@ -193,14 +194,7 @@ public class CryptoPrimitives {
 		}
 
 	}
-
-	private byte[] hash(byte[] input, Digest digest) {
-		byte[] retValue = new byte[digest.getDigestSize()];
-		digest.update(input, 0, input.length);
-		digest.doFinal(retValue, 0);
-		return retValue;
-	}
-
+	
 	public PrivateKey ecdsaKeyFromPrivate(byte[] key) throws CryptoException {
 		try {
 			EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(key);

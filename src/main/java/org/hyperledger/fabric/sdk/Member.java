@@ -21,13 +21,21 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.util.encoders.Hex;
+import org.hyperledger.fabric.sdk.exception.DeploymentException;
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
+import org.hyperledger.fabric.sdk.exception.ChainCodeException;
 import org.hyperledger.fabric.sdk.exception.NoValidPeerException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
+import org.hyperledger.fabric.sdk.transaction.TransactionContext;
+import org.hyperledger.protos.Fabric;
 
 import io.netty.util.internal.StringUtil;
 
@@ -46,7 +54,7 @@ public class Member implements Serializable {
     private transient MemberServices memberServices;
     private transient KeyValStore keyValStore;
     private String keyValStoreName;
-//    private Map<String, TCertGetter> tcertGetterMap;
+    private Map<String, TCertGetter> tcertGetterMap;
     private int tcertBatchSize;
 
     /**
@@ -66,6 +74,7 @@ public class Member implements Serializable {
         this.keyValStore = chain.getKeyValStore();
         this.keyValStoreName = toKeyValStoreName(this.name);
         this.tcertBatchSize = chain.getTCertBatchSize();
+        this.tcertGetterMap = new HashMap<String, TCertGetter>();
     }
 
     /**
@@ -228,45 +237,52 @@ public class Member implements Serializable {
     }
 
     /**
-     * Issue a deploy request on behalf of this member.
-     * @param deployRequest the request
+     * Issue a deploy request on behalf of this member
+     * @param deployRequest {@link DeployRequest}
+     * @return {@link ChainCodeResponse} response to chain code deploy transaction
+     * @throws DeploymentException if the deployment fails.
      */
-    public void deploy(DeployRequest deployRequest) {
+    public ChainCodeResponse deploy(DeployRequest deployRequest) throws DeploymentException {
         logger.debug("Member.deploy");
 
         if (getChain().getPeers().isEmpty()) {
         	throw new NoValidPeerException(String.format("chain %s has no peers", getChain().getName()));
         }
 
-        getChain().getPeers().get(0).deploy(deployRequest);
+        TransactionContext tcxt = this.newTransactionContext(null);
+        return tcxt.deploy(deployRequest);
     }
 
     /**
-     * Issue a invoke request on behalf of this member.
-     * @param invokeRequest the request
+     * Issue a invoke request on behalf of this member
+     * @param invokeRequest {@link InvokeRequest}
+     * @throws ChainCodeException if the chain code invocation fails
      */
-    public void invoke(InvokeRequest invokeRequest) {
+    public ChainCodeResponse invoke(InvokeRequest invokeRequest) throws ChainCodeException {
         logger.debug("Member.invoke");
 
         if (getChain().getPeers().isEmpty()) {
         	throw new NoValidPeerException(String.format("chain %s has no peers", getChain().getName()));
         }
 
-        getChain().getPeers().get(0).invoke(invokeRequest);
+        TransactionContext tcxt = this.newTransactionContext(null);
+        return tcxt.invoke(invokeRequest);
     }
 
     /**
      * Issue a query request on behalf of this member.
-     * @param queryRequest the request
+     * @param queryRequest {@link QueryRequest}
+     * @throws ChainCodeException if the query transaction fails
      */
-    public void query(QueryRequest queryRequest) {
+    public ChainCodeResponse query(QueryRequest queryRequest) throws ChainCodeException {
         logger.debug("Member.query");
 
         if (getChain().getPeers().isEmpty()) {
         	throw new NoValidPeerException(String.format("chain %s has no peers", getChain().getName()));
         }
 
-        getChain().getPeers().get(0).query(queryRequest);
+        TransactionContext tcxt = this.newTransactionContext(null);
+        return tcxt.query(queryRequest);
     }
 
     /**
@@ -283,30 +299,38 @@ public class Member implements Serializable {
      * Get a user certificate.
      * @param attrs The names of attributes to include in the user certificate.
      */
-    public void getUserCert(String[] attrs) {
+    public void getUserCert(List<String> attrs) {
         this.getNextTCert(attrs);
     }
 
     /**
    * Get the next available transaction certificate with the appropriate attributes.
    */
-   public void getNextTCert(String[] attrs) {
+   public TCert getNextTCert(List<String> attrs) {
+	if (!isEnrolled()) {
+            throw new RuntimeException(String.format("user '%s' is not enrolled",this.getName()));
+        }
+        String key = getAttrsKey(attrs);
+        if (key == null) {
+        	return null;
+        }
 
-	   /*TODO implement getNextTCert
-	   if (!self.isEnrolled()) {
-            return cb(Error(util.format("user '%s' is not enrolled",self.getName())));
+        logger.debug(String.format("Member.getNextTCert: key=%s",key));
+        TCertGetter tcertGetter = this.tcertGetterMap.get(key);
+        if (tcertGetter == null) {
+            logger.debug(String.format("Member.getNextTCert: key=%s, creating new getter",key));
+            tcertGetter = new TCertGetter(this, attrs, key);
+            this.tcertGetterMap.put(key, tcertGetter);
         }
-        let key = getAttrsKey(attrs);
-        logger.debug("Member.getNextTCert: key=%s",key);
-        let tcertGetter = self.tcertGetterMap[key];
-        if (!tcertGetter) {
-            logger.debug("Member.getNextTCert: key=%s, creating new getter",key);
-            tcertGetter = new TCertGetter(self,attrs,key);
-            self.tcertGetterMap[key] = tcertGetter;
-        }
-        return tcertGetter.getNextTCert(cb);
-        */
+        return tcertGetter.getNextTCert();
+
    }
+   
+   private String getAttrsKey(List<String> attrs ) {
+	    if (attrs == null || attrs.isEmpty()) return null;
+	    return String.join(",", attrs);
+	}
+
 
    /**
     * Save the state of this member to the key value store.

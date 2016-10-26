@@ -12,28 +12,14 @@
  *  limitations under the License.
  */
 
-package org.hyperledger.fabric.sdk;
+package org.hyperledger.fabric.sdk.exception;
 
-import java.util.List;
+public class PeerException extends BaseException {
 
-/**
- * Invoke or query request.
- */
-public class InvokeOrQueryRequest extends TransactionRequest {
-    // Optionally pass a list of attributes which can be used by chaincode to perform access control
-    private List<String> attributes;
+	private static final long serialVersionUID = 1L;
 
-	/**
-	 * @return the attributes
-	 */
-	public List<String> getAttributes() {
-		return attributes;
+	public PeerException(String message, Exception parent) {
+		super(message, parent);
 	}
 
-	/**
-	 * @param attributes the attributes to set
-	 */
-	public void setAttributes(List<String> attributes) {
-		this.attributes = attributes;
-	}
 }

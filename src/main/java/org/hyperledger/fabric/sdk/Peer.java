@@ -16,6 +16,8 @@ package org.hyperledger.fabric.sdk;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.sdk.exception.PeerException;
+import org.hyperledger.fabric.sdk.transaction.Transaction;
 import org.hyperledger.protos.Fabric.Response;
 
 /**
@@ -27,7 +29,6 @@ public class Peer {
     private String url;
     private Chain chain;
     private PeerClient peerClient;
-    private DevopsClient devopsClient;
 
     /**
      * Constructor for a peer given the endpoint config for the peer.
@@ -40,7 +41,6 @@ public class Peer {
         this.chain = chain;
         Endpoint ep = new Endpoint(url, pem);
         this.peerClient = new PeerClient(ep.getChannelBuilder());
-        this.devopsClient = new DevopsClient(ep.getChannelBuilder());
     }
 
     /**
@@ -59,24 +59,12 @@ public class Peer {
         return this.url;
     }
 
-
-    public void query(QueryRequest request) {
-    	devopsClient.query(request);
-    }
-
-    public void invoke(InvokeRequest request) {
-    	devopsClient.invoke(request);
-    }
-
-    public void deploy(DeployRequest request) {
-    	devopsClient.deploy(request);
-    }
-
     /**
      * Send a transaction to this peer.
      * @param transaction A transaction
+     * @throws PeerException 
      */
-    public void sendTransaction(Transaction transaction) {
+    public Response sendTransaction(Transaction transaction) throws PeerException {
 
         logger.debug("peer.sendTransaction");
 
@@ -85,14 +73,8 @@ public class Peer {
         //     rpc ProcessTransaction(Transaction) returns (Response) {}
         Response response = peerClient.processTransaction(transaction.getTransaction());
 
-        /*TODO add error check
-        if (err) {
-                logger.debug("peer.sendTransaction: error=%s", err);
-                return eventEmitter.emit('error', new EventTransactionError(err));
-        }
-        */
-
         logger.debug(String.format("peer.sendTransaction: received %s", response.getMsg().toStringUtf8()));
+        return response;
 
         // Check transaction type here, as invoke is an asynchronous call,
         // whereas a deploy and a query are synchonous calls. As such,

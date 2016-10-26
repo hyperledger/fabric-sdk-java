@@ -1,4 +1,3 @@
-
 /*
  *  Copyright 2016 DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
  *
@@ -13,35 +12,12 @@
  *  limitations under the License.
  */
 
-package org.hyperledger.fabric.sdk;
+package org.hyperledger.fabric.sdk.exception;
 
-import org.hyperledger.protos.Fabric;
+public class ChainCodeException extends BaseException {
 
-public class Transaction {
-
-	private Fabric.Transaction transaction;
-	private String chaincodeID;
-
-	public Transaction(Fabric.Transaction transaction, String chaincodeID) {
-		this.transaction = transaction;
-		this.chaincodeID = chaincodeID;
+	private static final long serialVersionUID = 1L;
+	public ChainCodeException(String message, Exception parent) {
+		super(message, parent);		
 	}
-
-	public Fabric.Transaction getTransaction() {
-		return transaction;
-	}
-
-	public void setTransaction(Fabric.Transaction transaction) {
-		this.transaction = transaction;
-	}
-
-	public String getChaincodeID() {
-		return chaincodeID;
-	}
-
-	public void setChaincodeID(String chaincodeID) {
-		this.chaincodeID = chaincodeID;
-	}
-
-
 }

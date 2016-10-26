@@ -1,3 +1,4 @@
+
 /*
  *  Copyright 2016 DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
  *
@@ -12,28 +13,35 @@
  *  limitations under the License.
  */
 
-package org.hyperledger.fabric.sdk;
+package org.hyperledger.fabric.sdk.transaction;
 
-import java.util.List;
+import org.hyperledger.protos.Fabric;
 
-/**
- * Invoke or query request.
- */
-public class InvokeOrQueryRequest extends TransactionRequest {
-    // Optionally pass a list of attributes which can be used by chaincode to perform access control
-    private List<String> attributes;
+public class Transaction {
 
-	/**
-	 * @return the attributes
-	 */
-	public List<String> getAttributes() {
-		return attributes;
+	private Fabric.Transaction transaction;
+	private String chaincodeID;
+
+	public Transaction(Fabric.Transaction transaction, String chaincodeID) {
+		this.transaction = transaction;
+		this.chaincodeID = chaincodeID;
 	}
 
-	/**
-	 * @param attributes the attributes to set
-	 */
-	public void setAttributes(List<String> attributes) {
-		this.attributes = attributes;
+	public Fabric.Transaction getTransaction() {
+		return transaction;
 	}
+
+	public void setTransaction(Fabric.Transaction transaction) {
+		this.transaction = transaction;
+	}
+
+	public String getChaincodeID() {
+		return chaincodeID;
+	}
+
+	public void setChaincodeID(String chaincodeID) {
+		this.chaincodeID = chaincodeID;
+	}
+
+
 }

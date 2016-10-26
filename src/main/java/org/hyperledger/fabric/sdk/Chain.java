@@ -18,7 +18,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric.sdk.exception.NoValidPeerException;
+import org.hyperledger.fabric.sdk.exception.PeerException;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
+import org.hyperledger.fabric.sdk.transaction.Transaction;
+import org.hyperledger.protos.Fabric.Response;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
 
 import java.security.cert.CertificateException;
@@ -316,39 +319,20 @@ public class Chain {
      * Send a transaction to a peer.
      * @param tx The transaction
      */
-    void sendTransaction(Transaction tx) {
+    public Response sendTransaction(Transaction tx) {
         if (this.peers.isEmpty()) {
             throw new NoValidPeerException(String.format("chain %s has no peers", getName()));
         }
 
         for(Peer peer : peers) {
-        	peer.sendTransaction(tx);
+        	try {
+        		return peer.sendTransaction(tx);
+        	} catch(Exception exp) {
+        		logger.info(String.format("Failed sending transaction to peer:%s", exp.getMessage()));
+        	}
         }
-        /*TODO implement sendTransaction
-        let trySendTransaction = (pidx) => {
-	       if( pidx >= peers.length ) {
-		      eventEmitter.emit('error', new EventTransactionError("None of "+peers.length+" peers reponding"));
-		      return;
-	       }
-	       let p = urlParser.parse(peers[pidx].getUrl());
-	       let client = new net.Socket();
-	       let tryNext = () => {
-		      debug("Skipping unresponsive peer "+peers[pidx].getUrl());
-		      client.destroy();
-		      trySendTransaction(pidx+1);
-	       }
-	       client.on('timeout', tryNext);
-	       client.on('error', tryNext);
-	       client.connect(p.port, p.hostname, () => {
-		   if( pidx > 0  &&  peers === this.peers )
-		      this.peers = peers.slice(pidx).concat(peers.slice(0,pidx));
-		   client.destroy();
-		   peers[pidx].sendTransaction(tx, eventEmitter);
-	    });
-		}
-		trySendTransaction(0);
-    	}
-    */
+
+        throw new RuntimeException("No peer available to respond");
     }
 
 }

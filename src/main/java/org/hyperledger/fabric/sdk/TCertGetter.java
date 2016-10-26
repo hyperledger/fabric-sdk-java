@@ -15,6 +15,7 @@
 package org.hyperledger.fabric.sdk;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Stack;
 
 // A class to get TCerts.
@@ -23,7 +24,7 @@ public class TCertGetter {
 
     private Chain chain;
     private Member member;
-    private ArrayList<String> attrs;
+    private List<String> attrs;
     private String key;
     private MemberServices memberServices;
     private Stack<TCert> tcerts;
@@ -38,7 +39,7 @@ public class TCertGetter {
     * @param cfg {string | RegistrationRequest} The member name or registration request.
     * @returns {Member} A member who is neither registered nor enrolled.
     */
-    public TCertGetter(Member member, ArrayList<String> attrs, String key) {
+    public TCertGetter(Member member, List<String> attrs, String key) {
         this.member = member;
         this.attrs = attrs;
         this.key = key;
