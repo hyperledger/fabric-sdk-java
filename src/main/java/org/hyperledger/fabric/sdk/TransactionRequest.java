@@ -36,7 +36,8 @@ public class TransactionRequest {
     private Certificate userCert;
     // Optionally provide additional metadata
     private byte[] metadata;
-
+    // Chaincode language
+    private ChaincodeLanguage chaincodeLanguage = ChaincodeLanguage.GO_LANG;
 
 	public String getChaincodePath() {
 		return null == chaincodePath ? "" : chaincodePath;
@@ -85,5 +86,11 @@ public class TransactionRequest {
 	}
 	public void setMetadata(byte[] metadata) {
 		this.metadata = metadata;
+	}
+	public ChaincodeLanguage getChaincodeLanguage() {
+		return chaincodeLanguage;
+	}
+	public void setChaincodeLanguage(ChaincodeLanguage chaincodeLanguage) {
+		this.chaincodeLanguage = chaincodeLanguage;
 	}
 }
