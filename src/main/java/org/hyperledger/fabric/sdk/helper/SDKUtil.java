@@ -60,18 +60,12 @@ public class SDKUtil {
 		logger.debug(String.format("GenerateParameterHash : path=%s, func=%s, args=%s", path, func, args));
 
 		// Append the arguments
-		String argStr = "";
-		for (String arg : args) {
-			argStr += arg;
-		}
-
-		// Append the path + function + arguments
-		String str = path + func + argStr;
-		logger.debug("str: " + str);
+		StringBuilder param = new StringBuilder(path);
+		param.append(func);
+		args.forEach(param::append);
 
 		// Compute the hash
-		String strHash = Hex.toHexString(hash(str.getBytes(), new SHA3Digest()));
-		logger.debug("strHash: " + strHash);
+		String strHash = Hex.toHexString(hash(param.toString().getBytes(), new SHA3Digest()));
 
 		return strHash;
 	}
@@ -86,40 +80,39 @@ public class SDKUtil {
 	 */
 	public static String generateDirectoryHash(String rootDir, String chaincodeDir, String hash) throws IOException {
 		// Generate the project directory
-		String projectDir = combinePaths(rootDir, chaincodeDir);
+		Path projectPath = null;
+		if (rootDir == null) {
+			projectPath = Paths.get(chaincodeDir);
+		} else {
+			projectPath = Paths.get(rootDir, chaincodeDir);
+		}
 
-		// Read in the contents of the current directory
-		File dir = new File(projectDir);
+		File dir = projectPath.toFile();
 		if (!dir.exists() || !dir.isDirectory()) {
-			throw new IOException(String.format("The chaincode path \"%s\" is invalid", projectDir));
+			throw new IOException(String.format("The chaincode path \"%s\" is invalid", projectPath));
 		}
 
-		File[] dirContents = dir.listFiles();
-		if (dirContents == null || dirContents.length == 0) {
-			throw new IOException(String.format("The chaincode directory \"%s\" has no files", projectDir));
+		StringBuilder hashBuilder = new StringBuilder(hash);
+		Files.walk(projectPath)
+			.sorted(Comparator.naturalOrder())
+			.filter(Files::isRegularFile)
+			.map(Path::toFile)
+			.forEach(file->{
+				try {
+					byte[] buf = readFile(file);
+					byte[] toHash = Arrays.concatenate(buf, hashBuilder.toString().getBytes());
+					hashBuilder.setLength(0);
+					hashBuilder.append(Hex.toHexString(hash(toHash, new SHA3Digest())));
+				} catch(IOException ex) {
+					throw new RuntimeException(String.format("Error while reading file %s", file.getAbsolutePath()), ex);
+				}
+			});
+
+		// If original hash and final hash are the same, it indicates that no new contents were found
+		if (hashBuilder.toString().equals(hash)) {
+			throw new IOException(String.format("The chaincode directory \"%s\" has no files", projectPath));
 		}
-
-		// Go through all entries in the projet directory
-		for (File file : dirContents) {
-			// Check whether the entry is a file or a directory
-			if (file.isDirectory()) {
-				// If the entry is a directory, call the function recursively.
-
-				hash = generateDirectoryHash(rootDir, combinePaths(chaincodeDir, file.getName()), hash);
-			} else {
-				// If the entry is a file, read it in and add the contents to
-				// the hash string
-
-				// Read in the file as buffer
-				byte[] buf = readFile(file);
-				// Update the value to be hashed with the file content
-				byte[] toHash = Arrays.concatenate(buf, hash.getBytes());
-				// Update the value of the hash
-				hash = Hex.toHexString(hash(toHash, new SHA3Digest()));
-			}
-		}
-
-		return hash;
+		return hashBuilder.toString();
 	}
 
 	/**
