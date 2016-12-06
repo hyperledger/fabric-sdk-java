@@ -20,14 +20,15 @@ import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.sdk.ChaincodeLanguage;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.DeploymentException;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
 import org.hyperledger.protos.Chaincode;
-import org.hyperledger.protos.Fabric;
 
 import com.google.common.io.Files;
 
 import io.netty.util.internal.StringUtil;
+import org.hyperledger.protos.Fabric;
 
 public class DeployTransactionBuilder extends TransactionBuilder {
 
@@ -41,18 +42,18 @@ public class DeployTransactionBuilder extends TransactionBuilder {
 
 	@Override
 	public Transaction build() {
-		if (chain == null || request == null) {
+		if (context == null || context.getChain() == null || request == null) {
 			throw new IllegalArgumentException("Must provide request and chain before attempting to call build()");
 		}
 
 		try {
-			return chain.isDevMode()? createDevModeTransaction(): createNetModeTransaction();
-		} catch(IOException exp) {
-			throw new DeploymentException("IO Error while creating deploy transaction", exp);
+			return context.getChain().isDevMode()? createDevModeTransaction(): createNetModeTransaction();
+		} catch(IOException | CryptoException exp) {
+			throw new DeploymentException("Error while creating deploy transaction", exp);
 		}
 	}
 
-	private Transaction createDevModeTransaction() {
+	private Transaction createDevModeTransaction() throws CryptoException, IOException {
 		logger.debug("newDevModeTransaction");
 
 		// Verify that chaincodeName is being passed
@@ -61,16 +62,16 @@ public class DeployTransactionBuilder extends TransactionBuilder {
 		}
 
 		// create transaction
-		Fabric.Transaction tx = createTransactionBuilder(
+		Fabric.Transaction.Builder txBuilder = createTransactionBuilder(
 				request.getChaincodeLanguage() == ChaincodeLanguage.GO_LANG ? Chaincode.ChaincodeSpec.Type.GOLANG
 						: Chaincode.ChaincodeSpec.Type.JAVA,
 				Fabric.Transaction.Type.CHAINCODE_DEPLOY, request.getChaincodeName(), request.getArgs(), null,
-				request.getChaincodeName(), request.getChaincodePath()).build();
+				request.getChaincodeName(), request.getChaincodePath());
 
-		return new Transaction(tx, request.getChaincodeName());
+		return new Transaction(txBuilder, request.getChaincodeName());
 	}
 
-	private Transaction createNetModeTransaction() throws IOException {
+	private Transaction createNetModeTransaction() throws IOException, CryptoException {
 		logger.debug("newNetModeTransaction");
 
 		// Verify that chaincodePath is being passed
@@ -138,11 +139,10 @@ public class DeployTransactionBuilder extends TransactionBuilder {
 		SDKUtil.deleteFileOrDirectory(new File(dockerFilePath));
 
 		// create transaction
-		Fabric.Transaction tx = createTransactionBuilder(ccType,
-				Fabric.Transaction.Type.CHAINCODE_DEPLOY, hash, request.getArgs(), data, SDKUtil.generateUUID(), null)
-				.build();
+		Fabric.Transaction.Builder txBuilder = createTransactionBuilder(ccType,
+				Fabric.Transaction.Type.CHAINCODE_DEPLOY, hash, request.getArgs(), data, SDKUtil.generateUUID(), null);
 
-		return new Transaction(tx, hash);
+		return new Transaction(txBuilder, hash);
 	}
 
 	private String getDockerFileContents(ChaincodeLanguage lang) throws IOException {

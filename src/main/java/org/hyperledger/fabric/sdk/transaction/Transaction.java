@@ -19,20 +19,20 @@ import org.hyperledger.protos.Fabric;
 
 public class Transaction {
 
-	private Fabric.Transaction transaction;
+	private Fabric.Transaction.Builder txBuilder;
 	private String chaincodeID;
 
-	public Transaction(Fabric.Transaction transaction, String chaincodeID) {
-		this.transaction = transaction;
+	public Transaction(Fabric.Transaction.Builder txBuilder, String chaincodeID) {
+		this.txBuilder = txBuilder;
 		this.chaincodeID = chaincodeID;
 	}
 
-	public Fabric.Transaction getTransaction() {
-		return transaction;
+	public Fabric.Transaction.Builder getTxBuilder() {
+		return txBuilder;
 	}
 
-	public void setTransaction(Fabric.Transaction transaction) {
-		this.transaction = transaction;
+	public void setTxBuilder(Fabric.Transaction.Builder txBuilder) {
+		this.txBuilder = txBuilder;
 	}
 
 	public String getChaincodeID() {

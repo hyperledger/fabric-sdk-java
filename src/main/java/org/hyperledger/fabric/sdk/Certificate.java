@@ -14,17 +14,28 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.security.PrivateKey;
+
 // The base Certificate class
 public class Certificate {
-	private Object cert;
+    private byte[] cert;
+    private PrivateKey privateKey;
+    private PrivacyLevel privLevel;
 
-	public Certificate(Object cert,
-                Object privateKey,
+    public Certificate(byte[] cert,
+                PrivateKey privateKey,
                 /** Denoting if the Certificate is anonymous or carrying its owner's identity. */
-                PrivacyLevel privLevel) {  // TODO: privLevel not currently used?
+                PrivacyLevel privLevel) {
+        this.cert = cert;
+        this.privateKey = privateKey;
+        this.privLevel = privLevel;
     }
 
-    public Object encode() {
+    public byte[] getCert() {
         return this.cert;
+    }
+
+    public PrivateKey getPrivateKey() {
+        return this.privateKey;
     }
 }

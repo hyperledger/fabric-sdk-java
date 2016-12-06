@@ -15,7 +15,10 @@
 package org.hyperledger.fabric.sdk;
 
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
+import org.hyperledger.fabric.sdk.exception.GetTCertBatchException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
+
+import java.util.List;
 
 public interface MemberServices {
 
@@ -63,6 +66,6 @@ public interface MemberServices {
      * Get an array of transaction certificates (tcerts).
      * @param req A GetTCertBatchRequest
      */
-    void getTCertBatch(GetTCertBatchRequest req);
+    List<TCert> getTCertBatch(GetTCertBatchRequest req) throws GetTCertBatchException;
 
 }

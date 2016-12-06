@@ -14,12 +14,14 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.security.PrivateKey;
+
 /**
  * Enrollment certificate.
  */
 public class ECert extends Certificate {
 
-    public ECert(Object cert, Object privateKey) {
+    public ECert(byte[] cert, PrivateKey privateKey) {
         super(cert, privateKey, PrivacyLevel.Nominal);
     }
 

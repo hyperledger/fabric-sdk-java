@@ -71,7 +71,7 @@ public class Peer {
         // Send the transaction to the peer node via grpc
         // The rpc specification on the peer side is:
         //     rpc ProcessTransaction(Transaction) returns (Response) {}
-        Response response = peerClient.processTransaction(transaction.getTransaction());
+        Response response = peerClient.processTransaction(transaction.getTxBuilder().build());
 
         logger.debug(String.format("peer.sendTransaction: received %s", response.getMsg().toStringUtf8()));
         return response;

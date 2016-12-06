@@ -21,7 +21,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,13 +28,13 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.util.encoders.Hex;
-import org.hyperledger.fabric.sdk.exception.DeploymentException;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric.sdk.exception.ChainCodeException;
+import org.hyperledger.fabric.sdk.exception.NoAvailableTCertException;
 import org.hyperledger.fabric.sdk.exception.NoValidPeerException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
-import org.hyperledger.protos.Fabric;
 
 import io.netty.util.internal.StringUtil;
 
@@ -240,9 +239,9 @@ public class Member implements Serializable {
      * Issue a deploy request on behalf of this member
      * @param deployRequest {@link DeployRequest}
      * @return {@link ChainCodeResponse} response to chain code deploy transaction
-     * @throws DeploymentException if the deployment fails.
+     * @throws ChainCodeException if the deployment fails.
      */
-    public ChainCodeResponse deploy(DeployRequest deployRequest) throws DeploymentException {
+    public ChainCodeResponse deploy(DeployRequest deployRequest) throws ChainCodeException, NoAvailableTCertException, CryptoException, IOException {
         logger.debug("Member.deploy");
 
         if (getChain().getPeers().isEmpty()) {
@@ -258,7 +257,7 @@ public class Member implements Serializable {
      * @param invokeRequest {@link InvokeRequest}
      * @throws ChainCodeException if the chain code invocation fails
      */
-    public ChainCodeResponse invoke(InvokeRequest invokeRequest) throws ChainCodeException {
+    public ChainCodeResponse invoke(InvokeRequest invokeRequest) throws ChainCodeException, NoAvailableTCertException, CryptoException, IOException {
         logger.debug("Member.invoke");
 
         if (getChain().getPeers().isEmpty()) {
@@ -274,7 +273,7 @@ public class Member implements Serializable {
      * @param queryRequest {@link QueryRequest}
      * @throws ChainCodeException if the query transaction fails
      */
-    public ChainCodeResponse query(QueryRequest queryRequest) throws ChainCodeException {
+    public ChainCodeResponse query(QueryRequest queryRequest) throws ChainCodeException, NoAvailableTCertException, CryptoException, IOException {
         logger.debug("Member.query");
 
         if (getChain().getPeers().isEmpty()) {
@@ -304,28 +303,24 @@ public class Member implements Serializable {
     }
 
     /**
-   * Get the next available transaction certificate with the appropriate attributes.
-   */
-   public TCert getNextTCert(List<String> attrs) {
-	if (!isEnrolled()) {
-            throw new RuntimeException(String.format("user '%s' is not enrolled",this.getName()));
+     * Get the next available transaction certificate with the appropriate attributes.
+     */
+    public TCert getNextTCert(List<String> attrs) {
+        if (!isEnrolled()) {
+            throw new RuntimeException(String.format("user '%s' is not enrolled", this.getName()));
         }
         String key = getAttrsKey(attrs);
-        if (key == null) {
-        	return null;
-        }
 
-        logger.debug(String.format("Member.getNextTCert: key=%s",key));
+        logger.debug(String.format("Member.getNextTCert: key=%s", key));
         TCertGetter tcertGetter = this.tcertGetterMap.get(key);
         if (tcertGetter == null) {
-            logger.debug(String.format("Member.getNextTCert: key=%s, creating new getter",key));
+            logger.debug(String.format("Member.getNextTCert: key=%s, creating new getter", key));
             tcertGetter = new TCertGetter(this, attrs, key);
             this.tcertGetterMap.put(key, tcertGetter);
         }
         return tcertGetter.getNextTCert();
+    }
 
-   }
-   
    private String getAttrsKey(List<String> attrs ) {
 	    if (attrs == null || attrs.isEmpty()) return null;
 	    return String.join(",", attrs);
