@@ -16,41 +16,33 @@ limitations under the License.
 
 syntax = "proto3";
 
-package shim;
-option java_package = "org.hyperledger.protos";
-option java_outer_classname = "TableProto";
-message ColumnDefinition {
-	string name = 1;
+option go_package = "github.com/hyperledger/fabric/protos/peer";
+
+package protos;
+
+// A Message encapsulates a payload of the indicated type in this message.
+message Message {
+
 	enum Type {
-    STRING = 0;
-		INT32 = 1;
-		INT64 = 2;
-		UINT32 = 3;
-		UINT64 = 4;
-		BYTES = 5;
-		BOOL = 6;
-  }
-	Type type = 2;
-	bool key = 3;
-}
 
-message Table {
-    string name = 1;
-    repeated ColumnDefinition columnDefinitions = 2;
-}
+	    // Undefined exists to prevent invalid message construction.
+	    UNDEFINED = 0;
 
-message Column {
-	oneof value {
-    string string = 1;
-    int32 int32 = 2;
-		int64 int64 = 3;
-		uint32 uint32 = 4;
-		uint64 uint64 = 5;
-		bytes bytes = 6;
-		bool bool = 7;
-  }
-}
+	    // Handshake messages.
+	    DISCOVERY = 1;
 
-message Row {
-	repeated Column columns = 1;
+	    // Sent to catch up with existing peers.
+	    SYNC = 2;
+	}
+
+	// Type of this message.
+	Type type = 1;
+
+	// Version indicates message protocol version.
+	int32 version = 2;
+
+	// The payload in this message. The way it should be unmarshaled
+	// depends in the type field
+	bytes payload = 3;
+
 }

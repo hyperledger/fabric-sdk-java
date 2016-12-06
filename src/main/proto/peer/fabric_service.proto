@@ -13,15 +13,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-syntax = "proto3";
-package protos;
-option java_package = "org.hyperledger.protos";
 
-//ChaincodeEvent is used for events and registrations that are specific to chaincode
-//string type - "chaincode"
-message ChaincodeEvent {
-      string chaincodeID = 1;
-      string txID = 2;
-      string eventName = 3;
-      bytes payload = 4;
+syntax = "proto3";
+
+option go_package = "github.com/hyperledger/fabric/protos/peer";
+
+package protos;
+
+import "peer/fabric_proposal.proto";
+import "peer/fabric_proposal_response.proto";
+
+service Endorser {
+	rpc ProcessProposal(SignedProposal) returns (ProposalResponse) {}
 }
