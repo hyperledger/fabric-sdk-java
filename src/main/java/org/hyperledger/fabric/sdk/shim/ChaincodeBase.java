@@ -29,11 +29,11 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.hyperledger.protos.Chaincode.ChaincodeID;
-import org.hyperledger.protos.Chaincode.ChaincodeMessage;
-import org.hyperledger.protos.Chaincode.ChaincodeMessage.Type;
-import org.hyperledger.protos.ChaincodeSupportGrpc;
-import org.hyperledger.protos.ChaincodeSupportGrpc.ChaincodeSupportStub;
+import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID;
+import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeMessage;
+import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeMessage.Type;
+import org.hyperledger.fabric.protos.peer.ChaincodeSupportGrpc;
+import org.hyperledger.fabric.protos.peer.ChaincodeSupportGrpc.ChaincodeSupportStub;
 
 import javax.net.ssl.SSLException;
 import java.io.File;

@@ -6,6 +6,8 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="src" path="src/main/generated/grpc-java"/>
+	<classpathentry kind="src" path="src/main/generated/java"/>
 	<classpathentry kind="src" output="target/classes" path="target/generated-sources/protobuf/java">
 		<attributes>
 			<attribute name="optional" value="true"/>

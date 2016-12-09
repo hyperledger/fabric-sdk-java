@@ -14,27 +14,16 @@
 
 package org.hyperledger.fabric.sdk;
 
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Timestamp;
-import io.netty.util.internal.StringUtil;
+import java.security.cert.CertificateException;
+import java.util.ArrayList;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.util.encoders.Hex;
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
-import org.hyperledger.protos.*;
-import org.hyperledger.protos.Ca.*;
-import org.hyperledger.protos.ECAAGrpc.ECAABlockingStub;
-import org.hyperledger.protos.ECAPGrpc.ECAPBlockingStub;
-import org.hyperledger.protos.TCAPGrpc.TCAPBlockingStub;
-import org.hyperledger.protos.TLSCAPGrpc.TLSCAPBlockingStub;
 
-import java.security.KeyPair;
-import java.security.PrivateKey;
-import java.security.cert.CertificateException;
-import java.util.ArrayList;
+import io.netty.util.internal.StringUtil;
 
 /**
  * MemberServicesImpl is the default implementation of a member services client.
@@ -42,10 +31,10 @@ import java.util.ArrayList;
 public class MemberServicesImpl implements MemberServices {
 	private static final Log logger = LogFactory.getLog(MemberServices.class);
 
-    private ECAABlockingStub ecaaClient;
-    private ECAPBlockingStub ecapClient;
-    private TCAPBlockingStub tcapClient;
-    private TLSCAPBlockingStub tlscapClient;
+//    private ECAABlockingStub ecaaClient;
+//    private ECAPBlockingStub ecapClient;
+//    private TCAPBlockingStub tcapClient;
+//    private TLSCAPBlockingStub tlscapClient;
     private CryptoPrimitives cryptoPrimitives;
 
     private int DEFAULT_SECURITY_LEVEL = 256;
@@ -61,10 +50,10 @@ public class MemberServicesImpl implements MemberServices {
     public MemberServicesImpl(String url, String pem) throws CertificateException {
     	Endpoint ep = new Endpoint(url, pem);
 
-    	this.ecaaClient = ECAAGrpc.newBlockingStub(ep.getChannelBuilder().build());
-    	this.ecapClient = ECAPGrpc.newBlockingStub(ep.getChannelBuilder().build());
-    	this.tcapClient = TCAPGrpc.newBlockingStub(ep.getChannelBuilder().build());
-    	this.tlscapClient = TLSCAPGrpc.newBlockingStub(ep.getChannelBuilder().build());
+//    	this.ecaaClient = ECAAGrpc.newBlockingStub(ep.getChannelBuilder().build());
+//    	this.ecapClient = ECAPGrpc.newBlockingStub(ep.getChannelBuilder().build());
+//    	this.tcapClient = TCAPGrpc.newBlockingStub(ep.getChannelBuilder().build());
+//    	this.tlscapClient = TLSCAPGrpc.newBlockingStub(ep.getChannelBuilder().build());
     	this.cryptoPrimitives = new CryptoPrimitives(DEFAULT_HASH_ALGORITHM, DEFAULT_SECURITY_LEVEL);
 
     }
@@ -119,40 +108,41 @@ public class MemberServicesImpl implements MemberServices {
     		throw new IllegalArgumentException("Registrar should be a valid member");
     	}
 
+    	return ""; //TODO remove 
 
-    	Registrar reg = Registrar.newBuilder()
-    			.setId(
-    					Identity.newBuilder()
-    					.setId(registrar.getName())
-    					.build())
-    			.build(); //TODO: set Roles and Delegate Roles
-
-    	RegisterUserReq.Builder regReqBuilder = RegisterUserReq.newBuilder();
-    	regReqBuilder.setId(
-    					Identity.newBuilder()
-    					.setId(req.getEnrollmentID())
-    					.build());
-    	regReqBuilder.setRoleValue(rolesToMask(req.getRoles()));
-    	regReqBuilder.setAffiliation(req.getAffiliation());
-    	regReqBuilder.setRegistrar(reg);
-
-    	RegisterUserReq registerReq = regReqBuilder.build();
-    	byte[] buffer = registerReq.toByteArray();
-
-    	try {
-			PrivateKey signKey = cryptoPrimitives.ecdsaKeyFromPrivate(Hex.decode(registrar.getEnrollment().getKey()));
-	    	logger.debug("Retreived private key");
-			byte[][] signature = cryptoPrimitives.ecdsaSign(signKey, buffer);
-	    	logger.debug("Signed the request with key");
-			Signature sig = Signature.newBuilder().setType(CryptoType.ECDSA).setR(ByteString.copyFrom(signature[0])).setS(ByteString.copyFrom(signature[1])).build();
-			regReqBuilder.setSig(sig);
-	    	logger.debug("Now sendingt register request");
-			Token token = this.ecaaClient.registerUser(regReqBuilder.build());
-			return token.getTok().toStringUtf8();
-
-		} catch (Exception e) {
-			throw new RegistrationException("Error while registering the user", e);
-		}
+//    	Registrar reg = Registrar.newBuilder()
+//    			.setId(
+//    					Identity.newBuilder()
+//    					.setId(registrar.getName())
+//    					.build())
+//    			.build(); //TODO: set Roles and Delegate Roles
+//
+//    	RegisterUserReq.Builder regReqBuilder = RegisterUserReq.newBuilder();
+//    	regReqBuilder.setId(
+//    					Identity.newBuilder()
+//    					.setId(req.getEnrollmentID())
+//    					.build());
+//    	regReqBuilder.setRoleValue(rolesToMask(req.getRoles()));
+//    	regReqBuilder.setAffiliation(req.getAffiliation());
+//    	regReqBuilder.setRegistrar(reg);
+//
+//    	RegisterUserReq registerReq = regReqBuilder.build();
+//    	byte[] buffer = registerReq.toByteArray();
+//
+//    	try {
+//			PrivateKey signKey = cryptoPrimitives.ecdsaKeyFromPrivate(Hex.decode(registrar.getEnrollment().getKey()));
+//	    	logger.debug("Retreived private key");
+//			byte[][] signature = cryptoPrimitives.ecdsaSign(signKey, buffer);
+//	    	logger.debug("Signed the request with key");
+//			Signature sig = Signature.newBuilder().setType(CryptoType.ECDSA).setR(ByteString.copyFrom(signature[0])).setS(ByteString.copyFrom(signature[1])).build();
+//			regReqBuilder.setSig(sig);
+//	    	logger.debug("Now sendingt register request");
+//			Token token = this.ecaaClient.registerUser(regReqBuilder.build());
+//			return token.getTok().toStringUtf8();
+//
+//		} catch (Exception e) {
+//			throw new RegistrationException("Error while registering the user", e);
+//		}
 
     }
 
@@ -161,65 +151,65 @@ public class MemberServicesImpl implements MemberServices {
      * @param req Enrollment request with the following fields: name, enrollmentSecret
      * @return enrollment
      */
-    public Enrollment enroll(EnrollmentRequest req) throws EnrollmentException {
-
-
-        logger.debug(String.format("[MemberServicesImpl.enroll] [%s]", req));
-        if (StringUtil.isNullOrEmpty(req.getEnrollmentID())) { throw new RuntimeException("req.enrollmentID is not set");}
-        if (StringUtil.isNullOrEmpty(req.getEnrollmentSecret())) { throw new RuntimeException("req.enrollmentSecret is not set");}
-
-        logger.debug("[MemberServicesImpl.enroll] Generating keys...");
-
-        try {
-	        // generate ECDSA keys: signing and encryption keys
-	        KeyPair signingKeyPair = cryptoPrimitives.ecdsaKeyGen();
-	        KeyPair encryptionKeyPair = cryptoPrimitives.ecdsaKeyGen();
-
-	        logger.debug("[MemberServicesImpl.enroll] Generating keys...done!");
-
-	        // create the proto message
-	        ECertCreateReq.Builder eCertCreateRequestBuilder = ECertCreateReq.newBuilder()
-	        		.setTs(Timestamp.newBuilder().setSeconds(new java.util.Date().getTime()))
-	        		.setId(Identity.newBuilder()
-	    					.setId(req.getEnrollmentID())
-	    					.build())
-	        		.setTok(Token.newBuilder().setTok(ByteString.copyFrom(req.getEnrollmentSecret(), "UTF8")))
-	        		.setSign(PublicKey.newBuilder().setKey(ByteString.copyFrom(signingKeyPair.getPublic().getEncoded())).setType(CryptoType.ECDSA))
-	        		.setEnc(PublicKey.newBuilder().setKey(ByteString.copyFrom(encryptionKeyPair.getPublic().getEncoded())).setType(CryptoType.ECDSA));
-
-	        ECertCreateResp eCertCreateResp = this.ecapClient.createCertificatePair(eCertCreateRequestBuilder.build());
-
-	        byte[] cipherText = eCertCreateResp.getTok().getTok().toByteArray();
-            byte[] decryptedTokBytes = cryptoPrimitives.eciesDecrypt(encryptionKeyPair, cipherText);
-
-            eCertCreateRequestBuilder = eCertCreateRequestBuilder
-            		.setTok(Token.newBuilder().setTok(ByteString.copyFrom(decryptedTokBytes)));
-
-            ECertCreateReq certReq = eCertCreateRequestBuilder.buildPartial();
-            byte[] buf = certReq.toByteArray();
-
-            byte[][] sig = cryptoPrimitives.ecdsaSign(signingKeyPair.getPrivate(), buf);
-            Signature protoSig = Signature.newBuilder().setType(CryptoType.ECDSA).setR(ByteString.copyFrom(sig[0])).setS(ByteString.copyFrom(sig[1])).build();
-            eCertCreateRequestBuilder = eCertCreateRequestBuilder.setSig(protoSig);
-
-            eCertCreateResp = ecapClient.createCertificatePair(eCertCreateRequestBuilder.build());
-
-            logger.debug("[MemberServicesImpl.enroll] eCertCreateResp : [%s]" + eCertCreateResp.toByteString());
-
-            Enrollment enrollment = new Enrollment();
-            enrollment.setKey(Hex.toHexString(signingKeyPair.getPrivate().getEncoded()));
-            enrollment.setCert(Hex.toHexString(eCertCreateResp.getCerts().getSign().toByteArray()));
-            enrollment.setChainKey(Hex.toHexString(eCertCreateResp.getPkchain().toByteArray()));
-
-            logger.debug("Enrolled successfully: "+enrollment);
-            return enrollment;
-
-        } catch (Exception e) {
-			throw new EnrollmentException("Failed to enroll user", e);
-		}
-
-
-    }
+//    public Enrollment enroll(EnrollmentRequest req) throws EnrollmentException {
+//
+//
+//        logger.debug(String.format("[MemberServicesImpl.enroll] [%s]", req));
+//        if (StringUtil.isNullOrEmpty(req.getEnrollmentID())) { throw new RuntimeException("req.enrollmentID is not set");}
+//        if (StringUtil.isNullOrEmpty(req.getEnrollmentSecret())) { throw new RuntimeException("req.enrollmentSecret is not set");}
+//
+//        logger.debug("[MemberServicesImpl.enroll] Generating keys...");
+//
+//        try {
+//	        // generate ECDSA keys: signing and encryption keys
+//	        KeyPair signingKeyPair = cryptoPrimitives.ecdsaKeyGen();
+//	        KeyPair encryptionKeyPair = cryptoPrimitives.ecdsaKeyGen();
+//
+//	        logger.debug("[MemberServicesImpl.enroll] Generating keys...done!");
+//
+//	        // create the proto message
+//	        ECertCreateReq.Builder eCertCreateRequestBuilder = ECertCreateReq.newBuilder()
+//	        		.setTs(Timestamp.newBuilder().setSeconds(new java.util.Date().getTime()))
+//	        		.setId(Identity.newBuilder()
+//	    					.setId(req.getEnrollmentID())
+//	    					.build())
+//	        		.setTok(Token.newBuilder().setTok(ByteString.copyFrom(req.getEnrollmentSecret(), "UTF8")))
+//	        		.setSign(PublicKey.newBuilder().setKey(ByteString.copyFrom(signingKeyPair.getPublic().getEncoded())).setType(CryptoType.ECDSA))
+//	        		.setEnc(PublicKey.newBuilder().setKey(ByteString.copyFrom(encryptionKeyPair.getPublic().getEncoded())).setType(CryptoType.ECDSA));
+//
+//	        ECertCreateResp eCertCreateResp = this.ecapClient.createCertificatePair(eCertCreateRequestBuilder.build());
+//
+//	        byte[] cipherText = eCertCreateResp.getTok().getTok().toByteArray();
+//            byte[] decryptedTokBytes = cryptoPrimitives.eciesDecrypt(encryptionKeyPair, cipherText);
+//
+//            eCertCreateRequestBuilder = eCertCreateRequestBuilder
+//            		.setTok(Token.newBuilder().setTok(ByteString.copyFrom(decryptedTokBytes)));
+//
+//            ECertCreateReq certReq = eCertCreateRequestBuilder.buildPartial();
+//            byte[] buf = certReq.toByteArray();
+//
+//            byte[][] sig = cryptoPrimitives.ecdsaSign(signingKeyPair.getPrivate(), buf);
+//            Signature protoSig = Signature.newBuilder().setType(CryptoType.ECDSA).setR(ByteString.copyFrom(sig[0])).setS(ByteString.copyFrom(sig[1])).build();
+//            eCertCreateRequestBuilder = eCertCreateRequestBuilder.setSig(protoSig);
+//
+//            eCertCreateResp = ecapClient.createCertificatePair(eCertCreateRequestBuilder.build());
+//
+//            logger.debug("[MemberServicesImpl.enroll] eCertCreateResp : [%s]" + eCertCreateResp.toByteString());
+//
+//            Enrollment enrollment = new Enrollment();
+//            enrollment.setKey(Hex.toHexString(signingKeyPair.getPrivate().getEncoded()));
+//            enrollment.setCert(Hex.toHexString(eCertCreateResp.getCerts().getSign().toByteArray()));
+//            enrollment.setChainKey(Hex.toHexString(eCertCreateResp.getPkchain().toByteArray()));
+//
+//            logger.debug("Enrolled successfully: "+enrollment);
+//            return enrollment;
+//
+//        } catch (Exception e) {
+//			throw new EnrollmentException("Failed to enroll user", e);
+//		}
+//
+//
+//    }
 
     /**
      *
@@ -273,9 +263,9 @@ public class MemberServicesImpl implements MemberServices {
     /**
      * Process a batch of tcerts after having retrieved them from the TCA.
      */
-    private Ca.TCert[] processTCertBatch(GetTCertBatchRequest req, Object resp) {
+//    private Ca.TCert[] processTCertBatch(GetTCertBatchRequest req, Object resp) {
 
-    	return null;
+//    	return null;
 
     	/* TODO implement processTCertBatch
         //
@@ -339,7 +329,7 @@ public class MemberServicesImpl implements MemberServices {
         return tCertBatch;
         */
 
-    } // end processTCertBatch
+ //   } // end processTCertBatch
 
     /*
      *  Convert a list of member type names to the role mask currently used by the peer
@@ -368,5 +358,11 @@ public class MemberServicesImpl implements MemberServices {
         if (mask == 0) mask = 1;  // Client
         return mask;
     }
+
+	@Override
+	public Enrollment enroll(EnrollmentRequest req) throws EnrollmentException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
 

@@ -22,8 +22,7 @@ import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.sdk.ChaincodeLanguage;
 import org.hyperledger.fabric.sdk.exception.DeploymentException;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
-import org.hyperledger.protos.Chaincode;
-import org.hyperledger.protos.Fabric;
+import org.hyperledger.fabric.protos.peer.Chaincode;
 
 import com.google.common.io.Files;
 
@@ -60,14 +59,15 @@ public class DeployTransactionBuilder extends TransactionBuilder {
 			throw new RuntimeException("[DevMode] Missing chaincodeName in DeployRequest");
 		}
 
-		// create transaction
-		Fabric.Transaction tx = createTransactionBuilder(
-				request.getChaincodeLanguage() == ChaincodeLanguage.GO_LANG ? Chaincode.ChaincodeSpec.Type.GOLANG
-						: Chaincode.ChaincodeSpec.Type.JAVA,
-				Fabric.Transaction.Type.CHAINCODE_DEPLOY, request.getChaincodeName(), request.getArgs(), null,
-				request.getChaincodeName(), request.getChaincodePath()).build();
-
-		return new Transaction(tx, request.getChaincodeName());
+		//TODO  create transaction
+//		Fabric.Proposal tx = createTransactionBuilder(
+//				request.getChaincodeLanguage() == ChaincodeLanguage.GO_LANG ? Chaincode.ChaincodeSpec.Type.GOLANG
+//						: Chaincode.ChaincodeSpec.Type.JAVA,
+//				Fabric.Transaction.Type.CHAINCODE_DEPLOY, request.getChaincodeName(), request.getArgs(), null,
+//				request.getChaincodeName(), request.getChaincodePath()).build();
+//
+//		return new Transaction(tx, request.getChaincodeName());
+		return null; //TODO implement
 	}
 
 	private Transaction createNetModeTransaction() throws IOException {
@@ -137,12 +137,13 @@ public class DeployTransactionBuilder extends TransactionBuilder {
 		SDKUtil.deleteFileOrDirectory(new File(targzFilePath));
 		SDKUtil.deleteFileOrDirectory(new File(dockerFilePath));
 
-		// create transaction
-		Fabric.Transaction tx = createTransactionBuilder(ccType,
-				Fabric.Transaction.Type.CHAINCODE_DEPLOY, hash, request.getArgs(), data, SDKUtil.generateUUID(), null)
-				.build();
-
-		return new Transaction(tx, hash);
+		//TODO create transaction
+//		Fabric.Transaction tx = createTransactionBuilder(ccType,
+//				Fabric.Transaction.Type.CHAINCODE_DEPLOY, hash, request.getArgs(), data, SDKUtil.generateUUID(), null)
+//				.build();
+//
+//		return new Transaction(tx, hash);
+		return null; //TODO implement
 	}
 
 	private String getDockerFileContents(ChaincodeLanguage lang) throws IOException {

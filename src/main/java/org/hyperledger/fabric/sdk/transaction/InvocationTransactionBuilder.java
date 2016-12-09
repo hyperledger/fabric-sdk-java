@@ -3,8 +3,6 @@
  */
 package org.hyperledger.fabric.sdk.transaction;
 
-import org.hyperledger.protos.Fabric;
-
 public class InvocationTransactionBuilder extends QueryTransactionBuilder {
 
 	private InvocationTransactionBuilder() {
@@ -16,6 +14,7 @@ public class InvocationTransactionBuilder extends QueryTransactionBuilder {
 
 	@Override
 	public Transaction build() {
-		return build(Fabric.Transaction.Type.CHAINCODE_INVOKE);
+//		return build(Fabric.Transaction.Type.CHAINCODE_INVOKE);
+		return null;
 	}	
 }

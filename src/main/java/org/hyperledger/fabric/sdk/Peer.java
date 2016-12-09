@@ -18,7 +18,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.sdk.exception.PeerException;
 import org.hyperledger.fabric.sdk.transaction.Transaction;
-import org.hyperledger.protos.Fabric.Response;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse.Response;
 
 /**
  * The Peer class represents a peer to which SDK sends deploy, invoke, or query requests.
@@ -71,9 +71,9 @@ public class Peer {
         // Send the transaction to the peer node via grpc
         // The rpc specification on the peer side is:
         //     rpc ProcessTransaction(Transaction) returns (Response) {}
-        Response response = peerClient.processTransaction(transaction.getTransaction());
+        Response response = null; //TODO peerClient.processTransaction(transaction.getTransaction());
 
-        logger.debug(String.format("peer.sendTransaction: received %s", response.getMsg().toStringUtf8()));
+        //TODO logger.debug(String.format("peer.sendTransaction: received %s", response.getMsg().toStringUtf8()));
         return response;
 
         // Check transaction type here, as invoke is an asynchronous call,

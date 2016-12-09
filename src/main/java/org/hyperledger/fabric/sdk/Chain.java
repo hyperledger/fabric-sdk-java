@@ -14,20 +14,19 @@
 
 package org.hyperledger.fabric.sdk;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.hyperledger.fabric.sdk.exception.EnrollmentException;
-import org.hyperledger.fabric.sdk.exception.NoValidPeerException;
-import org.hyperledger.fabric.sdk.exception.PeerException;
-import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
-import org.hyperledger.fabric.sdk.transaction.Transaction;
-import org.hyperledger.protos.Fabric.Response;
-import org.hyperledger.fabric.sdk.exception.RegistrationException;
-
 import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.sdk.exception.EnrollmentException;
+import org.hyperledger.fabric.sdk.exception.NoValidPeerException;
+import org.hyperledger.fabric.sdk.exception.RegistrationException;
+import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
+import org.hyperledger.fabric.sdk.transaction.Transaction;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse.Response;
 
 /**
  * The class representing a chain with which the client SDK interacts.
