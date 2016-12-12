@@ -12,9 +12,12 @@
  *  limitations under the License.
  */
 
-package org.hyperledger.fabric.sdk;
+package org.hyperledger.fabric.sdk.transaction;
 
 import java.util.ArrayList;
+
+import org.hyperledger.fabric.sdk.Certificate;
+import org.hyperledger.fabric.sdk.ChaincodeLanguage;
 
 /**
  * A base transaction request common for DeployRequest, InvokeRequest, and QueryRequest.
@@ -24,8 +27,6 @@ public class TransactionRequest {
     private String chaincodePath;
     // The name identifier for the chaincode to deploy in development mode.
     private String chaincodeName;
-	// The chaincode ID as provided by the 'submitted' event emitted by a TransactionContext
-    private String chaincodeID;
     // The name of the function to invoke
     private String fcn;
     // The arguments to pass to the chaincode invocation
@@ -51,12 +52,7 @@ public class TransactionRequest {
 	public void setChaincodeName(String chaincodeName) {
 		this.chaincodeName = chaincodeName;
 	}
-	public String getChaincodeID() {
-		return chaincodeID;
-	}
-	public void setChaincodeID(String chaincodeID) {
-		this.chaincodeID = chaincodeID;
-	}
+	
 	public String getFcn() {
 		return fcn;
 	}

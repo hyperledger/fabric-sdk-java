@@ -20,15 +20,9 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.sdk.Chain;
-import org.hyperledger.fabric.sdk.ChainCodeResponse;
-import org.hyperledger.fabric.sdk.DeployRequest;
-import org.hyperledger.fabric.sdk.InvokeRequest;
 import org.hyperledger.fabric.sdk.Member;
 import org.hyperledger.fabric.sdk.MemberServices;
-import org.hyperledger.fabric.sdk.QueryRequest;
-import org.hyperledger.fabric.sdk.TCert;
-import org.hyperledger.fabric.sdk.exception.ChainCodeException;
-import org.hyperledger.fabric.sdk.exception.DeploymentException;;
+import org.hyperledger.fabric.sdk.TCert;;
 
 /**
  * A transaction context emits events 'submitted', 'complete', and 'error'.
@@ -98,144 +92,7 @@ public class TransactionContext  {
 */
     }
 
-    /**
-     * Issue a deploy transaction
-     * @param deployRequest {@link DeployRequest} A deploy request
-     * @return {@link ChainCodeResponse} response of deploy transaction
-     */
-    public ChainCodeResponse deploy(DeployRequest deployRequest) throws DeploymentException {
-        logger.debug(String.format("Received deploy request: %s", deployRequest));
-        
-       /* this.tcert = getMyTCert();
-        if (null == tcert) {
-//           logger.debug("Failed getting a new TCert [%s]", err);
-//           self.emitMyEvent("error", new EventTransactionError(err));
-        	throw new RuntimeException("Failed getting a new TCert");
-//           return self;
-         }
-
-         logger.debug("Got a TCert successfully, continue...");
-         */
-
-			Transaction transaction = DeployTransactionBuilder.newBuilder().chain(chain).request(deployRequest).build();
-
-			return null; //TODO
-//	        execute(transaction);
-//	        return new ChainCodeResponse(
-//	        		transaction.getTransaction().getTxid(),
-//	        		transaction.getChaincodeID(),
-//	        		Status.UNDEFINED, null);
-    }
-
-    /**
-     * Issue an invoke on chaincode
-     * @param invokeRequest {@link InvokeRequest} An invoke request
-     * @throws ChainCodeException 
-     */
-    public ChainCodeResponse invoke(InvokeRequest invokeRequest) throws ChainCodeException {        
-        logger.debug(String.format("Received invoke request: %s", invokeRequest));
-
-        // Get a TCert to use in the invoke transaction
-        setAttrs(invokeRequest.getAttributes());
-
-        /*TODO add error check
-        self.getMyTCert(function (err, tcert) {
-            if (err) {
-                logger.debug('Failed getting a new TCert [%s]', err);
-                self.emitMyEvent('error', new EventTransactionError(err));
-
-                return self;
-            }
-
-            logger.debug("Got a TCert successfully, continue...");
-		*/
-        Transaction transaction = InvocationTransactionBuilder.newBuilder().chain(chain).request(invokeRequest).build();
-
-        /*TODO add error check
-              if (err) {
-                logger.debug("Error in newInvokeOrQueryTransaction [%s]", err);
-                self.emitMyEvent('error', new EventTransactionError(err));
-
-                return self;
-              }
-
-              logger.debug("Calling TransactionContext.execute");
-
-              return self.execute(invokeTx);
-            });
-        });
-        return self;
-        */
-
-
-        return null; //TODO
-//        Fabric.Response response = execute(transaction);
-//        if (response.getStatus() == StatusCode.FAILURE) {
-//        	throw new ChainCodeException(response.getMsg().toStringUtf8(), null);
-//        }
-//        
-//        return new ChainCodeResponse(
-//        		transaction.getTransaction().getTxid(),
-//        		transaction.getChaincodeID(),
-//        		Status.SUCCESS, 
-//        		response.getMsg().toStringUtf8());
-    }
-
-    /**
-     * Issue a query transaction
-     * @param queryRequest {@link QueryRequest}
-     * @throws ChainCodeException
-     */
-    public ChainCodeResponse query(QueryRequest queryRequest) throws ChainCodeException {      
-      logger.debug(String.format("Received query request: %s", queryRequest));
-
-
-      // Get a TCert to use in the query transaction
-      setAttrs(queryRequest.getAttributes());
-
-      /*TODO obtain certificates
-      self.getMyTCert(function (err, tcert) {
-          if (err) {
-              logger.debug('Failed getting a new TCert [%s]', err);
-              self.emitMyEvent('error', new EventTransactionError(err));
-
-              return self;
-          }
-
-          logger.debug("Got a TCert successfully, continue...");
-
-          self.newInvokeOrQueryTransaction(queryRequest, false, function(err, queryTx) {
-            if (err) {
-              logger.debug("Error in newInvokeOrQueryTransaction [%s]", err);
-              self.emitMyEvent('error', new EventTransactionError(err));
-
-              return self;
-            }
-
-            logger.debug("Calling TransactionContext.execute");
-
-            return self.execute(queryTx);
-          });
-        });
-      return self;
-      */
-
-      
-      return null; //TODO
-//      Transaction transaction = QueryTransactionBuilder.newBuilder().chain(chain).request(queryRequest).build();
-//      Fabric.Response response = execute(transaction);
-//      
-//      if (response.getStatus() == StatusCode.FAILURE) {
-//      	throw new ChainCodeException(response.getMsg().toStringUtf8(), null);
-//      }
-//      
-//      return new ChainCodeResponse(
-//      		transaction.getTransaction().getTxid(),
-//      		transaction.getChaincodeID(),
-//      		Status.SUCCESS, 
-//      		response.getMsg().toStringUtf8());
-    }
-
+   
    /**
     * Get the attribute names associated
     */
@@ -250,92 +107,8 @@ public class TransactionContext  {
        this.attrs = attrs;
    }
 
-    /**
-     * Execute a transaction
-     * @param tx {Transaction} The transaction.
-     */
 
-   private Object execute(Transaction tx) { //TODO replace Object
-//TODO   private Fabric.Response execute(Transaction tx) {
-        logger.debug(String.format("Executing transaction [%s]", tx));
-
-        return getChain().sendTransaction(tx);
-        /*TODO implement security
-        // Get the TCert
-        self.getMyTCert();
-        if (err) {
-             logger.debug("Failed getting a new TCert [%s]", err);
-             return self.emit("error", new EventTransactionError(err));
-        }
-
-        if (!tcert) {
-                logger.debug("Missing TCert...");
-                return self.emit("error", new EventTransactionError("Missing TCert."));
-	}
-
-        // Set nonce
-        tx.pb.setNonce(self.nonce);
-
-        // Process confidentiality
-        logger.debug("Process Confidentiality...");
-
-        self.processConfidentiality(tx);
-
-        logger.debug("Sign transaction...");
-
-        // Add the tcert
-        tx.pb.setCert(tcert.publicKey);
-        // sign the transaction bytes
-        let txBytes = tx.pb.toBuffer();
-        let derSignature = self.chain.cryptoPrimitives.ecdsaSign(tcert.privateKey.getPrivate("hex"), txBytes).toDER();
-        // logger.debug('signature: ', derSignature);
-        tx.pb.setSignature(new Buffer(derSignature));
-
-        logger.debug("Send transaction...");
-        logger.debug("Confidentiality: ", tx.pb.getConfidentialityLevel());
-
-        if (tx.pb.getConfidentialityLevel() == _fabricProto.ConfidentialityLevel.CONFIDENTIAL &&
-               tx.pb.getType() == _fabricProto.Transaction.Type.CHAINCODE_QUERY) {
-               // Need to send a different event emitter so we can catch the response
-               // and perform decryption before sending the real complete response
-               // to the caller
-               var emitter = new events.EventEmitter();
-               emitter.on("complete", function (event:EventQueryComplete) {
-               logger.debug("Encrypted: [%s]", event);
-               event.result = self.decryptResult(event.result);
-               logger.debug("Decrypted: [%s]", event);
-               self.emit("complete", event);
-       });
-                    emitter.on("error", function (event:EventTransactionError) {
-                        self.emit("error", event);
-                    });
-                    self.getChain().sendTransaction(tx, emitter);
-                } else {
-                    self.getChain().sendTransaction(tx, self);
-                }
-            } else {
-            }
-
-        });
-        return self;
-    }
-
-    TCert getMyTCert(cb:GetTCertCallback) {
-    	TransactionContext self = this;
-        if (!self.getChain().isSecurityEnabled() || self.tcert) {
-            logger.debug("[TransactionContext] TCert already cached.");
-            return cb(null, self.tcert);
-        }
-        logger.debug("[TransactionContext] No TCert cached. Retrieving one.");
-        this.member.getNextTCert(self.attrs, function (err, tcert) {
-            if (err) return cb(err);
-            self.tcert = tcert;
-            return cb(null, tcert);
-        });
-        */
-    }
-
-    private void processConfidentiality(Transaction transaction) {
+    //private void processConfidentiality(Transaction transaction) {
         /* TODO implement processConfidentiality function
     	// is confidentiality required?
         if (transaction.pb.getConfidentialityLevel() != _fabricProto.ConfidentialityLevel.CONFIDENTIAL) {
@@ -431,7 +204,7 @@ public class TransactionContext  {
         }
 
         */
-    }
+    //}
 
     private void decryptResult(Buffer ct) {
         /* TODO implement decryptResult function

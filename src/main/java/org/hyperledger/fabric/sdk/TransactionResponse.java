@@ -14,7 +14,7 @@
 
 package org.hyperledger.fabric.sdk;
 
-public class ChainCodeResponse {
+public class TransactionResponse {
 	public static enum Status {
 		UNDEFINED(0),
 		SUCCESS(200),
@@ -35,7 +35,25 @@ public class ChainCodeResponse {
 	private String transactionID = null;
 	private String chainCodeID = null;
 	
-	public ChainCodeResponse(String transactionID, String chainCodeID, Status status, String message) {
+	public TransactionResponse(String transactionID, String chainCodeID, Status status, String message) {
+		construct(transactionID, chainCodeID, status, message);
+	}
+	
+	public TransactionResponse(String transactionID, String chainCodeID, int statusVal, String message) {
+		Status status = Status.UNDEFINED;
+		
+		switch (statusVal) {
+        case 200:
+            status = Status.SUCCESS;
+            break;
+        case 500:
+            status = Status.FAILURE;
+            break;
+		}
+		construct(transactionID, chainCodeID, status, message);		
+	}
+	
+	private void construct(String transactionID, String chainCodeID, Status status, String message) {
 		this.status = status;
 		this.message = message;
 		this.transactionID = transactionID;

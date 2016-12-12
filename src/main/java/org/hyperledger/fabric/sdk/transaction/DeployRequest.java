@@ -12,28 +12,11 @@
  *  limitations under the License.
  */
 
-package org.hyperledger.fabric.sdk;
+package org.hyperledger.fabric.sdk.transaction;
 
-import java.util.List;
 
 /**
- * Invoke or query request.
+ * Deploy request.
  */
-public class InvokeOrQueryRequest extends TransactionRequest {
-    // Optionally pass a list of attributes which can be used by chaincode to perform access control
-    private List<String> attributes;
-
-	/**
-	 * @return the attributes
-	 */
-	public List<String> getAttributes() {
-		return attributes;
-	}
-
-	/**
-	 * @param attributes the attributes to set
-	 */
-	public void setAttributes(List<String> attributes) {
-		this.attributes = attributes;
-	}
+public class DeployRequest extends TransactionRequest {
 }

@@ -12,10 +12,14 @@
  *  limitations under the License.
  */
 
-package org.hyperledger.fabric.sdk;
+package org.hyperledger.fabric.sdk.exception;
 
-/**
- * Invoke request.
- */
-public class InvokeRequest extends InvokeOrQueryRequest {
+public class NoValidOrdererException extends RuntimeException {
+
+	private static final long serialVersionUID = 1L;
+
+	public NoValidOrdererException(String message) {
+		super(message);
+	}
+
 }

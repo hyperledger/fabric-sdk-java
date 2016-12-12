@@ -16,9 +16,10 @@ package org.hyperledger.fabric.sdk;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.protos.peer.FabricProposal.Proposal;
+import org.hyperledger.fabric.protos.peer.FabricProposal.SignedProposal;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse.ProposalResponse;
 import org.hyperledger.fabric.sdk.exception.PeerException;
-import org.hyperledger.fabric.sdk.transaction.Transaction;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse.Response;
 
 /**
  * The Peer class represents a peer to which SDK sends deploy, invoke, or query requests.
@@ -32,7 +33,7 @@ public class Peer {
 
     /**
      * Constructor for a peer given the endpoint config for the peer.
-     * @param {string} url The URL of
+     * @param {string} url The URL of the peer
      * @param {Chain} The chain of which this peer is a member.
      * @returns {Peer} The new peer.
      */
@@ -60,77 +61,23 @@ public class Peer {
     }
 
     /**
-     * Send a transaction to this peer.
-     * @param transaction A transaction
+     * Send a transaction proposal to this peer.
+     * @param proposal A transaction proposal
+     * @return ProposalResponse
      * @throws PeerException 
      */
-    public Response sendTransaction(Transaction transaction) throws PeerException {
-
-        logger.debug("peer.sendTransaction");
-
-        // Send the transaction to the peer node via grpc
-        // The rpc specification on the peer side is:
-        //     rpc ProcessTransaction(Transaction) returns (Response) {}
-        Response response = null; //TODO peerClient.processTransaction(transaction.getTransaction());
-
-        //TODO logger.debug(String.format("peer.sendTransaction: received %s", response.getMsg().toStringUtf8()));
-        return response;
-
-        // Check transaction type here, as invoke is an asynchronous call,
-        // whereas a deploy and a query are synchonous calls. As such,
-        // invoke will emit 'submitted' and 'error', while a deploy/query
-        // will emit 'complete' and 'error'.
-
-        /* TODO handle response
-        let txType = tx.pb.getType();
-        switch (txType) {
-           case protos.Fabric.Transaction.Type.CHAINCODE_DEPLOY: // async
-                  if (response.status != "SUCCESS") {
-			throw new RuntimeException(response);
-		}
-                     // Deploy transaction has been completed
-                     if (!response.msg || response.msg === "") {
-                        eventEmitter.emit("error", new EventTransactionError("the deploy response is missing the transaction UUID"));
-                     } else {
-                        let event = new EventDeploySubmitted(response.msg.toString(), tx.chaincodeID);
-                        logger.debug("EventDeploySubmitted event: %s", event);
-                        eventEmitter.emit("submitted", event);
-                        self.waitForDeployComplete(eventEmitter,event);
-                     }
-                     // Deploy completed with status "FAILURE" or "UNDEFINED"
-                     eventEmitter.emit("error", new EventTransactionError(response));
-                  }
-                  break;
-               case protos.Fabric.Transaction.Type.CHAINCODE_INVOKE: // async
-                  if (response.status === "SUCCESS") {
-                     // Invoke transaction has been submitted
-                     if (!response.msg || response.msg === "") {
-                        eventEmitter.emit("error", new EventTransactionError("the invoke response is missing the transaction UUID"));
-                     } else {
-                        eventEmitter.emit("submitted", new EventInvokeSubmitted(response.msg.toString()));
-                        self.waitForInvokeComplete(eventEmitter);
-                     }
-                  } else {
-                     // Invoke completed with status "FAILURE" or "UNDEFINED"
-                     eventEmitter.emit("error", new EventTransactionError(response));
-                  }
-                  break;
-               case protos.Fabric.Transaction.Type.CHAINCODE_QUERY: // sync
-                  if (response.status === "SUCCESS") {
-                     // Query transaction has been completed
-                     eventEmitter.emit("complete", new EventQueryComplete(response.msg));
-                  } else {
-                     // Query completed with status "FAILURE" or "UNDEFINED"
-                     eventEmitter.emit("error", new EventTransactionError(response));
-                  }
-                  break;
-               default: // not implemented
-                  eventEmitter.emit("error", new EventTransactionError("processTransaction for this transaction type is not yet implemented!"));
-            }
-          });
-          */
+    public ProposalResponse sendTransactionProposal(Proposal proposal) throws PeerException {
+    	   	
+    	
+    	SignedProposal request = SignedProposal.newBuilder()
+    			.setProposalBytes(proposal.toByteString())
+    			.build();
+    	
+    	ProposalResponse response = peerClient.processProposal(request);
+    	
+    	return response;
     }
-
+   
     /**
      * TODO: Temporary hack to wait until the deploy event has hopefully completed.
      * This does not detect if an error occurs in the peer or chaincode when deploying.

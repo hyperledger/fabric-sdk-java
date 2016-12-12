@@ -15,18 +15,34 @@
 package org.hyperledger.fabric.sdk;
 
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
+import org.hyperledger.fabric.sdk.exception.NoValidOrdererException;
 import org.hyperledger.fabric.sdk.exception.NoValidPeerException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
-import org.hyperledger.fabric.sdk.transaction.Transaction;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse.Response;
+import org.hyperledger.fabric.sdk.transaction.DeployRequest;
+import org.hyperledger.fabric.sdk.transaction.DeploymentProposalBuilder;
+import org.hyperledger.fabric.sdk.transaction.ProposalBuilder;
+import org.hyperledger.fabric.sdk.transaction.TransactionBuilder;
+import org.hyperledger.fabric.sdk.transaction.TransactionRequest;
+
+import com.google.protobuf.ByteString;
+
+import io.netty.util.internal.StringUtil;
+
+import org.hyperledger.fabric.protos.common.Common.Envelope;
+import org.hyperledger.fabric.protos.orderer.Ab;
+import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID;
+import org.hyperledger.fabric.protos.peer.FabricProposal.Proposal;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse.Endorsement;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse.ProposalResponse;
 
 /**
  * The class representing a chain with which the client SDK interacts.
@@ -38,7 +54,10 @@ public class Chain {
     private String name;
 
     // The peers on this chain to which the client can connect
-    private Vector<Peer> peers = new Vector<>();
+    private List<Peer> peers = new ArrayList<Peer>();
+    
+ // The orderers on this chain to which the client can connect
+    private List<Orderer> orderers = new ArrayList<Orderer>();
 
     // Security enabled flag
     private boolean securityEnabled = true;
@@ -96,12 +115,31 @@ public class Chain {
         this.peers.add(peer);
         return peer;
     }
-
+        
     /**
      * Get the peers for this chain.
      */
-    public Vector<Peer> getPeers() {
+    public List<Peer> getPeers() {
         return this.peers;
+    }
+    
+    /**
+     * Add an orderer given an endpoint specification.
+     * @param url URL of the orderer
+     * @param pem
+     * @returns a new Orderer.
+     */
+    public Orderer addOrderer(String url, String pem) {
+        Orderer orderer = new Orderer(url, pem, this);
+        this.orderers.add(orderer);
+        return orderer;
+    }
+    
+    /**
+     * Get the orderers for this chain.
+     */
+    public List<Orderer> getOrderers() {
+        return this.orderers;
     }
 
     /**
@@ -313,25 +351,129 @@ public class Chain {
         member.registerAndEnroll(registrationRequest);
         return member;
     }
+    
+    /**
+     * Send a deployment proposal
+     * @param deploymentProposalRequest
+     * @param peers
+     * @return
+     * @throws Exception
+     */
+    public Proposal createDeploymentProposal(DeployRequest deploymentRequest) {
+
+        assert deploymentRequest != null: "sendDeploymentProposal deploymentProposalRequest is null";
+        
+        List<ByteString> args = new ArrayList<ByteString>();
+        if (deploymentRequest.getArgs() != null) {
+        	deploymentRequest.getArgs().forEach(arg->{
+        		args.add(ByteString.copyFrom(arg.getBytes()));
+        	});
+        }        
+
+//      TransactionContext transactionContext = new TransactionContext(this, this.client.getUserContext());
+//      deploymentProposalbuilder.context(transactionContext);        
+        Proposal deploymentProposal = DeploymentProposalBuilder.newBuilder()
+        		.chaincodeType(deploymentRequest.getChaincodeLanguage())
+        		.args(args)
+        		.chaincodeID(ChaincodeID.newBuilder()
+        				.setName(deploymentRequest.getChaincodeName())
+        				.setPath(deploymentRequest.getChaincodePath())        				
+        				.build())
+        		.build();
+                
+        return deploymentProposal;
+    }
+    
+    /**
+     * Create transaction proposal
+     * @param request The details of transaction 
+     * @return proposal
+     */
+    public Proposal createTransactionProposal(TransactionRequest request) {
+    	assert request != null : "Cannot send null transactopn proposal";
+    	assert StringUtil.isNullOrEmpty(request.getChaincodeName()): "Chaincode name is missing in proposal";
+    	
+    	List<ByteString> args = new ArrayList<ByteString>();
+    	if (request.getArgs() != null) {
+    		for (String arg: request.getArgs()) {
+    			args.add(ByteString.copyFrom(arg == null?new byte[]{}:arg.getBytes()));
+    		}
+    	}
+    	
+    	ChaincodeID ccid = ChaincodeID.newBuilder()
+    			.setName(request.getChaincodeName())
+    			.setPath(request.getChaincodePath())
+    			.build();
+    	
+    	Proposal fabricProposal = ProposalBuilder.newBuilder()
+    			.args(args)
+    			.chaincodeType(request.getChaincodeLanguage())
+    			.chaincodeID(ccid).build(); 
+    	
+    	return fabricProposal;
+    }
 
     /**
-     * Send a transaction to a peer.
-     * @param tx The transaction
+     * Send a transaction proposal to the chain of peers.
+     * @param proposal The transaction proposal
+     * 
+     * @return List<ProposalResponse>
      */
-    public Response sendTransaction(Transaction tx) {
+    public List<ProposalResponse> sendProposal(Proposal proposal) {
         if (this.peers.isEmpty()) {
             throw new NoValidPeerException(String.format("chain %s has no peers", getName()));
         }
+        
+        List<ProposalResponse> responses = new ArrayList<ProposalResponse>();
 
         for(Peer peer : peers) {
         	try {
-        		return peer.sendTransaction(tx);
+        		responses.add(peer.sendTransactionProposal(proposal));
         	} catch(Exception exp) {
         		logger.info(String.format("Failed sending transaction to peer:%s", exp.getMessage()));
         	}
         }
 
-        throw new RuntimeException("No peer available to respond");
+        if (responses.size() == 0) {
+        	throw new RuntimeException("No peer available to respond");
+        }
+        
+        return responses;
     }
+    
+    /**
+     * Send a transaction to orderers
+     * @param proposalResponses list of responses from endorsers for the proposal
+     * 
+     * @return List<TransactionResponse>
+     * @throws InvalidArgumentException
+     */
+    public List<TransactionResponse> sendTransaction(Proposal proposal, List<ProposalResponse> proposalResponses) {
+    	assert proposalResponses != null && proposalResponses.size() > 0: "Please use sendProposal first to get endorsements";
+    	
+    	if (this.orderers.isEmpty()) {
+            throw new NoValidOrdererException(String.format("chain %s has no orderers", getName()));
+        }
+    	
+        List<Endorsement> endorsements = new ArrayList<Endorsement>();
+        ByteString proposalResponsePayload = proposalResponses.get(0).getPayload();
+        proposalResponses.forEach(response->{
+        	endorsements.add(response.getEndorsement());
+        });
 
+        TransactionBuilder transactionBuilder = TransactionBuilder.newBuilder();
+
+        Envelope transactionEnv = transactionBuilder
+                .chaincodeProposal(proposal)
+                .endorsements(endorsements)
+                .proposalResponcePayload(proposalResponsePayload).build();
+
+        List<TransactionResponse> ordererResponses = new ArrayList<TransactionResponse>();
+        for (Orderer orderer : orderers) {//TODO need to make async.
+            Ab.BroadcastResponse resp = orderer.sendTransaction(transactionEnv);            
+            TransactionResponse tresp = new TransactionResponse(null, null, resp.getStatusValue(), resp.getStatus().name());
+            ordererResponses.add(tresp);
+        }
+        return ordererResponses;
+    }
 }

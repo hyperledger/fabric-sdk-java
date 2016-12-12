@@ -28,10 +28,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.util.encoders.Hex;
-import org.hyperledger.fabric.sdk.exception.ChainCodeException;
-import org.hyperledger.fabric.sdk.exception.DeploymentException;
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
-import org.hyperledger.fabric.sdk.exception.NoValidPeerException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 
@@ -234,54 +231,6 @@ public class Member implements Serializable {
         enroll(this.enrollmentSecret);
     }
 
-    /**
-     * Issue a deploy request on behalf of this member
-     * @param deployRequest {@link DeployRequest}
-     * @return {@link ChainCodeResponse} response to chain code deploy transaction
-     * @throws DeploymentException if the deployment fails.
-     */
-    public ChainCodeResponse deploy(DeployRequest deployRequest) throws DeploymentException {
-        logger.debug("Member.deploy");
-
-        if (getChain().getPeers().isEmpty()) {
-        	throw new NoValidPeerException(String.format("chain %s has no peers", getChain().getName()));
-        }
-
-        TransactionContext tcxt = this.newTransactionContext(null);
-        return tcxt.deploy(deployRequest);
-    }
-
-    /**
-     * Issue a invoke request on behalf of this member
-     * @param invokeRequest {@link InvokeRequest}
-     * @throws ChainCodeException if the chain code invocation fails
-     */
-    public ChainCodeResponse invoke(InvokeRequest invokeRequest) throws ChainCodeException {
-        logger.debug("Member.invoke");
-
-        if (getChain().getPeers().isEmpty()) {
-        	throw new NoValidPeerException(String.format("chain %s has no peers", getChain().getName()));
-        }
-
-        TransactionContext tcxt = this.newTransactionContext(null);
-        return tcxt.invoke(invokeRequest);
-    }
-
-    /**
-     * Issue a query request on behalf of this member.
-     * @param queryRequest {@link QueryRequest}
-     * @throws ChainCodeException if the query transaction fails
-     */
-    public ChainCodeResponse query(QueryRequest queryRequest) throws ChainCodeException {
-        logger.debug("Member.query");
-
-        if (getChain().getPeers().isEmpty()) {
-        	throw new NoValidPeerException(String.format("chain %s has no peers", getChain().getName()));
-        }
-
-        TransactionContext tcxt = this.newTransactionContext(null);
-        return tcxt.query(queryRequest);
-    }
 
     /**
      * Create a transaction context with which to issue build, deploy, invoke, or query transactions.

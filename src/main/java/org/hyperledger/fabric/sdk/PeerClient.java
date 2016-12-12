@@ -20,6 +20,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.peer.EndorserGrpc;
 import org.hyperledger.fabric.protos.peer.EndorserGrpc.EndorserBlockingStub;
+import org.hyperledger.fabric.protos.peer.FabricProposal.SignedProposal;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse.ProposalResponse;
+import org.hyperledger.fabric.sdk.exception.PeerException;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -44,15 +47,14 @@ public class PeerClient {
 	public void shutdown() throws InterruptedException {
 		channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
 	}
-
-//	public Response processTransaction(Fabric.Transaction transaction) throws PeerException {
-//		try {
-//			return blockingStub.processTransaction(transaction);
-//		} catch (StatusRuntimeException e) {
-//			logger.warn(String.format("RPC failed: %s", e.getStatus()));
-//			throw new PeerException("Sending transaction to peer failed", e);
-//		}
-//	}
+	
+	public ProposalResponse processProposal(SignedProposal request) throws PeerException {
+		try {
+			return blockingStub.processProposal(request);
+		} catch(Exception exp) {
+			throw new PeerException("Failed to send proposal to peer", exp);
+		}
+	}
 
 	@Override
 	public void finalize() {
