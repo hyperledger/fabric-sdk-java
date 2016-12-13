@@ -10,6 +10,7 @@
 <properties>
     <grpc.version>0.15.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
     <bouncycastle.version>1.55</bouncycastle.version>
+    <httpclient.version>4.5.2</httpclient.version>
   </properties>
   <dependencies>
     <dependency>
@@ -39,10 +40,10 @@
 	    <artifactId>protobuf-java</artifactId>
 	    <version>3.1.0</version>
 	</dependency>	    
-    <!-- https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on -->
+        <!-- https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk15on -->
 	<dependency>
 	    <groupId>org.bouncycastle</groupId>
-	    <artifactId>bcprov-jdk15on</artifactId>
+            <artifactId>bcpkix-jdk15on</artifactId>
 	    <version>${bouncycastle.version}</version>
 	</dependency>
     <dependency>
@@ -64,6 +65,21 @@
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
       <version>2.4</version>
+    </dependency>
+
+
+    <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>${httpclient.version}</version>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/org.glassfish/javax.json -->
+    <dependency>
+      <groupId>org.glassfish</groupId>
+      <artifactId>javax.json</artifactId>
+      <version>1.0.4</version>
     </dependency>
   </dependencies>
   <build>

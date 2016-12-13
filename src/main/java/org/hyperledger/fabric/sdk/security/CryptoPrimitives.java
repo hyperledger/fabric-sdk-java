@@ -34,13 +34,24 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.jce.spec.ECPublicKeySpec;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.util.Arrays;
+import org.bouncycastle.util.io.pem.PemObject;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
 
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import javax.security.auth.x500.X500Principal;
+import java.io.IOException;
+import java.io.StringWriter;
 import java.math.BigInteger;
 import java.security.*;
 import java.security.interfaces.ECPrivateKey;
@@ -194,7 +205,7 @@ public class CryptoPrimitives {
 		}
 
 	}
-	
+
 	public PrivateKey ecdsaKeyFromPrivate(byte[] key) throws CryptoException {
 		try {
 			EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(key);
@@ -205,6 +216,47 @@ public class CryptoPrimitives {
 		} catch (Exception exp) {
 			throw new CryptoException("Unable to convert byte[] into PrivateKey", exp);
 		}
+	}
+
+	/**
+	 * generateCertificationRequest
+	 *
+	 * @param subject The subject to be added to the certificate
+	 * @param pair    Public private key pair
+	 * @return PKCS10CertificationRequest Certificate Signing Request.
+	 * @throws OperatorCreationException
+	 */
+
+	public PKCS10CertificationRequest generateCertificationRequest(String subject, KeyPair pair) throws OperatorCreationException {
+
+		PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
+				new X500Principal("CN=" + subject), pair.getPublic());
+
+		JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withECDSA");
+
+		//    csBuilder.setProvider("EC");
+		ContentSigner signer = csBuilder.build(pair.getPrivate());
+
+		return p10Builder.build(signer);
+	}
+
+	/**
+	 * certificationRequestToPEM - Convert a PKCS10CertificationRequest to PEM format.
+	 *
+	 * @param csr The Certificate to convert
+	 * @return An equivalent PEM format certificate.
+	 * @throws IOException
+	 */
+
+	public String certificationRequestToPEM(PKCS10CertificationRequest csr) throws IOException {
+		PemObject pemCSR = new PemObject("CERTIFICATE REQUEST", csr.getEncoded());
+
+		StringWriter str = new StringWriter();
+		JcaPEMWriter pemWriter = new JcaPEMWriter(str);
+		pemWriter.writeObject(pemCSR);
+		pemWriter.close();
+		str.close();
+		return str.toString();
 	}
 
 	private void init() {
