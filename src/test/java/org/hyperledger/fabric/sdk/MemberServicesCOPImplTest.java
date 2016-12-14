@@ -31,7 +31,7 @@ public class MemberServicesCOPImplTest {
             Assert.fail("Expected exception");
 
         } catch (Exception e) {
-            Assert.assertSame(e.getClass(), MalformedURLException.class);
+            Assert.assertSame(e.getClass(), IllegalArgumentException.class);
 
         }
     }
@@ -44,7 +44,7 @@ public class MemberServicesCOPImplTest {
             Assert.fail("Expected exception");
 
         } catch (Exception e) {
-            Assert.assertSame(e.getClass(), MalformedURLException.class);
+            Assert.assertSame(e.getClass(), IllegalArgumentException.class);
 
         }
     }
@@ -103,7 +103,7 @@ public class MemberServicesCOPImplTest {
             Assert.fail("Expected exception");
 
         } catch (Exception e) {
-            Assert.assertSame(e.getClass(), RuntimeException.class);
+            Assert.assertSame(e.getClass(), org.hyperledger.fabric.sdk.exception.EnrollmentException.class);
 
         }
     }
@@ -122,7 +122,7 @@ public class MemberServicesCOPImplTest {
             Assert.fail("Expected exception");
 
         } catch (Exception e) {
-            Assert.assertSame(e.getClass(), RuntimeException.class);
+            Assert.assertSame(e.getClass(), org.hyperledger.fabric.sdk.exception.EnrollmentException.class);
 
         }
     }
@@ -140,7 +140,7 @@ public class MemberServicesCOPImplTest {
             Assert.fail("Expected exception");
 
         } catch (Exception e) {
-            Assert.assertSame(e.getClass(), RuntimeException.class);
+            Assert.assertSame(e.getClass(), org.hyperledger.fabric.sdk.exception.EnrollmentException.class);
 
         }
     }

@@ -42,12 +42,17 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.util.encoders.Hex;
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
+import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 
 import javax.json.Json;
 import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
+import javax.json.JsonWriter;
+import java.io.PrintWriter;
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.KeyPair;
@@ -59,15 +64,16 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import static java.lang.String.format;
+
 /**
  * MemberServicesCOPImpl is the default implementation of a member services client.
  */
 public class MemberServicesCOPImpl implements MemberServices {
     private static final Log logger = LogFactory.getLog(MemberServicesCOPImpl.class);
+    private static final Config config = Config.getConfig();
     private static final String COP_BASEPATH = "/api/v1/cfssl/";
-    private static final String COP_ENROLLMENBASE = COP_BASEPATH + "enroll";
-    private static final int DEFAULT_SECURITY_LEVEL = 256;  //TODO make configurable //Right now by default FAB services is using
-    private static final String DEFAULT_HASH_ALGORITHM = "SHA2";  //Right now by default FAB services is using SHA2
+    private static final String COP_ENROLLMENTBASE = COP_BASEPATH + "enroll";
 
 
     private static final Set<Integer> VALID_KEY_SIZES =
@@ -88,7 +94,19 @@ public class MemberServicesCOPImpl implements MemberServices {
     public MemberServicesCOPImpl(String url, String pem) throws CertificateException, MalformedURLException {
         this.url = url;
 
-        URL purl = new URL(url);
+        validateInit();
+
+
+        this.cryptoPrimitives = new CryptoPrimitives(config.getDefaultHashAlgorithm(), config.getDefaultSecurityLevel());
+    }
+
+    private void validateInit() {
+        URL purl = null;
+        try {
+            purl = new URL(url);
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException("MemberServicesCOPImpl invalid url " + url);
+        }
         final String proto = purl.getProtocol();
         if (!"http".equals(proto) && !"https".equals(proto)) {
             throw new IllegalArgumentException("MemberServicesCOPImpl only supports http or https not " + proto);
@@ -114,7 +132,6 @@ public class MemberServicesCOPImpl implements MemberServices {
         }
 
 
-        this.cryptoPrimitives = new CryptoPrimitives(DEFAULT_HASH_ALGORITHM, DEFAULT_SECURITY_LEVEL);
     }
 
     /**
@@ -179,18 +196,12 @@ public class MemberServicesCOPImpl implements MemberServices {
     public Enrollment enroll(EnrollmentRequest req) throws EnrollmentException {
 
 
-        logger.debug(String.format("[MemberServicesCOPImpl.enroll] [%s]", req));
-        if (req == null) {
-            throw new RuntimeException("req is not set");
-        }
+        logger.debug(format("[MemberServicesCOPImpl.enroll] [%s]", req));
+
+        validateEnroll(req);
+
         final String user = req.getEnrollmentID();
         final String secret = req.getEnrollmentSecret();
-        if (StringUtil.isNullOrEmpty(user)) {
-            throw new RuntimeException("req.enrollmentID is not set");
-        }
-        if (StringUtil.isNullOrEmpty(secret)) {
-            throw new RuntimeException("req.enrollmentSecret is not set");
-        }
 
 
         logger.debug("[MemberServicesCOPImpl.enroll] Generating keys...");
@@ -202,12 +213,25 @@ public class MemberServicesCOPImpl implements MemberServices {
 
             PKCS10CertificationRequest csr = cryptoPrimitives.generateCertificationRequest(user, signingKeyPair);
             String pem = cryptoPrimitives.certificationRequestToPEM(csr);
+            JsonObjectBuilder factory = Json.createObjectBuilder();
+            factory.add("certificate_request", pem);
+            JsonObject postObject = factory.build();
+            StringWriter stringWriter = new StringWriter();
+
+
+            JsonWriter jsonWriter = Json.createWriter(new PrintWriter(stringWriter));
+
+            jsonWriter.writeObject(postObject);
+
+            jsonWriter.close();
+
+            String str = stringWriter.toString();
 
 
             logger.debug("[MemberServicesCOPImpl.enroll] Generating keys...done!");
 
 
-            String responseBody = httpPost(url + COP_ENROLLMENBASE, pem,
+            String responseBody = httpPost(url + COP_ENROLLMENTBASE, str,
                     new UsernamePasswordCredentials(user, secret));
 
             logger.debug("response" + responseBody);
@@ -216,17 +240,17 @@ public class MemberServicesCOPImpl implements MemberServices {
             JsonObject jsonst = (JsonObject) reader.read();
             String result = jsonst.getString("result");
             boolean success = jsonst.getBoolean("success");
-            logger.debug(String.format("[MemberServicesCOPImpl] enroll success:[%s], result:[%s]", success, result));
+            logger.info(format("[MemberServicesCOPImpl] enroll for user [%s] success:[%s], result:[%s]", user, success, result));
 
             if (!success) {
-                EnrollmentException e = new EnrollmentException("COP Failed response success is false. " + result, new Exception());
+                EnrollmentException e = new EnrollmentException(format("Failed to enroll user [%s]  result:[%s]", user, result), new Exception());
                 logger.error(e.getMessage());
                 throw e;
             }
 
             Base64.Decoder b64dec = Base64.getDecoder();
             String signedPem = new String(b64dec.decode(result.getBytes()));
-            logger.trace(String.format("[MemberServicesCOPImpl] enroll returned pem:[%s]", signedPem));
+            logger.trace(format("[MemberServicesCOPImpl] enroll returned pem:[%s]", signedPem));
 
             Enrollment enrollment = new Enrollment();
             enrollment.setKey(Hex.toHexString(signingKeyPair.getPrivate().getEncoded()));
@@ -235,12 +259,29 @@ public class MemberServicesCOPImpl implements MemberServices {
 
 
         } catch (Exception e) {
-            EnrollmentException ee = new EnrollmentException(String.format("Failed to enroll user %s ", user), e);
+            EnrollmentException ee = new EnrollmentException(format("Failed to enroll user %s ", user), e);
             logger.error(ee.getMessage(), ee);
             throw ee;
         }
 
 
+    }
+
+    private void validateEnroll(EnrollmentRequest req) throws EnrollmentException {
+        if (req == null) {
+
+            throw new EnrollmentException("req is not set", new IllegalArgumentException("req is not set"));
+        }
+        final String user = req.getEnrollmentID();
+        final String secret = req.getEnrollmentSecret();
+        if (StringUtil.isNullOrEmpty(user)) {
+            throw new EnrollmentException("req.enrollmentID is not set", new IllegalArgumentException("req.enrollmentID is not set"));
+        }
+        if (StringUtil.isNullOrEmpty(secret)) {
+
+            throw new EnrollmentException("req.enrollmentSecret is not set", new IllegalArgumentException("req.enrollmentSecret is not set"));
+
+        }
     }
 
     /**
@@ -284,11 +325,11 @@ public class MemberServicesCOPImpl implements MemberServices {
 
         if (status >= 400) {
 
-            Exception e = new Exception(String.format("POST request to %s failed with status code: %d. Response: %s", url, status, responseBody));
+            Exception e = new Exception(format("POST request to %s failed with status code: %d. Response: %s", url, status, responseBody));
             logger.error(e.getMessage());
             throw e;
         }
-        logger.debug("Status: " + status);
+        logger.debug(format("Successful POST to [%s] Status: ", url, status));
 
 
         return responseBody;
