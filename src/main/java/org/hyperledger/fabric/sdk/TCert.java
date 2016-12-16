@@ -13,11 +13,14 @@
  */
 
 package org.hyperledger.fabric.sdk;
+
+import java.security.PrivateKey;
+
 /**
  * Transaction certificate.
  */
 public class TCert extends Certificate {
-    public TCert(Object publicKey, Object privateKey) {
+    public TCert(byte[] publicKey, PrivateKey privateKey) {
         super(publicKey, privateKey, PrivacyLevel.Anonymous);
     }
 }

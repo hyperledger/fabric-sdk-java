@@ -20,21 +20,36 @@ import io.netty.util.internal.StringUtil;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.jce.interfaces.ECPrivateKey;
+import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.encoders.Hex;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
+import org.hyperledger.fabric.sdk.exception.GetTCertBatchException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.protos.*;
 import org.hyperledger.protos.Ca.*;
+import org.hyperledger.protos.Ca.Identity;
+import org.hyperledger.protos.Ca.PublicKey;
+import org.hyperledger.protos.Ca.Signature;
 import org.hyperledger.protos.ECAAGrpc.ECAABlockingStub;
 import org.hyperledger.protos.ECAPGrpc.ECAPBlockingStub;
 import org.hyperledger.protos.TCAPGrpc.TCAPBlockingStub;
 import org.hyperledger.protos.TLSCAPGrpc.TLSCAPBlockingStub;
+import sun.security.util.DerInputStream;
 
-import java.security.KeyPair;
-import java.security.PrivateKey;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.security.*;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * MemberServicesImpl is the default implementation of a member services client.
@@ -50,6 +65,8 @@ public class MemberServicesImpl implements MemberServices {
 
     private int DEFAULT_SECURITY_LEVEL = 256;
 	private String DEFAULT_HASH_ALGORITHM = "SHA3";
+
+    private static final String TCERT_ENC_TCERT_INDEX = "1.2.3.4.5.6.7";
 
     /**
      * MemberServicesImpl constructor
@@ -140,11 +157,11 @@ public class MemberServicesImpl implements MemberServices {
     	byte[] buffer = registerReq.toByteArray();
 
     	try {
-			PrivateKey signKey = cryptoPrimitives.ecdsaKeyFromPrivate(Hex.decode(registrar.getEnrollment().getKey()));
+            java.security.PrivateKey signKey = cryptoPrimitives.ecdsaKeyFromPrivate(Hex.decode(registrar.getEnrollment().getKey()));
 	    	logger.debug("Retreived private key");
-			byte[][] signature = cryptoPrimitives.ecdsaSign(signKey, buffer);
+            BigInteger[] signature = cryptoPrimitives.ecdsaSign(signKey, buffer);
 	    	logger.debug("Signed the request with key");
-			Signature sig = Signature.newBuilder().setType(CryptoType.ECDSA).setR(ByteString.copyFrom(signature[0])).setS(ByteString.copyFrom(signature[1])).build();
+            Signature sig = Signature.newBuilder().setType(CryptoType.ECDSA).setR(ByteString.copyFrom(signature[0].toString().getBytes())).setS(ByteString.copyFrom(signature[1].toString().getBytes())).build();
 			regReqBuilder.setSig(sig);
 	    	logger.debug("Now sendingt register request");
 			Token token = this.ecaaClient.registerUser(regReqBuilder.build());
@@ -162,8 +179,6 @@ public class MemberServicesImpl implements MemberServices {
      * @return enrollment
      */
     public Enrollment enroll(EnrollmentRequest req) throws EnrollmentException {
-
-
         logger.debug(String.format("[MemberServicesImpl.enroll] [%s]", req));
         if (StringUtil.isNullOrEmpty(req.getEnrollmentID())) { throw new RuntimeException("req.enrollmentID is not set");}
         if (StringUtil.isNullOrEmpty(req.getEnrollmentSecret())) { throw new RuntimeException("req.enrollmentSecret is not set");}
@@ -198,8 +213,8 @@ public class MemberServicesImpl implements MemberServices {
             ECertCreateReq certReq = eCertCreateRequestBuilder.buildPartial();
             byte[] buf = certReq.toByteArray();
 
-            byte[][] sig = cryptoPrimitives.ecdsaSign(signingKeyPair.getPrivate(), buf);
-            Signature protoSig = Signature.newBuilder().setType(CryptoType.ECDSA).setR(ByteString.copyFrom(sig[0])).setS(ByteString.copyFrom(sig[1])).build();
+            BigInteger[] sig = cryptoPrimitives.ecdsaSign(signingKeyPair.getPrivate(), buf);
+            Signature protoSig = Signature.newBuilder().setType(CryptoType.ECDSA).setR(ByteString.copyFrom(sig[0].toString().getBytes())).setS(ByteString.copyFrom(sig[1].toString().getBytes())).build();
             eCertCreateRequestBuilder = eCertCreateRequestBuilder.setSig(protoSig);
 
             eCertCreateResp = ecapClient.createCertificatePair(eCertCreateRequestBuilder.build());
@@ -210,6 +225,7 @@ public class MemberServicesImpl implements MemberServices {
             enrollment.setKey(Hex.toHexString(signingKeyPair.getPrivate().getEncoded()));
             enrollment.setCert(Hex.toHexString(eCertCreateResp.getCerts().getSign().toByteArray()));
             enrollment.setChainKey(Hex.toHexString(eCertCreateResp.getPkchain().toByteArray()));
+            enrollment.setQueryStateKey(Hex.toHexString(cryptoPrimitives.generateNonce()));
 
             logger.debug("Enrolled successfully: "+enrollment);
             return enrollment;
@@ -217,129 +233,104 @@ public class MemberServicesImpl implements MemberServices {
         } catch (Exception e) {
 			throw new EnrollmentException("Failed to enroll user", e);
 		}
-
-
     }
 
     /**
-     *
+     * Get an array of transaction certificates (tcerts).
+     * @param req Request of the form: name, enrollment, num
+     * @return enrollment
      */
-    public void getTCertBatch(GetTCertBatchRequest req) {
+    public List<TCert> getTCertBatch(GetTCertBatchRequest req) throws GetTCertBatchException {
+        logger.debug(String.format("[MemberServicesImpl.getTCertBatch] [%s]", req));
 
-    	/*TODO implement getTCertBatch
-        let self = this;
-        cb = cb || nullCB;
+        try {
+            // create the proto
+            TCertCreateSetReq.Builder tCertCreateSetReq = TCertCreateSetReq.newBuilder()
+                    .setTs(Timestamp.newBuilder().setSeconds(new java.util.Date().getTime()))
+                    .setId(Identity.newBuilder().setId(req.getName()))
+                    .setNum(req.getNum());
 
-        let timestamp = sdk_util.GenerateTimestamp();
-
-        // create the proto
-        let tCertCreateSetReq = new _caProto.TCertCreateSetReq();
-        tCertCreateSetReq.setTs(timestamp);
-        tCertCreateSetReq.setId({id: req.name});
-        tCertCreateSetReq.setNum(req.num);
-        if (req.attrs) {
-            let attrs = [];
-            for (let i = 0; i < req.attrs.length; i++) {
-                attrs.push({attributeName:req.attrs[i]});
+            if (req.getAttrs() != null) {
+                for (String attr : req.getAttrs()) {
+                    tCertCreateSetReq.addAttributes(TCertAttribute.newBuilder().setAttributeName(attr).build());
+                }
             }
-            tCertCreateSetReq.setAttributes(attrs);
+
+            // serialize proto
+            byte[] buf = tCertCreateSetReq.buildPartial().toByteArray();
+
+            // sign the transaction using enrollment key
+            java.security.PrivateKey signKey = cryptoPrimitives.ecdsaKeyFromPrivate(Hex.decode(req.getEnrollment().getKey()));
+            BigInteger[] sig = cryptoPrimitives.ecdsaSign(signKey, buf);
+            Signature protoSig = Signature.newBuilder().setType(CryptoType.ECDSA).setR(ByteString.copyFrom(sig[0].toString().getBytes())).setS(ByteString.copyFrom(sig[1].toString().getBytes())).build();
+            tCertCreateSetReq.setSig(protoSig);
+
+            // send the request
+            TCertCreateSetResp tCertCreateSetResp = tcapClient.createCertificateSet(tCertCreateSetReq.build());
+            logger.debug("[MemberServicesImpl.getTCertBatch] tCertCreateSetResp : [%s]" + tCertCreateSetResp.toByteString());
+
+            return processTCertBatch(req, tCertCreateSetResp);
+        } catch (Exception e) {
+            throw new GetTCertBatchException("Failed to get tcerts", e);
         }
-
-        // serialize proto
-        let buf = tCertCreateSetReq.toBuffer();
-
-        // sign the transaction using enrollment key
-        let signKey = self.cryptoPrimitives.ecdsaKeyFromPrivate(req.enrollment.key, "hex");
-        let sig = self.cryptoPrimitives.ecdsaSign(signKey, buf);
-
-        tCertCreateSetReq.setSig(new _caProto.Signature(
-            {
-                type: _caProto.CryptoType.ECDSA,
-                r: new Buffer(sig.r.toString()),
-                s: new Buffer(sig.s.toString())
-            }
-        ));
-
-        // send the request
-        self.tcapClient.createCertificateSet(tCertCreateSetReq, function (err, resp) {
-            if (err) return cb(err);
-            // logger.debug('tCertCreateSetResp:\n', resp);
-            cb(null, self.processTCertBatch(req, resp));
-        });
-
-        */
     }
 
     /**
      * Process a batch of tcerts after having retrieved them from the TCA.
      */
-    private Ca.TCert[] processTCertBatch(GetTCertBatchRequest req, Object resp) {
+    private List<TCert> processTCertBatch(GetTCertBatchRequest req, TCertCreateSetResp resp)
+            throws NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException,
+            IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, CryptoException, IOException {
+        String enrollKey = req.getEnrollment().getKey();
+        byte[] tCertOwnerKDFKey = resp.getCerts().getKey().toByteArray();
+        List<Ca.TCert> tCerts = resp.getCerts().getCertsList();
 
-    	return null;
+        byte[] byte1 = new byte[]{1};
+        byte[] byte2 = new byte[]{2};
 
-    	/* TODO implement processTCertBatch
-        //
-        // Derive secret keys for TCerts
-        //
+        byte[] tCertOwnerEncryptKey = Arrays.copyOfRange(cryptoPrimitives.calculateMac(tCertOwnerKDFKey, byte1), 0, 32);
+        byte[] expansionKey = cryptoPrimitives.calculateMac(tCertOwnerKDFKey, byte2);
 
-        let enrollKey = req.enrollment.key;
-        let tCertOwnerKDFKey = resp.certs.key;
-        let tCerts = resp.certs.certs;
-
-        let byte1 = new Buffer(1);
-        byte1.writeUInt8(0x1, 0);
-        let byte2 = new Buffer(1);
-        byte2.writeUInt8(0x2, 0);
-
-        let tCertOwnerEncryptKey = self.cryptoPrimitives.hmac(tCertOwnerKDFKey, byte1).slice(0, 32);
-        let expansionKey = self.cryptoPrimitives.hmac(tCertOwnerKDFKey, byte2);
-
-        let tCertBatch:TCert[] = [];
+        List<TCert> tCertBatch = new ArrayList<>(tCerts.size());
 
         // Loop through certs and extract private keys
-        for (var i = 0; i < tCerts.length; i++) {
-            var tCert = tCerts[i];
-            let x509Certificate;
+        for (Ca.TCert tCert : tCerts) {
+            X509Certificate x509Certificate;
             try {
-                x509Certificate = new crypto.X509Certificate(tCert.cert);
-            } catch (ex) {
+                CertificateFactory cf = CertificateFactory.getInstance("X.509");
+                x509Certificate = (X509Certificate)cf.generateCertificate(tCert.getCert().newInput());
+            } catch (Exception ex) {
                 logger.debug("Warning: problem parsing certificate bytes; retrying ... ", ex);
                 continue;
             }
 
-            // logger.debug("HERE2: got x509 cert");
             // extract the encrypted bytes from extension attribute
-            let tCertIndexCT = x509Certificate.criticalExtension(crypto.TCertEncTCertIndex);
-            // logger.debug('tCertIndexCT: ',JSON.stringify(tCertIndexCT));
-            let tCertIndex = self.cryptoPrimitives.aesCBCPKCS7Decrypt(tCertOwnerEncryptKey, tCertIndexCT);
-            // logger.debug('tCertIndex: ',JSON.stringify(tCertIndex));
+            byte[] tCertIndexCT = fromDer(x509Certificate.getExtensionValue(TCERT_ENC_TCERT_INDEX));
+            byte[] tCertIndex = cryptoPrimitives.aesCBCPKCS7Decrypt(tCertOwnerEncryptKey, tCertIndexCT);
 
-            let expansionValue = self.cryptoPrimitives.hmac(expansionKey, tCertIndex);
-            // logger.debug('expansionValue: ',expansionValue);
+            byte[] expansionValue = cryptoPrimitives.calculateMac(expansionKey, tCertIndex);
 
             // compute the private key
-            let one = new BN(1);
-            let k = new BN(expansionValue);
-            let n = self.cryptoPrimitives.ecdsaKeyFromPrivate(enrollKey, "hex").ec.curve.n.sub(one);
-            k = k.mod(n).add(one);
+            BigInteger k = new BigInteger(1, expansionValue);
+            BigInteger n = ((ECPrivateKey)cryptoPrimitives.ecdsaKeyFromPrivate(Hex.decode(enrollKey)))
+                    .getParameters().getN().subtract(BigInteger.ONE);
+            k = k.mod(n).add(BigInteger.ONE);
 
-            let D = self.cryptoPrimitives.ecdsaKeyFromPrivate(enrollKey, "hex").getPrivate().add(k);
-            let pubHex = self.cryptoPrimitives.ecdsaKeyFromPrivate(enrollKey, "hex").getPublic("hex");
-            D = D.mod(self.cryptoPrimitives.ecdsaKeyFromPublic(pubHex, "hex").ec.curve.n);
+            BigInteger D = ((ECPrivateKey) cryptoPrimitives.ecdsaKeyFromPrivate(Hex.decode(enrollKey))).getD().add(k);
+            D = D.mod(((ECPrivateKey)cryptoPrimitives.ecdsaKeyFromPrivate(Hex.decode(enrollKey))).getParameters().getN());
 
             // Put private and public key in returned tcert
-            let tcert = new TCert(tCert.cert, self.cryptoPrimitives.ecdsaKeyFromPrivate(D, "hex"));
-            tCertBatch.push(tcert);
+            TCert tcert = new TCert(tCert.getCert().toByteArray(), cryptoPrimitives.ecdsaKeyFromBigInt(D));
+
+            tCertBatch.add(tcert);
         }
 
-        if (tCertBatch.length == 0) {
+        if (tCertBatch.size() == 0) {
             throw new RuntimeException("Failed fetching TCertBatch. No valid TCert received.");
         }
 
         return tCertBatch;
-        */
-
-    } // end processTCertBatch
+    }
 
     /*
      *  Convert a list of member type names to the role mask currently used by the peer
@@ -367,6 +358,11 @@ public class MemberServicesImpl implements MemberServices {
 
         if (mask == 0) mask = 1;  // Client
         return mask;
+    }
+
+    private byte[] fromDer(byte[] data) throws IOException {
+        DerInputStream dis = new DerInputStream(data);
+        return dis.getOctetString();
     }
 }
 

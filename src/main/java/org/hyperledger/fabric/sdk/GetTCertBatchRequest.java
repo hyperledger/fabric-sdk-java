@@ -14,7 +14,7 @@
 
 package org.hyperledger.fabric.sdk;
 
-import java.util.ArrayList;
+import java.util.List;
 
 // A request to get a batch of TCerts
 public class GetTCertBatchRequest {
@@ -22,15 +22,47 @@ public class GetTCertBatchRequest {
 	private String name;
 	private Enrollment enrollment;
 	private int num;
-	private ArrayList<String> attrs;
+	private List<String> attrs;
 
 	public GetTCertBatchRequest( String name,
                 Enrollment enrollment,
                 int num,
-                ArrayList<String> attrs) {
+                List<String> attrs) {
 		this.name = name;
 		this.enrollment = enrollment;
 		this.num = num;
 		this.attrs = attrs;
 	}
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Enrollment getEnrollment() {
+        return enrollment;
+    }
+
+    public void setEnrollment(Enrollment enrollment) {
+        this.enrollment = enrollment;
+    }
+
+    public int getNum() {
+        return num;
+    }
+
+    public void setNum(int num) {
+        this.num = num;
+    }
+
+    public List<String> getAttrs() {
+        return attrs;
+    }
+
+    public void setAttrs(List<String> attrs) {
+        this.attrs = attrs;
+    }
 }
