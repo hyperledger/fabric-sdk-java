@@ -20,8 +20,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.protos.common.Common;
+import org.hyperledger.fabric.protos.peer.ChaincodeProposal;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric.sdk.exception.NoValidOrdererException;
 import org.hyperledger.fabric.sdk.exception.NoValidPeerException;
@@ -49,6 +53,8 @@ import org.hyperledger.fabric.protos.peer.FabricProposalResponse.ProposalRespons
  */
 public class Chain {
 	private static final Log logger = LogFactory.getLog(Chain.class);
+
+    private Enrollment  enrollment=  null; //TODO How do we get ernollemnt with private keys?
 
     // Name of the chain is only meaningful to the client
     private String name;
@@ -355,7 +361,6 @@ public class Chain {
     /**
      * Send a deployment proposal
      * @param deploymentProposalRequest
-     * @param peers
      * @return
      * @throws Exception
      */
@@ -448,9 +453,9 @@ public class Chain {
      * @return List<TransactionResponse>
      * @throws InvalidArgumentException
      */
-    public List<TransactionResponse> sendTransaction(Proposal proposal, List<ProposalResponse> proposalResponses) {
+    public List<TransactionResponse> sendTransaction(Proposal proposal, List<ProposalResponse> proposalResponses) throws InvalidProtocolBufferException, CryptoException {
     	assert proposalResponses != null && proposalResponses.size() > 0: "Please use sendProposal first to get endorsements";
-    	
+
     	if (this.orderers.isEmpty()) {
             throw new NoValidOrdererException(String.format("chain %s has no orderers", getName()));
         }
@@ -461,19 +466,43 @@ public class Chain {
         	endorsements.add(response.getEndorsement());
         });
 
+        ChaincodeProposal.ChaincodeProposalPayload  payload = ChaincodeProposal.ChaincodeProposalPayload.parseFrom(proposalResponsePayload);
+
+
         TransactionBuilder transactionBuilder = TransactionBuilder.newBuilder();
 
-        Envelope transactionEnv = transactionBuilder
+        Common.Payload commonPayload = transactionBuilder
+                .cryptoPrimitives(cryptoPrimitives) //this has to use same hashing in cryptoPrimitives
                 .chaincodeProposal(proposal)
                 .endorsements(endorsements)
-                .proposalResponcePayload(proposalResponsePayload).build();
+                .proposalResponcePayload(payload).build();
+
+        Envelope signedEnvelope = createTransactionEnvelop(commonPayload);
 
         List<TransactionResponse> ordererResponses = new ArrayList<TransactionResponse>();
         for (Orderer orderer : orderers) {//TODO need to make async.
-            Ab.BroadcastResponse resp = orderer.sendTransaction(transactionEnv);            
+            Ab.BroadcastResponse resp = orderer.sendTransaction(signedEnvelope);
             TransactionResponse tresp = new TransactionResponse(null, null, resp.getStatusValue(), resp.getStatus().name());
             ordererResponses.add(tresp);
         }
         return ordererResponses;
     }
+
+
+
+
+    private Common.Envelope createTransactionEnvelop(Common.Payload transactionPayload) throws CryptoException {
+
+        Common.Envelope.Builder ceb = Common.Envelope.newBuilder();
+        ceb.setPayload(transactionPayload.toByteString());
+
+
+        byte[] ecdsaSignature = cryptoPrimitives.ecdsaSign(enrollment.getPrivateKey(), transactionPayload.toByteArray());
+        ceb.setSignature(ByteString.copyFrom(ecdsaSignature));
+
+        logger.debug("Done creating transaction ready for orderer");
+
+        return ceb.build();
+    }
+
 }

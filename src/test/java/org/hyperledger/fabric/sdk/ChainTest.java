@@ -5,8 +5,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import org.hyperledger.fabric.protos.peer.FabricProposal.Proposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse.ProposalResponse;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.DeploymentException;
 import org.hyperledger.fabric.sdk.transaction.DeployRequest;
 import org.hyperledger.fabric.sdk.transaction.TransactionRequest;
@@ -38,23 +40,28 @@ public class ChainTest {
 	}
 	
 	private static String deployInternal(String path, String ccName, ArrayList<String> args, ChaincodeLanguage lang) throws DeploymentException {
-		DeployRequest request = new DeployRequest();
-		request.setChaincodePath(path);
-		request.setArgs(args);		
-		request.setChaincodeName(ccName);
-		request.setChaincodeLanguage(lang);
-		Proposal proposal = testChain.createDeploymentProposal(request);
-		List<ProposalResponse> responses = testChain.sendProposal(proposal);
-		Assert.assertNotNull(responses);
-		Assert.assertFalse(responses.isEmpty());
-		ProposalResponse response = responses.get(0);
-		Assert.assertNotNull(response);
-		Assert.assertEquals(TransactionResponse.Status.SUCCESS, response.getResponse().getStatus()); // OK?
-		List<TransactionResponse> tResponses = testChain.sendTransaction(proposal, responses);
-		Assert.assertNotNull(tResponses);
-		Assert.assertFalse(tResponses.isEmpty());
-		Assert.assertEquals(TransactionResponse.Status.SUCCESS, tResponses.get(0).getStatus());
-		return tResponses.get(0).getChainCodeID();
+		try {
+			DeployRequest request = new DeployRequest();
+			request.setChaincodePath(path);
+			request.setArgs(args);
+			request.setChaincodeName(ccName);
+			request.setChaincodeLanguage(lang);
+			Proposal proposal = testChain.createDeploymentProposal(request);
+			List<ProposalResponse> responses = testChain.sendProposal(proposal);
+			Assert.assertNotNull(responses);
+			Assert.assertFalse(responses.isEmpty());
+			ProposalResponse response = responses.get(0);
+			Assert.assertNotNull(response);
+			Assert.assertEquals(TransactionResponse.Status.SUCCESS, response.getResponse().getStatus()); // OK?
+			List<TransactionResponse> tResponses = testChain.sendTransaction(proposal, responses);
+			Assert.assertNotNull(tResponses);
+			Assert.assertFalse(tResponses.isEmpty());
+			Assert.assertEquals(TransactionResponse.Status.SUCCESS, tResponses.get(0).getStatus());
+			return tResponses.get(0).getChainCodeID();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);// TODO: Handle the exception properly
+		}
 	}
 
 	public static String deploy() throws DeploymentException {

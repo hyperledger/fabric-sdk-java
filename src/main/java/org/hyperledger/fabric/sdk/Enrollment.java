@@ -15,6 +15,7 @@
 package org.hyperledger.fabric.sdk;
 
 import java.io.Serializable;
+import java.security.PrivateKey;
 
 // Enrollment metadata
 public class Enrollment implements Serializable {
@@ -29,6 +30,12 @@ public class Enrollment implements Serializable {
 	public void setKey(String key) {
 		this.key = key;
 	}
+	public PrivateKey privateKey;
+
+	public PrivateKey getPrivateKey() {
+		return privateKey;
+	}
+
 	public String getCert() {
 		return cert;
 	}
