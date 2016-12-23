@@ -17,15 +17,24 @@ package org.hyperledger.fabric.sdk.shim.crypto;
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.DLSequence;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.ec.CustomNamedCurves;
 import org.bouncycastle.crypto.params.ECDomainParameters;
 import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.crypto.signers.ECDSASigner;
+import org.bouncycastle.jcajce.provider.asymmetric.util.ECUtil;
+import org.bouncycastle.jcajce.provider.digest.SHA3.DigestSHA3;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigInteger;
 import java.security.Security;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.interfaces.ECPublicKey;
 
 public class CryptoPrimitives {
     private int keyLength;
@@ -55,30 +64,49 @@ public class CryptoPrimitives {
                 CURVE_PARAMS.getH());
 
     }
-
-    public boolean ecdsaVerify(byte[] publicKey, byte[] signature, byte[] payload) {
-            ECDSASigner signer = new ECDSASigner();
-            ECPublicKeyParameters params = new ECPublicKeyParameters(CURVE.getCurve().decodePoint(publicKey), CURVE);
-            signer.init(false, params);
-            ASN1InputStream decoder;
-            decoder = new ASN1InputStream(signature);
-            try {
-
-
-                DERSequence seq = (DERSequence) decoder.readObject();
-                ASN1Integer r = (ASN1Integer) seq.getObjectAt(0);
-                ASN1Integer s = (ASN1Integer) seq.getObjectAt(1);
-                decoder.close();
-                return signer.verifySignature(payload, r.getValue(), s.getValue());
-            } catch (Exception e) {
-                return false;
-            }
-            finally {
-                try {
-                    decoder.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+    /**
+     * 
+     * @param certificate
+     * @param signature
+     * @param plainText
+     * @return
+     */
+    public boolean ecdsaVerify(byte[] certificate, byte[] signature, byte[] plainText) {
+    	ASN1InputStream asn1 = null;
+    	InputStream in = null;
+    	DigestSHA3 sha3 = new DigestSHA3(256);
+    	try{
+        	in = new ByteArrayInputStream(certificate);
+        	CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+        	X509Certificate c = (X509Certificate)certFactory.generateCertificate(in);
+        	ECPublicKey ecPublicKey = (ECPublicKey) c.getPublicKey();
+        	ECDSASigner signer = new ECDSASigner();
+        	ECPublicKeyParameters bcPubKeyParams =  (ECPublicKeyParameters) ECUtil.generatePublicKeyParameter(ecPublicKey);
+        	ECPublicKeyParameters params = new ECPublicKeyParameters(CURVE.getCurve().decodePoint(bcPubKeyParams.getQ().getEncoded(false)), CURVE);
+        	signer.init(false, params);
+        	asn1 = new ASN1InputStream(signature);
+    		DLSequence seq = (DLSequence) asn1.readObject();
+            BigInteger r = ((ASN1Integer) seq.getObjectAt(0)).getPositiveValue();
+            BigInteger s = ((ASN1Integer) seq.getObjectAt(1)).getPositiveValue();
+            return signer.verifySignature(sha3.digest(plainText), r, s);
+    	}catch(Exception e){
+    		e.printStackTrace();
+    		return false;
+    	}finally{
+    		if(in!=null){
+    			try {
+					in.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+    		}
+    		if(asn1!=null){
+    			try {
+					asn1.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+    		}
+    	}
+    }
 }
