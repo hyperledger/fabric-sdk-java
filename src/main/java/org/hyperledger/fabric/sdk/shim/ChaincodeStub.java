@@ -23,6 +23,7 @@ import org.apache.commons.logging.LogFactory;
 import org.hyperledger.protos.Chaincode;
 import org.hyperledger.protos.Chaincode.ChaincodeSecurityContext;
 import org.hyperledger.protos.TableProto;
+import org.hyperledger.protos.TableProto.Table;
 import org.hyperledger.fabric.sdk.shim.crypto.signature.EcdsaSignatureVerifier;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -398,6 +399,29 @@ public class ChaincodeStub {
             throw e;
         }
     }
+    public ArrayList<TableProto.Row> getRows(String tableName, List<TableProto.Column> key) throws Exception {
+    	try{
+        	String keyString = buildKeyString(tableName, key);
+    		Table table = getTable(tableName);
+    		// Need to check for special case where table has a single column
+    		if(table.getColumnDefinitionsCount()<2 && key.size()>0){
+    			TableProto.Row row = getRow(tableName, key);
+    			ArrayList<TableProto.Row> rows = new ArrayList<TableProto.Row>();
+    			rows.add(row);
+    			return rows;
+    		}
+    		Map<String, ByteString> iter = rangeQueryRawState(keyString+"1", keyString+":");
+    		ArrayList<TableProto.Row> rows = new ArrayList<TableProto.Row>();
+    		for(String k:iter.keySet()){
+    			rows.add(TableProto.Row.parseFrom(iter.get(k)));
+    		}
+    		return rows;
+    	}catch(Exception e){
+    		logger.error("Error while retrieving rows on table -" + tableName+"  "+e);
+    		throw e;
+    	}
+    }
+
 
     public boolean deleteRow(String tableName, List<TableProto.Column> key){
         String keyString = buildKeyString(tableName, key);
