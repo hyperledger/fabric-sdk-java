@@ -5,6 +5,7 @@ package org.hyperledger.fabric.sdk.transaction;
 
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.QueryException;
+import org.hyperledger.fabric.sdk.helper.SDKUtil;
 import org.hyperledger.protos.Chaincode;
 
 import io.netty.util.internal.StringUtil;
@@ -42,7 +43,7 @@ public class QueryTransactionBuilder extends TransactionBuilder {
         // create transaction
         Fabric.Transaction.Builder txBuilder = createTransactionBuilder(Chaincode.ChaincodeSpec.Type.GOLANG,
                 ccType,
-                request.getChaincodeID(), request.getArgs(), null, request.getChaincodeName(),
+                request.getChaincodeID(), request.getArgs(), null, SDKUtil.generateUUID(),
                 null);
 
         return new Transaction(txBuilder, request.getChaincodeID());
