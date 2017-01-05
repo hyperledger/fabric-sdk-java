@@ -16,8 +16,11 @@ package org.hyperledger.fabric.sdk;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.sdk.events.TransactionListener;
+import org.hyperledger.fabric.sdk.exception.ExecuteException;
 import org.hyperledger.fabric.sdk.exception.PeerException;
 import org.hyperledger.fabric.sdk.transaction.Transaction;
+import org.hyperledger.protos.Fabric;
 import org.hyperledger.protos.Fabric.Response;
 
 /**
@@ -73,106 +76,98 @@ public class Peer {
         //     rpc ProcessTransaction(Transaction) returns (Response) {}
         Response response = peerClient.processTransaction(transaction.getTxBuilder().build());
 
+        if (response.getStatus() != Response.StatusCode.SUCCESS) {
+            return response;
+        }
+
         logger.debug(String.format("peer.sendTransaction: received %s", response.getMsg().toStringUtf8()));
-        return response;
 
         // Check transaction type here, as invoke is an asynchronous call,
         // whereas a deploy and a query are synchonous calls. As such,
         // invoke will emit 'submitted' and 'error', while a deploy/query
         // will emit 'complete' and 'error'.
 
-        /* TODO handle response
-        let txType = tx.pb.getType();
+        Fabric.Transaction.Type txType = transaction.getTxBuilder().getType();
         switch (txType) {
-           case protos.Fabric.Transaction.Type.CHAINCODE_DEPLOY: // async
-                  if (response.status != "SUCCESS") {
-			throw new RuntimeException(response);
-		}
-                     // Deploy transaction has been completed
-                     if (!response.msg || response.msg === "") {
-                        eventEmitter.emit("error", new EventTransactionError("the deploy response is missing the transaction UUID"));
-                     } else {
-                        let event = new EventDeploySubmitted(response.msg.toString(), tx.chaincodeID);
-                        logger.debug("EventDeploySubmitted event: %s", event);
-                        eventEmitter.emit("submitted", event);
-                        self.waitForDeployComplete(eventEmitter,event);
-                     }
-                     // Deploy completed with status "FAILURE" or "UNDEFINED"
-                     eventEmitter.emit("error", new EventTransactionError(response));
-                  }
-                  break;
-               case protos.Fabric.Transaction.Type.CHAINCODE_INVOKE: // async
-                  if (response.status === "SUCCESS") {
-                     // Invoke transaction has been submitted
-                     if (!response.msg || response.msg === "") {
-                        eventEmitter.emit("error", new EventTransactionError("the invoke response is missing the transaction UUID"));
-                     } else {
-                        eventEmitter.emit("submitted", new EventInvokeSubmitted(response.msg.toString()));
-                        self.waitForInvokeComplete(eventEmitter);
-                     }
-                  } else {
-                     // Invoke completed with status "FAILURE" or "UNDEFINED"
-                     eventEmitter.emit("error", new EventTransactionError(response));
-                  }
-                  break;
-               case protos.Fabric.Transaction.Type.CHAINCODE_QUERY: // sync
-                  if (response.status === "SUCCESS") {
-                     // Query transaction has been completed
-                     eventEmitter.emit("complete", new EventQueryComplete(response.msg));
-                  } else {
-                     // Query completed with status "FAILURE" or "UNDEFINED"
-                     eventEmitter.emit("error", new EventTransactionError(response));
-                  }
-                  break;
-               default: // not implemented
-                  eventEmitter.emit("error", new EventTransactionError("processTransaction for this transaction type is not yet implemented!"));
+            case CHAINCODE_DEPLOY: // async
+                String txid = response.getMsg().toStringUtf8();
+                // Deploy transaction has been completed
+                if (txid == null || txid.isEmpty()) {
+                    throw new ExecuteException("the deploy response is missing the transaction UUID");
+                } else if (!this.waitForDeployComplete(txid)) {
+                    throw new ExecuteException("the deploy request is submitted, but is not completed");
+                } else {
+                    return response;
+                }
+            case CHAINCODE_INVOKE: // async
+                txid = response.getMsg().toStringUtf8();
+                // Invoke transaction has been submitted
+                if (txid == null || txid.isEmpty()) {
+                    throw new ExecuteException("the invoke response is missing the transaction UUID");
+                } else if(!this.waitForInvokeComplete(txid)) {
+                    throw new ExecuteException("the invoke request is submitted, but is not completed");
+                } else {
+                    return response;
+                }
+            case CHAINCODE_QUERY: // sync
+                return response;
+            default: // not implemented
+                throw new ExecuteException("processTransaction for this transaction type is not yet implemented!");
+        }
+    }
+
+    private boolean waitForDeployComplete(final String txid) {
+        int waitTime = this.chain.getDeployWaitTime();
+        logger.debug(String.format("waiting %d seconds before emitting deploy complete event", waitTime));
+
+        final boolean[] deployCompleted = {false};
+        final Object lock = new Object();
+        this.chain.getEventHub().registerTxEvent(txid, new TransactionListener() {
+            @Override
+            public void process(Fabric.Transaction transaction) {
+                chain.getEventHub().unregisterTxEvent(txid);
+                deployCompleted[0] = true;
+                synchronized (lock) {
+                    lock.notify();
+                }
             }
-          });
-          */
+        });
+
+        try {
+            synchronized (lock) {
+                lock.wait(waitTime * 1000);
+            }
+        } catch (InterruptedException e) {
+            // ignore
+        }
+        return deployCompleted[0];
     }
 
-    /**
-     * TODO: Temporary hack to wait until the deploy event has hopefully completed.
-     * This does not detect if an error occurs in the peer or chaincode when deploying.
-     * When peer event listening is added to the SDK, this will be implemented correctly.
-     */
+    private boolean waitForInvokeComplete(final String txid) {
+        int waitTime = this.chain.getInvokeWaitTime();
+        logger.debug(String.format("waiting %d seconds before emitting invoke complete event", waitTime));
 
-    /*TODO check waitForDeployComplete
-    private void waitForDeployComplete(events.EventEmitter eventEmitter, EventDeploySubmitted submitted) {
-        let waitTime = this.chain.getDeployWaitTime();
-        logger.debug("waiting %d seconds before emitting deploy complete event",waitTime);
-        setTimeout(
-           function() {
-              let event = new EventDeployComplete(
-                  submitted.uuid,
-                  submitted.chaincodeID,
-                  "TODO: get actual results; waited "+waitTime+" seconds and assumed deploy was successful"
-              );
-              eventEmitter.emit("complete",event);
-           },
-           waitTime * 1000
-        );
+        final boolean[] invokeCompleted = {false};
+        final Object lock = new Object();
+        this.chain.getEventHub().registerTxEvent(txid, new TransactionListener() {
+            @Override
+            public void process(Fabric.Transaction transaction) {
+                chain.getEventHub().unregisterTxEvent(txid);
+                invokeCompleted[0] = true;
+                synchronized (lock) {
+                    lock.notify();
+                }
+            }
+        });
+        try {
+            synchronized (lock) {
+                lock.wait(waitTime * 1000);
+            }
+        } catch (InterruptedException e) {
+            // ignore
+        }
+        return invokeCompleted[0];
     }
-    */
-
-    /**
-     * TODO: Temporary hack to wait until the deploy event has hopefully completed.
-     * This does not detect if an error occurs in the peer or chaincode when deploying.
-     * When peer event listening is added to the SDK, this will be implemented correctly.
-     */
-
-    /*TODO check waitForInvokeComplete
-    private void waitForInvokeComplete(events.EventEmitter eventEmitter) {
-        let waitTime = this.chain.getInvokeWaitTime();
-        logger.debug("waiting %d seconds before emitting invoke complete event",waitTime);
-        setTimeout(
-           function() {
-              eventEmitter.emit("complete",new EventInvokeComplete("waited "+waitTime+" seconds and assumed invoke was successful"));
-           },
-           waitTime * 1000
-        );
-    }
-    */
 
     /**
      * Remove the peer from the chain.

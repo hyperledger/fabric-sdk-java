@@ -16,8 +16,10 @@ package org.hyperledger.fabric.sdk;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.sdk.events.EventHub;
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric.sdk.exception.NoValidPeerException;
+import org.hyperledger.fabric.sdk.exception.PeerException;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
 import org.hyperledger.fabric.sdk.transaction.Transaction;
@@ -73,8 +75,11 @@ public class Chain {
     // The crypto primitives object
     CryptoPrimitives cryptoPrimitives;
 
+    private EventHub eventHub;
+
     public Chain(String name) {
         this.name = name;
+        this.eventHub = new EventHub();
     }
 
     /**
@@ -250,6 +255,25 @@ public class Chain {
         return this.cryptoPrimitives;
     }
 
+    public EventHub getEventHub() {
+        return this.eventHub;
+    }
+
+    /**
+     * Set and connect to the peer to be used as the event source.
+     */
+    public void eventHubConnect(String peerUrl, String pem) {
+        this.eventHub.setPeerAddr(peerUrl, pem);
+        this.eventHub.connect();
+    };
+
+    /**
+     * Disconnect from the event source.
+     */
+    public void eventHubDisconnect() {
+        this.eventHub.disconnect();
+    };
+
     /**
      * Get the member with a given name
      * @return member
@@ -330,7 +354,7 @@ public class Chain {
         for(Peer peer : peers) {
             try {
                 return peer.sendTransaction(tx);
-            } catch (Exception exp) {
+            } catch (PeerException exp) {
                 logger.info(String.format("Failed sending transaction to peer:%s", exp.getMessage()));
             }
         }

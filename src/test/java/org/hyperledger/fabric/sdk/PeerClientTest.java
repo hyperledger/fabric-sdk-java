@@ -33,6 +33,7 @@ public class PeerClientTest {
 				registrar = testChain.enroll("admin", "Xurw3yU9zI0l");
 			}
 			testChain.setRegistrar(registrar);
+			testChain.eventHubConnect("grpc://localhost:7053", null);
 			deployResponse = deploy();
 			javaDeployResponse = deployJava();
 			TimeUnit.SECONDS.sleep(10);// deployment takes time, so wait for it to complete before making a query or invoke call
