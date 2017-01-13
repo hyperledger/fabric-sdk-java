@@ -66,14 +66,10 @@ public class Peer {
      * @return ProposalResponse
      * @throws PeerException 
      */
-    public ProposalResponse sendTransactionProposal(Proposal proposal) throws PeerException {
+    public ProposalResponse sendTransactionProposal(SignedProposal proposal) throws PeerException {
     	   	
     	
-    	SignedProposal request = SignedProposal.newBuilder()
-    			.setProposalBytes(proposal.toByteString())
-    			.build();
-    	
-    	ProposalResponse response = peerClient.processProposal(request);
+    	ProposalResponse response = peerClient.processProposal(proposal);
     	
     	return response;
     }

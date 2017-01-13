@@ -14,14 +14,13 @@
 
 package org.hyperledger.fabric.sdk.transaction;
 
-import com.google.protobuf.ByteString;
-
-import io.netty.util.internal.StringUtil;
+import java.util.List;
 
 import org.hyperledger.fabric.protos.common.Common.ChainHeader;
 import org.hyperledger.fabric.protos.common.Common.Header;
 import org.hyperledger.fabric.protos.common.Common.HeaderType;
 import org.hyperledger.fabric.protos.common.Common.SignatureHeader;
+import org.hyperledger.fabric.protos.msp.Identities.SerializedIdentity;
 import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInput;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInvocationSpec;
@@ -31,8 +30,11 @@ import org.hyperledger.fabric.protos.peer.ChaincodeProposal.ChaincodeProposalPay
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposal.Proposal;
 import org.hyperledger.fabric.sdk.ChaincodeLanguage;
+import org.hyperledger.fabric.sdk.helper.SDKUtil;
 
-import java.util.List;
+import com.google.protobuf.ByteString;
+
+import io.netty.util.internal.StringUtil;
 
 
 public class ProposalBuilder {
@@ -41,6 +43,7 @@ public class ProposalBuilder {
     private List<ByteString> argList;
     protected TransactionContext context;
     private Chaincode.ChaincodeSpec.Type ccType = Chaincode.ChaincodeSpec.Type.GOLANG ;
+    private String txID;
 
     protected ProposalBuilder() {}
 
@@ -63,9 +66,14 @@ public class ProposalBuilder {
         return this;
     }
 
+	public ProposalBuilder txID(String txID) {
+		this.txID = txID;
+		return this;
+	}
+
 
     public FabricProposal.Proposal build() {
-       return createFabricProposal(chaincodeID, argList);
+       return createFabricProposal();
     }
 
     public Chaincode.ChaincodeID getChaincodeID() {
@@ -84,41 +92,46 @@ public class ProposalBuilder {
 		return ccType;
 	}
 
-	private  FabricProposal.Proposal createFabricProposal(Chaincode.ChaincodeID chaincodeID, List<ByteString> argList) {
+	private  FabricProposal.Proposal createFabricProposal() {
 
-        Chaincode.ChaincodeInvocationSpec chaincodeInvocationSpec = createChaincodeInvocationSpec(
-                chaincodeID,
-                ccType, argList);
+		Chaincode.ChaincodeInvocationSpec chaincodeInvocationSpec = createChaincodeInvocationSpec(
+				chaincodeID,
+				ccType, argList);
 
-        ChaincodeHeaderExtension chaincodeHeaderExtension = 
-        		ChaincodeHeaderExtension.newBuilder()
-        		.setChaincodeID(chaincodeID).build();
-        
-        ChainHeader chainHeader = ChainHeader.newBuilder()
-        		.setType(HeaderType.ENDORSER_TRANSACTION.getNumber())
-        		.setVersion(0)
-        		.setChainID(chaincodeID.getName())
-        		.setExtension(chaincodeHeaderExtension.toByteString()).build();
-        
-        SignatureHeader signHeader = SignatureHeader.newBuilder()
-        //TODO: set creator and nonce
-//        		.setCreator(context.getCreator())
-//        		.setNonce(context.getNonce())
-        		.build();
-        
-        Header header =  Header.newBuilder()
-        		.setSignatureHeader(signHeader)
-        		.setChainHeader(chainHeader)
-        		.build();
+		ChaincodeHeaderExtension chaincodeHeaderExtension =
+				ChaincodeHeaderExtension.newBuilder()
+				.setChaincodeID(chaincodeID).build();
 
-        ChaincodeProposalPayload payload = ChaincodeProposalPayload.newBuilder()
-        		.setInput(chaincodeInvocationSpec.toByteString())
-        		.build();
+		ChainHeader chainHeader = ChainHeader.newBuilder()
+				.setType(HeaderType.ENDORSER_TRANSACTION.getNumber())
+				.setVersion(0)
+				.setChainID(context.getChain().getName())
+				.setTxID(txID)
+				.setExtension(chaincodeHeaderExtension.toByteString()).build();
 
-        Proposal proposal = Proposal.newBuilder()
-        		.setHeader(header.toByteString())
-        		.setPayload(payload.toByteString())
-        		.build();
+		SerializedIdentity identity = SerializedIdentity.newBuilder()
+				.setMspid("DEFAULT")
+				.setIdBytes(com.google.protobuf.ByteString.copyFrom(context.getEcert().getBytes()))
+				.build();
+
+		SignatureHeader signHeader = SignatureHeader.newBuilder()
+				.setCreator(identity.toByteString())
+				.setNonce(com.google.protobuf.ByteString.copyFromUtf8(SDKUtil.generateUUID()))
+				.build();
+
+		Header header =  Header.newBuilder()
+				.setSignatureHeader(signHeader)
+				.setChainHeader(chainHeader)
+				.build();
+
+		ChaincodeProposalPayload payload = ChaincodeProposalPayload.newBuilder()
+				.setInput(chaincodeInvocationSpec.toByteString())
+				.build();
+
+		Proposal proposal = Proposal.newBuilder()
+				.setHeader(header.toByteString())
+				.setPayload(payload.toByteString())
+				.build();
 
         return proposal;
 
@@ -129,7 +142,7 @@ public class ProposalBuilder {
         ChaincodeInput chaincodeInput = ChaincodeInput.newBuilder()
         		.addAllArgs(args)
         		.build();
-        
+
         ChaincodeSpec chaincodeSpec = ChaincodeSpec.newBuilder()
         		.setType(langType)
         		.setChaincodeID(chainCodeId)
@@ -150,17 +163,17 @@ public class ProposalBuilder {
     		} else {
     			this.ccType = Chaincode.ChaincodeSpec.Type.GOLANG;
     		}
-    		
+
     	}
-        
+
         return this;
     }
-    
+
     public ProposalBuilder chaincodeType(ChaincodeLanguage lang) {
     	if (lang == null) {
     		lang = ChaincodeLanguage.GO_LANG;
     	}
-    	
+
     	switch(lang) {
     	case GO_LANG:
     		this.ccType = Chaincode.ChaincodeSpec.Type.GOLANG;
@@ -168,8 +181,8 @@ public class ProposalBuilder {
     	case JAVA:
     		this.ccType = Chaincode.ChaincodeSpec.Type.JAVA;
     		break;
-    	}   	
-        
+    	}
+
         return this;
     }
 }

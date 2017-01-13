@@ -22,7 +22,8 @@ import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.sdk.Chain;
 import org.hyperledger.fabric.sdk.Member;
 import org.hyperledger.fabric.sdk.MemberServices;
-import org.hyperledger.fabric.sdk.TCert;;
+import org.hyperledger.fabric.sdk.TCert;
+import org.hyperledger.fabric.sdk.helper.SDKUtil;;
 
 /**
  * A transaction context emits events 'submitted', 'complete', and 'error'.
@@ -33,22 +34,30 @@ public class TransactionContext  {
     private Member member;
     private Chain chain;
     private MemberServices memberServices;
-//    private nonce: any;
-//    private binding: any;
+    private String nonce;
     private TCert tcert;
     private List<String> attrs;
+    private String ecert;
 
-    public TransactionContext (Member member) {
-    	this(member, null);
+
+    public TransactionContext (Chain chain, Member member) {
+        super();
+        if (member == null || !member.isEnrolled()) {
+			throw new IllegalArgumentException("Member must be enrolled before creating a transaction context");
+        }
+        this.member = member;
+        this.chain = chain;
+        this.memberServices = this.chain.getMemberServices();
+        this.ecert = member.getEnrollment().getCert();
+        this.nonce = SDKUtil.generateUUID();
     }
 
-    public TransactionContext (Member member, TCert tcert) {
-        super();
-        this.member = member;
-        this.chain = member.getChain();
-        this.memberServices = this.chain.getMemberServices();
-        this.tcert = tcert;
-  //      this.nonce = this.chain.cryptoPrimitives.generateNonce();
+    public String getEcert() {
+		return this.ecert;
+    }
+
+    public void setEcert(String ecert) {
+		this.ecert = ecert;
     }
 
     /**
@@ -92,7 +101,7 @@ public class TransactionContext  {
 */
     }
 
-   
+
    /**
     * Get the attribute names associated
     */
@@ -219,7 +228,7 @@ public class TransactionContext  {
         */
     }
 
-    private TCert getMyTCert() {        
+    private TCert getMyTCert() {
         if (!getChain().isSecurityEnabled() || this.tcert != null) {
             logger.debug("TCert already cached.");
             return this.tcert;

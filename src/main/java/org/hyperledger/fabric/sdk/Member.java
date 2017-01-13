@@ -30,7 +30,6 @@ import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.util.encoders.Hex;
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
-import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 
 import io.netty.util.internal.StringUtil;
 
@@ -233,16 +232,6 @@ public class Member implements Serializable {
 
 
     /**
-     * Create a transaction context with which to issue build, deploy, invoke, or query transactions.
-     * Only call this if you want to use the same tcert for multiple transactions.
-     * @param tcert A transaction certificate from member services.  This is optional.
-     * @returns A transaction context.
-     */
-    public TransactionContext newTransactionContext(TCert tcert) {
-        return new TransactionContext(this, tcert);
-    }
-
-    /**
      * Get a user certificate.
      * @param attrs The names of attributes to include in the user certificate.
      */
@@ -272,7 +261,7 @@ public class Member implements Serializable {
         return tcertGetter.getNextTCert();
 
    }
-   
+
    private String getAttrsKey(List<String> attrs ) {
 	    if (attrs == null || attrs.isEmpty()) return null;
 	    return String.join(",", attrs);
@@ -338,5 +327,5 @@ public class Member implements Serializable {
 
     private String toKeyValStoreName(String name) {
         return "member." + name;
-    }    
+    }
 }

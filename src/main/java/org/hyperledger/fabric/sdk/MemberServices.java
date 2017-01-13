@@ -16,6 +16,7 @@ package org.hyperledger.fabric.sdk;
 
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
+import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 
 public interface MemberServices {
 
@@ -64,5 +65,12 @@ public interface MemberServices {
      * @param req A GetTCertBatchRequest
      */
     void getTCertBatch(GetTCertBatchRequest req);
+
+	/**
+	 * Get CryptoPrimitives associated with the member services
+	 * 
+	 * @return
+	 */
+	CryptoPrimitives getCrypto();
 
 }

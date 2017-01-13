@@ -20,13 +20,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common;
-import org.hyperledger.fabric.protos.peer.ChaincodeProposal;
+import org.hyperledger.fabric.protos.orderer.Ab;
+import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID;
+import org.hyperledger.fabric.protos.peer.FabricProposal.Proposal;
+import org.hyperledger.fabric.protos.peer.FabricProposal.SignedProposal;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse.Endorsement;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse.ProposalResponse;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.NoValidOrdererException;
 import org.hyperledger.fabric.sdk.exception.NoValidPeerException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
@@ -35,18 +40,13 @@ import org.hyperledger.fabric.sdk.transaction.DeployRequest;
 import org.hyperledger.fabric.sdk.transaction.DeploymentProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.ProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.TransactionBuilder;
+import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 import org.hyperledger.fabric.sdk.transaction.TransactionRequest;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 import io.netty.util.internal.StringUtil;
-
-import org.hyperledger.fabric.protos.common.Common.Envelope;
-import org.hyperledger.fabric.protos.orderer.Ab;
-import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID;
-import org.hyperledger.fabric.protos.peer.FabricProposal.Proposal;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse.Endorsement;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse.ProposalResponse;
 
 /**
  * The class representing a chain with which the client SDK interacts.
@@ -54,14 +54,12 @@ import org.hyperledger.fabric.protos.peer.FabricProposalResponse.ProposalRespons
 public class Chain {
 	private static final Log logger = LogFactory.getLog(Chain.class);
 
-    private Enrollment  enrollment=  null; //TODO How do we get ernollemnt with private keys?
-
     // Name of the chain is only meaningful to the client
     private String name;
 
     // The peers on this chain to which the client can connect
     private List<Peer> peers = new ArrayList<Peer>();
-    
+
  // The orderers on this chain to which the client can connect
     private List<Orderer> orderers = new ArrayList<Orderer>();
 
@@ -98,7 +96,7 @@ public class Chain {
     // The crypto primitives object
     CryptoPrimitives cryptoPrimitives;
 
-    public Chain(String name) {
+	public Chain(String name) {
         this.name = name;
     }
 
@@ -121,14 +119,14 @@ public class Chain {
         this.peers.add(peer);
         return peer;
     }
-        
+
     /**
      * Get the peers for this chain.
      */
     public List<Peer> getPeers() {
         return this.peers;
     }
-    
+
     /**
      * Add an orderer given an endpoint specification.
      * @param url URL of the orderer
@@ -140,7 +138,7 @@ public class Chain {
         this.orderers.add(orderer);
         return orderer;
     }
-    
+
     /**
      * Get the orderers for this chain.
      */
@@ -187,10 +185,8 @@ public class Chain {
      * @param memberServices The MemberServices instance
      */
     public void setMemberServices(MemberServices memberServices) {
-        this.memberServices = memberServices;
-        if (memberServices instanceof MemberServicesImpl) {
-           this.cryptoPrimitives = ((MemberServicesImpl) memberServices).getCrypto();
-        }
+		this.memberServices = memberServices;
+		this.cryptoPrimitives = memberServices.getCrypto();
     };
 
     /**
@@ -299,7 +295,7 @@ public class Chain {
         if (null == memberServices) throw new RuntimeException("No member services was found.  You must first call Chain.setMemberServices or Chain.setMemberServicesUrl");
 
         // Try to get the member state from the cache
-        Member member = (Member) members.get(name);
+        Member member = members.get(name);
         if (null != member) return member;
 
         // Create the member and try to restore it's state from the key value store (if found).
@@ -357,83 +353,118 @@ public class Chain {
         member.registerAndEnroll(registrationRequest);
         return member;
     }
-    
+
+	private SignedProposal createSignedProposal(Member member, Proposal proposal) {
+		assert member != null && member.isEnrolled() : "Member is null or not enrolled";
+
+		byte[] signature = null;
+		try {
+			signature = this.cryptoPrimitives.ecdsaSign(member.getEnrollment().getPrivateKey(), proposal.toByteArray());
+		} catch (CryptoException e) {
+			String msg = String.format("Failed to sign the proposal: [%s]", e.getCause().getMessage());
+			logger.error(msg);
+			// TODO make CryptoException RuntimeException and eliminate this
+			// code.
+			Exception ex = new RuntimeException();
+			ex.setStackTrace(e.getStackTrace());
+		}
+
+		SignedProposal signedProposal = SignedProposal.newBuilder().setProposalBytes(proposal.toByteString())
+		        .setSignature(com.google.protobuf.ByteString.copyFrom(signature)).build();
+
+		return signedProposal;
+
+    }
+
     /**
      * Send a deployment proposal
      * @param deploymentProposalRequest
      * @return
      * @throws Exception
      */
-    public Proposal createDeploymentProposal(DeployRequest deploymentRequest) {
+    public Proposal createDeploymentProposal(Member member, DeployRequest deploymentRequest) {
 
         assert deploymentRequest != null: "sendDeploymentProposal deploymentProposalRequest is null";
-        
+        assert member != null && member.isEnrolled() : "Member is null or not enrolled";
+
         List<ByteString> args = new ArrayList<ByteString>();
         if (deploymentRequest.getArgs() != null) {
         	deploymentRequest.getArgs().forEach(arg->{
         		args.add(ByteString.copyFrom(arg.getBytes()));
         	});
-        }        
+        }
 
-//      TransactionContext transactionContext = new TransactionContext(this, this.client.getUserContext());
-//      deploymentProposalbuilder.context(transactionContext);        
+        TransactionContext transactionContext = new TransactionContext(this, member);
         Proposal deploymentProposal = DeploymentProposalBuilder.newBuilder()
+        		.context(transactionContext)
         		.chaincodeType(deploymentRequest.getChaincodeLanguage())
         		.args(args)
+        		.txID(deploymentRequest.getTxID())
         		.chaincodeID(ChaincodeID.newBuilder()
         				.setName(deploymentRequest.getChaincodeName())
-        				.setPath(deploymentRequest.getChaincodePath())        				
+        				.setPath(deploymentRequest.getChaincodePath())
         				.build())
         		.build();
-                
+
         return deploymentProposal;
     }
-    
+
     /**
      * Create transaction proposal
-     * @param request The details of transaction 
+     * @param request The details of transaction
      * @return proposal
      */
-    public Proposal createTransactionProposal(TransactionRequest request) {
+    public Proposal createTransactionProposal(Member member, TransactionRequest request) {
     	assert request != null : "Cannot send null transactopn proposal";
     	assert StringUtil.isNullOrEmpty(request.getChaincodeName()): "Chaincode name is missing in proposal";
-    	
+    	assert member != null && member.isEnrolled() : "Member is null or not enrolled";
+
+        TransactionContext transactionContext = new TransactionContext(this, member);
+
     	List<ByteString> args = new ArrayList<ByteString>();
     	if (request.getArgs() != null) {
     		for (String arg: request.getArgs()) {
     			args.add(ByteString.copyFrom(arg == null?new byte[]{}:arg.getBytes()));
     		}
     	}
-    	
+
     	ChaincodeID ccid = ChaincodeID.newBuilder()
     			.setName(request.getChaincodeName())
     			.setPath(request.getChaincodePath())
     			.build();
-    	
+
     	Proposal fabricProposal = ProposalBuilder.newBuilder()
     			.args(args)
     			.chaincodeType(request.getChaincodeLanguage())
-    			.chaincodeID(ccid).build(); 
-    	
+    			.txID(request.getTxID())
+    			.context(transactionContext)
+    			.chaincodeID(ccid).build();
+
     	return fabricProposal;
     }
 
+
     /**
-     * Send a transaction proposal to the chain of peers.
-     * @param proposal The transaction proposal
-     * 
-     * @return List<ProposalResponse>
-     */
-    public List<ProposalResponse> sendProposal(Proposal proposal) {
+	 * Send a transaction proposal to the chain of peers.
+	 *
+	 * @param proposal
+	 *            The transaction proposal
+	 * @param member
+	 *            The member who should sign the proposal
+	 *
+	 * @return List<ProposalResponse>
+	 */
+	public List<ProposalResponse> sendProposal(Member member, Proposal proposal) {
         if (this.peers.isEmpty()) {
             throw new NoValidPeerException(String.format("chain %s has no peers", getName()));
         }
-        
+
+		SignedProposal signedProposal = createSignedProposal(member, proposal);
         List<ProposalResponse> responses = new ArrayList<ProposalResponse>();
 
         for(Peer peer : peers) {
         	try {
-        		responses.add(peer.sendTransactionProposal(proposal));
+        		responses.add(peer.sendTransactionProposal(signedProposal));
         	} catch(Exception exp) {
         		logger.info(String.format("Failed sending transaction to peer:%s", exp.getMessage()));
         	}
@@ -442,14 +473,14 @@ public class Chain {
         if (responses.size() == 0) {
         	throw new RuntimeException("No peer available to respond");
         }
-        
+
         return responses;
     }
-    
+
     /**
      * Send a transaction to orderers
      * @param proposalResponses list of responses from endorsers for the proposal
-     * 
+     *
      * @return List<TransactionResponse>
      * @throws InvalidArgumentException
      */
@@ -459,50 +490,29 @@ public class Chain {
     	if (this.orderers.isEmpty()) {
             throw new NoValidOrdererException(String.format("chain %s has no orderers", getName()));
         }
-    	
+
         List<Endorsement> endorsements = new ArrayList<Endorsement>();
         ByteString proposalResponsePayload = proposalResponses.get(0).getPayload();
         proposalResponses.forEach(response->{
         	endorsements.add(response.getEndorsement());
         });
 
-        ChaincodeProposal.ChaincodeProposalPayload  payload = ChaincodeProposal.ChaincodeProposalPayload.parseFrom(proposalResponsePayload);
-
-
         TransactionBuilder transactionBuilder = TransactionBuilder.newBuilder();
-
-        Common.Payload commonPayload = transactionBuilder
-                .cryptoPrimitives(cryptoPrimitives) //this has to use same hashing in cryptoPrimitives
+        Common.Envelope transactionEnv = transactionBuilder
                 .chaincodeProposal(proposal)
                 .endorsements(endorsements)
-                .proposalResponcePayload(payload).build();
-
-        Envelope signedEnvelope = createTransactionEnvelop(commonPayload);
+                .chainID(getName())
+                .proposalResponcePayload(proposalResponsePayload).build();
 
         List<TransactionResponse> ordererResponses = new ArrayList<TransactionResponse>();
         for (Orderer orderer : orderers) {//TODO need to make async.
-            Ab.BroadcastResponse resp = orderer.sendTransaction(signedEnvelope);
-            TransactionResponse tresp = new TransactionResponse(null, null, resp.getStatusValue(), resp.getStatus().name());
-            ordererResponses.add(tresp);
+            Ab.BroadcastResponse resp = orderer.sendTransaction(transactionEnv);
+            if (resp != null) {
+	            TransactionResponse tresp = new TransactionResponse(null, null, resp.getStatusValue(), resp.getStatus().name());
+	            ordererResponses.add(tresp);
+            }
         }
         return ordererResponses;
-    }
-
-
-
-
-    private Common.Envelope createTransactionEnvelop(Common.Payload transactionPayload) throws CryptoException {
-
-        Common.Envelope.Builder ceb = Common.Envelope.newBuilder();
-        ceb.setPayload(transactionPayload.toByteString());
-
-
-        byte[] ecdsaSignature = cryptoPrimitives.ecdsaSign(enrollment.getPrivateKey(), transactionPayload.toByteArray());
-        ceb.setSignature(ByteString.copyFrom(ecdsaSignature));
-
-        logger.debug("Done creating transaction ready for orderer");
-
-        return ceb.build();
     }
 
 }

@@ -18,6 +18,7 @@ import java.util.ArrayList;
 
 import org.hyperledger.fabric.sdk.Certificate;
 import org.hyperledger.fabric.sdk.ChaincodeLanguage;
+import org.hyperledger.fabric.sdk.helper.SDKUtil;
 
 /**
  * A base transaction request common for DeployRequest, InvokeRequest, and QueryRequest.
@@ -40,6 +41,8 @@ public class TransactionRequest {
     // Chaincode language
     private ChaincodeLanguage chaincodeLanguage = ChaincodeLanguage.GO_LANG;
 
+    private String txID;
+
 	public String getChaincodePath() {
 		return null == chaincodePath ? "" : chaincodePath;
 	}
@@ -52,7 +55,17 @@ public class TransactionRequest {
 	public void setChaincodeName(String chaincodeName) {
 		this.chaincodeName = chaincodeName;
 	}
-	
+
+	public String getTxID() {
+		if (txID == null) {
+			txID = SDKUtil.generateUUID();
+		}
+		return txID;
+	}
+	public void setTxID(String txID) {
+		this.txID = txID;
+	}
+
 	public String getFcn() {
 		return fcn;
 	}
