@@ -253,7 +253,7 @@ public class MemberServicesCOPImpl implements MemberServices {
             logger.trace(format("[MemberServicesCOPImpl] enroll returned pem:[%s]", signedPem));
 
             Enrollment enrollment = new Enrollment();
-            enrollment.setKey(Hex.toHexString(signingKeyPair.getPrivate().getEncoded()));
+            enrollment.setPrivateKey(signingKeyPair.getPrivate());
             enrollment.setCert(signedPem);
             return enrollment;
 

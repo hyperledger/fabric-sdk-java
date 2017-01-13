@@ -20,20 +20,16 @@ import java.security.PrivateKey;
 // Enrollment metadata
 public class Enrollment implements Serializable {
 	private static final long serialVersionUID = 550416591376968096L;
-	private String key;
+	private PrivateKey privateKey;
     private String cert;
     private String chainKey;
 
-	public String getKey() {
-		return key;
-	}
-	public void setKey(String key) {
-		this.key = key;
-	}
-	public PrivateKey privateKey;
-
 	public PrivateKey getPrivateKey() {
 		return privateKey;
+	}
+	
+	public void setPrivateKey(PrivateKey privateKey) {
+		this.privateKey = privateKey;
 	}
 
 	public String getCert() {

@@ -4,6 +4,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.net.MalformedURLException;
+import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 
 public class MemberServicesCOPImplTest {
@@ -160,9 +161,8 @@ public class MemberServicesCOPImplTest {
             Assert.assertNotNull(enrollment);
 
 
-            String privateKey = enrollment.getKey();
+            PrivateKey privateKey = enrollment.getPrivateKey();
             Assert.assertNotNull(privateKey);
-            Assert.assertTrue("Key is string with length greater than 1", privateKey.length() >1);
 
             String certificate = enrollment.getCert();
             Assert.assertNotNull(certificate);
