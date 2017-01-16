@@ -86,11 +86,11 @@ public class FSM {
 		current = initialState;
 		transitioner = new Transitioner();
 
-		transitions = new HashMap<EventKey, String>();
-		callbacks = new HashMap<CallbackKey, Callback>();
+		transitions = new HashMap<>();
+		callbacks = new HashMap<>();
 
-		allEvents = new HashSet<String>();
-		allStates = new HashSet<String>();
+		allEvents = new HashSet<>();
+		allStates = new HashSet<>();
 	}
 
 	/** Returns the current state of the FSM */

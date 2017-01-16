@@ -20,27 +20,24 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.hyperledger.protos.Chaincode;
-import org.hyperledger.protos.Chaincode.ChaincodeSecurityContext;
-import org.hyperledger.protos.TableProto;
-import org.hyperledger.fabric.sdk.shim.crypto.signature.EcdsaSignatureVerifier;
+import org.hyperledger.fabric.protos.peer.Chaincode;
+import org.hyperledger.fabric.protos.TableProto;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.hyperledger.protos.TableProto.ColumnDefinition.Type.STRING;
+import static org.hyperledger.fabric.protos.TableProto.ColumnDefinition.Type.STRING;
 
 public class ChaincodeStub {
     private static Log logger = LogFactory.getLog(ChaincodeStub.class);
     private final String uuid;
     private final Handler handler;
-    private final ChaincodeSecurityContext securityContext;
 
-    public ChaincodeStub(String uuid, Handler handler, ChaincodeSecurityContext securityContext) {
+    public ChaincodeStub(String uuid, Handler handler) {
         this.uuid = uuid;
         this.handler = handler;
-        this.securityContext = securityContext;
     }
 
     /**
@@ -123,16 +120,6 @@ public class ChaincodeStub {
         return handler.handleInvokeChaincode(chaincodeName, function, args, uuid).toStringUtf8();
     }
 
-    /**
-     * @param chaincodeName
-     * @param function
-     * @param args
-     * @return
-     */
-    public String queryChaincode(String chaincodeName, String function, List<ByteString> args) {
-        return handler.handleQueryChaincode(chaincodeName, function, args, uuid).toStringUtf8();
-    }
-
     //------RAW CALLS------
 
     /**
@@ -158,19 +145,9 @@ public class ChaincodeStub {
      * @param limit
      * @return
      */
-//  public RangeQueryStateResponse rangeQueryRawState(String startKey, String endKey, int limit) {
-//      return handler.handleRangeQueryState(startKey, endKey, limit, uuid);
-//  }
-
-    /**
-     * @param chaincodeName
-     * @param function
-     * @param args
-     * @return
-     */
-    public ByteString queryRawChaincode(String chaincodeName, String function, List<ByteString> args) {
-        return handler.handleQueryChaincode(chaincodeName, function, args, uuid);
-    }
+//	public RangeQueryStateResponse rangeQueryRawState(String startKey, String endKey, int limit) {
+//		return handler.handleRangeQueryState(startKey, endKey, limit, uuid);
+//	}
 
     /**
      * Invokes the provided chaincode with the given function and arguments, and returns the
@@ -455,28 +432,5 @@ logger.info("Inside get tbale");
             validTableName = false;
         }
         return validTableName;
-    }
-    public byte[] getCallerCertificate(){
-        return  this.securityContext.getCallerCert().toByteArray() ;
-    }
-
-    public byte[] getCallerMetadata(){
-        return  this.securityContext.getMetadata().toByteArray() ;
-    }
-
-    public byte[] getBinding(){
-        return  this.securityContext.getBinding().toByteArray() ;
-    }
-
-    public byte[] getPayload(){
-        return  this.securityContext.getPayload().toByteArray() ;
-    }
-
-    public byte[] getTxTimestamp(){
-        return  this.securityContext.getTxTimestamp().toByteArray() ;
-    }
-
-    public boolean verifySignature(byte[] cert, byte[] signature, byte[] payload){
-        return new EcdsaSignatureVerifier().verify(cert, signature, payload);
     }
 }

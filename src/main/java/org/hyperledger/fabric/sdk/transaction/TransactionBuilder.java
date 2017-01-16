@@ -14,135 +14,118 @@
 
 package org.hyperledger.fabric.sdk.transaction;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.hyperledger.fabric.sdk.Chain;
-import org.hyperledger.fabric.sdk.TransactionRequest;
-import org.hyperledger.fabric.sdk.helper.SDKUtil;
-import org.hyperledger.protos.Chaincode;
-import org.hyperledger.protos.Chaincode.ChaincodeDeploymentSpec;
-import org.hyperledger.protos.Chaincode.ChaincodeSpec;
-import org.hyperledger.protos.Chaincode.ConfidentialityLevel;
-import org.hyperledger.protos.Fabric;
-
 import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.protos.common.Common;
+import org.hyperledger.fabric.protos.peer.ChaincodeProposal;
+import org.hyperledger.fabric.protos.peer.ChaincodeTransaction;
+import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.protos.peer.FabricTransaction;
 
-public abstract class TransactionBuilder {
-	
-	protected TransactionRequest request = null;
-	protected Chain chain = null;
-	
-	public TransactionBuilder request(TransactionRequest request) {
-		this.request = request;
-		return this;
-	}
-	
-	public TransactionBuilder chain(Chain chain) {
-		this.chain = chain;
-		return this;
-	}
-	
-	public abstract Transaction build();
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.function.Function;
 
-	/**
-	 * Create a transaction
-	 * @param ccType Chaincode type (GOLANG, JAVA etc)
-	 * @param transactionType The type of transaction (Deploy/Query/Invoke etc)
-	 * @param name name of the chaincode
-	 * @param args argument list for the transaction
-	 * @param codePackage chaincode contents - only used for NetMode deploy transaction
-	 * @param txId transaction ID
-	 * @param chaincodePath Chain code path - only used for DevMode deploy transaction
-	 * @return {@link Fabric.Transaction.Builder}
-	 */
-	protected Fabric.Transaction.Builder createTransactionBuilder(
-			Chaincode.ChaincodeSpec.Type ccType, 
-			Fabric.Transaction.Type transactionType,
-			String name, 
-			List<String> args,
-			byte[] codePackage,
-			String txId,
-			String chaincodePath) {
-		// build chaincodeId
-		Chaincode.ChaincodeID.Builder chaincodeIDBuilder = Chaincode.ChaincodeID.newBuilder().setName(name);
-		if (chaincodePath != null) {
-			chaincodeIDBuilder = chaincodeIDBuilder.setPath(chaincodePath);
-		}
-		Chaincode.ChaincodeID chaincodeID = chaincodeIDBuilder.build(); 
-		
-		// build chaincodeInput
-		List<ByteString> argList = new ArrayList<>(args.size());		
-		for (String arg : args) {
-			argList.add(ByteString.copyFrom(arg.getBytes()));
-		}
-		Chaincode.ChaincodeInput chaincodeInput = Chaincode.ChaincodeInput.newBuilder().addAllArgs(argList).build();
+public class TransactionBuilder {
 
-		// Construct the ChaincodeSpec
-		ChaincodeSpec chaincodeSpec = Chaincode.ChaincodeSpec.newBuilder().setType(ccType).setChaincodeID(chaincodeID)
-				.setCtorMsg(chaincodeInput).build();
-		
-		// create payload
-		ByteString payload = null;
+    private Log logger = LogFactory.getLog(TransactionBuilder.class);
+    private FabricProposal.Proposal chaincodeProposal;
+    private Collection<FabricProposalResponse.Endorsement> endorsements;
+    private ChaincodeProposal.ChaincodeProposalPayload proposalResponcePayload;
+    private Function<byte[], byte[]> hash;
 
-		switch (transactionType.getNumber()) {
-		case Fabric.Transaction.Type.CHAINCODE_DEPLOY_VALUE:
-			// Construct the ChaincodeDeploymentSpec (i.e. the payload)
-			ChaincodeDeploymentSpec.Builder chaincodeDeploymentSpecBuilder = Chaincode.ChaincodeDeploymentSpec
-					.newBuilder().setChaincodeSpec(chaincodeSpec);
 
-			if (codePackage != null && codePackage.length > 0) {
-				chaincodeDeploymentSpecBuilder = chaincodeDeploymentSpecBuilder
-						.setCodePackage(ByteString.copyFrom(codePackage));
-			}
-			payload = chaincodeDeploymentSpecBuilder.build().toByteString();
-			break;
-		case Fabric.Transaction.Type.CHAINCODE_QUERY_VALUE:
-		case Fabric.Transaction.Type.CHAINCODE_INVOKE_VALUE:
-			// Construct the ChaincodeDeploymentSpec (i.e. the payload)
-			payload = Chaincode.ChaincodeInvocationSpec.newBuilder().setChaincodeSpec(chaincodeSpec).build()
-					.toByteString();
-			break;
-		}
-		
-		// public or confidential?
-		ConfidentialityLevel confidentialityLevel = request.isConfidential()
-				? Chaincode.ConfidentialityLevel.CONFIDENTIAL : Chaincode.ConfidentialityLevel.PUBLIC;
-		
-		// Initialize a transaction structure
-		Fabric.Transaction.Builder txBuilder = Fabric.Transaction.newBuilder()
-				.setType(transactionType).setChaincodeID(chaincodeID.toByteString())
-				.setTxid(txId)
-				.setTimestamp(SDKUtil.generateTimestamp()).setConfidentialityLevel(confidentialityLevel);
-		
-		if (payload != null) {
-			txBuilder = txBuilder.setPayload(payload);
-		}
+    public static TransactionBuilder newBuilder() {
+        return new TransactionBuilder();
+    }
 
-		if (request.getMetadata() != null && request.getMetadata().length > 0) {
-			txBuilder.setMetadata(ByteString.copyFrom(request.getMetadata()));
-		}
-		
-		 /*if (request.userCert) {
-			 // cert based
-			 let certRaw = new Buffer(self.tcert.publicKey);
-			 // logger.debug('========== Invoker Cert [%s]',certRaw.toString("hex"));
-			 let nonceRaw = new Buffer(self.nonce);
-			 let bindingMsg = Buffer.concat([certRaw, nonceRaw]);
-			 // logger.debug('========== Binding Msg [%s]', bindingMsg.toString("hex"));
-			 self.binding = new Buffer(self.chain.cryptoPrimitives.hash(bindingMsg), "hex");
-			 // logger.debug('========== Binding [%s]', self.binding.toString("hex"));
-			 let ctor = chaincodeSpec.getCtorMsg().toBuffer();
-			 // logger.debug('========== Ctor [%s]', ctor.toString("hex"));
-			 let txmsg = Buffer.concat([ctor, self.binding]);
-			 // logger.debug('========== Payload||binding [%s]',
-			 txmsg.toString("hex"));
-			 let mdsig = self.chain.cryptoPrimitives.ecdsaSign(request.userCert.privateKey.getPrivate("hex"), txmsg);
-			 let sigma = new Buffer(mdsig.toDER());
-			 // logger.debug('========== Sigma [%s]', sigma.toString("hex"));
-			 return sigma
-		}*/
-		
-		return txBuilder;
-	}
+
+    public TransactionBuilder hash(Function<byte[], byte[]> hash) {
+        this.hash = hash;
+        return this;
+    }
+
+    public TransactionBuilder chaincodeProposal(FabricProposal.Proposal chaincodeProposal) {
+        this.chaincodeProposal = chaincodeProposal;
+        return this;
+    }
+
+    public TransactionBuilder endorsements(Collection<FabricProposalResponse.Endorsement> endorsements) {
+        this.endorsements = endorsements;
+        return this;
+    }
+
+    public TransactionBuilder proposalResponcePayload(ChaincodeProposal.ChaincodeProposalPayload proposalResponcePayload) {
+        this.proposalResponcePayload = proposalResponcePayload;
+        return this;
+    }
+
+
+    public Common.Payload build() throws InvalidProtocolBufferException {
+
+        return createTransactionCommonPayload(chaincodeProposal, proposalResponcePayload, endorsements);
+
+    }
+
+
+    private Common.Payload createTransactionCommonPayload(FabricProposal.Proposal chaincodeProposal, ChaincodeProposal.ChaincodeProposalPayload proposalResponcePayload,
+                                                          Collection<FabricProposalResponse.Endorsement> endorsements) throws InvalidProtocolBufferException {
+
+        //ChaincodeEndorsedAction
+        // -- proposalResponcePayload
+        // -- Endorsemens
+        ChaincodeTransaction.ChaincodeEndorsedAction.Builder chaincodeEndorsedActionBuilder = ChaincodeTransaction.ChaincodeEndorsedAction.newBuilder();
+        chaincodeEndorsedActionBuilder.setProposalResponsePayload(proposalResponcePayload.toByteString());
+        chaincodeEndorsedActionBuilder.addAllEndorsements(endorsements);
+
+        //ChaincodeActionPayload
+        ChaincodeTransaction.ChaincodeActionPayload.Builder chaincodeActionPayloadBuilder = ChaincodeTransaction.ChaincodeActionPayload.newBuilder();
+        chaincodeActionPayloadBuilder.setAction(chaincodeEndorsedActionBuilder.build());
+
+        //We need to remove any transient fields - they are not part of what the peer uses to calculate hash.
+        ChaincodeProposal.ChaincodeProposalPayload.Builder chaincodeProposalPayloadNoTransBuilder = ChaincodeProposal.ChaincodeProposalPayload.newBuilder();
+        chaincodeProposalPayloadNoTransBuilder.mergeFrom(chaincodeProposal.getPayload());
+        chaincodeProposalPayloadNoTransBuilder.clearTransient();
+
+        byte[] bhash = hash.apply(chaincodeProposalPayloadNoTransBuilder.build().toByteArray());
+
+
+        chaincodeActionPayloadBuilder.setChaincodeProposalPayload(ByteString.copyFrom(bhash));
+
+        //TransactionAction
+        // --Header
+        // --payload (chaincodeActionPayload)
+        FabricTransaction.TransactionAction.Builder transactionActionBuilder = FabricTransaction.TransactionAction.newBuilder();
+
+        Common.Header header = Common.Header.parseFrom(chaincodeProposal.getHeader());
+
+        logger.trace("transaction header bytes:" + Arrays.toString(header.toByteArray()));
+        logger.trace("transaction header sig bytes:" + Arrays.toString(header.getSignatureHeader().toByteArray()));
+
+        transactionActionBuilder.setHeader(header.getSignatureHeader().toByteString());
+
+        ChaincodeTransaction.ChaincodeActionPayload chaincodeActionPayload = chaincodeActionPayloadBuilder.build();
+        logger.trace("transactionActionBuilder.setPayload" + Arrays.toString(chaincodeActionPayload.toByteString().toByteArray()));
+        transactionActionBuilder.setPayload(chaincodeActionPayload.toByteString());
+
+        //Transaction
+        FabricTransaction.Transaction.Builder transactionBuilder = FabricTransaction.Transaction.newBuilder();
+        transactionBuilder.addActions(transactionActionBuilder.build());
+
+
+        //Build message Payload
+        // --Header
+        // --Data (transaction)
+        Common.Payload.Builder payload = Common.Payload.newBuilder();
+        payload.setHeader(header);
+        payload.setData(transactionBuilder.build().toByteString());
+
+        return payload.build();
+
+
+    }
+
 }

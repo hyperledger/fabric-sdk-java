@@ -44,15 +44,15 @@ public interface MemberServices {
     void setHashAlgorithm(String hashAlgorithm);
 
     /**
-     * Register the member and return an enrollment secret.
+     * Register the user and return an enrollment secret.
      * @param req Registration request with the following fields: name, role
      * @param registrar The identity of the registar (i.e. who is performing the registration)
      * @return enrollment secret
      */
-    String register(RegistrationRequest req, Member registrar) throws RegistrationException;
+    String register(RegistrationRequest req, User registrar) throws RegistrationException;
 
     /**
-     * Enroll the member and return an opaque member object
+     * Enroll the user and return an opaque user object
      * @param req Enrollment request with the following fields: name, enrollmentSecret
      *
      * @return enrollment details

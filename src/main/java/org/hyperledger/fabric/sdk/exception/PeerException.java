@@ -21,5 +21,8 @@ public class PeerException extends BaseException {
 	public PeerException(String message, Exception parent) {
 		super(message, parent);
 	}
+	public PeerException(String message ) {
+		super(message);
+	}
 
 }

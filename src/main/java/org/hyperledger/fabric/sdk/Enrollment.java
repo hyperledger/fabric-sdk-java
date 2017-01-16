@@ -15,23 +15,31 @@
 package org.hyperledger.fabric.sdk;
 
 import java.io.Serializable;
+import java.security.KeyPair;
+import java.security.PrivateKey;
 
 // Enrollment metadata
 public class Enrollment implements Serializable {
 	private static final long serialVersionUID = 550416591376968096L;
-	private String key;
+	private KeyPair key;
     private String cert;
     private String chainKey;
+	private String publicKey;
 
-	public String getKey() {
-		return key;
+	public PrivateKey getKey() {
+		return key.getPrivate();
 	}
-	public void setKey(String key) {
+	public void setKey(KeyPair key) {
 		this.key = key;
 	}
 	public String getCert() {
 		return cert;
 	}
+
+	public String getMSPID() {
+		return "DEFAULT"; //TODO what will this be ?
+	}
+
 	public void setCert(String cert) {
 		this.cert = cert;
 	}
@@ -41,4 +49,8 @@ public class Enrollment implements Serializable {
 	public void setChainKey(String chainKey) {
 		this.chainKey = chainKey;
 	}
+
+    public void setPublicKey(String publicKey) {
+        this.publicKey = publicKey;
+    }
 }

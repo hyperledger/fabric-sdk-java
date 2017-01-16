@@ -1,0 +1,13 @@
+FROM hyperledger/fabric-javaenv
+    COPY . /root/chaincode
+#Link needed core and proto prototypes in container to chaincode so they can be built.
+    RUN ln -s /root/core /root/chaincode &&\
+            ln -s /root/protos /root/chaincode/protos &&\
+            cp /root/settings.gradle /root/chaincode
+#Do build.
+    RUN cd /root/chaincode && gradle -b build.gradle build
+#Move build files to where fabric container expects them to run.
+    RUN mkdir -p /root/Chaincode/bin && cp /root/chaincode/build/scripts/runChaincode /root/Chaincode/bin && \
+        mkdir -p /root/Chaincode/lib && \
+        cp /root/chaincode/build/libs/* /root/Chaincode/lib && \
+        cp /root/core/chaincode/shim/java/build/libs/* /root/Chaincode/lib

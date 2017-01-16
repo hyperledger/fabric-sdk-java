@@ -26,202 +26,195 @@ import io.netty.handler.ssl.SslContext;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.hyperledger.protos.Chaincode.ChaincodeID;
-import org.hyperledger.protos.Chaincode.ChaincodeMessage;
-import org.hyperledger.protos.Chaincode.ChaincodeMessage.Type;
-import org.hyperledger.protos.ChaincodeSupportGrpc;
-import org.hyperledger.protos.ChaincodeSupportGrpc.ChaincodeSupportStub;
+import org.hyperledger.fabric.protos.peer.Chaincode;
+import org.hyperledger.fabric.protos.peer.ChaincodeSupportGrpc;
 
 import javax.net.ssl.SSLException;
 import java.io.File;
 
+
 public abstract class ChaincodeBase {
 
-	private static Log logger = LogFactory.getLog(ChaincodeBase.class);
+    private static Log logger = LogFactory.getLog(ChaincodeBase.class);
 
-	public abstract String run(ChaincodeStub stub, String function, String[] args);
-	public abstract String query(ChaincodeStub stub, String function, String[] args);
-	public abstract String getChaincodeID();
+    public abstract String run(ChaincodeStub stub, String function, String[] args);
 
-	public static final String DEFAULT_HOST = "127.0.0.1";
-	public static final int DEFAULT_PORT = 7051;
+    public abstract String query(ChaincodeStub stub, String function, String[] args);
 
-	private String host = DEFAULT_HOST;
-	private int port = DEFAULT_PORT;
-	private String hostOverrideAuthority = "";
-	private static final String ROOTCERT_PEM = "/root/certs/rootcert.pem";
-	private boolean tlsEnabled=false;
+    public abstract String getChaincodeID();
 
-	private Handler handler;
-	private String id = getChaincodeID();
+    public static final String DEFAULT_HOST = "127.0.0.1";
+    public static final int DEFAULT_PORT = 7051;
 
-	// Start entry point for chaincodes bootstrap.
-	public void start(String[] args) {
-		Options options = new Options();
-		options.addOption("a", "peerAddress", true, "Address of peer to connect to");
-		options.addOption("s", "securityEnabled", false, "Present if security is enabled");
-		options.addOption("i", "id", true, "Identity of chaincode");
-		options.addOption("o", "hostNameOverride", true, "Hostname override for server certificate");
-		try {
-			CommandLine cl = new DefaultParser().parse(options, args);
-			if (cl.hasOption('a')) {
-				host = cl.getOptionValue('a');
-				port = new Integer(host.split(":")[1]);
-				host = host.split(":")[0];
-			}
-			if (cl.hasOption('s')) {
-				tlsEnabled = true;
-				logger.debug("TLS enabled");
-				if (cl.hasOption('o')){
-					hostOverrideAuthority = cl.getOptionValue('o');
-					logger.debug("server host override given " + hostOverrideAuthority);
-				}
-			}
-			if (cl.hasOption('i')) {
-				id = cl.getOptionValue('i');
-			}
-		} catch (ParseException e) {
-			logger.warn("cli parsing failed with exception",e);
+    private String host = DEFAULT_HOST;
+    private int port = DEFAULT_PORT;
 
-		}
+    private Handler handler;
+    private String id = getChaincodeID();
 
-		Runnable chaincode = () -> {
-			logger.trace("chaincode started");
-			ManagedChannel connection = newPeerClientConnection();
-			logger.trace("connection created");
-			chatWithPeer(connection);
-			logger.trace("chatWithPeer DONE");
-		};
-		new Thread(chaincode).start();
-	}
+    // Start entry point for chaincodes bootstrap.
+    public void start(String[] args) {
+        Options options = new Options();
+        options.addOption("a", "peerAddress", true, "Address of peer to connect to");
+        options.addOption("s", "securityEnabled", false, "Present if security is enabled");
+        options.addOption("i", "id", true, "Identity of chaincode");
 
-	public ManagedChannel newPeerClientConnection() {
-		NettyChannelBuilder builder = NettyChannelBuilder.forAddress(host, port);
-		logger.info("Inside newPeerCLientConnection");
+        try {
+            CommandLine cl = new DefaultParser().parse(options, args);
+            if (cl.hasOption('a')) {
+                host = cl.getOptionValue('a');
+                port = new Integer(host.split(":")[1]);
+                host = host.split(":")[0];
+            }
+            if (cl.hasOption('s')) {
+                //TODO
+                logger.warn("securityEnabled option not implemented yet");
+            }
+            if (cl.hasOption('i')) {
+                id = cl.getOptionValue('i');
+            }
+        } catch (Exception e) {
+            logger.warn("cli parsing failed with exception", e);
 
-		if (tlsEnabled) {
-			logger.info("tls enable");
-			try {
-				SslContext sslContext = GrpcSslContexts.forClient()
-						.trustManager(new File(ROOTCERT_PEM))
-						.build();
-				builder.negotiationType(NegotiationType.TLS);
-				if (!hostOverrideAuthority.equals("")){
-					logger.info("host override " + hostOverrideAuthority);
-					builder.overrideAuthority(hostOverrideAuthority);
-				}
-				builder.sslContext(sslContext);
-				logger.info("context built" + sslContext);
-			} catch (SSLException e) {
-				logger.error("failed connect to peer with SSLException",e);
-			}
-		} else {
-			builder.usePlaintext(true);
-		}
-		return builder.build();
-	}
+        }
 
-	public void chatWithPeer(ManagedChannel connection) {
-		// Establish stream with validating peer
-		ChaincodeSupportStub stub = ChaincodeSupportGrpc.newStub(connection);
+        Runnable chaincode = () -> {
+            logger.trace("chaincode started");
+            ManagedChannel connection = newPeerClientConnection();
+            logger.trace("connection created");
+            chatWithPeer(connection);
+            logger.trace("chatWithPeer DONE");
+        };
+        new Thread(chaincode).start();
+    }
 
-		StreamObserver<ChaincodeMessage> requestObserver = null;
-		try {
-			requestObserver = stub.register(
-					new StreamObserver<ChaincodeMessage>() {
+    public ManagedChannel newPeerClientConnection() {
+        NettyChannelBuilder builder = NettyChannelBuilder.forAddress(host, port);
+        //TODO security
+        if (false) {//"true".equals(params.get("peer.tls.enabled"))) {
+            try {
+                SslContext sslContext = GrpcSslContexts.forClient().trustManager(
+                        new File("pathToServerCertPemFile")).keyManager(new File("pathToOwnCertPemFile"),
+                        new File("pathToOwnPrivateKeyPemFile")).build();
+                builder.negotiationType(NegotiationType.TLS);
+                builder.sslContext(sslContext);
+            } catch (SSLException e) {
+                logger.error("failed connect to peer with SSLException", e);
+            }
+        } else {
+            builder.usePlaintext(true);
+        }
 
-						@Override
-						public void onNext(ChaincodeMessage message) {
-							try {
-								logger.debug(String.format("[%s]Received message %s from org.hyperledger.fabric.java.shim",
-										Handler.shortID(message.getTxid()), message.getType()));
-								handler.handleMessage(message);
-							} catch (Exception e) {
-								logger.error(e.getMessage());
-								e.printStackTrace();
-								System.exit(-1);
-							}
-						}
+        return builder.build();
+    }
 
-						@Override
-						public void onError(Throwable e) {
-							logger.error("Unable to connect to peer server: "+ e.getMessage());
-							System.exit(-1);
-						}
+    public void chatWithPeer(ManagedChannel connection) {
+        // Establish stream with validating peer
+        ChaincodeSupportGrpc.ChaincodeSupportStub stub = ChaincodeSupportGrpc.newStub(connection);
 
-						@Override
-						public void onCompleted() {
-							connection.shutdown();
-							handler.nextState.close();
-						}
-					});
-		} catch (Exception e) {
-			logger.error("Unable to connect to peer server -" + e.getMessage());
-			System.exit(-1);
-		}
+        StreamObserver<Chaincode.ChaincodeMessage> requestObserver = null;
+        try {
+            requestObserver = stub.register(
+                    new StreamObserver<Chaincode.ChaincodeMessage>() {
 
-		// Create the org.hyperledger.fabric.java.shim handler responsible for all control logic
-		handler = new Handler(requestObserver, this);
+                        @Override
+                        public void onNext(Chaincode.ChaincodeMessage message) {
+                            try {
+                                logger.debug(String.format("[%s]Received message %s from org.hyperledger.java.shim",
+                                        Handler.shortID(message.getTxid()), message.getType()));
+                                handler.handleMessage(message);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                System.exit(-1);
+                                //TODO
+                                //								} else if (err != nil) {
+                                //									logger.Error(fmt.Sprintf("Received error from server: %s, ending chaincode stream", err))
+                                //									return
+                                //								} else if (in == nil) {
+                                //									err = fmt.Errorf("Received nil message, ending chaincode stream")
+                                //											logger.debug("Received nil message, ending chaincode stream")
+                                //											return
+                            }
+                        }
 
-		// Send the ChaincodeID during register.
-		ChaincodeID chaincodeID = ChaincodeID.newBuilder()
-				.setName(id)
-				.build();
+                        @Override
+                        public void onError(Throwable e) {
+                            logger.error("Unable to connect to peer server: " + e.getMessage());
+                            System.exit(-1);
+                        }
 
-		ChaincodeMessage payload = ChaincodeMessage.newBuilder()
-				.setPayload(chaincodeID.toByteString())
-				.setType(Type.REGISTER)
-				.build();
+                        @Override
+                        public void onCompleted() {
+                            connection.shutdown();
+                            handler.nextState.close();
+                        }
+                    });
+        } catch (Exception e) {
+            logger.error("Unable to connect to peer server");
+            System.exit(-1);
+        }
 
-		// Register on the stream
-		logger.debug(String.format("Registering as '%s' ... sending %s", id, Type.REGISTER));
-		handler.serialSend(payload);
+        // Create the org.hyperledger.java.shim handler responsible for all control logic
+        handler = new Handler(requestObserver, this);
 
-		while (true) {
-			try {
-				NextStateInfo nsInfo = handler.nextState.take();
-				ChaincodeMessage message = nsInfo.message;
-				handler.handleMessage(message);
-				//keepalive messages are PONGs to the fabric's PINGs
-				if (nsInfo.sendToCC || message.getType() == Type.KEEPALIVE) {
-					if (message.getType() == Type.KEEPALIVE){
-						logger.debug("Sending KEEPALIVE response");
-					}else {
-						logger.debug("[" + Handler.shortID(message.getTxid()) + "]Send state message " + message.getType());
-					}
-					handler.serialSend(message);
-				}
-			} catch (Exception e) {
-				break;
-			}
-		}
-	}
+        // Send the ChaincodeID during register.
+        Chaincode.ChaincodeID chaincodeID = Chaincode.ChaincodeID.newBuilder()
+                .setName(id)//TODO params.get("chaincode.id.name"))
+                .build();
 
-	public ByteString runRaw(ChaincodeStub stub, String function, String[] args) {
-		return null;
-	}
+        Chaincode.ChaincodeMessage payload = Chaincode.ChaincodeMessage.newBuilder()
+                .setPayload(chaincodeID.toByteString())
+                .setType(Chaincode.ChaincodeMessage.Type.REGISTER)
+                .build();
 
-	public ByteString queryRaw(ChaincodeStub stub, String function, String[] args) {
-		return null;
-	}
+        // Register on the stream
+        logger.debug(String.format("Registering as '%s' ... sending %s", id, Chaincode.ChaincodeMessage.Type.REGISTER));
+        handler.serialSend(payload);
 
-	protected ByteString runHelper(ChaincodeStub stub, String function, String[] args) {
-		ByteString ret = runRaw(stub, function, args);
-		if (ret == null) {
-			String tmp = run(stub, function, args);
-			ret = ByteString.copyFromUtf8(tmp == null ? "" : tmp);
-		}
-		return ret;
-	}
+        while (true) {
+            try {
+                NextStateInfo nsInfo = handler.nextState.take();
+                Chaincode.ChaincodeMessage message = nsInfo.message;
+                handler.handleMessage(message);
+                //keepalive messages are PONGs to the fabric's PINGs
+                if (nsInfo.sendToCC || message.getType() == Chaincode.ChaincodeMessage.Type.KEEPALIVE) {
+                    if (message.getType() == Chaincode.ChaincodeMessage.Type.KEEPALIVE) {
+                        logger.debug("Sending KEEPALIVE response");
+                    } else {
+                        logger.debug("[" + Handler.shortID(message.getTxid()) + "]Send state message " + message.getType());
+                    }
+                    handler.serialSend(message);
+                }
+            } catch (Exception e) {
+                break;
+            }
+        }
+    }
 
-	protected ByteString queryHelper(ChaincodeStub stub, String function, String[] args) {
-		ByteString ret = queryRaw(stub, function, args);
-		if (ret == null) {
-			ret = ByteString.copyFromUtf8(query(stub, function, args));
-		}
-		return ret;
-	}
+    public ByteString runRaw(ChaincodeStub stub, String function, String[] args) {
+        return null;
+    }
+
+    public ByteString queryRaw(ChaincodeStub stub, String function, String[] args) {
+        return null;
+    }
+
+    protected ByteString runHelper(ChaincodeStub stub, String function, String[] args) {
+        ByteString ret = runRaw(stub, function, args);
+        if (ret == null) {
+            String tmp = run(stub, function, args);
+            ret = ByteString.copyFromUtf8(tmp == null ? "" : tmp);
+        }
+        return ret;
+    }
+
+    protected ByteString queryHelper(ChaincodeStub stub, String function, String[] args) {
+        ByteString ret = queryRaw(stub, function, args);
+        if (ret == null) {
+            ret = ByteString.copyFromUtf8(query(stub, function, args));
+        }
+        return ret;
+    }
 }

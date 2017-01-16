@@ -16,35 +16,83 @@ package org.hyperledger.fabric.sdk;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.PeerException;
-import org.hyperledger.fabric.sdk.transaction.Transaction;
-import org.hyperledger.protos.Fabric.Response;
+import org.hyperledger.fabric.sdk.helper.SDKUtil;
+import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 
 /**
- * The Peer class represents a peer to which SDK sends deploy, invoke, or query requests.
+ * The Peer class represents a peer to which SDK sends deploy, or query requests.
  */
 public class Peer {
-	private static final Log logger = LogFactory.getLog(Peer.class);
-
+    private static final Log logger = LogFactory.getLog(Peer.class);
+    private final EndorserClient endorserClent;
+    private String name = null;
     private String url;
+
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Set peer's name
+     *
+     * @param name
+     */
+    public void setName(String name) throws InvalidArgumentException {
+        if (name == null) {
+            throw new InvalidArgumentException("Peer name set to null");
+        }
+        if (name.length() == 0) {
+            throw new InvalidArgumentException("Peer name can not be empty string.");
+        }
+        this.name = name;
+    }
+
+
+
+    /**
+     * Set the chain the peer is on.
+     *
+     * @param chain
+     */
+
+    void setChain(Chain chain) throws InvalidArgumentException {
+        if (chain == null) {
+            throw new InvalidArgumentException("Chain can not be null");
+        }
+
+        this.chain = chain;
+    }
+
     private Chain chain;
-    private PeerClient peerClient;
 
     /**
      * Constructor for a peer given the endpoint config for the peer.
+     *
      * @param {string} url The URL of
-     * @param {Chain} The chain of which this peer is a member.
+     * @param {Chain}  The chain of which this peer is a member.
      * @returns {Peer} The new peer.
      */
-    public Peer(String url, String pem, Chain chain) {
+    public Peer(String url, String pem) throws InvalidArgumentException {
+
+
+        Exception e = SDKUtil.checkGrpcUrl(url);
+        if(e != null){
+            throw new InvalidArgumentException("Bad peer url.", e);
+
+        }
         this.url = url;
-        this.chain = chain;
-        Endpoint ep = new Endpoint(url, pem);
-        this.peerClient = new PeerClient(ep.getChannelBuilder());
+
+
+
+        this.endorserClent = new EndorserClient(new Endpoint(url, pem).getChannelBuilder());
     }
 
     /**
      * Get the chain of which this peer is a member.
+     *
      * @returns {Chain} The chain of which this peer is a member.
      */
     public Chain getChain() {
@@ -53,83 +101,34 @@ public class Peer {
 
     /**
      * Get the URL of the peer.
+     *
      * @returns {string} Get the URL associated with the peer.
      */
     public String getUrl() {
+
         return this.url;
     }
 
-    /**
-     * Send a transaction to this peer.
-     * @param transaction A transaction
-     * @throws PeerException 
-     */
-    public Response sendTransaction(Transaction transaction) throws PeerException {
 
-        logger.debug("peer.sendTransaction");
+    public FabricProposalResponse.ProposalResponse sendProposal(FabricProposal.SignedProposal proposal) throws PeerException, InvalidArgumentException {
+        if(proposal == null){
+            throw new PeerException("Proposal is null");
+        }
+        if(chain == null){
+            throw new PeerException("Chain is null");
+        }
+        Exception e = SDKUtil.checkGrpcUrl(url);
+        if(e != null){
+            throw new InvalidArgumentException("Bad peer url.", e);
 
-        // Send the transaction to the peer node via grpc
-        // The rpc specification on the peer side is:
-        //     rpc ProcessTransaction(Transaction) returns (Response) {}
-        Response response = peerClient.processTransaction(transaction.getTransaction());
+        }
 
-        logger.debug(String.format("peer.sendTransaction: received %s", response.getMsg().toStringUtf8()));
-        return response;
+        logger.debug("peer.sendProposal");
 
-        // Check transaction type here, as invoke is an asynchronous call,
-        // whereas a deploy and a query are synchonous calls. As such,
-        // invoke will emit 'submitted' and 'error', while a deploy/query
-        // will emit 'complete' and 'error'.
+        return endorserClent.sendProposal(proposal);
 
-        /* TODO handle response
-        let txType = tx.pb.getType();
-        switch (txType) {
-           case protos.Fabric.Transaction.Type.CHAINCODE_DEPLOY: // async
-                  if (response.status != "SUCCESS") {
-			throw new RuntimeException(response);
-		}
-                     // Deploy transaction has been completed
-                     if (!response.msg || response.msg === "") {
-                        eventEmitter.emit("error", new EventTransactionError("the deploy response is missing the transaction UUID"));
-                     } else {
-                        let event = new EventDeploySubmitted(response.msg.toString(), tx.chaincodeID);
-                        logger.debug("EventDeploySubmitted event: %s", event);
-                        eventEmitter.emit("submitted", event);
-                        self.waitForDeployComplete(eventEmitter,event);
-                     }
-                     // Deploy completed with status "FAILURE" or "UNDEFINED"
-                     eventEmitter.emit("error", new EventTransactionError(response));
-                  }
-                  break;
-               case protos.Fabric.Transaction.Type.CHAINCODE_INVOKE: // async
-                  if (response.status === "SUCCESS") {
-                     // Invoke transaction has been submitted
-                     if (!response.msg || response.msg === "") {
-                        eventEmitter.emit("error", new EventTransactionError("the invoke response is missing the transaction UUID"));
-                     } else {
-                        eventEmitter.emit("submitted", new EventInvokeSubmitted(response.msg.toString()));
-                        self.waitForInvokeComplete(eventEmitter);
-                     }
-                  } else {
-                     // Invoke completed with status "FAILURE" or "UNDEFINED"
-                     eventEmitter.emit("error", new EventTransactionError(response));
-                  }
-                  break;
-               case protos.Fabric.Transaction.Type.CHAINCODE_QUERY: // sync
-                  if (response.status === "SUCCESS") {
-                     // Query transaction has been completed
-                     eventEmitter.emit("complete", new EventQueryComplete(response.msg));
-                  } else {
-                     // Query completed with status "FAILURE" or "UNDEFINED"
-                     eventEmitter.emit("error", new EventTransactionError(response));
-                  }
-                  break;
-               default: // not implemented
-                  eventEmitter.emit("error", new EventTransactionError("processTransaction for this transaction type is not yet implemented!"));
-            }
-          });
-          */
     }
+
 
     /**
      * TODO: Temporary hack to wait until the deploy event has hopefully completed.
@@ -180,5 +179,10 @@ public class Peer {
     public void remove() {
         throw new RuntimeException("TODO: implement"); //TODO implement remove
     }
+
+    public static Peer createNewInstance(String name, String pem) throws InvalidArgumentException {
+        return new Peer(name, pem);
+    }
+
 
 } // end Peer

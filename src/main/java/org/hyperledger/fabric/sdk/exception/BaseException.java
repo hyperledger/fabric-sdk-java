@@ -21,4 +21,7 @@ public class BaseException extends Exception {
 	public BaseException(String message, Exception parent) {
 		super(message, parent);
 	}
+	public BaseException(String message) {
+		super(message);
+	}
 }

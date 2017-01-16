@@ -16,14 +16,15 @@ limitations under the License.
 
 package org.hyperledger.fabric.sdk.shim;
 
-import org.hyperledger.protos.Chaincode.ChaincodeMessage;
+
+import org.hyperledger.fabric.protos.peer.Chaincode;
 
 public class NextStateInfo {
 
-	public ChaincodeMessage message;
+	public Chaincode.ChaincodeMessage message;
 	public boolean sendToCC;
 
-	public NextStateInfo(ChaincodeMessage message, boolean sendToCC) {
+	public NextStateInfo(Chaincode.ChaincodeMessage message, boolean sendToCC) {
 		this.message = message;
 		this.sendToCC = sendToCC;
 	}
