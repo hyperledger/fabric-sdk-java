@@ -44,7 +44,7 @@ public class ChainTest {
 
 			//testChain.setDevMode(true);
 			ccId = deploy();
-			// javaCcId = deployJava();
+			javaCcId = deployJava();
 			TimeUnit.SECONDS.sleep(15);// deployment takes time, so wait for it
 			                           // to complete before making a query or
 			                           // invoke call
@@ -94,9 +94,10 @@ public class ChainTest {
 	}
 
 	public static String deployJava() {
+		String ccName = "myccj" + SDKUtil.generateUUID();
 		return deployInternal(System.getenv("GOPATH")+"/src/github.com/hyperledger/fabric/examples/chaincode/java/Example",
-		        "myccj", new ArrayList<>(Arrays.asList("init", "a", "700", "b", "2000")), ChaincodeLanguage.JAVA,
-		        "mytxjava");
+		        ccName, new ArrayList<>(Arrays.asList("init", "a", "700", "b", "2000")), ChaincodeLanguage.JAVA,
+		        "mytx" + ccName);
 	}
 
 
@@ -118,22 +119,23 @@ public class ChainTest {
 
 	}
 
-	/*@Test
-	public void testQueryJava() {
+	@Test
+	public void testQueryJava() throws EnrollmentException {
+		Member admin = getEnrolledMember("admin", "adminpw");
 		TransactionRequest request = new TransactionRequest();
 		request.setArgs(new ArrayList<>(Arrays.asList("query", "a")));
 		request.setChaincodeName(javaCcId);
 		request.setChaincodeLanguage(ChaincodeLanguage.JAVA);
-		Proposal proposal = testChain.createTransactionProposal(request);
-		List<ProposalResponse> responses = testChain.sendProposal(null);
+		Proposal proposal = testChain.createTransactionProposal(admin, request);
+		List<ProposalResponse> responses = testChain.sendProposal(admin, proposal);
 		Assert.assertNotNull(responses);
 		Assert.assertFalse(responses.isEmpty());
 		ProposalResponse response = responses.get(0);
 		Assert.assertNotNull(response);
-		Assert.assertEquals(TransactionResponse.Status.SUCCESS, response.getResponse().getStatus());
-		System.out.println("Queried:"+response.getResponse().getPayload().toString());
+		Assert.assertEquals(200, response.getResponse().getStatus());
+
 		Assert.assertEquals("700", response.getResponse().getPayload().toString());
-	}*/
+	}
 
 	@Test
 	public void testInvoke() {
