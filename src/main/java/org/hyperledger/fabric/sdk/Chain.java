@@ -466,7 +466,7 @@ public class Chain {
         	try {
         		responses.add(peer.sendTransactionProposal(signedProposal));
         	} catch(Exception exp) {
-        		logger.info(String.format("Failed sending transaction to peer:%s", exp.getMessage()));
+				logger.error(String.format("Failed sending transaction to peer"), exp);
         	}
         }
 
@@ -478,13 +478,18 @@ public class Chain {
     }
 
     /**
-     * Send a transaction to orderers
-     * @param proposalResponses list of responses from endorsers for the proposal
-     *
-     * @return List<TransactionResponse>
-     * @throws InvalidArgumentException
-     */
-    public List<TransactionResponse> sendTransaction(Proposal proposal, List<ProposalResponse> proposalResponses) throws InvalidProtocolBufferException, CryptoException {
+	 * Send a transaction to orderers
+	 *
+	 * @param proposalResponses
+	 *            list of responses from endorsers for the proposal
+	 * @param member
+	 *            Member who's ecert will be used to sign the transaction
+	 *
+	 * @return List<TransactionResponse>
+	 * @throws InvalidArgumentException
+	 */
+	public List<TransactionResponse> sendTransaction(Member member, Proposal proposal,
+	        List<ProposalResponse> proposalResponses) throws InvalidProtocolBufferException, CryptoException {
     	assert proposalResponses != null && proposalResponses.size() > 0: "Please use sendProposal first to get endorsements";
 
     	if (this.orderers.isEmpty()) {
@@ -497,11 +502,13 @@ public class Chain {
         	endorsements.add(response.getEndorsement());
         });
 
+		TransactionContext context = new TransactionContext(this, member);
         TransactionBuilder transactionBuilder = TransactionBuilder.newBuilder();
         Common.Envelope transactionEnv = transactionBuilder
                 .chaincodeProposal(proposal)
                 .endorsements(endorsements)
                 .chainID(getName())
+		        .context(context).cryptoPrimitives(cryptoPrimitives)
                 .proposalResponcePayload(proposalResponsePayload).build();
 
         List<TransactionResponse> ordererResponses = new ArrayList<TransactionResponse>();

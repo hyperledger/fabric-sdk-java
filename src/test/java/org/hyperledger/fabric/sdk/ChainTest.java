@@ -23,7 +23,7 @@ public class ChainTest {
 	private static final Log logger = LogFactory.getLog(ChainTest.class);
 
 	static Chain testChain = null;
-	static String ccId = "mycc";
+	static String ccId = "myccgo-2";
 	static String javaCcId = null;
 
 	@BeforeClass
@@ -44,9 +44,8 @@ public class ChainTest {
 
 			//testChain.setDevMode(true);
 			ccId = deploy();
-//			ccId="mycc-790a0823-9911-421b-b087-883def5c9dd8";
-//			javaCcId = deployJava();
-			TimeUnit.SECONDS.sleep(10);// deployment takes time, so wait for it
+			// javaCcId = deployJava();
+			TimeUnit.SECONDS.sleep(15);// deployment takes time, so wait for it
 			                           // to complete before making a query or
 			                           // invoke call
 		} catch (InterruptedException cex) {
@@ -67,27 +66,17 @@ public class ChainTest {
 
 			Proposal proposal = testChain.createDeploymentProposal(admin, request);
 
-
-	//		Proposal proposal = ProposalBuilder.newBuilder()
-	//		.args(Arrays.asList(ByteString.copyFromUtf8("query"), ByteString.copyFromUtf8("a")))
-	//		.chaincodeID(Chaincode.ChaincodeID.newBuilder().setName("**TEST_CHAINID**").setPath("").build())
-	//		.chaincodeType(ChaincodeLanguage.GO_LANG)
-	//		.context(new TransactionContext(testChain, testChain.getMember("admin")))
-	//		.txID(txId)
-	//		.build();
-
 			List<ProposalResponse> responses = testChain.sendProposal(admin, proposal);
 			Assert.assertNotNull(responses);
 			Assert.assertFalse(responses.isEmpty());
 			ProposalResponse response = responses.get(0);
 			Assert.assertNotNull(response);
 			Assert.assertEquals(200, response.getResponse().getStatus()); // OK?
-			List<TransactionResponse> tResponses = testChain.sendTransaction(proposal, responses);
+			List<TransactionResponse> tResponses = testChain.sendTransaction(admin, proposal, responses);
 			Assert.assertNotNull(tResponses);
 			Assert.assertFalse(tResponses.isEmpty());
-			// Assert.assertEquals(TransactionResponse.Status.SUCCESS,
-			// tResponses.get(0).getStatus());//TODO: Currently returned status
-			// is UNDEFINED, find out why
+			Assert.assertEquals(TransactionResponse.Status.SUCCESS, tResponses.get(0).getStatus());
+
 	//		return tResponses.get(0).getChainCodeID();
 			return ccName;
 	//		return txId;
@@ -98,13 +87,16 @@ public class ChainTest {
 	}
 
 	public static String deploy() throws DeploymentException {
+		String ccName = "myccgo" + SDKUtil.generateUUID();
 		return deployInternal("github.com/hyperledger/fabric/examples/chaincode/go/chaincode_example02",
-				"mycc2"+SDKUtil.generateUUID(), new ArrayList<>(Arrays.asList("init", "a", "700", "b", "20000")), ChaincodeLanguage.GO_LANG, "mytxgo");
+		        ccName, new ArrayList<>(Arrays.asList("init", "a", "700", "b", "2000")), ChaincodeLanguage.GO_LANG,
+		        "mytx" + ccName);
 	}
 
 	public static String deployJava() {
 		return deployInternal(System.getenv("GOPATH")+"/src/github.com/hyperledger/fabric/examples/chaincode/java/Example",
-				"myccj", new ArrayList<>(Arrays.asList("init", "a", "700", "b", "20000")), ChaincodeLanguage.JAVA, "mytxjava");
+		        "myccj", new ArrayList<>(Arrays.asList("init", "a", "700", "b", "2000")), ChaincodeLanguage.JAVA,
+		        "mytxjava");
 	}
 
 
@@ -123,6 +115,7 @@ public class ChainTest {
 		Assert.assertNotNull(response);
 		Assert.assertEquals(200, response.getResponse().getStatus());
 		Assert.assertEquals("700", response.getResponse().getPayload().toStringUtf8());
+
 	}
 
 	/*@Test
@@ -142,12 +135,12 @@ public class ChainTest {
 		Assert.assertEquals("700", response.getResponse().getPayload().toString());
 	}*/
 
-	//@Test
+	@Test
 	public void testInvoke() {
 		try {
 			Member admin = getEnrolledMember("admin", "adminpw");
 			TransactionRequest request = new TransactionRequest();
-			request.setArgs(new ArrayList<>(Arrays.asList("invoke", "b", "a", "200")));
+			request.setArgs(new ArrayList<>(Arrays.asList("invoke", "a", "b", "200")));
 			request.setChaincodeName(ccId);
 			Proposal proposal = testChain.createTransactionProposal(admin, request);
 			List<ProposalResponse> responses = testChain.sendProposal(admin, proposal);
@@ -156,7 +149,7 @@ public class ChainTest {
 			ProposalResponse response = responses.get(0);
 			Assert.assertNotNull(response);
 			Assert.assertEquals(200, response.getResponse().getStatus());
-			List<TransactionResponse> transactions = testChain.sendTransaction(proposal, responses);
+			List<TransactionResponse> transactions = testChain.sendTransaction(admin, proposal, responses);
 			Assert.assertNotNull(transactions);
 			Assert.assertFalse(transactions.isEmpty());
 			TransactionResponse tresponse = transactions.get(0);
