@@ -26,22 +26,37 @@ You must be running a local a peer and orderer to be able to run the unit tests.
 ## Running the End to End tests
 To run the End-to-End tests, please use <code>mvn failsafe:integration-test -DskipITs=false</code> which will run the End2end tests. You must be running a local instance of membersrvcs and a peer to be able to run the End-to-End tests. 
 
- The hyperledger project 1.0 is currently under active development and the very latest fabric peer and orderer service may not work this sdk.
- If your goal is to just use the sdk you may want to consider having a compatible fabric services with the sdk by doing the following when setting up the fabric development environment:
- ```
- git clone https://github.com/hyperledger/fabric.git
- cd fabric
- git reset --hard  340660372d088d5e8761a322844189503c125c16
- ```
- To make the ports available to the sdk from vagrant edit in the `devenv/Vagrantfile` file inserting the following statement below the existing `config.vm.network` statements::
- * Open the file `Vagrantfile` and insert the following statement below the existing `config.vm.network` statements:
- ```
-config.vm.network :forwarded_port, guest: 5151, host: 5151 # orderer service
-config.vm.network :forwarded_port, guest: 7056, host: 7056 # Openchain gRPC services
-config.vm.network :forwarded_port, guest: 7058, host: 7058 # GRPCCient gRPC services
+Hyperledger Fabric v1.0 is currently under active development and the very latest Hyperledger Fabric builds may not work with this sdk.
+You should use the following commit levels of the Hyperledger projects:
+
+ | project        | Commit level                               |
+ |----------------|:------------------------------------------:|
+ | fabric         | f2bfefa3acbd5be75677487d53fe1766b4390b45   |
+ | fabric-cop     | 9c6c12556b0fc0aa9eb1109c7be8f0a519bfe6d1   |
+ 
+ You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/). As sdk developement continues, this file will be updated with compatible Hyperledger Fabric commit levels.
+ 
+ Once you have cloned `fabric` and `fabric-cop`, use the `git reset --hard commitlevel` to set your repositories to the correct commit.
+ 
+ To make the ports available to the sdk from vagrant, edit the `devenv/Vagrantfile` file
+ * Open the file `Vagrantfile` and verify that the following `config.vm.network` statements are set:
 ```
-In the following during the make to insure all images are built run `make images`
+  config.vm.network :forwarded_port, guest: 7050, host: 7050 # orderer service
+  config.vm.network :forwarded_port, guest: 7051, host: 7051 # Openchain gRPC services
+  config.vm.network :forwarded_port, guest: 8888, host: 8888 # Membership service/COP
+  config.vm.network :forwarded_port, guest: 7053, host: 7053 # GRPCCient gRPC services
+  config.vm.network :forwarded_port, guest: 5984, host: 15984 # CouchDB service
+```
+
 Follow the instructions <a href="https://github.com/hyperledger/fabric/blob/master/docs/dev-setup/devenv.md">here</a> to setup the development environment.
+
+ssh into vagrant, 
+* go to $GOPATH/src/github.com/hyperledger/fabric
+  * run `make docker` to create the docker images for peer and orderer
+* go to 4GOPATH/src/github/hyperledger/fabric-cop
+  * currently, you want to run COP with TLS disabled which is the default for commit 9c6c125 mentioned above.
+  * if you do need to turn off TLS, edit the COP server configuration file at _/hyperledger/fabric-cop/images/cop/config/cop.json_
+  * run `make docker` to create the docker image for COP
 
 On your native system where you have the sdk installed you need to copy the docker compose file that starts the services to the directory mapped 
  to vagrant On your native system from the sdk directory:
