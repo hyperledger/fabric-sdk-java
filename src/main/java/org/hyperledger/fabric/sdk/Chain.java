@@ -96,8 +96,25 @@ public class Chain {
     // The crypto primitives object
     CryptoPrimitives cryptoPrimitives;
 
-	public Chain(String name) {
-        this.name = name;
+    private TransactionContext transactionContext;
+
+    public Chain(String name) {
+	if (StringUtil.isNullOrEmpty(name)) {
+	    throw new IllegalArgumentException("Chain name cannot be null");
+	}
+
+	this.name = name;
+    }
+
+    /**
+     * create new transaction context for this chain
+     *
+     * @param member the enrolled member
+     * @return newly created transaction context
+     */
+    public TransactionContext newTransactionContext(Member member) {
+	this.transactionContext = new TransactionContext(this, member);
+	return this.transactionContext;
     }
 
     /**
@@ -354,14 +371,15 @@ public class Chain {
         return member;
     }
 
-    private SignedProposal createSignedProposal(Member member, Proposal proposal) {
-	if (member == null || !member.isEnrolled()) {
-	    throw new IllegalArgumentException("Member is null or not enrolled");
+    private SignedProposal createSignedProposal(Proposal proposal) {
+	if (transactionContext == null) {
+	    throw new IllegalArgumentException("TransactionContext is not initialized");
 	}
 
 	byte[] signature = null;
 	try {
-	    signature = this.cryptoPrimitives.ecdsaSign(member.getEnrollment().getPrivateKey(), proposal.toByteArray());
+	    signature = this.cryptoPrimitives.ecdsaSign(transactionContext.getMember().getEnrollment().getPrivateKey(),
+		    proposal.toByteArray());
 	} catch (CryptoException e) {
 	    String msg = String.format("Failed to sign the proposal: [%s]", e.getCause().getMessage());
 	    logger.error(msg);
@@ -384,14 +402,20 @@ public class Chain {
      * @return
      * @throws Exception
      */
-    public Proposal createDeploymentProposal(Member member, DeployRequest deploymentRequest) {
 
+    public Proposal createDeploymentProposal(DeployRequest deploymentRequest) {
 	if (deploymentRequest == null) {
 	    throw new IllegalArgumentException("sendDeploymentProposal deploymentProposalRequest is null");
 	}
 
-	if (member == null || !member.isEnrolled()) {
-	    throw new IllegalArgumentException("Member is null or not enrolled");
+	if (transactionContext == null) {
+	    throw new IllegalArgumentException("TransactionContext is not initialized");
+	}
+	if (StringUtil.isNullOrEmpty(deploymentRequest.getChaincodeName())) {
+	    throw new IllegalArgumentException("Chaincode name cannot be null or empty");
+	}
+	if (!isDevMode() && StringUtil.isNullOrEmpty(deploymentRequest.getChaincodePath())) {
+	    throw new IllegalArgumentException("Chaincode path cannot be null or empty when DevMode is false");
 	}
 
         List<ByteString> args = new ArrayList<ByteString>();
@@ -401,8 +425,7 @@ public class Chain {
         	});
         }
 
-        TransactionContext transactionContext = new TransactionContext(this, member);
-        Proposal deploymentProposal = DeploymentProposalBuilder.newBuilder()
+	Proposal deploymentProposal = DeploymentProposalBuilder.newBuilder()
         		.context(transactionContext)
         		.chaincodeType(deploymentRequest.getChaincodeLanguage())
         		.args(args)
@@ -421,7 +444,7 @@ public class Chain {
      * @param request The details of transaction
      * @return proposal
      */
-    public Proposal createTransactionProposal(Member member, TransactionRequest request) {
+    public Proposal createTransactionProposal(TransactionRequest request) {
 	if (request == null) {
 	    throw new IllegalArgumentException("Cannot send null transactopn proposal");
 	}
@@ -430,11 +453,9 @@ public class Chain {
 	    throw new IllegalArgumentException("Chaincode name is missing in proposal");
 	}
 
-	if (member == null || !member.isEnrolled()) {
-	    throw new IllegalArgumentException("Member is null or not enrolled");
+	if (transactionContext == null) {
+	    throw new IllegalArgumentException("TransactionContext is not initialized");
 	}
-
-        TransactionContext transactionContext = new TransactionContext(this, member);
 
     	List<ByteString> args = new ArrayList<ByteString>();
     	if (request.getArgs() != null) {
@@ -464,17 +485,23 @@ public class Chain {
 	 *
 	 * @param proposal
 	 *            The transaction proposal
-	 * @param member
-	 *            The member who should sign the proposal
 	 *
 	 * @return List<ProposalResponse>
 	 */
-	public List<ProposalResponse> sendProposal(Member member, Proposal proposal) {
+	public List<ProposalResponse> sendProposal(Proposal proposal) {
         if (this.peers.isEmpty()) {
             throw new NoValidPeerException(String.format("chain %s has no peers", getName()));
         }
 
-		SignedProposal signedProposal = createSignedProposal(member, proposal);
+	if (transactionContext == null) {
+	    throw new IllegalArgumentException("TransactionContext is not initialized");
+	}
+
+	if (proposal == null) {
+	    throw new IllegalArgumentException("Proposal should not be null");
+	}
+
+	SignedProposal signedProposal = createSignedProposal(proposal);
         List<ProposalResponse> responses = new ArrayList<ProposalResponse>();
 
         for(Peer peer : peers) {
@@ -497,21 +524,29 @@ public class Chain {
 	 *
 	 * @param proposalResponses
 	 *            list of responses from endorsers for the proposal
-	 * @param member
-	 *            Member who's ecert will be used to sign the transaction
 	 *
 	 * @return List<TransactionResponse>
 	 * @throws InvalidArgumentException
 	 */
-	public List<TransactionResponse> sendTransaction(Member member, Proposal proposal,
+	public List<TransactionResponse> sendTransaction(Proposal proposal,
 	        List<ProposalResponse> proposalResponses) throws InvalidProtocolBufferException, CryptoException {
-		if (proposalResponses == null || proposalResponses.isEmpty()) {
-			throw new IllegalArgumentException("Please use sendProposal first to get endorsements");
-		}
 
-    	if (this.orderers.isEmpty()) {
-            throw new NoValidOrdererException(String.format("chain %s has no orderers", getName()));
-        }
+	if (proposal == null) {
+	    throw new IllegalArgumentException("proposal should not be null");
+	}
+
+	if (proposalResponses == null || proposalResponses.isEmpty()) {
+	    throw new IllegalArgumentException(
+		    "proposalResponses is empty, please use sendProposal first to get endorsements");
+	}
+
+	if (transactionContext == null) {
+	    throw new IllegalArgumentException("TransactionContext is not initialized");
+	}
+
+	if (this.orderers.isEmpty()) {
+	    throw new NoValidOrdererException(String.format("chain %s has no orderers", getName()));
+	}
 
         List<Endorsement> endorsements = new ArrayList<Endorsement>();
         ByteString proposalResponsePayload = proposalResponses.get(0).getPayload();
@@ -519,13 +554,12 @@ public class Chain {
         	endorsements.add(response.getEndorsement());
         });
 
-		TransactionContext context = new TransactionContext(this, member);
         TransactionBuilder transactionBuilder = TransactionBuilder.newBuilder();
         Common.Envelope transactionEnv = transactionBuilder
                 .chaincodeProposal(proposal)
                 .endorsements(endorsements)
                 .chainID(getName())
-		        .context(context).cryptoPrimitives(cryptoPrimitives)
+		        .context(transactionContext).cryptoPrimitives(cryptoPrimitives)
                 .proposalResponcePayload(proposalResponsePayload).build();
 
         List<TransactionResponse> ordererResponses = new ArrayList<TransactionResponse>();

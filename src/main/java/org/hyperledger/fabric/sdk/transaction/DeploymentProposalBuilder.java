@@ -61,7 +61,7 @@ public class DeploymentProposalBuilder extends  ProposalBuilder{
     		createDeploymentProposal();
     		return super.build();
     	} catch(IOException ioexp) {
-    		throw new DeploymentException("Failed to deploy chaincode", ioexp);
+	    throw new DeploymentException("Failed to build deployment proposal", ioexp);
     	}
     }
 
