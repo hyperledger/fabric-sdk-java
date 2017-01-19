@@ -76,8 +76,9 @@ public class DeploymentProposalBuilder extends  ProposalBuilder{
     private void createNetModeTransaction() throws IOException {
         logger.debug("newNetModeTransaction");
 
-        assert getChaincodeID() != null && getChaincodeID().getPath() != null:
-		"[NetMode] Missing chaincodePath in DeployRequest";
+        if (getChaincodeID() == null || StringUtil.isNullOrEmpty(getChaincodeID().getPath())) {
+	    throw new IllegalArgumentException("[NetMode] Missing chaincodePath in DeployRequest");
+        }
 
         String rootDir = "";
         String chaincodeDir = "";
@@ -86,7 +87,9 @@ public class DeploymentProposalBuilder extends  ProposalBuilder{
             // Determine the user's $GOPATH
             String goPath = System.getenv("GOPATH");
             logger.info(String.format("Using GOPATH :%s", goPath));
-            assert !StringUtil.isNullOrEmpty(goPath) : "[NetMode] Missing GOPATH environment variable";
+	    if (StringUtil.isNullOrEmpty(goPath)) {
+		throw new IllegalArgumentException("[NetMode] Missing GOPATH environment variable");
+	    }
 
             logger.debug("$GOPATH: " + goPath);
 
