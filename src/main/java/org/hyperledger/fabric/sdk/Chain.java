@@ -37,7 +37,7 @@ import org.hyperledger.fabric.protos.orderer.Configuration;
 import org.hyperledger.fabric.protos.orderer.Configuration.BatchSize;
 import org.hyperledger.fabric.protos.orderer.Configuration.ConsensusType;
 import org.hyperledger.fabric.protos.peer.Chaincode;
-import org.hyperledger.fabric.protos.peer.ChaincodeProposal;
+import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
@@ -731,7 +731,7 @@ public class Chain {
 
         List<FabricProposalResponse.Endorsement> ed = new LinkedList<>();
         FabricProposal.Proposal proposal = null;
-        ChaincodeProposal.ChaincodeProposalPayload proposalResponsePayload = null;
+        FabricProposal.ChaincodeProposalPayload proposalResponsePayload = null;
         String proposalTransactionID = null;
 
 
@@ -740,7 +740,7 @@ public class Chain {
             if (proposal == null) {
 
                 proposal = arg.getProposal();
-                proposalResponsePayload = ChaincodeProposal.ChaincodeProposalPayload.parseFrom(arg.getProposalResponse().getPayload());
+                proposalResponsePayload = FabricProposal.ChaincodeProposalPayload.parseFrom(arg.getProposalResponse().getPayload());
                 proposalTransactionID = arg.getTransactionID();
 
             }

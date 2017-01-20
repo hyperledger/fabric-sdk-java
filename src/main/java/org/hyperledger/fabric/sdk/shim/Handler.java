@@ -713,7 +713,7 @@ public class Handler {
 				.build();
 		Chaincode.ChaincodeSpec payload = Chaincode.ChaincodeSpec.newBuilder()
 				.setChaincodeID(id)
-				.setCtorMsg(input)
+				.setInput(input)
 				.build();
 
 		// Create the channel on which to communicate the response from validating peer

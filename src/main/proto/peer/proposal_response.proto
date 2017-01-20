@@ -18,6 +18,8 @@ syntax = "proto3";
 
 option go_package = "github.com/hyperledger/fabric/protos/peer";
 option java_package = "org.hyperledger.fabric.protos.peer";
+option java_outer_classname = "FabricProposalResponse";
+
 
 package protos;
 

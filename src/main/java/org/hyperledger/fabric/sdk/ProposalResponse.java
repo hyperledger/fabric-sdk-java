@@ -5,7 +5,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import org.hyperledger.fabric.sdk.exception.DeploymentException;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 import org.hyperledger.fabric.protos.peer.Chaincode;
-import org.hyperledger.fabric.protos.peer.ChaincodeProposal;
+import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 
@@ -67,10 +67,10 @@ public class ProposalResponse extends ChainCodeResponse {
 
         Chaincode.ChaincodeID chaincodeID = null; //TODO NEED to clean up
         try {
-            ChaincodeProposal.ChaincodeProposalPayload ppl = ChaincodeProposal.ChaincodeProposalPayload.parseFrom(proposal.getPayload());
+            FabricProposal.ChaincodeProposalPayload ppl = FabricProposal.ChaincodeProposalPayload.parseFrom(proposal.getPayload());
             Chaincode.ChaincodeInvocationSpec ccis = Chaincode.ChaincodeInvocationSpec.parseFrom(ppl.getInput());
             Chaincode.ChaincodeSpec scs = ccis.getChaincodeSpec();
-            Chaincode.ChaincodeInput cci = scs.getCtorMsg();
+            Chaincode.ChaincodeInput cci = scs.getInput();
             ByteString deps = cci.getArgs(2);
             Chaincode.ChaincodeDeploymentSpec chaincodeDeploymentSpec = Chaincode.ChaincodeDeploymentSpec.parseFrom(deps.toByteArray());
             chaincodeID = chaincodeDeploymentSpec.getChaincodeSpec().getChaincodeID();

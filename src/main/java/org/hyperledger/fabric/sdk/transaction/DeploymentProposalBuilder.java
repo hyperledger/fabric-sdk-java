@@ -19,13 +19,11 @@ import com.google.protobuf.ByteString;
 import io.netty.util.internal.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.hyperledger.fabric.sdk.ChaincodeLanguage;
+import org.hyperledger.fabric.protos.peer.Chaincode;
+import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.sdk.TransactionRequest;
 import org.hyperledger.fabric.sdk.exception.DeploymentException;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
-import org.hyperledger.fabric.protos.peer.Chaincode;
-import org.hyperledger.fabric.protos.peer.Fabric;
-import org.hyperledger.fabric.protos.peer.FabricProposal;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,8 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class DeploymentProposalBuilder extends  ProposalBuilder{
-
+public class DeploymentProposalBuilder extends ProposalBuilder {
 
 
     private Log logger = LogFactory.getLog(DeploymentProposalBuilder.class);
@@ -55,7 +52,7 @@ public class DeploymentProposalBuilder extends  ProposalBuilder{
     }
 
 
-    public DeploymentProposalBuilder chaincodePath(String chaincodePath){
+    public DeploymentProposalBuilder chaincodePath(String chaincodePath) {
 
         this.chaincodePath = chaincodePath;
 
@@ -63,7 +60,7 @@ public class DeploymentProposalBuilder extends  ProposalBuilder{
 
     }
 
-    public DeploymentProposalBuilder chaincodeName(String chaincodeName){
+    public DeploymentProposalBuilder chaincodeName(String chaincodeName) {
 
         this.chaincodeName = chaincodeName;
 
@@ -71,7 +68,7 @@ public class DeploymentProposalBuilder extends  ProposalBuilder{
 
     }
 
-    public DeploymentProposalBuilder argss(List<String> argList ) {
+    public DeploymentProposalBuilder argss(List<String> argList) {
         this.argList = argList;
         return this;
     }
@@ -91,9 +88,9 @@ public class DeploymentProposalBuilder extends  ProposalBuilder{
 
         try {
 
-            if(context.isDevMode()){
+            if (context.isDevMode()) {
                 createDevModeTransaction();
-            }else {
+            } else {
                 createNetModeTransaction();
             }
 
@@ -127,7 +124,7 @@ public class DeploymentProposalBuilder extends  ProposalBuilder{
             logger.debug("$GOPATH: " + goPath);
 
             // Compose the path to the chaincode project directory
-            rootDir = SDKUtil.combinePaths(goPath,  "src");
+            rootDir = SDKUtil.combinePaths(goPath, "src");
             chaincodeDir = chaincodePath;
 
         } else {
@@ -146,7 +143,7 @@ public class DeploymentProposalBuilder extends  ProposalBuilder{
 
         // NO longer using hash .. keep same as Node SDK.
         // Compute the hash of the chaincode deployment parameters
-    //    String hash = SDKUtil.generateParameterHash(chaincodeDir, request.getFcn(), request.getArgs());
+        //    String hash = SDKUtil.generateParameterHash(chaincodeDir, request.getFcn(), request.getArgs());
 
         // Compute the hash of the project directory contents
 //        hash = SDKUtil.generateDirectoryHash(rootDir, chaincodeDir, hash);
@@ -173,7 +170,7 @@ public class DeploymentProposalBuilder extends  ProposalBuilder{
 
 
         Chaincode.ChaincodeDeploymentSpec depspec = createDeploymentSpec(ccType,
-                chaincodeName, argList , data, null);
+                chaincodeName, argList, data, null);
 
 
         List<ByteString> argList = new ArrayList<>();
@@ -194,10 +191,8 @@ public class DeploymentProposalBuilder extends  ProposalBuilder{
         logger.debug("newDevModeTransaction");
 
 
-
-
         Chaincode.ChaincodeDeploymentSpec depspec = createDeploymentSpec(Chaincode.ChaincodeSpec.Type.GOLANG,
-                chaincodeName, argList , null, null);
+                chaincodeName, argList, null, null);
 
         Chaincode.ChaincodeID lcccID = Chaincode.ChaincodeID.newBuilder().setName(LCCC_CHAIN_NAME).build();
 
@@ -205,7 +200,6 @@ public class DeploymentProposalBuilder extends  ProposalBuilder{
         argList.add(ByteString.copyFrom("deploy", StandardCharsets.UTF_8));
         argList.add(ByteString.copyFrom("default", StandardCharsets.UTF_8));
         argList.add(depspec.toByteString());
-
 
 
         super.args(argList);
@@ -239,7 +233,8 @@ public class DeploymentProposalBuilder extends  ProposalBuilder{
 
         // Construct the ChaincodeSpec
         Chaincode.ChaincodeSpec chaincodeSpec = Chaincode.ChaincodeSpec.newBuilder().setType(ccType).setChaincodeID(chaincodeID)
-                .setCtorMsg(chaincodeInput).setConfidentialityLevel(Chaincode.ConfidentialityLevel.PUBLIC).build();
+                .setInput(chaincodeInput)
+                .build();
 
 
         Chaincode.ChaincodeDeploymentSpec.Builder chaincodeDeploymentSpecBuilder = Chaincode.ChaincodeDeploymentSpec
@@ -252,12 +247,10 @@ public class DeploymentProposalBuilder extends  ProposalBuilder{
     }
 
 
-
-
     private String getDockerFileContents(TransactionRequest.Type lang) throws IOException {
         if (chaincodeLanguage == TransactionRequest.Type.GO_LANG) {
             return new String(SDKUtil.readFileFromClasspath("Go.Docker"));
-        } else if ( chaincodeLanguage == TransactionRequest.Type.JAVA) {
+        } else if (chaincodeLanguage == TransactionRequest.Type.JAVA) {
             return new String(SDKUtil.readFileFromClasspath("Java.Docker"));
         }
 

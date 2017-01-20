@@ -5,7 +5,7 @@ import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.common.Common.ChainHeader;
 
 import org.hyperledger.fabric.protos.common.Common.HeaderType;
-import org.hyperledger.fabric.protos.peer.ChaincodeProposal.ChaincodeHeaderExtension;
+import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeHeaderExtension;
 
 /**
  * Created by rineholt on 1/12/17.
