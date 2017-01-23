@@ -49,6 +49,7 @@ import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.encoders.Hex;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
 
 import javax.crypto.BadPaddingException;
@@ -80,9 +81,10 @@ import java.security.spec.EncodedKeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 
 public class CryptoPrimitives {
+    private static final Config config = Config.getConfig();
 
-    private String hashAlgorithm;
-    private int securityLevel;
+    private String hashAlgorithm = config.getDefaultHashAlgorithm();
+    private int securityLevel = config.getDefaultSecurityLevel();
     private String curveName;
     private static final String SECURITY_PROVIDER = BouncyCastleProvider.PROVIDER_NAME;
     private static final String ASYMMETRIC_KEY_TYPE = "EC";
