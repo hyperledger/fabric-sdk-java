@@ -246,8 +246,9 @@ public class CryptoPrimitives {
 //            encoded = new String(hexenncoded).getBytes();
 
             X9ECParameters params = NISTNamedCurves.getByName(this.curveName);
+            BigInteger curve_N = params.getN();
 
-            ECDomainParameters ecParams = new ECDomainParameters(params.getCurve(), params.getG(), params.getN(),
+            ECDomainParameters ecParams = new ECDomainParameters(params.getCurve(), params.getG(), curve_N,
                     params.getH());
 
 
@@ -256,6 +257,8 @@ public class CryptoPrimitives {
             ECPrivateKeyParameters privKey = new ECPrivateKeyParameters(((ECPrivateKey) privateKey).getS(), ecParams);
             signer.init(true, privKey);
             BigInteger[] sigs = signer.generateSignature(encoded);
+
+            sigs = preventMalleability(sigs, curve_N);
 
 
             ByteArrayOutputStream s = new ByteArrayOutputStream();
@@ -273,6 +276,21 @@ public class CryptoPrimitives {
         }
 
     }
+
+    private BigInteger[] preventMalleability(BigInteger[] sigs, BigInteger curve_n) {
+        BigInteger cmpVal = curve_n.divide(BigInteger.valueOf(2l));
+
+        BigInteger sval = sigs[1];
+
+        if(sval.compareTo(cmpVal) == 1){
+
+          sigs[1] = curve_n.subtract(sval);
+        }
+
+
+        return sigs;
+    }
+
 
 
     /**

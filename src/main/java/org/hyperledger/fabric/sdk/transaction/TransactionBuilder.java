@@ -19,9 +19,9 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common;
-import org.hyperledger.fabric.protos.peer.ChaincodeProposal;
-import org.hyperledger.fabric.protos.peer.ChaincodeTransaction;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
+//import org.hyperledger.fabric.protos.peer.FabricTransaction;
+//import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 import org.hyperledger.fabric.protos.peer.FabricTransaction;
 
@@ -34,7 +34,7 @@ public class TransactionBuilder {
     private Log logger = LogFactory.getLog(TransactionBuilder.class);
     private FabricProposal.Proposal chaincodeProposal;
     private Collection<FabricProposalResponse.Endorsement> endorsements;
-    private ChaincodeProposal.ChaincodeProposalPayload proposalResponcePayload;
+    private FabricProposal.ChaincodeProposalPayload proposalResponcePayload;
     private Function<byte[], byte[]> hash;
 
 
@@ -58,7 +58,7 @@ public class TransactionBuilder {
         return this;
     }
 
-    public TransactionBuilder proposalResponcePayload(ChaincodeProposal.ChaincodeProposalPayload proposalResponcePayload) {
+    public TransactionBuilder proposalResponcePayload(FabricProposal.ChaincodeProposalPayload proposalResponcePayload) {
         this.proposalResponcePayload = proposalResponcePayload;
         return this;
     }
@@ -71,22 +71,22 @@ public class TransactionBuilder {
     }
 
 
-    private Common.Payload createTransactionCommonPayload(FabricProposal.Proposal chaincodeProposal, ChaincodeProposal.ChaincodeProposalPayload proposalResponcePayload,
+    private Common.Payload createTransactionCommonPayload(FabricProposal.Proposal chaincodeProposal, FabricProposal.ChaincodeProposalPayload proposalResponcePayload,
                                                           Collection<FabricProposalResponse.Endorsement> endorsements) throws InvalidProtocolBufferException {
 
         //ChaincodeEndorsedAction
         // -- proposalResponcePayload
         // -- Endorsemens
-        ChaincodeTransaction.ChaincodeEndorsedAction.Builder chaincodeEndorsedActionBuilder = ChaincodeTransaction.ChaincodeEndorsedAction.newBuilder();
+        FabricTransaction.ChaincodeEndorsedAction.Builder chaincodeEndorsedActionBuilder = FabricTransaction.ChaincodeEndorsedAction.newBuilder();
         chaincodeEndorsedActionBuilder.setProposalResponsePayload(proposalResponcePayload.toByteString());
         chaincodeEndorsedActionBuilder.addAllEndorsements(endorsements);
 
         //ChaincodeActionPayload
-        ChaincodeTransaction.ChaincodeActionPayload.Builder chaincodeActionPayloadBuilder = ChaincodeTransaction.ChaincodeActionPayload.newBuilder();
+        FabricTransaction.ChaincodeActionPayload.Builder chaincodeActionPayloadBuilder = FabricTransaction.ChaincodeActionPayload.newBuilder();
         chaincodeActionPayloadBuilder.setAction(chaincodeEndorsedActionBuilder.build());
 
         //We need to remove any transient fields - they are not part of what the peer uses to calculate hash.
-        ChaincodeProposal.ChaincodeProposalPayload.Builder chaincodeProposalPayloadNoTransBuilder = ChaincodeProposal.ChaincodeProposalPayload.newBuilder();
+        FabricProposal.ChaincodeProposalPayload.Builder chaincodeProposalPayloadNoTransBuilder = FabricProposal.ChaincodeProposalPayload.newBuilder();
         chaincodeProposalPayloadNoTransBuilder.mergeFrom(chaincodeProposal.getPayload());
         chaincodeProposalPayloadNoTransBuilder.clearTransient();
 
@@ -107,7 +107,7 @@ public class TransactionBuilder {
 
         transactionActionBuilder.setHeader(header.getSignatureHeader().toByteString());
 
-        ChaincodeTransaction.ChaincodeActionPayload chaincodeActionPayload = chaincodeActionPayloadBuilder.build();
+        FabricTransaction.ChaincodeActionPayload chaincodeActionPayload = chaincodeActionPayloadBuilder.build();
         logger.trace("transactionActionBuilder.setPayload" + Arrays.toString(chaincodeActionPayload.toByteString().toByteArray()));
         transactionActionBuilder.setPayload(chaincodeActionPayload.toByteString());
 

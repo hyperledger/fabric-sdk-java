@@ -22,9 +22,9 @@ import org.hyperledger.fabric.protos.common.Common.ChainHeader;
 import org.hyperledger.fabric.protos.common.Common.HeaderType;
 import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.peer.Chaincode;
-import org.hyperledger.fabric.protos.peer.ChaincodeProposal;
-import org.hyperledger.fabric.protos.peer.ChaincodeProposal.ChaincodeHeaderExtension;
+
 import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeHeaderExtension;
 
 import javax.xml.bind.DatatypeConverter;
 import java.util.Arrays;
@@ -82,11 +82,12 @@ public class ProposalBuilder {
 
         ChaincodeHeaderExtension.Builder chaincodeHeaderExtension = ChaincodeHeaderExtension.newBuilder();
 
+
         chaincodeHeaderExtension.setChaincodeID(chaincodeID);
 
 
         ChainHeader chainHeader = createChainHeader(HeaderType.ENDORSER_TRANSACTION,
-                 context.getTxID(), chainID, 0, chaincodeHeaderExtension.build());
+                context.getTxID(), chainID, 0, chaincodeHeaderExtension.build());
 
         Common.SignatureHeader.Builder sigHeaderBldr = Common.SignatureHeader.newBuilder();
 
@@ -106,10 +107,10 @@ public class ProposalBuilder {
         headerbldr.setSignatureHeader(sigHeader);
         headerbldr.setChainHeader(chainHeader);
 
-        ChaincodeProposal.ChaincodeProposalPayload.Builder payloadBuilder = ChaincodeProposal.ChaincodeProposalPayload.newBuilder();
+        FabricProposal.ChaincodeProposalPayload.Builder payloadBuilder = FabricProposal.ChaincodeProposalPayload.newBuilder();
 
         payloadBuilder.setInput(chaincodeInvocationSpec.toByteString());
-        ChaincodeProposal.ChaincodeProposalPayload payload = payloadBuilder.build();
+        FabricProposal.ChaincodeProposalPayload payload = payloadBuilder.build();
 
         logger.trace("proposal payload. length " + payload.toByteArray().length + ",  hashcode:" + payload.toByteArray().hashCode() + ", hex:" + DatatypeConverter.printHexBinary(payload.toByteArray()));
         logger.trace("256 HASH: " + DatatypeConverter.printHexBinary(context.getCryptoPrimitives().hash(payload.toByteArray())));
@@ -141,7 +142,7 @@ public class ProposalBuilder {
 
         Chaincode.ChaincodeInput chaincodeInput = Chaincode.ChaincodeInput.newBuilder().addAllArgs(args).build();
 
-        chaincodeSpecBuilder.setCtorMsg(chaincodeInput);
+        chaincodeSpecBuilder.setInput(chaincodeInput);
 
         invocationSpecBuilder.setChaincodeSpec(chaincodeSpecBuilder.build());
 

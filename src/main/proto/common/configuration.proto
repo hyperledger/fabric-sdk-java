@@ -17,7 +17,7 @@ limitations under the License.
 syntax = "proto3";
 
 import "common/common.proto";
-import "common/chain-config.proto";
+import "common/msp_principal.proto";
 
 option go_package = "github.com/hyperledger/fabric/protos/common";
 option java_package = "org.hyperledger.fabric.protos.common";
@@ -49,6 +49,13 @@ message ConfigurationEnvelope {
     repeated SignedConfigurationItem Items = 1;
 }
 
+// ConfigurationTemplate is used as a serialization format to share configuration templates
+// The orderer supplies a configuration template to the user to use when constructing a new
+// chain creation transaction, so this is used to facilitate that.
+message ConfigurationTemplate {
+    repeated ConfigurationItem Items = 1;
+}
+
 // This message may change slightly depending on the finalization of signature schemes for transactions
 message SignedConfigurationItem {
     bytes ConfigurationItem = 1;
@@ -60,7 +67,8 @@ message ConfigurationItem {
         Policy = 0;   // Implies that the Value is a marshaled Policy message, and may be referred to by Key as a ModificationPolicy
         Chain = 1;    // Marshaled format for this type is yet to be determined
         Orderer = 2;  // Marshaled format for this type is yet to be determined
-        Peer = 3;   // Marshaled format for this type is yet to be determined
+        Peer = 3;     // Marshaled format for this type is yet to be determined
+        MSP = 4;      // Marshaled MSPConfig proto
     }
     ChainHeader Header = 1;  // The header which ties this configuration to a particular chain
     ConfigurationType Type = 2;     // The type of configuration this is.
@@ -109,4 +117,26 @@ message SignaturePolicy {
         int32 SignedBy = 1;
         NOutOf From = 2;
     }
+}
+
+
+// HashingAlgorithm is encoded into the configuration transaction as  a configuration item of type Chain
+// with a Key of "HashingAlgorithm" and a Value of  HashingAlgorithm as marshaled protobuf bytes
+message HashingAlgorithm {
+    // Currently supported algorithms are: SHAKE256
+    string name = 1;
+}
+
+// BlockDataHashingStructure is encoded into the configuration transaction as a configuration item of
+// type Chain with a Key of "BlockDataHashingStructure" and a Value of HashingAlgorithm as marshaled protobuf bytes
+message BlockDataHashingStructure {
+    // width specifies the width of the Merkle tree to use when computing the BlockDataHash
+    // in order to replicate flat hashing, set this width to MAX_UINT32
+    uint32 width  = 1;
+}
+
+// OrdererAddresses is encoded into the configuration transaction as a configuration item of type Chain
+// with a Key of "OrdererAddresses" and a Value of OrdererAddresses as marshaled protobuf bytes
+message OrdererAddresses {
+    repeated string addresses = 1;
 }

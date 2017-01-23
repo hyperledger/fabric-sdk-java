@@ -16,7 +16,8 @@ public class End2endIT {
 
     static final String CHAIN_CODE_NAME = "example_cc.go";
     static final String CHAIN_CODE_PATH = "github.com/example_cc";
-    static final String CHAIN_NAME = "**TEST_CHAINID**"; //Special defualts to system chain for now ..need mulit-chain.
+    //static final String CHAIN_NAME = "**TEST_CHAINID**"; //Special defualts to system chain for now ..need mulit-chain.
+    static final String CHAIN_NAME = "test_chainid";
     //static final String CHAIN_NAME = "NEWCHAIN";
 
     final static Collection<String> PEER_LOCATIONS = Arrays.asList("grpc://localhost:7051");
@@ -26,7 +27,7 @@ public class End2endIT {
 
     final static String MEMBER_SERVICES_LOCATION = "http://localhost:8888";
 
-    private static final int ORDER_WAIT_TIME = 14;
+    private static final int ORDER_WAIT_TIME = 30;
     @Test
     public void setup() {
 
@@ -65,6 +66,8 @@ public class End2endIT {
         //Deploy Proposal Request
         //
 
+        out("Creating deployment proposal");
+
         DeploymentProposalRequest deploymentProposalRequest = client.newDeploymentProposalRequest();
         deploymentProposalRequest.setChaincodeName(CHAIN_CODE_NAME);
         deploymentProposalRequest.setChaincodePath(CHAIN_CODE_PATH);
@@ -92,7 +95,7 @@ public class End2endIT {
             }
 
         }
-        out("Received %d successful proposal responses.", successful.size());
+        out("Received %d successful deployment proposal responses.", successful.size());
 
         if (successful.size() < 1) {  //choose this as an arbitrary limit right now.
 
@@ -127,6 +130,8 @@ public class End2endIT {
         out("Need to wait for %d seconds", ORDER_WAIT_TIME);
         Thread.sleep(ORDER_WAIT_TIME * 1000);
 
+        out("Creating invoke proposal");
+
         InvokeProposalRequest invokeProposalRequest = client.newInvokeProposalRequest();
 
         invokeProposalRequest.setChaincodeID(chainCodeID);
@@ -147,7 +152,7 @@ public class End2endIT {
             }
 
         }
-        out("Received %d successful proposal responses.", successful.size());
+        out("Received %d successful invoke proposal responses.", successful.size());
 
 
         if (successful.size() < 1) {  //choose this as an arbitrary limit right now.
