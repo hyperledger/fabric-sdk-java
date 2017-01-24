@@ -14,7 +14,22 @@
 
 package org.hyperledger.fabric.sdk.security;
 
+import java.io.*;
+import java.math.BigInteger;
+import java.security.*;
+import java.security.cert.*;
+import java.security.interfaces.*;
+import java.security.spec.*;
+import javax.security.auth.x500.X500Principal;
+import javax.xml.bind.DatatypeConverter;
+import javax.crypto.* ;
+import javax.crypto.spec.*;
+
 import io.netty.util.internal.StringUtil;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.DERSequenceGenerator;
 import org.bouncycastle.asn1.nist.NISTNamedCurves;
@@ -52,34 +67,6 @@ import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.KeyAgreement;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import javax.security.auth.x500.X500Principal;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.math.BigInteger;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.KeyFactory;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.SecureRandom;
-import java.security.Security;
-import java.security.interfaces.ECPrivateKey;
-import java.security.spec.ECGenParameterSpec;
-import java.security.spec.EncodedKeySpec;
-import java.security.spec.PKCS8EncodedKeySpec;
-
 public class CryptoPrimitives {
     private static final Config config = Config.getConfig();
 
@@ -93,7 +80,50 @@ public class CryptoPrimitives {
     private static final int SYMMETRIC_KEY_BYTE_COUNT = 32;
     private static final String SYMMETRIC_ALGORITHM = "AES/CFB/NoPadding";
     private static final int MAC_KEY_BYTE_COUNT = 32;
+    
+    private static final String CERTIFICATE_FORMAT = "X.509" ;
+    private static final String SIGNATURE_ALGORITHM = "SHA256withECDSA" ; // TODO configure via .properties or genesis block
+    
+    private static final Log logger = LogFactory.getLog(CryptoPrimitives.class);
 
+    /**
+     * Verify a signature 
+     * @param plainText original text.
+     * @param signature signature generated from plainText
+     * @param pemCertificate the X509 certificate to be used for verification
+     * @return
+     */
+    public static boolean verify(byte[] plainText, byte[] signature, byte[] pemCertificate) {
+    	boolean isVerified = false ;
+    	
+    	if (plainText == null || signature == null || pemCertificate == null )
+    		return false;
+    	
+    	logger.debug("plaintext in hex: " + DatatypeConverter.printHexBinary(plainText));
+    	logger.debug("signature in hex: " + DatatypeConverter.printHexBinary(signature));
+    	logger.debug("PEM cert in hex: " + DatatypeConverter.printHexBinary(pemCertificate));
+    	
+     	try {
+    		BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(pemCertificate));
+    		CertificateFactory certFactory = CertificateFactory.getInstance(CERTIFICATE_FORMAT) ;
+    		X509Certificate certificate = (X509Certificate) certFactory.generateCertificate(pem);
+    		Signature sig = Signature.getInstance(SIGNATURE_ALGORITHM) ;
+    		sig.initVerify(certificate);
+    		sig.update(plainText);
+    		isVerified = sig.verify(signature);
+    	} catch (InvalidKeyException | CertificateException e) {
+    		logger.error("Cannot verify. Invalid Certificate. Error is: " + 
+    	                    e.getMessage() +
+    	                    "\r\nCertificate (PEM, hex): " + DatatypeConverter.printHexBinary(pemCertificate));
+    	} catch (NoSuchAlgorithmException e) {
+    		logger.error("Cannot verify. Signature algorithm is invalid. Error is: " + e.getMessage());
+    	} catch (SignatureException e) {
+    		logger.error("Cannot verify. Error is: " + e.getMessage());;
+    	}
+
+		return isVerified;
+    } // verify
+    
     public CryptoPrimitives(String hashAlgorithm, int securityLevel) {
         this.hashAlgorithm = hashAlgorithm;
         this.securityLevel = securityLevel;

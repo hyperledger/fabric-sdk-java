@@ -603,6 +603,8 @@ public class Chain {
                     fabricResponse.getResponse().getMessage());
             proposalResponse.setProposalResponse(fabricResponse);
             proposalResponse.setProposal(signedProposal);
+       
+            proposalResponse.verify();
 
             proposalResponses.add(proposalResponse);
 
@@ -698,6 +700,8 @@ public class Chain {
                     fabricResponse.getResponse().getMessage());
             proposalResponse.setProposalResponse(fabricResponse);
             proposalResponse.setProposal(invokeProposal);
+            
+            proposalResponse.verify();
 
             proposalResponses.add(proposalResponse);
 

@@ -87,7 +87,7 @@ public class End2endIT {
 
 
         for (ProposalResponse response : responses) {
-            if (response.getStatus() == ProposalResponse.Status.SUCCESS) {
+            if (response.isVerified() && response.getStatus() == ProposalResponse.Status.SUCCESS) {
                 successful.add(response);
 
             } else {
@@ -95,7 +95,7 @@ public class End2endIT {
             }
 
         }
-        out("Received %d successful deployment proposal responses.", successful.size());
+        out("Received %d deployment proposal responses. Successful+verified: %d . Failed: %d", responses.size(), successful.size(), failed.size());
 
         if (successful.size() < 1) {  //choose this as an arbitrary limit right now.
 
@@ -152,7 +152,7 @@ public class End2endIT {
             }
 
         }
-        out("Received %d successful invoke proposal responses.", successful.size());
+        out("Received %d invoke proposal responses. Successful+verified: %d . Failed: %d", responses.size(), successful.size(), failed.size());
 
 
         if (successful.size() < 1) {  //choose this as an arbitrary limit right now.
@@ -208,16 +208,16 @@ public class End2endIT {
 
 
         for (ProposalResponse proposalResponse : queryProposals) {
-            if (proposalResponse.getStatus() != ProposalResponse.Status.SUCCESS) {
+            if (!proposalResponse.isVerified() || proposalResponse.getStatus() != ProposalResponse.Status.SUCCESS) {
 
-                throw new Exception("Failed invoke proposal.  status: " + proposalResponse.getStatus() + ". messages: " + proposalResponse.getMessage());
+                throw new Exception("Failed invoke proposal.  Response is verified " + proposalResponse.isVerified() + " status: " + proposalResponse.getStatus() + ". messages: " + proposalResponse.getMessage());
             }
 
         }
 
         out("Successfully received query response.");
 
-        String payload = queryProposals.iterator().next().getPayload().toStringUtf8();
+        String payload = queryProposals.iterator().next().getProposalResponse().getResponse().getPayload().toStringUtf8();
 
         out("Query payload of b returned %s", payload);
 
@@ -228,7 +228,7 @@ public class End2endIT {
         }
 
         } catch(Exception e){
-        	out("Caught an excpetion");
+        	out("Caught an exception");
         	e.printStackTrace();
 
             Assert.fail(e.getMessage());

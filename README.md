@@ -31,12 +31,14 @@ You should use the following commit levels of the Hyperledger projects:
 
  | project        | Commit level                               |
  |----------------|:------------------------------------------:|
- | fabric         | f91daceb9278ca89034d7eda5241d91816dcf17a   |
- | fabric-cop     | 9c6c12556b0fc0aa9eb1109c7be8f0a519bfe6d1   |
+ | fabric         | 230f3ccf6659fbe193fbb86ee09b83f0a54ef98b   |
+ | fabric-ca     | aa5fb82838298138e917c7cc24bae794561c4a18   |
  
- You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/). As sdk developement continues, this file will be updated with compatible Hyperledger Fabric commit levels.
+ You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
  
- Once you have cloned `fabric` and `fabric-cop`, use the `git reset --hard commitlevel` to set your repositories to the correct commit.
+ As sdk developement continues, this file will be updated with compatible Hyperledger Fabric commit levels.
+ 
+ Once you have cloned `fabric` and `fabric-ca`, use the `git reset --hard commitlevel` to set your repositories to the correct commit.
  
  To make the ports available to the sdk from vagrant, edit the `devenv/Vagrantfile` file
  * Open the file `Vagrantfile` and verify that the following `config.vm.network` statements are set:
@@ -54,8 +56,8 @@ ssh into vagrant,
 * go to $GOPATH/src/github.com/hyperledger/fabric
   * run `make docker` to create the docker images for peer and orderer
 * go to 4GOPATH/src/github/hyperledger/fabric-cop
-  * currently, you want to run COP with TLS disabled which is the default for commit 9c6c125 mentioned above.
-  * if you do need to turn off TLS, edit the COP server configuration file at _/hyperledger/fabric-cop/images/cop/config/cop.json_
+  * currently, you want to run fabric-ca with TLS disabled which is the default for commit aa5fb82 mentioned above.
+  * if you do need to turn off TLS, edit the COP server configuration file at _/hyperledger/fabric-ca/images/fabric-ca/config/server-config.json_
   * run `make docker` to create the docker image for COP
 
 On your native system where you have the sdk installed you need to copy the docker compose file that starts the services to the directory mapped 
