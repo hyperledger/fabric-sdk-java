@@ -14,16 +14,16 @@
 
 package org.hyperledger.fabric.sdk.security;
 
+import java.util.ArrayList;
 import java.io.*;
 import java.math.BigInteger;
 import java.security.*;
 import java.security.cert.*;
+import java.security.cert.Certificate;
 import java.security.interfaces.*;
 import java.security.spec.*;
 import javax.security.auth.x500.X500Principal;
 import javax.xml.bind.DatatypeConverter;
-import javax.crypto.* ;
-import javax.crypto.spec.*;
 
 import io.netty.util.internal.StringUtil;
 
@@ -67,6 +67,15 @@ import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyAgreement;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
+
 public class CryptoPrimitives {
     private static final Config config = Config.getConfig();
 
@@ -85,7 +94,14 @@ public class CryptoPrimitives {
     private static final String SIGNATURE_ALGORITHM = "SHA256withECDSA" ; // TODO configure via .properties or genesis block
     
     private static final Log logger = LogFactory.getLog(CryptoPrimitives.class);
-
+    
+    public CryptoPrimitives(String hashAlgorithm, int securityLevel) {
+        this.hashAlgorithm = hashAlgorithm;
+        this.securityLevel = securityLevel;
+        Security.addProvider(new BouncyCastleProvider());
+        init();
+    }
+    
     /**
      * Verify a signature 
      * @param plainText original text.
@@ -123,13 +139,65 @@ public class CryptoPrimitives {
 
 		return isVerified;
     } // verify
+ 
+    // TODO refactor TrustStore, CertFactory depending on whether we want to make CryptoPrimitives static 
+    private static KeyStore trustStore ;
     
-    public CryptoPrimitives(String hashAlgorithm, int securityLevel) {
-        this.hashAlgorithm = hashAlgorithm;
-        this.securityLevel = securityLevel;
-        Security.addProvider(new BouncyCastleProvider());
-        init();
+    public static void setTrustStore(KeyStore keyStore) {
+    	CryptoPrimitives.trustStore = keyStore ;
     }
+    
+    public static KeyStore getTrustStore() {
+    	return CryptoPrimitives.trustStore ;
+    }
+    
+    public static boolean validateCertificate(byte[] certPEM) {
+    	
+    	if (certPEM == null) 
+    		return false;
+    	
+    	try {
+    		BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(certPEM));
+    		CertificateFactory certFactory = CertificateFactory.getInstance(CERTIFICATE_FORMAT) ;
+    		X509Certificate certificate = (X509Certificate) certFactory.generateCertificate(pem);
+    		return CryptoPrimitives.validateCertificate(certificate);
+    		} catch (CertificateException e) {
+        		logger.error("Cannot validate certificate. Error is: " + 
+	                    e.getMessage() +
+	                    "\r\nCertificate (PEM, hex): " + DatatypeConverter.printHexBinary(certPEM));
+        		return false ;
+		}
+    }
+    
+    public static boolean validateCertificate(Certificate cert) {
+    	boolean isValidated = false ;
+    	
+    	if (cert == null) 
+    		return isValidated;
+    	
+    	try {
+    		PKIXParameters parms = new PKIXParameters(CryptoPrimitives.getTrustStore()) ;
+    		parms.setRevocationEnabled(false);
+
+    		CertPathValidator certValidator = CertPathValidator.getInstance(CertPathValidator.getDefaultType()); // PKIX
+
+    		ArrayList<Certificate> start = new ArrayList<Certificate>(); start.add(cert);
+    		CertificateFactory certFactory = CertificateFactory.getInstance(CERTIFICATE_FORMAT) ;
+    		CertPath certPath = certFactory.generateCertPath(start) ;
+
+    		certValidator.validate(certPath, parms);
+    		isValidated = true ; // if cert not validated, CertPathValidatorException thrown
+    		
+    	} catch (KeyStoreException | InvalidAlgorithmParameterException | NoSuchAlgorithmException
+    			| CertificateException | CertPathValidatorException e) {
+    		logger.error("Cannot validate certificate. Error is: " + 
+                    e.getMessage() +
+                    "\r\nCertificate" + cert.toString());
+    		isValidated = false ;
+    	}
+    	
+    	return isValidated;
+    } // validateCertificate
 
     public int getSecurityLevel() {
         return securityLevel;
