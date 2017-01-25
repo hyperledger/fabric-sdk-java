@@ -374,6 +374,27 @@ public class CryptoPrimitives {
         }
 
     }
+    
+    public static byte[] sign(PrivateKey key, byte[] data) throws CryptoException {
+    	byte[] signature ;
+    	
+    	if (key == null || data == null)
+    		throw new CryptoException("Could not sign. Key or plain text is null", new NullPointerException());
+    	
+    	try {
+			Signature sig = Signature.getInstance(SIGNATURE_ALGORITHM);
+			sig.initSign(key);
+			sig.update(data);
+			signature = sig.sign();
+			
+			// TODO see if BouncyCastle handles sig malleability already under the covers
+			
+			return signature ;
+		} catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+            throw new CryptoException("Could not sign the message.", e);
+		} 
+    	
+    } // sign
 
     private BigInteger[] preventMalleability(BigInteger[] sigs, BigInteger curve_n) {
         BigInteger cmpVal = curve_n.divide(BigInteger.valueOf(2l));

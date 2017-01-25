@@ -4,8 +4,10 @@ import static org.junit.Assert.*;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.security.*;
+import java.security.spec.*;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.cert.Certificate;
@@ -14,6 +16,10 @@ import java.security.cert.CertificateException;
 import javax.xml.bind.DatatypeConverter;
 
 import org.apache.commons.compress.utils.IOUtils;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.util.io.pem.PemReader;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -33,6 +39,8 @@ public class CryptoPrimitivesTest {
 	
 	public static KeyStore trustStore ;
 	
+	public static KeyFactory kf ;
+	
 	public static CertificateFactory cf ;
 	
 	@BeforeClass
@@ -40,6 +48,8 @@ public class CryptoPrimitivesTest {
 		plainText = DatatypeConverter.parseHexBinary(plainTextHex) ;
 		sig = DatatypeConverter.parseHexBinary(sigHex) ;
 		pemCert= DatatypeConverter.parseHexBinary(pemCertHex) ;
+		
+		kf = KeyFactory.getInstance("EC");
 
 		cf = CertificateFactory.getInstance("X.509") ;
 		
@@ -50,10 +60,25 @@ public class CryptoPrimitivesTest {
 
 	@Before
 	public void setUp() throws Exception {
+
 		// TODO should do this in @BeforeClass. Need to find out how to get to files from static junit method
 		BufferedInputStream bis = new BufferedInputStream(this.getClass().getResourceAsStream("/ca.crt"));
 		Certificate caCert = cf.generateCertificate(bis);
+		bis.close();
 		CryptoPrimitives.getTrustStore().setCertificateEntry("ca", caCert);
+		
+		bis = new BufferedInputStream(this.getClass().getResourceAsStream("/keypair-signed.crt"));
+		Certificate cert = cf.generateCertificate(bis);
+		bis.close();
+		
+		// TODO: get PEM file without dropping down to BouncyCastle ?
+		PEMParser pem = new PEMParser(new FileReader(this.getClass().getResource("/keypair-signed.key").getFile()));
+		PEMKeyPair bcKeyPair = (PEMKeyPair) pem.readObject();
+		PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(bcKeyPair.getPrivateKeyInfo().getEncoded());
+		PrivateKey key = kf.generatePrivate(keySpec);
+
+		Certificate[] chain = new Certificate[] {cert, caCert} ;
+		CryptoPrimitives.getTrustStore().setKeyEntry("key", key, "123456".toCharArray(), chain);
 	}
 
 	@Test
@@ -135,7 +160,46 @@ public class CryptoPrimitivesTest {
 	public void testVerify() {
 		assertTrue(CryptoPrimitives.verify(plainText, sig, pemCert)) ;
 	} // testVerify
+	
+	@Test
+	public void testSignNullKey() {
+		try {
+			CryptoPrimitives.sign(null, new byte[] {(byte) 0x00});
+			Assert.fail("sign() should have thrown an exception");
+		} catch (CryptoException e) {
+		}
+	}
 
+	@Test
+	public void testSignNullData() {
+		PrivateKey key;
+		try {
+			key = (PrivateKey) CryptoPrimitives.getTrustStore().getKey("key", "123456".toCharArray());
+			CryptoPrimitives.sign(key, null);
+			Assert.fail("sign() should have thrown an exception");
+		} catch (UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException e) {
+			Assert.fail("Could not create private key. Error: " + e.getMessage() );
+		} catch (CryptoException e) {
+		}
+	}
+	
+	@Test
+	public void testSign() {
+		PrivateKey key;
+		byte[] plainText = "123456".getBytes() ;
+		byte[] signature;
+		try {
+			key = (PrivateKey) CryptoPrimitives.getTrustStore().getKey("key", "123456".toCharArray());
+			signature = CryptoPrimitives.sign(key, plainText);
+			
+			BufferedInputStream bis = new BufferedInputStream(this.getClass().getResourceAsStream("/keypair-signed.crt"));
+			byte[] cert = IOUtils.toByteArray(bis);
+			bis.close();
+			assertTrue(CryptoPrimitives.verify(plainText, signature, cert));
+		} catch (UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException | CryptoException | IOException e) {
+			Assert.fail("Could not verify signature. Error: " + e.getMessage());
+		}
+	}
 }
 
 
