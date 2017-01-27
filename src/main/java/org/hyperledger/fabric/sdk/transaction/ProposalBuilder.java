@@ -22,7 +22,6 @@ import org.hyperledger.fabric.protos.common.Common.ChainHeader;
 import org.hyperledger.fabric.protos.common.Common.HeaderType;
 import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.peer.Chaincode;
-
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeHeaderExtension;
 
@@ -36,7 +35,7 @@ import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createChainHeade
 public class ProposalBuilder {
 
 
-    private Log logger = LogFactory.getLog(ProposalBuilder.class);
+    private final Log logger = LogFactory.getLog(ProposalBuilder.class);
 
 
     private Chaincode.ChaincodeID chaincodeID;
@@ -131,7 +130,7 @@ public class ProposalBuilder {
     }
 
 
-    private Chaincode.ChaincodeInvocationSpec createChaincodeInvocationSpec(Chaincode.ChaincodeID chainCodeId, Chaincode.ChaincodeSpec.Type langType, List<ByteString> args) throws Exception {
+    private Chaincode.ChaincodeInvocationSpec createChaincodeInvocationSpec(Chaincode.ChaincodeID chainCodeId, Chaincode.ChaincodeSpec.Type langType, List<ByteString> args) {
 
         Chaincode.ChaincodeInvocationSpec.Builder invocationSpecBuilder = Chaincode.ChaincodeInvocationSpec.newBuilder();
         Chaincode.ChaincodeSpec.Builder chaincodeSpecBuilder = Chaincode.ChaincodeSpec.newBuilder();

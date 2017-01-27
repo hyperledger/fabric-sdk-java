@@ -16,30 +16,25 @@ package org.hyperledger.fabric.sdk;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.crypto.digests.SHAKEDigest;
 import org.hyperledger.fabric.protos.common.Common;
+import org.hyperledger.fabric.protos.common.Common.Block;
+import org.hyperledger.fabric.protos.common.Common.BlockData;
 import org.hyperledger.fabric.protos.common.Common.ChainHeader;
 import org.hyperledger.fabric.protos.common.Common.Envelope;
 import org.hyperledger.fabric.protos.common.Common.Header;
-import org.hyperledger.fabric.protos.common.Common.HeaderType;
 import org.hyperledger.fabric.protos.common.Common.Payload;
-import org.hyperledger.fabric.protos.common.Common.SignatureHeader;
-import org.hyperledger.fabric.protos.common.Configuration.ConfigurationEnvelope;
 import org.hyperledger.fabric.protos.common.Configuration.ConfigurationItem;
 import org.hyperledger.fabric.protos.common.Configuration.ConfigurationItem.ConfigurationType;
 import org.hyperledger.fabric.protos.common.Configuration.SignedConfigurationItem;
-import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.orderer.Ab.BroadcastResponse;
-import org.hyperledger.fabric.protos.orderer.Configuration;
-import org.hyperledger.fabric.protos.orderer.Configuration.BatchSize;
-import org.hyperledger.fabric.protos.orderer.Configuration.ConsensusType;
 import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
-import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.protos.peer.PeerEvents.Event.EventCase;
+import org.hyperledger.fabric.sdk.events.BlockListener;
+import org.hyperledger.fabric.sdk.events.EventHub;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.DeploymentException;
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
@@ -50,12 +45,9 @@ import org.hyperledger.fabric.sdk.helper.SDKUtil;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.transaction.DeploymentProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.ProposalBuilder;
-import org.hyperledger.fabric.sdk.transaction.ProtoUtils;
 import org.hyperledger.fabric.sdk.transaction.TransactionBuilder;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
@@ -63,20 +55,26 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Vector;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hyperledger.fabric.protos.common.Configuration.ConfigurationSignature;
 import static org.hyperledger.fabric.protos.common.Configuration.Policy;
 import static org.hyperledger.fabric.protos.common.Configuration.SignaturePolicy;
 import static org.hyperledger.fabric.protos.common.Configuration.SignaturePolicyEnvelope;
-import static org.hyperledger.fabric.protos.orderer.Configuration.*;
+import static org.hyperledger.fabric.protos.peer.PeerEvents.Event;
 import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
-import static org.hyperledger.fabric.sdk.helper.SDKUtil.getNonce;
 import static org.hyperledger.fabric.sdk.helper.SDKUtil.nullOrEmptyString;
-import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createChainHeader;
 
 
 /**
@@ -89,14 +87,14 @@ public class Chain {
     private String name;
 
     // The peers on this chain to which the client can connect
-    private Collection<Peer> peers = new Vector<>();
+    private final Collection<Peer> peers = new Vector<>();
 
     // Security enabled flag
     private boolean securityEnabled = true;
 
     // A user cache associated with this chain
     // TODO: Make an LRU to limit size of user cache
-    private Map<String, User> members = new HashMap<>();
+    private final Map<String, User> members = new HashMap<>();
 
     // The number of tcerts to get in each batch
     private int tcertBatchSize = 200;
@@ -127,6 +125,9 @@ public class Chain {
     HFClient client;
     private boolean initialized = false;
     private int max_message_count = 50;
+    private final Collection<EventHub> eventHubs = new LinkedList<>();
+    private final ExecutorService es = Executors.newCachedThreadPool();
+
 
     public Enrollment getEnrollment() {
         return enrollment;
@@ -217,6 +218,24 @@ public class Chain {
         orderer.setChain(this);
         this.orderers.add(orderer);
         return this;
+    }
+
+
+    public Chain addEventHub(EventHub eventHub) throws InvalidArgumentException {
+        if (null == eventHub) {
+            throw new InvalidArgumentException("Orderer is invalid can not be null.");
+        }
+
+        Exception e = checkGrpcUrl(eventHub.getUrl());
+        if (e != null) {
+            throw new InvalidArgumentException("Peer added to chan has invalid url.", e);
+        }
+
+
+        eventHub.setEventQue(chainEventQue);
+        eventHubs.add(eventHub);
+        return this;
+
     }
 
 
@@ -384,7 +403,7 @@ public class Chain {
     }
 
 
-    public Chain initialize() throws InvalidArgumentException, IOException, CryptoException { //TODO for multi chain
+    public Chain initialize() throws InvalidArgumentException { //TODO for multi chain
         if (peers.size() == 0) {  // assume this makes no sense.  have no orders seems reasonable if all you do is query.
 
             throw new InvalidArgumentException("Chain needs at least one peer.");
@@ -404,7 +423,15 @@ public class Chain {
             throw new InvalidArgumentException("Chain initialized on HFClient with no user context.");
         }
 
+        runEventQue();
 
+
+        for (EventHub eh : eventHubs) {
+            eh.connect();
+        }
+
+
+        registerTransactionListenerProcessor();
 
 
         this.initialized = true;
@@ -414,8 +441,7 @@ public class Chain {
     }
 
 
-
-    private  static  Policy buildPolicyEnvelope(int nOf) {
+    private static Policy buildPolicyEnvelope(int nOf) {
 
         SignaturePolicy.NOutOf nOutOf = SignaturePolicy.NOutOf.newBuilder().setN(nOf).build();
 
@@ -436,7 +462,7 @@ public class Chain {
     private static SignedConfigurationItem buildSignedConfigurationItem(ChainHeader chainHeader, ConfigurationType type,
                                                                         long lastModified, String modificationPolicy,
                                                                         String key, ByteString value
-                                                                        ) {
+    ) {
         return buildSignedConfigurationItem(chainHeader, type,
                 lastModified, modificationPolicy,
                 key, value,
@@ -603,7 +629,7 @@ public class Chain {
                     fabricResponse.getResponse().getMessage());
             proposalResponse.setProposalResponse(fabricResponse);
             proposalResponse.setProposal(signedProposal);
-       
+
             proposalResponse.verify();
 
             proposalResponses.add(proposalResponse);
@@ -670,8 +696,8 @@ public class Chain {
         }
 
         TransactionContext transactionContext = new TransactionContext(this, this.client.getUserContext(), cryptoPrimitives);
-        ProposalBuilder proposlBuilder = ProposalBuilder.newBuilder();
-        proposlBuilder.context(transactionContext);
+        ProposalBuilder proposalBuilder = ProposalBuilder.newBuilder();
+        proposalBuilder.context(transactionContext);
 
 
         List<ByteString> argList = new ArrayList<>();
@@ -680,13 +706,13 @@ public class Chain {
             argList.add(ByteString.copyFrom(arg.getBytes()));
         }
 
-        proposlBuilder.args(argList);
-        proposlBuilder.chaincodeID(queryProposalRequest.getChaincodeID().getFabricChainCodeID());
-        proposlBuilder.ccType(queryProposalRequest.getChaincodeLanguage() == TransactionRequest.Type.JAVA ?
+        proposalBuilder.args(argList);
+        proposalBuilder.chaincodeID(queryProposalRequest.getChaincodeID().getFabricChainCodeID());
+        proposalBuilder.ccType(queryProposalRequest.getChaincodeLanguage() == TransactionRequest.Type.JAVA ?
                 Chaincode.ChaincodeSpec.Type.JAVA : Chaincode.ChaincodeSpec.Type.GOLANG);
 
 
-        FabricProposal.SignedProposal invokeProposal = getSignedProposal(proposlBuilder.build());
+        FabricProposal.SignedProposal invokeProposal = getSignedProposal(proposalBuilder.build());
 
 
         Collection<ProposalResponse> proposalResponses = new LinkedList<>();
@@ -700,7 +726,7 @@ public class Chain {
                     fabricResponse.getResponse().getMessage());
             proposalResponse.setProposalResponse(fabricResponse);
             proposalResponse.setProposal(invokeProposal);
-            
+
             proposalResponse.verify();
 
             proposalResponses.add(proposalResponse);
@@ -716,7 +742,7 @@ public class Chain {
     // transactions order
 
 
-    Collection<TransactionResponse> sendTransaction(Collection<ProposalResponse> proposalResponses, Collection<Orderer> orderers) throws InvalidArgumentException, CryptoException, InvalidProtocolBufferException {
+    CompletableFuture<Envelope> sendTransaction(Collection<ProposalResponse> proposalResponses, Collection<Orderer> orderers) throws InvalidArgumentException, CryptoException, InvalidProtocolBufferException {
 
         if (null == proposalResponses) {
 
@@ -733,10 +759,12 @@ public class Chain {
             throw new DeploymentException("sendTransaction on chain not initialized.");
         }
 
+
         List<FabricProposalResponse.Endorsement> ed = new LinkedList<>();
         FabricProposal.Proposal proposal = null;
         FabricProposal.ChaincodeProposalPayload proposalResponsePayload = null;
         String proposalTransactionID = null;
+
 
 
         for (ProposalResponse arg : proposalResponses) {
@@ -764,16 +792,33 @@ public class Chain {
         Envelope transactionEnvelope = createTransactionEnvelop(transactionPayload);
 
 
-        Collection<TransactionResponse> ordererResponses = new LinkedList<>();
+        CompletableFuture<Envelope> sret = registerTxListener(proposalTransactionID);
+
+
+
+        boolean success = false;
         for (Orderer orderer : orderers) {//TODO need to make async.
 
             BroadcastResponse resp = orderer.sendTransaction(transactionEnvelope);
-            TransactionResponse tresp = new TransactionResponse(transactionContext.getTxID(), transactionContext.getChainID(), resp.getStatusValue(), resp.getStatus().name());
-            ordererResponses.add(tresp);
+            if (resp.getStatus() == Common.Status.SUCCESS) {
+
+                success = true;
+                break;
+
+            }
+
+            //TransactionResponse tresp = new TransactionResponse(transactionContext.getTxID(), transactionContext.getChainID(), resp.getStatusValue(), resp.getStatus().name());
 
         }
 
-        return ordererResponses;
+        if (success) {
+            return sret;
+        } else {
+            CompletableFuture<Envelope> ret = new CompletableFuture<>();
+            ret.completeExceptionally(new Exception("Failed to place transactions on Orderer"));
+            return ret;
+        }
+
     }
 
 
@@ -788,6 +833,385 @@ public class Chain {
         logger.debug("Done creating transaction ready for orderer");
 
         return ceb.build();
+    }
+
+    ////////////////  Chain Block monitoring //////////////////////////////////
+
+    /**
+     * registerBlockListener - Register a block listener.
+     * @param listener
+     * @return
+     */
+    public String registerBlockListener(BlockListener listener) {
+
+
+        return new BL(listener).getHandle();
+
+    }
+
+
+    /**
+     * A queue each eventing hub will write events to.
+     */
+
+
+    private final ChainEventQue chainEventQue = new ChainEventQue();
+
+
+    public class ChainEventQue {
+
+        private final BlockingQueue<Event> events = new LinkedBlockingQueue<>();//Thread safe
+        private long previous = Long.MIN_VALUE;
+
+        public boolean addBEvent(Event event) {
+
+            //For now just support blocks --- other types are also reported as blocks.
+
+            if (event.getEventCase() != EventCase.BLOCK) {
+                return false;
+            }
+
+            Block block = event.getBlock();
+            final long num = block.getHeader().getNumber();
+
+            //If being fed by multiple eventhubs make sure we don't add dups here.
+            synchronized (this) {
+                if (num <= previous) {
+                    return false; // seen it!
+                }
+                previous = num;
+
+
+                events.add(event);
+            }
+
+            return true;
+
+        }
+
+        public Event getNextEvent() {
+            Event ret = null;
+            try {
+                ret = events.take();
+            } catch (InterruptedException e) {
+                logger.warn(e);
+            }
+
+            return ret;
+        }
+
+    }
+
+    private Runnable eventTask;
+    //  private Runnable cleanUpTask;
+
+
+    /**
+     * Runs processing events from event hubs.
+     */
+
+    private void runEventQue() {
+
+        eventTask = () -> {
+
+
+            for (;;) {
+                final Event event = chainEventQue.getNextEvent();
+                if (event == null) {
+                    continue;
+                }
+
+
+                final Block block = event.getBlock();
+
+                BlockData data = block.getData();
+
+                for (ByteString db : data.getDataList()) {
+
+                    try {
+                        Envelope env = Envelope.parseFrom(db);
+
+
+                        Payload payload = Payload.parseFrom(env.getPayload());
+                        Header plh = payload.getHeader();
+
+
+                        String blockchainID = plh.getChainHeader().getChainID();
+
+                        if (!Objects.equals(name, blockchainID)) {
+                            continue; // not targeted for this chain
+                        }
+
+                        final ArrayList<BL> blcopy = new ArrayList<>(blockListeners.size() + 3);
+
+                        synchronized (blockListeners) {
+
+                            blcopy.addAll(blockListeners.values());
+                        }
+
+
+                        for (BL l : blcopy) {
+                            try {
+
+                                es.execute(() -> l.listener.received(event.getBlock()));
+
+                            } catch (Throwable e) { //Don't let one register stop rest.
+                                logger.error(e);
+                            }
+
+                        }
+
+
+                    } catch (InvalidProtocolBufferException e) {
+                        logger.error(e);
+
+                    }
+
+                }
+
+            }
+
+        };
+
+        new Thread(eventTask).start();
+
+
+//        Do our own time out. of tasks
+//        cleanUpTask = () -> {
+//
+//
+//            for (;;) {
+//
+//                synchronized (txListeners) {
+//
+//                    for (LinkedList<TL> tll : txListeners.values()) {
+//
+//                        if (tll == null) {
+//                            continue;
+//                        }
+//
+//                        for (TL tl : tll) {
+//                            tl.timedOut();
+//                        }
+//                    }
+//                }
+//
+//
+//                try {
+//                    Thread.sleep(1000);
+//                } catch (InterruptedException e) {
+//                    logger.error(e);
+//
+//                }
+//
+//            }
+//
+//        };
+//
+//
+//        new Thread(cleanUpTask).start();
+//
+    }
+
+
+    private final LinkedHashMap<String, BL> blockListeners = new LinkedHashMap<>();
+
+
+    class BL {
+
+        final BlockListener listener;
+
+        public String getHandle() {
+            return handle;
+        }
+
+        final String handle;
+
+        BL(BlockListener listener) {
+
+            handle = SDKUtil.generateUUID();
+
+            this.listener = listener;
+            synchronized (blockListeners) {
+
+                blockListeners.put(handle, this);
+
+            }
+
+        }
+    }
+
+
+    //////////  Transaction monitoring  /////////////////////////////
+
+    /**
+     * Own block listener to manage transactions.
+     *
+     * @return
+     */
+
+
+    private String registerTransactionListenerProcessor() {
+
+        //Transaction listener is internal Block listener for transactions
+
+        return registerBlockListener(block -> {
+
+
+            //System.err.println("Got BLOCK :" + block);
+            if (txListeners.isEmpty()) {
+                return;
+            }
+
+
+            BlockData data = block.getData();
+
+            for (ByteString db : data.getDataList()) {
+
+                try {
+                    Envelope env = Envelope.parseFrom(db);
+
+
+                    Payload payload = Payload.parseFrom(env.getPayload());
+                    Header plh = payload.getHeader();
+
+
+                    final String txID = plh.getChainHeader().getTxID();
+
+                    logger.debug("Got Block with txID= " + txID);
+
+                    List<TL> txL = new ArrayList<>(txListeners.size() + 2);
+
+
+                    synchronized (txListeners) {
+
+                        LinkedList<TL> list = txListeners.get(txID);
+                        if (null != list) {
+                            txL.addAll(list);
+                        }
+
+                    }
+
+                    for (TL l : txL) {
+                        try {
+                            l.fire(env);
+                        } catch (Throwable e) {
+                            logger.error(e); //Don't let one register stop rest.
+                        }
+                    }
+
+
+                } catch (InvalidProtocolBufferException e) {
+                    logger.error(e);
+
+                }
+
+
+            }
+
+        });
+    }
+
+    private final LinkedHashMap<String, LinkedList<TL>> txListeners = new LinkedHashMap<>();
+
+
+    private class TL {
+        final String txID;
+        final AtomicBoolean fired = new AtomicBoolean(false);
+        final CompletableFuture<Envelope> future;
+//        final long createdTime = System.currentTimeMillis();//seconds
+//        final long waitTime;
+
+
+        TL(String txID, CompletableFuture<Envelope> future) {
+            this.txID = txID;
+            this.future = future;
+//            if (waitTimeSeconds > 0) {
+//                this.waitTime = waitTimeSeconds * 1000;
+//            } else {
+//                this.waitTime = -1;
+//            }
+            addListener();
+        }
+
+        private void addListener() {
+            synchronized (txListeners) {
+                LinkedList<TL> tl = txListeners.computeIfAbsent(txID, k -> new LinkedList<>());
+                tl.add(this);
+            }
+        }
+
+        public void fire(Envelope envelope) {
+
+            if (fired.getAndSet(true)) {
+                return;
+            }
+
+            synchronized (txListeners) {
+                LinkedList<TL> l = txListeners.get(txID);
+                if (null != l) {
+                    l.removeFirstOccurrence(this);
+                }
+            }
+            if (future.isDone()) {
+                return;
+            }
+
+            es.execute(() -> future.complete(envelope));
+
+        }
+
+        //KEEP THIS FOR NOW in case in the future we decide we want it.
+
+//        public boolean timedOut() {
+//
+//            if (fired.get()) {
+//                return false;
+//            }
+//            if (waitTime == -1) {
+//                return false;
+//            }
+//
+//            if (createdTime + waitTime > System.currentTimeMillis()) {
+//                return false;
+//            }
+//
+//            LinkedList<TL> l = txListeners.get(txID);
+//            if (null != l) {
+//                l.removeFirstOccurrence(this);
+//            }
+//
+//            logger.debug("timeout:" + txID);
+//
+//            if (fired.getAndSet(true)) {
+//                return false;
+//            }
+//
+//            es.execute(() -> {
+//                future.completeExceptionally(new TimeoutException("Transaction " + txID + " timed out."));
+//            });
+//
+//            return true;
+//
+//        }
+    }
+
+    /**
+     * Register a transactionId that to get notification on when the event is seen in the block chain.
+     *
+     * @param txid
+     * @return
+     */
+
+    public CompletableFuture<Envelope> registerTxListener(String txid) {
+
+        CompletableFuture<Envelope> future = new CompletableFuture<>();
+
+        new TL(txid, future);
+
+        return future;
+
+
     }
 
 }

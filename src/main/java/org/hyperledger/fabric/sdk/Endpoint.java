@@ -25,20 +25,20 @@ import java.util.Properties;
 
 import static org.hyperledger.fabric.sdk.helper.SDKUtil.parseGrpcUrl;
 
-class Endpoint {
+public class Endpoint {
 
-    private String addr;
-    private int port;
+    private final String addr;
+    private final int port;
     private ManagedChannelBuilder<?> channelBuilder = null;
 
-    Endpoint(String url, String pem) {
+    public Endpoint(String url, String pem) {
 
         Properties purl = parseGrpcUrl(url);
         String protocol = purl.getProperty("protocol");
         this.addr = purl.getProperty("host");
         this.port = Integer.parseInt(purl.getProperty("port"));
 
-        if (protocol.equalsIgnoreCase("grpc")) {//
+        if (protocol.equalsIgnoreCase("grpc")) {
             this.channelBuilder = ManagedChannelBuilder.forAddress(addr, port)
                     .usePlaintext(true);
         } else if (protocol.equalsIgnoreCase("grpcs")) {
@@ -59,7 +59,7 @@ class Endpoint {
         }
     }
 
-    ManagedChannelBuilder<?> getChannelBuilder() {
+    public ManagedChannelBuilder<?> getChannelBuilder() {
         return this.channelBuilder;
     }
 

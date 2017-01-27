@@ -1,12 +1,15 @@
 package org.hyperledger.fabric.sdk;
 
+import org.hyperledger.fabric.sdk.events.EventHub;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Test end to end scenario
@@ -15,16 +18,17 @@ public class End2endJavaChaincodeIT {
 
     static final String CHAIN_CODE_NAME = "simplesample";
     static final String CHAIN_CODE_PATH = "src/test/fixture/java-chaincode/SimpleSample/root/chaincode";
-    static final String CHAIN_NAME = "chain1";
+    static final String CHAIN_NAME = "test_chainid";
 
     final static Collection<String> PEER_LOCATIONS = Arrays.asList("grpc://localhost:7051");
 
-    //final static Collection<String> ORDERER_LOCATIONS = Arrays.asList("grpc://localhost:5005");// NonVagrant
-    final static Collection<String> ORDERER_LOCATIONS = Arrays.asList("grpc://localhost:5151"); //Vagrant maps to this
 
-    final static String MEMBER_SERVICES_LOCATION = "grpc://localhost:7054";
+    final static Collection<String> ORDERER_LOCATIONS = Arrays.asList("grpc://localhost:7050"); //Vagrant maps to this
 
-    private static final int ORDER_WAIT_TIME = 14;
+    final static Collection<String> EVENTHUB_LOCATIONS = Arrays.asList("grpc://localhost:7053"); //Vagrant maps to this
+
+    final static String MEMBER_SERVICES_LOCATION = "http://localhost:8888";
+
 
     @Test
     @Ignore
@@ -49,8 +53,12 @@ public class End2endJavaChaincodeIT {
 
             chain.setMemberServicesUrl(MEMBER_SERVICES_LOCATION, null);
 
-            chain.setKeyValStore(new FileKeyValStore(System.getProperty("user.home") + "/test.properties"));
-            User admin = chain.enroll("admin", "Xurw3yU9zI0l");
+            File fileStore = new File(System.getProperty("user.home") + "/test.properties");
+            if (fileStore.exists()) {
+                fileStore.delete();
+            }
+            chain.setKeyValStore(new FileKeyValStore(fileStore.getAbsolutePath()));
+            chain.enroll("admin", "adminpw");
 
             chain.initialize();
 
@@ -60,6 +68,8 @@ public class End2endJavaChaincodeIT {
             ////////////////////////////
             //Deploy Proposal Request
             //
+
+            out("Creating deployment proposal");
 
             DeploymentProposalRequest deploymentProposalRequest = client.newDeploymentProposalRequest();
             deploymentProposalRequest.setChaincodeName(CHAIN_CODE_NAME);
@@ -81,7 +91,7 @@ public class End2endJavaChaincodeIT {
 
 
             for (ProposalResponse response : responses) {
-                if (response.getStatus() == ProposalResponse.Status.SUCCESS) {
+                if (response.isVerified() && response.getStatus() == ProposalResponse.Status.SUCCESS) {
                     successful.add(response);
 
                 } else {
@@ -89,7 +99,7 @@ public class End2endJavaChaincodeIT {
                 }
 
             }
-            out("Received %d successful proposal responses.", successful.size());
+            out("Received %d deployment proposal responses. Successful+verified: %d . Failed: %d", responses.size(), successful.size(), failed.size());
 
             if (successful.size() < 1) {  //choose this as an arbitrary limit right now.
 
@@ -105,129 +115,132 @@ public class End2endJavaChaincodeIT {
             final ChainCodeID chainCodeID = firstDeployProposalResponse.getChainCodeID();
 
 
-            Collection<TransactionResponse> deploytransactionResponses = chain.sendTransaction(successful, orderers);
-            TransactionResponse deployTransactionResponse = deploytransactionResponses.iterator().next();
+            chain.sendTransaction(successful, orderers).thenApply(block -> {
+
+                try {
+                    out("Successfully completed chaincode deployment.");
+
+                    out("Creating invoke proposal");
+
+                    InvokeProposalRequest invokeProposalRequest = client.newInvokeProposalRequest();
+
+                    invokeProposalRequest.setChaincodeID(chainCodeID);
+                    invokeProposalRequest.setFcn("invoke");
+                    invokeProposalRequest.setArgs(new String[]{"move", "Jane", "John", "200"});
+
+                    Collection<ProposalResponse> invokePropResp = chain.sendInvokeProposal(invokeProposalRequest, peers);
 
 
-            ////////////////////////////
-            // Invoke Endorsement Request
-            //
+                    successful.clear();
+                    failed.clear();
 
-            if (deployTransactionResponse.getStatus() != TransactionResponse.Status.SUCCESS) {
+                    for (ProposalResponse response : invokePropResp) {
 
-                System.err.println("Bad status value for proposals transaction: " + deployTransactionResponse.getStatus());
+                        if (response.getStatus() == ProposalResponse.Status.SUCCESS) {
+                            successful.add(response);
+                        } else {
+                            failed.add(response);
+                        }
+
+                    }
+                    out("Received %d invoke proposal responses. Successful+verified: %d . Failed: %d", responses.size(), successful.size(), failed.size());
+
+
+                    if (successful.size() < 1) {  //choose this as an arbitrary limit right now.
+
+                        if (failed.size() == 0) {
+                            throw new Exception("No endorsers found ");
+
+                        }
+                        ProposalResponse firstDeployProposalResponse2 = failed.iterator().next();
+
+
+                        throw new Exception("Not enough endorsers :" + successful.size() + ".  " + firstDeployProposalResponse2.getMessage());
+
+
+                    }
+                    out("Successfully received invoke proposal response.");
+
+                    ////////////////////////////
+                    // Invoke Transaction
+                    //
+
+                    out("Invoking chain code to move 200 from Jane to John.");
+
+                    return chain.sendTransaction(successful, orderers).get(20, TimeUnit.SECONDS);
+
+
+                } catch (Exception e) {
+
+                    throw new RuntimeException(e);
+
+                }
+
+
+            }).thenApply(block -> {
+                try {
+                    out("Successfully ordered invoke chain code. BlockClass" + block.getClass());
+
+
+                    ////////////////////////////
+                    // Query Proposal
+                    //
+
+
+                    out("Now query chain code for the value of John.");
+
+
+                    // InvokeProposalRequest qr = InvokeProposalRequest.newInstance();
+                    QueryProposalRequest queryProposalRequest = client.newQueryProposalRequest();
+
+                    queryProposalRequest.setArgs(new String[]{"query", "John"});
+                    queryProposalRequest.setFcn("invoke");
+                    queryProposalRequest.setChaincodeID(chainCodeID);
+
+
+                    Collection<ProposalResponse> queryProposals = chain.sendQueryProposal(queryProposalRequest, peers);
+
+                    for (ProposalResponse proposalResponse : queryProposals) {
+                        if (!proposalResponse.isVerified() || proposalResponse.getStatus() != ProposalResponse.Status.SUCCESS) {
+                            return new Exception("Failed invoke proposal.  status: " + proposalResponse.getStatus() + ". messages: " + proposalResponse.getMessage());
+
+                        }
+
+                    }
+
+                    out("Successfully received query response.");
+
+                    String payload = queryProposals.iterator().next().getProposalResponse().getResponse().getPayload().toStringUtf8();
+
+                    out("Query payload of John returned %s", payload);
+
+                    Assert.assertEquals(payload, "1200");
+
+                    if (!payload.equals("1200")) {
+                        return new Exception("Expected 1200 for value John but got: " + payload);
+                    }
+
+
+                    return null;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+            }).exceptionally(e -> {
+                System.err.println("Bad status value for proposals transaction: " + e.getMessage());
                 System.exit(8);
+                return null;
+            }).get(40, TimeUnit.SECONDS);
+            out("That's all folks!");
 
-            }
-
-            out("Successfully ordered deployment endorsement.");
-            out("Need to wait for %d seconds", ORDER_WAIT_TIME);
-            Thread.sleep(ORDER_WAIT_TIME * 1000);
-
-            InvokeProposalRequest invokeProposalRequest = client.newInvokeProposalRequest();
-
-            invokeProposalRequest.setChaincodeID(chainCodeID);
-            invokeProposalRequest.setFcn("invoke");
-            invokeProposalRequest.setArgs(new String[]{"move", "Jane", "John", "200"});
-
-            Collection<ProposalResponse> invokePropResp = chain.sendInvokeProposal(invokeProposalRequest, peers);
-
-            successful.clear();
-            failed.clear();
-
-            for (ProposalResponse response : responses) {
-
-                if (response.getStatus() == ProposalResponse.Status.SUCCESS) {
-                    successful.add(response);
-                } else {
-                    failed.add(response);
-                }
-
-            }
-            out("Received %d successful proposal responses.", successful.size());
-
-
-            if (successful.size() < 1) {  //choose this as an arbitrary limit right now.
-
-                if (failed.size() == 0) {
-                    throw new Exception("No endorsers found ");
-
-                }
-                firstDeployProposalResponse = failed.iterator().next();
-
-
-                throw new Exception("Not enough endorsers :" + successful.size() + ".  " + firstDeployProposalResponse.getMessage());
-
-
-            }
-            out("Successfully received invoke proposal response.");
-
-            ////////////////////////////
-            // Invoke Transaction
-            //
-
-            out("Invoking chain code to move 200 from Jane to John.");
-
-            Collection<TransactionResponse> invokeTransactionResponses = chain.sendTransaction(invokePropResp, orderers);
-            TransactionResponse invokeTransactionResponse = invokeTransactionResponses.iterator().next();
-            if (invokeTransactionResponse.getStatus() != TransactionResponse.Status.SUCCESS) {
-
-                System.err.println("Bad status value for invoke " + invokeTransactionResponse.getStatus());
-                System.exit(8);
-
-            }
-
-            out("Successfully ordered invoke chain code.");
-            out("Need to wait for %d seconds", ORDER_WAIT_TIME);
-
-            ////////////////////////////
-            // Query Proposal
-            //
-
-
-            out("Now query chain code for the value of John.");
-            Thread.sleep(ORDER_WAIT_TIME * 1000);
-
-            // InvokeProposalRequest qr = InvokeProposalRequest.newInstance();
-            QueryProposalRequest queryProposalRequest = client.newQueryProposalRequest();
-
-            queryProposalRequest.setArgs(new String[]{"query", "John"});
-            queryProposalRequest.setFcn("invoke");
-            queryProposalRequest.setChaincodeID(chainCodeID);
-
-
-            Collection<ProposalResponse> queryProposals = chain.sendQueryProposal(queryProposalRequest, peers);
-
-
-            for (ProposalResponse proposalResponse : queryProposals) {
-                if (proposalResponse.getStatus() != ProposalResponse.Status.SUCCESS) {
-
-                    throw new Exception("Failed invoke proposal.  status: " + proposalResponse.getStatus() + ". messages: " + proposalResponse.getMessage());
-                }
-
-            }
-
-            out("Successfully received query response.");
-
-            String payload = queryProposals.iterator().next().getPayload().toStringUtf8();
-
-            out("Query payload of John returned %s", payload);
-
-            Assert.assertEquals(payload, "1200");
-
-            if (!payload.equals("1200")) {
-                throw new Exception("Expected 1200 for value John but got: " + payload);
-            }
 
         } catch (Exception e) {
-            out("Caught an excpetion");
+            out("Caught an exception");
             e.printStackTrace();
 
             Assert.fail(e.getMessage());
 
         }
-        out("That's all folks!");
-
 
     }
 
@@ -250,12 +263,22 @@ public class End2endJavaChaincodeIT {
             newChain.addOrderer(orderer);
         }
 
+        for (String eventHub : EVENTHUB_LOCATIONS) {
+            EventHub orderer = client.newEventHub(eventHub);
+            newChain.addEventHub(orderer);
+        }
+
     }
 
 
     static void out(String format, Object... args) {
 
+        System.err.flush();
+        System.out.flush();
+
         System.out.println(String.format(format, (Object[]) args));
+        System.err.flush();
+        System.out.flush();
 
     }
 

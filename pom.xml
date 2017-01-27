@@ -8,7 +8,7 @@
     <name>fabric-java-sdk</name>
     <url>http://maven.apache.org</url>
     <properties>
-        <grpc.version>0.15.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
+        <grpc.version>1.0.3</grpc.version><!-- CURRENT_GRPC_VERSION -->
         <bouncycastle.version>1.55</bouncycastle.version>
         <httpclient.version>4.5.2</httpclient.version>
         <skipITs>true</skipITs>
@@ -191,9 +191,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>2.10.4</version>
-                <configuration>
-                    ...
-                </configuration>
+                <configuration/>
             </plugin>
 
         </plugins>

@@ -17,6 +17,7 @@ package org.hyperledger.fabric.sdk;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.sdk.events.EventHub;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 
 import java.util.HashMap;
@@ -35,9 +36,10 @@ public class HFClient {
 
         }
     }
+
     private static final Log logger = LogFactory.getLog(HFClient.class);
 
-    Map<String,Chain> chains = new HashMap<>();
+    private  final  Map<String, Chain> chains = new HashMap<>();
 
     public User getUserContext() {
         return userContext;
@@ -45,12 +47,12 @@ public class HFClient {
 
     private User userContext;
 
-    private HFClient(){
+    private HFClient() {
 
     }
 
-    public static HFClient createNewInstance(){
-        return  new HFClient();
+    public static HFClient createNewInstance() {
+        return new HFClient();
     }
 
     public Chain newChain(String name) throws InvalidArgumentException {
@@ -72,8 +74,8 @@ public class HFClient {
         return Orderer.createNewInstance(url, null);
     }
 
-    public Chain getChain( String name){
-       return chains.get(name);
+    public Chain getChain(String name) {
+        return chains.get(name);
     }
 
     public DeploymentProposalRequest newDeploymentProposalRequest() {
@@ -81,7 +83,7 @@ public class HFClient {
     }
 
     public InvokeProposalRequest newInvokeProposalRequest() {
-       return InvokeProposalRequest.newInstance();
+        return InvokeProposalRequest.newInstance();
     }
 
     public QueryProposalRequest newQueryProposalRequest() {
@@ -90,5 +92,9 @@ public class HFClient {
 
     public void setUserContext(User userContext) {
         this.userContext = userContext;
+    }
+
+    public EventHub newEventHub(String eventHub) {
+        return EventHub.createNewInstance(eventHub, null);
     }
 }

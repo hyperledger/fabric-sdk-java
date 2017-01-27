@@ -2,65 +2,64 @@ package org.hyperledger.fabric.sdk;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
-import org.hyperledger.fabric.sdk.exception.DeploymentException;
-import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
-import org.hyperledger.fabric.protos.msp.Identities;
+import org.hyperledger.fabric.sdk.exception.DeploymentException;
+import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 
 import javax.xml.bind.DatatypeConverter;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 public class ProposalResponse extends ChainCodeResponse {
 
     private static final Log logger = LogFactory.getLog(ProposalResponse.class);
 
     private FabricProposal.SignedProposal signedProposal;
-    
-    private boolean isVerified = false ;
+
+    private boolean isVerified = false;
 
 
     ProposalResponse(String transactionID, String chainCodeID, int status, String message) {
         super(transactionID, chainCodeID, status, message);
 
     }
-    
+
     public boolean isVerified() {
-    	return this.isVerified;
+        return this.isVerified;
     }
-    
+
     /*
-     * Verifies that a Proposal response is properly signed. 
+     * Verifies that a Proposal response is properly signed.
      * The payload is the concatenation of the response payload byte string and the endorsement
      * The certificate (public key) is gotten from the Endorsement.Endorser.IdBytes field
      * @return true/false depending on result of signature verification
      */
     public boolean verify() {
-    	
-    	if (isVerified()) // check if this proposalResponse was already verified by client code
-    		return isVerified() ;
-    	
-    	ByteString sig = this.endorsement.getSignature() ;
-    	
-    	try {
-			Identities.SerializedIdentity endorser = Identities.SerializedIdentity.parseFrom(this.endorsement.getEndorser()) ;
-			// TODO check chain of trust. Need to handle CA certs somewhere
-			ByteString plainText = this.getPayload().concat(endorsement.getEndorser());
 
-	    	logger.debug("payload bytes in hex: " + DatatypeConverter.printHexBinary(this.getPayload().toByteArray()));
-	    	logger.debug("endorser bytes in hex: " + DatatypeConverter.printHexBinary(this.endorsement.getEndorser().toByteArray()));
-	    	logger.debug("plainText bytes in hex: " + DatatypeConverter.printHexBinary(plainText.toByteArray()));
+        if (isVerified()) // check if this proposalResponse was already verified by client code
+            return isVerified();
 
-			this.isVerified = CryptoPrimitives.verify(plainText.toByteArray(), sig.toByteArray(), endorser.getIdBytes().toByteArray() );
-		} catch (InvalidProtocolBufferException e) {
-			logger.error("verify: Cannot retrieve peer identity from ProposalResponse. Error is: " + e.getMessage());
-			this.isVerified = false ;
-		}
-    	
-    	return this.isVerified ;
+        ByteString sig = this.endorsement.getSignature();
+
+        try {
+            Identities.SerializedIdentity endorser = Identities.SerializedIdentity.parseFrom(this.endorsement.getEndorser());
+            // TODO check chain of trust. Need to handle CA certs somewhere
+            ByteString plainText = this.getPayload().concat(endorsement.getEndorser());
+
+            logger.debug("payload bytes in hex: " + DatatypeConverter.printHexBinary(this.getPayload().toByteArray()));
+            logger.debug("endorser bytes in hex: " + DatatypeConverter.printHexBinary(this.endorsement.getEndorser().toByteArray()));
+            logger.debug("plainText bytes in hex: " + DatatypeConverter.printHexBinary(plainText.toByteArray()));
+
+            this.isVerified = CryptoPrimitives.verify(plainText.toByteArray(), sig.toByteArray(), endorser.getIdBytes().toByteArray());
+        } catch (InvalidProtocolBufferException e) {
+            logger.error("verify: Cannot retrieve peer identity from ProposalResponse. Error is: " + e.getMessage());
+            this.isVerified = false;
+        }
+
+        return this.isVerified;
     } // verify
 
     FabricProposal.Proposal proposal;
@@ -82,13 +81,13 @@ public class ProposalResponse extends ChainCodeResponse {
             this.signedProposal = signedProposal;
             this.proposal = FabricProposal.Proposal.parseFrom(signedProposal.getProposalBytes());
         } catch (InvalidProtocolBufferException e) {
-            throw new DeploymentException("Proposal exception",e);
+            throw new DeploymentException("Proposal exception", e);
 
         }
     }
 
-    private FabricProposalResponse.Endorsement endorsement ;
-        
+    private FabricProposalResponse.Endorsement endorsement;
+
     public void setProposalResponse(FabricProposalResponse.ProposalResponse proposalResponse) {
         this.proposalResponse = proposalResponse;
         this.endorsement = proposalResponse.getEndorsement();
