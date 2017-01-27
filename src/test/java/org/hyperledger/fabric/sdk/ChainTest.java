@@ -44,8 +44,8 @@ public class ChainTest {
 			try {
 				cop = new MemberServicesCOPImpl("http://localhost:8888", null);
 				testChain.setMemberServices(cop);
-				Member member = getEnrolledMember("admin", "adminpw");
-				testChain.newTransactionContext(member);
+				User user = getEnrolledMember("admin", "adminpw");
+				testChain.newTransactionContext(user);
 			} catch(Exception e) {
 				logger.error("Failed to create COP object");
 			}
@@ -128,7 +128,7 @@ public class ChainTest {
     public void testCreateTransactionProposal() throws EnrollmentException {
 	TransactionRequest request = new TransactionRequest();
 	request.setArgs(new ArrayList<>(Arrays.asList("query", "a")));
-	Member admin = getEnrolledMember("admin", "adminpw");
+	User admin = getEnrolledMember("admin", "adminpw");
 
 	Chain myChain = new Chain("mychain");
 	myChain.newTransactionContext(admin);
@@ -165,7 +165,7 @@ public class ChainTest {
 
 	request.setChaincodeLanguage(ChaincodeLanguage.GO_LANG);
 	request.setTxID("txId");
-	Member admin = getEnrolledMember("admin", "adminpw");
+	User admin = getEnrolledMember("admin", "adminpw");
 
 	Chain myChain = new Chain("mychain");
 	myChain.newTransactionContext(admin);
@@ -204,7 +204,7 @@ public class ChainTest {
 
     @Test
     public void testSendProposal() throws EnrollmentException {
-	Member admin = getEnrolledMember("admin", "adminpw");
+	User admin = getEnrolledMember("admin", "adminpw");
 	Chain myChain = new Chain("mychain");
 
 	try {
@@ -240,7 +240,7 @@ public class ChainTest {
 
     @Test
     public void testSendTransaction() throws EnrollmentException, InvalidProtocolBufferException, CryptoException {
-	Member admin = getEnrolledMember("admin", "adminpw");
+	User admin = getEnrolledMember("admin", "adminpw");
 	Chain myChain = new Chain("mychain");
 	ProposalResponse response = ProposalResponse.newBuilder().build();
 	List<ProposalResponse> responses = new ArrayList<ProposalResponse>();
@@ -376,11 +376,11 @@ public class ChainTest {
 		Assert.assertEquals(TransactionResponse.Status.SUCCESS, response.getResponse().getStatus());
 	}*/
 
-	public static Member getEnrolledMember(String user, String secret) throws EnrollmentException {
-		Member member = testChain.getMember("admin");
-		if (!member.isEnrolled()) {
-			member = testChain.enroll(user, secret);
+    public static User getEnrolledMember(String userId, String secret) throws EnrollmentException {
+	User user = testChain.getUser(userId);
+		if (!user.isEnrolled()) {
+	    user = testChain.enroll(userId, secret);
 		}
-		return member;
+		return user;
 	}
 }

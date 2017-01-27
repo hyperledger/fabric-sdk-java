@@ -33,10 +33,10 @@ import org.hyperledger.fabric.sdk.exception.RegistrationException;
 
 import io.netty.util.internal.StringUtil;
 
-public class Member implements Serializable {
+public class User implements Serializable {
 	private static final long serialVersionUID = 8077132186383604355L;
 
-	private static final Log logger = LogFactory.getLog(Member.class);
+	private static final Log logger = LogFactory.getLog(User.class);
 
     private transient Chain chain;
     private String name;
@@ -57,7 +57,7 @@ public class Member implements Serializable {
      * @returns {Member} A member who is neither registered nor enrolled.
      */
 
-    public Member(String name, Chain chain) {
+    public User(String name, Chain chain) {
     	if (chain == null) {
     		throw new IllegalArgumentException("A valid chain must be provided");
     	}
@@ -296,7 +296,7 @@ public class Member implements Serializable {
 			ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
 			try {
 				ObjectInputStream ois = new ObjectInputStream(bis);
-				Member state = (Member)ois.readObject();
+				User state = (User)ois.readObject();
 				if (state != null) {
 					this.name = state.name;
 			        this.roles = state.roles;

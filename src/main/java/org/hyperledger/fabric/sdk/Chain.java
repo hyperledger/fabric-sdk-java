@@ -68,13 +68,13 @@ public class Chain {
 
     // A member cache associated with this chain
     // TODO: Make an LRU to limit size of member cache
-    private Map<String, Member> members = new HashMap<>();
+    private Map<String, User> users = new HashMap<>();
 
     // The number of tcerts to get in each batch
     private int tcertBatchSize = 200;
 
     // The registrar (if any) that registers & enrolls new members/users
-    private Member registrar;
+    private User registrar;
 
     // The member services used for this chain
     private MemberServices memberServices;
@@ -109,11 +109,11 @@ public class Chain {
     /**
      * create new transaction context for this chain
      *
-     * @param member the enrolled member
+     * @param user the enrolled member
      * @return newly created transaction context
      */
-    public TransactionContext newTransactionContext(Member member) {
-	this.transactionContext = new TransactionContext(this, member);
+    public TransactionContext newTransactionContext(User user) {
+	this.transactionContext = new TransactionContext(this, user);
 	return this.transactionContext;
     }
 
@@ -167,7 +167,7 @@ public class Chain {
      * Get the registrar associated with this chain
      * @return The member whose credentials are used to perform registration, or undefined if not set.
      */
-    public Member getRegistrar() {
+    public User getRegistrar() {
         return this.registrar;
     }
 
@@ -175,7 +175,7 @@ public class Chain {
      * Set the registrar
      * @param registrar The member whose credentials are used to perform registration.
      */
-    public void setRegistrar(Member registrar) {
+    public void setRegistrar(User registrar) {
         this.registrar = registrar;
     }
 
@@ -307,28 +307,19 @@ public class Chain {
      * Get the member with a given name
      * @return member
      */
-    public Member getMember(String name) {
+	public User getUser(String name) {
         if (null == keyValStore) throw new RuntimeException("No key value store was found.  You must first call Chain.setKeyValStore");
         if (null == memberServices) throw new RuntimeException("No member services was found.  You must first call Chain.setMemberServices or Chain.setMemberServicesUrl");
 
         // Try to get the member state from the cache
-        Member member = members.get(name);
-        if (null != member) return member;
+        User user = users.get(name);
+        if (null != user) return user;
 
         // Create the member and try to restore it's state from the key value store (if found).
-        member = new Member(name, this);
-        member.restoreState();
-        return member;
+        user = new User(name, this);
+        user.restoreState();
+        return user;
 
-    }
-
-    /**
-     * Get a user.
-     * A user is a specific type of member.
-     * Another type of member is a peer.
-     */
-    Member getUser(String name) {
-        return getMember(name);
     }
 
 
@@ -337,10 +328,10 @@ public class Chain {
      * @param registrationRequest Registration information.
      * @throws RegistrationException if the registration fails
      */
-    public Member register(RegistrationRequest registrationRequest) throws RegistrationException {
-        Member member = getMember(registrationRequest.getEnrollmentID());
-	    member.register(registrationRequest);
-	    return member;
+    public User register(RegistrationRequest registrationRequest) throws RegistrationException {
+        User user = getUser(registrationRequest.getEnrollmentID());
+	    user.register(registrationRequest);
+	    return user;
     }
 
     /**
@@ -350,12 +341,12 @@ public class Chain {
      * @throws EnrollmentException
      */
 
-    public Member enroll(String name, String secret) throws EnrollmentException {
-        Member member = getMember(name);
-        member.enroll(secret);
-        members.put(name, member);
+    public User enroll(String name, String secret) throws EnrollmentException {
+        User user = getUser(name);
+        user.enroll(secret);
+        users.put(name, user);
 
-        return member;
+        return user;
     }
 
     /**
@@ -365,10 +356,10 @@ public class Chain {
      * @throws RegistrationException
      * @throws EnrollmentException
      */
-    public Member registerAndEnroll(RegistrationRequest registrationRequest) throws RegistrationException, EnrollmentException {
-        Member member = getMember(registrationRequest.getEnrollmentID());
-        member.registerAndEnroll(registrationRequest);
-        return member;
+    public User registerAndEnroll(RegistrationRequest registrationRequest) throws RegistrationException, EnrollmentException {
+        User user = getUser(registrationRequest.getEnrollmentID());
+        user.registerAndEnroll(registrationRequest);
+        return user;
     }
 
     private SignedProposal createSignedProposal(Proposal proposal) {

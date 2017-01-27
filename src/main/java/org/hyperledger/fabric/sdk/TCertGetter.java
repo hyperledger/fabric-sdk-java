@@ -23,7 +23,7 @@ import java.util.Stack;
 public class TCertGetter {
 
     private Chain chain;
-    private Member member;
+    private User user;
     private List<String> attrs;
     private String key;
     private MemberServices memberServices;
@@ -39,12 +39,12 @@ public class TCertGetter {
     * @param cfg {string | RegistrationRequest} The member name or registration request.
     * @returns {Member} A member who is neither registered nor enrolled.
     */
-    public TCertGetter(Member member, List<String> attrs, String key) {
-        this.member = member;
+    public TCertGetter(User user, List<String> attrs, String key) {
+        this.user = user;
         this.attrs = attrs;
         this.key = key;
-        this.chain = member.getChain();
-        this.memberServices = member.getMemberServices();
+        this.chain = user.getChain();
+        this.memberServices = user.getMemberServices();
         this.tcerts = new Stack<>();
     }
 

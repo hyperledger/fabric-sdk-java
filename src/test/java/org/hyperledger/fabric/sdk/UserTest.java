@@ -9,7 +9,7 @@ import org.junit.Test;
 import java.net.MalformedURLException;
 import java.security.cert.CertificateException;
 
-public class MemberTest {
+public class UserTest {
 
     Chain testChain = null;
 
@@ -21,7 +21,7 @@ public class MemberTest {
             testChain.setMemberServices(cop);
             testChain.setKeyValStore(new FileKeyValStore(System.getProperty("user.home") + "/test.properties"));
             testChain.addPeer("grpc://localhost:7051", null);
-            Member registrar = testChain.getMember("admin");
+            User registrar = testChain.getUser("admin");
             if (!registrar.isEnrolled()) {
                 registrar = testChain.enroll("admin", "adminpw");
             }
@@ -36,7 +36,7 @@ public class MemberTest {
     @Test
     public void testNoChain() {
     	try {
-    		Member member = new Member("test", null);
+    		User user = new User("test", null);
     		Assert.fail("Should have failed as chain is null");
     	} catch(IllegalArgumentException ex) {}
     }
@@ -59,33 +59,33 @@ public class MemberTest {
 
     //@Test
     public void testIsRegister() {
-        Member member = testChain.getMember("testuser02");
-        Assert.assertFalse(member.isRegistered());
-        RegistrationRequest req = createRegistrationRequest(member.getName(), "bank_a");
+        User user = testChain.getUser("testuser02");
+        Assert.assertFalse(user.isRegistered());
+        RegistrationRequest req = createRegistrationRequest(user.getName(), "bank_a");
         try {
-            member.register(req);
+            user.register(req);
         } catch (RegistrationException e) {
             Assert.fail("Registration of new user failed");
         }
 
-        Assert.assertTrue(member.isRegistered());
+        Assert.assertTrue(user.isRegistered());
 
-        member = testChain.getMember("admin");
-        Assert.assertTrue(member.isRegistered());
+        user = testChain.getUser("admin");
+        Assert.assertTrue(user.isRegistered());
     }
 
     @Test
     public void testEnroll() {
-        Member member = testChain.getMember("testUser2");
+        User user = testChain.getUser("testUser2");
         
         try {
-            member.enroll("user2");
+            user.enroll("user2");
         } catch (EnrollmentException e) {
             Assert.fail("Enrollment failed");
         }
 
         try {
-            member.enroll(member.getEnrollmentSecret());
+            user.enroll(user.getEnrollmentSecret());
             Assert.fail("Re-enrollment of a user should fail");
         } catch (EnrollmentException e) {
         }
@@ -93,19 +93,19 @@ public class MemberTest {
 
     @Test
     public void testIsEnrolled() {
-        Member member = testChain.getMember("testUser3");
-        Assert.assertFalse(member.isEnrolled());
+        User user = testChain.getUser("testUser3");
+        Assert.assertFalse(user.isEnrolled());
         
         try {
-            member.enroll("user3");
+            user.enroll("user3");
         } catch (EnrollmentException e) {
             Assert.fail("Enrollment failed");
         }
 
-        Assert.assertTrue(member.isEnrolled());
+        Assert.assertTrue(user.isEnrolled());
 
-        member = testChain.getMember("admin");
-        Assert.assertTrue(member.isEnrolled());
+        user = testChain.getUser("admin");
+        Assert.assertTrue(user.isEnrolled());
     }
 
     private RegistrationRequest createRegistrationRequest(String enrollmentId, String affiliationId) {

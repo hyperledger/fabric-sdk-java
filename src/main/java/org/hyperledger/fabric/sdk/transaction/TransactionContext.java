@@ -20,7 +20,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.sdk.Chain;
-import org.hyperledger.fabric.sdk.Member;
+import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.MemberServices;
 import org.hyperledger.fabric.sdk.TCert;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;;
@@ -31,7 +31,7 @@ import org.hyperledger.fabric.sdk.helper.SDKUtil;;
  */
 public class TransactionContext  {
 	private static final Log logger = LogFactory.getLog(TransactionContext.class);
-    private Member member;
+    private User user;
     private Chain chain;
     private MemberServices memberServices;
     private String nonce;
@@ -40,15 +40,15 @@ public class TransactionContext  {
     private String ecert;
 
 
-    public TransactionContext (Chain chain, Member member) {
+    public TransactionContext (Chain chain, User user) {
         super();
-        if (member == null || !member.isEnrolled()) {
+        if (user == null || !user.isEnrolled()) {
 			throw new IllegalArgumentException("Member must be enrolled before creating a transaction context");
         }
-        this.member = member;
+        this.user = user;
         this.chain = chain;
         this.memberServices = this.chain.getMemberServices();
-        this.ecert = member.getEnrollment().getCert();
+        this.ecert = user.getEnrollment().getCert();
         this.nonce = SDKUtil.generateUUID();
     }
 
@@ -64,8 +64,8 @@ public class TransactionContext  {
      * Get the member with which this transaction context is associated.
      * @returns The member
      */
-    public Member getMember() {
-        return this.member;
+    public User getMember() {
+        return this.user;
     }
 
     /**
@@ -234,7 +234,7 @@ public class TransactionContext  {
             return this.tcert;
         }
         logger.debug("No TCert cached. Retrieving one.");
-        return this.member.getNextTCert(this.attrs);
+        return this.user.getNextTCert(this.attrs);
     }
 
 

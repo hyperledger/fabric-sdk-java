@@ -180,7 +180,7 @@ public class MemberServicesCOPImpl implements MemberServices {
      * @param req       Registration request with the following fields: name, role
      * @param registrar The identity of the registrar (i.e. who is performing the registration)
      */
-    public String register(RegistrationRequest req, Member registrar) throws RegistrationException {
+    public String register(RegistrationRequest req, User registrar) throws RegistrationException {
 
         //TODO fix once enroll is done.
         throw new RegistrationException("TODO", new IllegalArgumentException("Not yet implemented."));
