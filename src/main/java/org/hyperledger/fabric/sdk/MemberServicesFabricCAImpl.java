@@ -66,10 +66,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * MemberServicesCOPImpl is the default implementation of a member services client.
+ * MemberServicesFabricCAImpl is the default implementation of a member services client.
  */
-public class MemberServicesCOPImpl implements MemberServices {
-    private static final Log logger = LogFactory.getLog(MemberServicesCOPImpl.class);
+public class MemberServicesFabricCAImpl implements MemberServices {
+    private static final Log logger = LogFactory.getLog(MemberServicesFabricCAImpl.class);
     private static final String COP_BASEPATH = "/api/v1/cfssl/";
     private static final String COP_ENROLLMENBASE = COP_BASEPATH + "enroll";
     private static final int DEFAULT_SECURITY_LEVEL = 256;  //TODO make configurable //Right now by default FAB services is using
@@ -89,38 +89,38 @@ public class MemberServicesCOPImpl implements MemberServices {
     private CryptoPrimitives cryptoPrimitives;
 
     /**
-     * MemberServicesCOPImpl constructor
+     * MemberServicesFabricCAImpl constructor
      *
      * @param url URL for the membership services endpoint
      * @param pem  PEM used for SSL .. not implemented.
      * @throws CertificateException
      */
-    public MemberServicesCOPImpl(String url, String pem) throws CertificateException, MalformedURLException {
+    public MemberServicesFabricCAImpl(String url, String pem) throws CertificateException, MalformedURLException {
         this.url = url;
 
         URL purl = new URL(url);
         final String proto = purl.getProtocol();
         if(!"http".equals(proto) && !"https".equals(proto)){
-            throw new IllegalArgumentException("MemberServicesCOPImpl only supports http or https not "+ proto);
+            throw new IllegalArgumentException("MemberServicesFabricCAImpl only supports http or https not "+ proto);
         }
         final String host = purl.getHost();
 
         if(StringUtil.isNullOrEmpty(host)){
-            throw new IllegalArgumentException("MemberServicesCOPImpl url needs host");
+            throw new IllegalArgumentException("MemberServicesFabricCAImpl url needs host");
         }
 
         final String  path = purl.getPath();
 
         if(!StringUtil.isNullOrEmpty(path)){
 
-            throw new IllegalArgumentException("MemberServicesCOPImpl url does not support path portion in url remove path: '" +path +"'." );
+            throw new IllegalArgumentException("MemberServicesFabricCAImpl url does not support path portion in url remove path: '" +path +"'." );
         }
 
         final String query =purl.getQuery();
 
         if(!StringUtil.isNullOrEmpty(query)){
 
-            throw new IllegalArgumentException("MemberServicesCOPImpl url does not support query portion in url remove query: '" +query +"'." );
+            throw new IllegalArgumentException("MemberServicesFabricCAImpl url does not support query portion in url remove query: '" +query +"'." );
         }
 
 /*
@@ -238,7 +238,7 @@ public class MemberServicesCOPImpl implements MemberServices {
     public Enrollment enroll(EnrollmentRequest req) throws EnrollmentException {
 
 
-        logger.debug(String.format("[MemberServicesCOPImpl.enroll] [%s]", req));
+        logger.debug(String.format("[MemberServicesFabricCAImpl.enroll] [%s]", req));
         if(req == null){
             throw new RuntimeException("req is not set");
         }
@@ -252,12 +252,12 @@ public class MemberServicesCOPImpl implements MemberServices {
         }
 
 
-        logger.debug("[MemberServicesCOPImpl.enroll] Generating keys...");
+        logger.debug("[MemberServicesFabricCAImpl.enroll] Generating keys...");
 
         try {
             // generate ECDSA keys: signing and encryption keys
             KeyPair signingKeyPair = cryptoPrimitives.ecdsaKeyGen();
-            logger.debug("[MemberServicesCOPImpl.enroll] Generating keys...done!");
+            logger.debug("[MemberServicesFabricCAImpl.enroll] Generating keys...done!");
             //  KeyPair encryptionKeyPair = cryptoPrimitives.ecdsaKeyGen();
 
             PKCS10CertificationRequest csr = cryptoPrimitives.generateCertificationRequest(user, signingKeyPair);
@@ -277,7 +277,7 @@ public class MemberServicesCOPImpl implements MemberServices {
             String str = stringWriter.toString();
 
 
-            logger.debug("[MemberServicesCOPImpl.enroll] Generating keys...done!");
+            logger.debug("[MemberServicesFabricCAImpl.enroll] Generating keys...done!");
 
 
             String responseBody = httpPost(url + COP_ENROLLMENBASE, str,
@@ -289,7 +289,7 @@ public class MemberServicesCOPImpl implements MemberServices {
             JsonObject jsonst = (JsonObject) reader.read();
             String result = jsonst.getString("result");
             boolean success = jsonst.getBoolean("success");
-            logger.debug(String.format("[MemberServicesCOPImpl] enroll success:[%s], result:[%s]", success, result));
+            logger.debug(String.format("[MemberServicesFabricCAImpl] enroll success:[%s], result:[%s]", success, result));
 
             if (!success) {
                 EnrollmentException e = new EnrollmentException("COP Failed response success is false. " + result, new Exception());
@@ -299,7 +299,7 @@ public class MemberServicesCOPImpl implements MemberServices {
 
             Base64.Decoder b64dec = Base64.getDecoder();
             String signedPem = new String(b64dec.decode(result.getBytes()));
-            logger.info(String.format("[MemberServicesCOPImpl] enroll returned pem:[%s]", signedPem));
+            logger.info(String.format("[MemberServicesFabricCAImpl] enroll returned pem:[%s]", signedPem));
 
             Enrollment enrollment = new Enrollment();
             enrollment.setKey(signingKeyPair);
@@ -445,15 +445,5 @@ public class MemberServicesCOPImpl implements MemberServices {
         return mask;
     }
 
-
-    public static void main(String[] args) throws Exception {
-
-        MemberServicesCOPImpl ms = new MemberServicesCOPImpl("http://localhost:8888", null);
-        EnrollmentRequest req = new EnrollmentRequest();
-        req.setEnrollmentID("admin");
-        req.setEnrollmentSecret("adminpw");
-        ms.enroll(req);
-
-    }
 }
 

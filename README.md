@@ -29,10 +29,12 @@ To run the End-to-End tests, please use <code>mvn failsafe:integration-test -Dsk
 Hyperledger Fabric v1.0 is currently under active development and the very latest Hyperledger Fabric builds may not work with this sdk.
 You should use the following commit levels of the Hyperledger projects:
 
- | project        | Commit level                               |
- |----------------|:------------------------------------------:|
- | fabric         | 230f3ccf6659fbe193fbb86ee09b83f0a54ef98b   |
- | fabric-ca     | aa5fb82838298138e917c7cc24bae794561c4a18   |
+| Project        | Commit level                               | Date        |
+|:---------------|:------------------------------------------:|------------:|
+| fabric         | 5d9e4ede298ab646ac918dc5b034c7d319dd1d9a   | Jan 30 2017 |
+| fabric-ca      | bf8fb4d5e497217cd6125025830aa6870de442aa   | Jan 27 2017 |
+ 
+ 
  
  You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
  
@@ -45,7 +47,7 @@ You should use the following commit levels of the Hyperledger projects:
 ```
   config.vm.network :forwarded_port, guest: 7050, host: 7050 # orderer service
   config.vm.network :forwarded_port, guest: 7051, host: 7051 # Openchain gRPC services
-  config.vm.network :forwarded_port, guest: 8888, host: 8888 # Membership service/COP
+  config.vm.network :forwarded_port, guest: 7054, host: 7054 # Membership service/Fabric CA
   config.vm.network :forwarded_port, guest: 7053, host: 7053 # GRPCCient gRPC services
   config.vm.network :forwarded_port, guest: 5984, host: 15984 # CouchDB service
 ```

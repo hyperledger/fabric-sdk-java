@@ -625,7 +625,7 @@ public class Handler {
 		}
 	}
 
-	public Chaincode.RangeQueryStateResponse handleRangeQueryState(String startKey, String endKey, String uuid) {
+	public Chaincode.QueryStateResponse handleRangeQueryState(String startKey, String endKey, String uuid) {
 		// Create the channel on which to communicate the response from validating peer
 		Channel<Chaincode.ChaincodeMessage> responseChannel;
 		try {
@@ -672,9 +672,9 @@ public class Handler {
 				logger.debug(String.format("[%s]Received %s. Successfully got range",
 						shortID(response.getTxid()), RESPONSE));
 
-				Chaincode.RangeQueryStateResponse rangeQueryResponse;
+				Chaincode.QueryStateResponse rangeQueryResponse;
 				try {
-					rangeQueryResponse = Chaincode.RangeQueryStateResponse.parseFrom(response.getPayload());
+					rangeQueryResponse = Chaincode.QueryStateResponse.parseFrom(response.getPayload());
 				} catch (Exception e) {
 					logger.error(String.format("[%s]unmarshall error", shortID(response.getTxid())));
 					throw new RuntimeException("Error unmarshalling RangeQueryStateResponse.");

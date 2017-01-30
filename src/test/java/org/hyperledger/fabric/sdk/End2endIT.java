@@ -18,7 +18,7 @@ public class End2endIT {
     static final String CHAIN_CODE_NAME = "example_cc.go";
     static final String CHAIN_CODE_PATH = "github.com/example_cc";
 
-    static final String CHAIN_NAME = "test_chainid";
+    static final String CHAIN_NAME = "testchainid";
 
     final static Collection<String> PEER_LOCATIONS = Arrays.asList("grpc://localhost:7051");
 
@@ -27,7 +27,7 @@ public class End2endIT {
 
     final static Collection<String> EVENTHUB_LOCATIONS = Arrays.asList("grpc://localhost:7053"); //Vagrant maps to this
 
-    final static String MEMBER_SERVICES_LOCATION = "http://localhost:8888";
+    final static String FABRIC_CA_SERVICES_LOCATION = "http://localhost:7054";
 
 
     @Test
@@ -50,7 +50,7 @@ public class End2endIT {
             chain.setInvokeWaitTime(1000);
             chain.setDeployWaitTime(12000);
 
-            chain.setMemberServicesUrl(MEMBER_SERVICES_LOCATION, null);
+            chain.setMemberServicesUrl(FABRIC_CA_SERVICES_LOCATION, null);
 
             File fileStore = new File(System.getProperty("user.home") + "/test.properties");
             if (fileStore.exists()) {
@@ -166,7 +166,7 @@ public class End2endIT {
 
                     out("Invoking chain code to move 100 from a to b.");
 
-                    return chain.sendTransaction(successful, orderers).get(20, TimeUnit.SECONDS);
+                    return chain.sendTransaction(successful, orderers).get(60, TimeUnit.SECONDS);
 
 
                 } catch (Exception e) {
@@ -230,7 +230,7 @@ public class End2endIT {
                 System.err.println("Bad status value for proposals transaction: " + e.getMessage());
                 System.exit(8);
                 return null;
-            }).get(40, TimeUnit.SECONDS);
+            }).get(90, TimeUnit.SECONDS);
             out("That's all folks!");
 
 

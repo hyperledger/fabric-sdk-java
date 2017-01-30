@@ -18,7 +18,7 @@ public class End2endJavaChaincodeIT {
 
     static final String CHAIN_CODE_NAME = "simplesample";
     static final String CHAIN_CODE_PATH = "src/test/fixture/java-chaincode/SimpleSample/root/chaincode";
-    static final String CHAIN_NAME = "test_chainid";
+    static final String CHAIN_NAME = "testchainid";
 
     final static Collection<String> PEER_LOCATIONS = Arrays.asList("grpc://localhost:7051");
 
@@ -27,7 +27,7 @@ public class End2endJavaChaincodeIT {
 
     final static Collection<String> EVENTHUB_LOCATIONS = Arrays.asList("grpc://localhost:7053"); //Vagrant maps to this
 
-    final static String MEMBER_SERVICES_LOCATION = "http://localhost:8888";
+    final static String FABRIC_CA_SERVICES_LOCATION = "http://localhost:7054";
 
 
     @Test
@@ -51,7 +51,7 @@ public class End2endJavaChaincodeIT {
             chain.setInvokeWaitTime(1000);
             chain.setDeployWaitTime(12000);
 
-            chain.setMemberServicesUrl(MEMBER_SERVICES_LOCATION, null);
+            chain.setMemberServicesUrl(FABRIC_CA_SERVICES_LOCATION, null);
 
             File fileStore = new File(System.getProperty("user.home") + "/test.properties");
             if (fileStore.exists()) {

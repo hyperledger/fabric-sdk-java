@@ -68,6 +68,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.lang.String.format;
 import static org.hyperledger.fabric.protos.common.Configuration.ConfigurationSignature;
 import static org.hyperledger.fabric.protos.common.Configuration.Policy;
 import static org.hyperledger.fabric.protos.common.Configuration.SignaturePolicy;
@@ -272,7 +273,7 @@ public class Chain {
      * @throws CertificateException
      */
     public void setMemberServicesUrl(String url, String pem) throws CertificateException, MalformedURLException {
-        this.setMemberServices(new MemberServicesCOPImpl(url, pem));
+        this.setMemberServices(new MemberServicesFabricCAImpl(url, pem));
     }
 
     /**
@@ -292,8 +293,8 @@ public class Chain {
      */
     public void setMemberServices(MemberServices memberServices) {
         this.memberServices = memberServices;
-        if (memberServices instanceof MemberServicesCOPImpl) {
-            this.cryptoPrimitives = ((MemberServicesCOPImpl) memberServices).getCrypto();
+        if (memberServices instanceof MemberServicesFabricCAImpl) {
+            this.cryptoPrimitives = ((MemberServicesFabricCAImpl) memberServices).getCrypto();
         }
     }
 
@@ -794,8 +795,6 @@ public class Chain {
 
         CompletableFuture<Envelope> sret = registerTxListener(proposalTransactionID);
 
-
-
         boolean success = false;
         for (Orderer orderer : orderers) {//TODO need to make async.
 
@@ -812,10 +811,11 @@ public class Chain {
         }
 
         if (success) {
+            logger.debug(format("Successful sent to Orderer transaction id: %s", proposalTransactionID));
             return sret;
         } else {
             CompletableFuture<Envelope> ret = new CompletableFuture<>();
-            ret.completeExceptionally(new Exception("Failed to place transactions on Orderer"));
+            ret.completeExceptionally(new Exception(format("Failed to place transaction %s on Orderer", proposalTransactionID )));
             return ret;
         }
 

@@ -193,7 +193,6 @@
                 <version>2.10.4</version>
                 <configuration/>
             </plugin>
-
         </plugins>
     </build>
 </project>

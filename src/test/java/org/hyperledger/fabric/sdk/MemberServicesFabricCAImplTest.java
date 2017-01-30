@@ -5,16 +5,16 @@ import org.junit.Test;
 
 import java.net.MalformedURLException;
 
-public class MemberServicesCOPImplTest {
+public class MemberServicesFabricCAImplTest {
 
 
     @Test
     public void testCOPCreation() {
 
         try {
-            MemberServicesCOPImpl cop = new MemberServicesCOPImpl("http://localhost:99", null);
-            Assert.assertNotNull(cop);
-            Assert.assertSame(MemberServicesCOPImpl.class, cop.getClass());
+            MemberServicesFabricCAImpl memberServices = new MemberServicesFabricCAImpl("http://localhost:99", null);
+            Assert.assertNotNull(memberServices);
+            Assert.assertSame(MemberServicesFabricCAImpl.class, memberServices.getClass());
 
 
         } catch (Exception e) {
@@ -25,7 +25,7 @@ public class MemberServicesCOPImplTest {
     public void testNullURL() {
 
         try {
-             new MemberServicesCOPImpl(null, null);
+             new MemberServicesFabricCAImpl(null, null);
             Assert.fail("Expected exception");
 
         } catch (Exception e) {
@@ -37,7 +37,7 @@ public class MemberServicesCOPImplTest {
     public void emptyURL() {
 
         try {
-            new MemberServicesCOPImpl("", null);
+            new MemberServicesFabricCAImpl("", null);
             Assert.fail("Expected exception");
 
         } catch (Exception e) {
@@ -50,7 +50,7 @@ public class MemberServicesCOPImplTest {
     public void testBadProto() {
 
         try {
-            new MemberServicesCOPImpl("file://localhost", null);
+            new MemberServicesFabricCAImpl("file://localhost", null);
             Assert.fail("Expected exception");
 
         } catch (Exception e) {
@@ -63,7 +63,7 @@ public class MemberServicesCOPImplTest {
     public void testBadURLPath() {
 
         try {
-            new MemberServicesCOPImpl("http://localhost/bad", null);
+            new MemberServicesFabricCAImpl("http://localhost/bad", null);
             Assert.fail("Expected exception");
 
         } catch (Exception e) {
@@ -76,7 +76,7 @@ public class MemberServicesCOPImplTest {
     public void testBadURLQuery() {
 
         try {
-            new MemberServicesCOPImpl("http://localhost?bad", null);
+            new MemberServicesFabricCAImpl("http://localhost?bad", null);
             Assert.fail("Expected exception");
 
         } catch (Exception e) {
@@ -90,8 +90,8 @@ public class MemberServicesCOPImplTest {
     public void testBadEnrollUser() {
 
         try {
-            MemberServicesCOPImpl cop = new MemberServicesCOPImpl("http://localhost:99", null);
-            cop.enroll(null);
+            MemberServicesFabricCAImpl memberServices = new MemberServicesFabricCAImpl("http://localhost:99", null);
+            memberServices.enroll(null);
             Assert.fail("Expected exception");
 
         } catch (Exception e) {
@@ -104,11 +104,11 @@ public class MemberServicesCOPImplTest {
     public void testBadEnrollBadUser() {
 
         try {
-            MemberServicesCOPImpl cop = new MemberServicesCOPImpl("http://localhost:99", null);
+            MemberServicesFabricCAImpl memberServices = new MemberServicesFabricCAImpl("http://localhost:99", null);
             EnrollmentRequest req = new EnrollmentRequest();
             req.setEnrollmentID("");
             req.setEnrollmentSecret("adminpw");
-            cop.enroll(null);
+            memberServices.enroll(null);
             Assert.fail("Expected exception");
 
         } catch (Exception e) {
@@ -121,11 +121,11 @@ public class MemberServicesCOPImplTest {
     public void testBadEnrollBadSecret() {
 
         try {
-            MemberServicesCOPImpl cop = new MemberServicesCOPImpl("http://localhost:99", null);
+            MemberServicesFabricCAImpl memberServices = new MemberServicesFabricCAImpl("http://localhost:99", null);
             EnrollmentRequest req = new EnrollmentRequest();
             req.setEnrollmentID("user");
             req.setEnrollmentSecret("");
-            cop.enroll(null);
+            memberServices.enroll(null);
             Assert.fail("Expected exception");
 
         } catch (Exception e) {
