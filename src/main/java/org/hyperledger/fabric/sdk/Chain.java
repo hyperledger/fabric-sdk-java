@@ -631,7 +631,7 @@ public class Chain {
             proposalResponse.setProposalResponse(fabricResponse);
             proposalResponse.setProposal(signedProposal);
 
-            proposalResponse.verify();
+            proposalResponse.verify(cryptoPrimitives);
 
             proposalResponses.add(proposalResponse);
 
@@ -728,7 +728,7 @@ public class Chain {
             proposalResponse.setProposalResponse(fabricResponse);
             proposalResponse.setProposal(invokeProposal);
 
-            proposalResponse.verify();
+            proposalResponse.verify(cryptoPrimitives);
 
             proposalResponses.add(proposalResponse);
 

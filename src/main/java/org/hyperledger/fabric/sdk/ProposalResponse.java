@@ -1,7 +1,7 @@
 package org.hyperledger.fabric.sdk;
 
-import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
+import javax.xml.bind.DatatypeConverter;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.msp.Identities;
@@ -11,7 +11,8 @@ import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 import org.hyperledger.fabric.sdk.exception.DeploymentException;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 
-import javax.xml.bind.DatatypeConverter;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 public class ProposalResponse extends ChainCodeResponse {
 
@@ -20,7 +21,6 @@ public class ProposalResponse extends ChainCodeResponse {
     private FabricProposal.SignedProposal signedProposal;
 
     private boolean isVerified = false;
-
 
     ProposalResponse(String transactionID, String chainCodeID, int status, String message) {
         super(transactionID, chainCodeID, status, message);
@@ -32,28 +32,37 @@ public class ProposalResponse extends ChainCodeResponse {
     }
 
     /*
-     * Verifies that a Proposal response is properly signed.
-     * The payload is the concatenation of the response payload byte string and the endorsement
-     * The certificate (public key) is gotten from the Endorsement.Endorser.IdBytes field
+     * Verifies that a Proposal response is properly signed. The payload is the
+     * concatenation of the response payload byte string and the endorsement The
+     * certificate (public key) is gotten from the Endorsement.Endorser.IdBytes
+     * field
+     * 
+     * @param crypto the CryptoPrimitives instance to be used for signing and
+     * verification
+     * 
      * @return true/false depending on result of signature verification
      */
-    public boolean verify() {
+    public boolean verify(CryptoPrimitives crypto) {
 
-        if (isVerified()) // check if this proposalResponse was already verified by client code
+        if (isVerified()) // check if this proposalResponse was already verified
+            // by client code
             return isVerified();
 
         ByteString sig = this.endorsement.getSignature();
 
         try {
-            Identities.SerializedIdentity endorser = Identities.SerializedIdentity.parseFrom(this.endorsement.getEndorser());
+            Identities.SerializedIdentity endorser = Identities.SerializedIdentity
+                            .parseFrom(this.endorsement.getEndorser());
             // TODO check chain of trust. Need to handle CA certs somewhere
             ByteString plainText = this.getPayload().concat(endorsement.getEndorser());
 
             logger.debug("payload bytes in hex: " + DatatypeConverter.printHexBinary(this.getPayload().toByteArray()));
-            logger.debug("endorser bytes in hex: " + DatatypeConverter.printHexBinary(this.endorsement.getEndorser().toByteArray()));
+            logger.debug("endorser bytes in hex: "
+                            + DatatypeConverter.printHexBinary(this.endorsement.getEndorser().toByteArray()));
             logger.debug("plainText bytes in hex: " + DatatypeConverter.printHexBinary(plainText.toByteArray()));
 
-            this.isVerified = CryptoPrimitives.verify(plainText.toByteArray(), sig.toByteArray(), endorser.getIdBytes().toByteArray());
+            this.isVerified = crypto.verify(plainText.toByteArray(), sig.toByteArray(),
+                            endorser.getIdBytes().toByteArray());
         } catch (InvalidProtocolBufferException e) {
             logger.error("verify: Cannot retrieve peer identity from ProposalResponse. Error is: " + e.getMessage());
             this.isVerified = false;
@@ -73,7 +82,6 @@ public class ProposalResponse extends ChainCodeResponse {
     }
 
     FabricProposalResponse.ProposalResponse proposalResponse;
-
 
     public void setProposal(FabricProposal.SignedProposal signedProposal) {
 
@@ -103,21 +111,23 @@ public class ProposalResponse extends ChainCodeResponse {
         return proposalResponse.getPayload();
     }
 
-//    public ByteString getPayload2(){
-//        ByteString x = proposalResponse.getPayload();
-//        return proposalResponse.getPayload();
-//    }
+    // public ByteString getPayload2(){
+    // ByteString x = proposalResponse.getPayload();
+    // return proposalResponse.getPayload();
+    // }
 
     public ChainCodeID getChainCodeID() {
 
-        Chaincode.ChaincodeID chaincodeID = null; //TODO NEED to clean up
+        Chaincode.ChaincodeID chaincodeID = null; // TODO NEED to clean up
         try {
-            FabricProposal.ChaincodeProposalPayload ppl = FabricProposal.ChaincodeProposalPayload.parseFrom(proposal.getPayload());
+            FabricProposal.ChaincodeProposalPayload ppl = FabricProposal.ChaincodeProposalPayload
+                            .parseFrom(proposal.getPayload());
             Chaincode.ChaincodeInvocationSpec ccis = Chaincode.ChaincodeInvocationSpec.parseFrom(ppl.getInput());
             Chaincode.ChaincodeSpec scs = ccis.getChaincodeSpec();
             Chaincode.ChaincodeInput cci = scs.getInput();
             ByteString deps = cci.getArgs(2);
-            Chaincode.ChaincodeDeploymentSpec chaincodeDeploymentSpec = Chaincode.ChaincodeDeploymentSpec.parseFrom(deps.toByteArray());
+            Chaincode.ChaincodeDeploymentSpec chaincodeDeploymentSpec = Chaincode.ChaincodeDeploymentSpec
+                            .parseFrom(deps.toByteArray());
             chaincodeID = chaincodeDeploymentSpec.getChaincodeSpec().getChaincodeID();
         } catch (InvalidProtocolBufferException e) {
             e.printStackTrace();
@@ -125,6 +135,5 @@ public class ProposalResponse extends ChainCodeResponse {
 
         return new ChainCodeID(chaincodeID);
     }
-
 
 }
