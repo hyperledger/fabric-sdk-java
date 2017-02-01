@@ -21,4 +21,7 @@ public class InvalidArgumentException extends BaseException {
     public InvalidArgumentException(String message, Exception parent) {
         super(message, parent);
     }
+    public InvalidArgumentException(String message) {
+        super(message);
+    }
 }

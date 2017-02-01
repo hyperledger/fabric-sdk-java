@@ -16,7 +16,7 @@ limitations under the License.
 
 package org.hyperledger.fabric.sdk.shim;
 
-import org.hyperledger.protos.Chaincode.ChaincodeMessage;
+import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeMessage;
 
 public class NextStateInfo {
 

@@ -15,9 +15,10 @@
 package org.hyperledger.fabric.sdk;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
- * A base transaction request common for DeployRequest, InvokeRequest, and QueryRequest.
+ * A base transaction request common for DeploymentProposalRequest, InvokeRequest, and QueryRequest.
  */
 public class TransactionRequest {
     // The local path containing the chaincode to deploy in network mode.
@@ -25,7 +26,7 @@ public class TransactionRequest {
     // The name identifier for the chaincode to deploy in development mode.
     private String chaincodeName;
 	// The chaincode ID as provided by the 'submitted' event emitted by a TransactionContext
-    private String chaincodeID;
+    private ChainCodeID chaincodeID;
     // The name of the function to invoke
     private String fcn;
     // The arguments to pass to the chaincode invocation
@@ -37,37 +38,49 @@ public class TransactionRequest {
     // Optionally provide additional metadata
     private byte[] metadata;
     // Chaincode language
-    private ChaincodeLanguage chaincodeLanguage = ChaincodeLanguage.GO_LANG;
+    private Type chaincodeLanguage = Type.GO_LANG;
+
 
 	public String getChaincodePath() {
 		return null == chaincodePath ? "" : chaincodePath;
 	}
-	public void setChaincodePath(String chaincodePath) {
+	public TransactionRequest setChaincodePath(String chaincodePath) {
+
 		this.chaincodePath = chaincodePath;
+		return this;
 	}
 	public String getChaincodeName() {
 		return chaincodeName;
 	}
-	public void setChaincodeName(String chaincodeName) {
+	public TransactionRequest setChaincodeName(String chaincodeName) {
 		this.chaincodeName = chaincodeName;
+		return this;
 	}
-	public String getChaincodeID() {
+	public ChainCodeID getChaincodeID() {
 		return chaincodeID;
 	}
-	public void setChaincodeID(String chaincodeID) {
+	public void setChaincodeID(ChainCodeID chaincodeID) {
 		this.chaincodeID = chaincodeID;
 	}
 	public String getFcn() {
 		return fcn;
 	}
-	public void setFcn(String fcn) {
+	public TransactionRequest setFcn(String fcn) {
 		this.fcn = fcn;
+		return this;
 	}
 	public ArrayList<String> getArgs() {
 		return args;
 	}
-	public void setArgs(ArrayList<String> args) {
+
+	public TransactionRequest setArgs(String[] args) {
+
+		this.args = new ArrayList( Arrays.asList( args ) );
+		return this;
+	}
+	public TransactionRequest setArgs(ArrayList<String> args) {
 		this.args = args;
+		return this;
 	}
 	public boolean isConfidential() {
 		return confidential;
@@ -87,10 +100,25 @@ public class TransactionRequest {
 	public void setMetadata(byte[] metadata) {
 		this.metadata = metadata;
 	}
-	public ChaincodeLanguage getChaincodeLanguage() {
+
+
+    //Mirror Fabric try not expose and of it's classes
+	public enum Type{
+		JAVA,
+		GO_LANG
+	}
+
+	public Type getChaincodeLanguage() {
 		return chaincodeLanguage;
 	}
-	public void setChaincodeLanguage(ChaincodeLanguage chaincodeLanguage) {
+
+	/**
+	 * The chain code language type: default type Type.GO_LANG
+	 * @param chaincodeLanguage . Type.Java Type.GO_LANG
+	 */
+	public void setChaincodeLanguage(Type chaincodeLanguage) {
 		this.chaincodeLanguage = chaincodeLanguage;
 	}
+
+
 }

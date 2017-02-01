@@ -14,21 +14,15 @@
 
 package org.hyperledger.fabric.sdk;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.hyperledger.fabric.sdk.exception.GetTCertBatchException;
-
 import java.util.List;
 import java.util.Stack;
 
 // A class to get TCerts.
-// There is one class per set of attributes requested by each member.
+// There is one class per set of attributes requested by each user.
 public class TCertGetter {
 
-    private static final Log logger = LogFactory.getLog(TCertGetter.class);
-
     private Chain chain;
-    private Member member;
+    private User user;
     private List<String> attrs;
     private String key;
     private MemberServices memberServices;
@@ -40,16 +34,16 @@ public class TCertGetter {
     private boolean gettingTCerts = false;
 
     /**
-    * Constructor for a member.
-    * @param cfg {string | RegistrationRequest} The member name or registration request.
-    * @returns {Member} A member who is neither registered nor enrolled.
+    * Constructor for a user.
+    * @param cfg {string | RegistrationRequest} The user name or registration request.
+    * @returns {User} A user who is neither registered nor enrolled.
     */
-    public TCertGetter(Member member, List<String> attrs, String key) {
-        this.member = member;
+    public TCertGetter(User user, List<String> attrs, String key) {
+        this.user = user;
         this.attrs = attrs;
         this.key = key;
-        this.chain = member.getChain();
-        this.memberServices = member.getMemberServices();
+        this.chain = user.getChain();
+        this.memberServices = user.getMemberServices();
         this.tcerts = new Stack<>();
     }
 
@@ -59,7 +53,7 @@ public class TCertGetter {
     */
     public Chain getChain() {
         return this.chain;
-    };
+    }
 
     public void getUserCert() {
         this.getNextTCert();
@@ -67,25 +61,27 @@ public class TCertGetter {
 
     /**
     * Get the next available transaction certificate.
+    * @param cb
     */
     public TCert getNextTCert() {
 
 //TODO    	self.arrivalRate.tick();
+        return tcerts.size() > 0 ? tcerts.pop() : null;
 
-        if (shouldGetTCerts()) {
-            getTCerts();
-        }
-
-        if (tcerts.size() > 0) {
-            return tcerts.pop();
+        //TODO implement the commented logic
+            /*
         } else {
-            return null;
+            self.getTCertWaiters.push(cb);
         }
+        if (self.shouldGetTCerts()) {
+            self.getTCerts();
+        }
+        */
     }
 
     // Determine if we should issue a request to get more tcerts now.
     private boolean shouldGetTCerts() {
-        return tcerts.size() == 0;        //TODO implement shouldGetTCerts
+    	return false;        //TODO implement shouldGetTCerts
 
 
     	/*
@@ -125,18 +121,39 @@ public class TCertGetter {
         */
     }
 
-    // Call member services to get more tcerts
+    // Call user services to get more tcerts
     private void getTCerts() {
-        GetTCertBatchRequest req = new GetTCertBatchRequest(this.member.getName(), this.member.getEnrollment(),
-                this.member.getTCertBatchSize(), attrs);
-        try {
-            List<TCert> tcerts = this.memberServices.getTCertBatch(req);
-            // Add to member's tcert list
-            for (TCert tcert : tcerts) {
-                this.tcerts.push(tcert);
+    	//TODO implement getTCerts
+    	/*
+    	let self = this;
+        let req = {
+            name: self.user.getName(),
+            enrollment: self.user.getEnrollment(),
+            num: self.user.getTCertBatchSize(),
+            attrs: self.attrs
+        };
+        self.getTCertResponseTime.start();
+        self.memberServices.getTCertBatch(req, function (err, tcerts) {
+            if (err) {
+                self.getTCertResponseTime.cancel();
+                // Error all waiters
+                while (self.getTCertWaiters.length > 0) {
+                    self.getTCertWaiters.shift()(err);
+                }
+                return;
             }
-        } catch (GetTCertBatchException e) {
-            // ignore the exception for now
-        }
+            self.getTCertResponseTime.stop();
+            // Add to user's tcert list
+            while (tcerts.length > 0) {
+                self.tcerts.push(tcerts.shift());
+            }
+            // Allow waiters to proceed
+            while (self.getTCertWaiters.length > 0 && self.tcerts.length > 0) {
+                let waiter = self.getTCertWaiters.shift();
+                waiter(null,self.tcerts.shift());
+            }
+        });
+        */
     }
+
 } // end TCertGetter

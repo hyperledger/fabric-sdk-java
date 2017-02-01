@@ -21,4 +21,8 @@ public class InvalidTransactionException extends BaseException{
     public InvalidTransactionException(String message, Exception parent) {
         super(message, parent);
     }
+
+    public InvalidTransactionException(String message) {
+        super(message);
+    }
 }

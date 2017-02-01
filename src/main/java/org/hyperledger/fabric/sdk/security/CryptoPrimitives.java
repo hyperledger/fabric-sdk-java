@@ -14,18 +14,32 @@
 
 package org.hyperledger.fabric.sdk.security;
 
+import java.util.ArrayList;
+import java.io.*;
+import java.math.BigInteger;
+import java.security.*;
+import java.security.cert.*;
+import java.security.cert.Certificate;
+import java.security.interfaces.*;
+import java.security.spec.*;
+import javax.security.auth.x500.X500Principal;
+import javax.xml.bind.DatatypeConverter;
+
 import io.netty.util.internal.StringUtil;
-import org.bouncycastle.asn1.ASN1Encodable;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.DERSequenceGenerator;
-import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.asn1.nist.NISTNamedCurves;
 import org.bouncycastle.asn1.sec.SECNamedCurves;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
-import org.bouncycastle.crypto.digests.SHA384Digest;
 import org.bouncycastle.crypto.digests.SHA3Digest;
 import org.bouncycastle.crypto.digests.SHA512Digest;
+import org.bouncycastle.crypto.digests.SHAKEDigest;
 import org.bouncycastle.crypto.generators.HKDFBytesGenerator;
 import org.bouncycastle.crypto.macs.HMac;
 import org.bouncycastle.crypto.params.ECDomainParameters;
@@ -34,237 +48,210 @@ import org.bouncycastle.crypto.params.HKDFParameters;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.signers.ECDSASigner;
 import org.bouncycastle.crypto.signers.HMacDSAKCalculator;
-import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
-import org.bouncycastle.jce.spec.ECNamedCurveSpec;
 import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.jce.spec.ECPublicKeySpec;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.encoders.Hex;
 import org.bouncycastle.util.io.pem.PemObject;
-import org.bouncycastle.util.io.pem.PemReader;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
 
-import javax.crypto.*;
-import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyAgreement;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.math.BigInteger;
-import java.security.*;
-import java.security.interfaces.ECPrivateKey;
-import java.security.spec.ECGenParameterSpec;
-import java.security.spec.EncodedKeySpec;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
+
 
 public class CryptoPrimitives {
+    private static final Config config = Config.getConfig();
 
-	private String hashAlgorithm;
-	private int securityLevel;
-	private String curveName;
-	private static final String SECURITY_PROVIDER = BouncyCastleProvider.PROVIDER_NAME;
-	private static final String ASYMMETRIC_KEY_TYPE = "EC";
-	private static final String KEY_AGREEMENT_ALGORITHM = "ECDH";
-	private static final String SYMMETRIC_KEY_TYPE = "AES";
-	private static final int SYMMETRIC_KEY_BYTE_COUNT = 32;
-    private static final String AES_CFB_NO_PADDING_ALGORITHM = "AES/CFB/NoPadding";
-    private static final String AES_CBC_PKCS7PADDING_ALGORITHM = "AES/CBC/PKCS7Padding";
-    private static final String AES_GCM_NO_PADDING_ALGORITHM = "AES/GCM/NoPadding";
+    private String hashAlgorithm = config.getDefaultHashAlgorithm();
+    private int securityLevel = config.getDefaultSecurityLevel();
+    private String curveName;
+    private static final String SECURITY_PROVIDER = BouncyCastleProvider.PROVIDER_NAME;
+    private static final String ASYMMETRIC_KEY_TYPE = "EC";
+    private static final String KEY_AGREEMENT_ALGORITHM = "ECDH";
+    private static final String SYMMETRIC_KEY_TYPE = "AES";
+    private static final int SYMMETRIC_KEY_BYTE_COUNT = 32;
+    private static final String SYMMETRIC_ALGORITHM = "AES/CFB/NoPadding";
     private static final int MAC_KEY_BYTE_COUNT = 32;
-    private static final int NONCE_SIZE = 24;
-    private static final int BLOCK_SIZE = 16;
-    private static final int SECURITY_LEVEL_256 = 256;
-    private static final int SECURITY_LEVEL_384 = 384;
-    private static final int AES_GCM_IV_BYTE_COUNT = 12;
-    private static final int AES_GCM_TAG_BYTE_COUNT = 16;
-    private static final SecureRandom random = new SecureRandom();
+    
+    private static final String CERTIFICATE_FORMAT = "X.509" ;
+    private static final String SIGNATURE_ALGORITHM = "SHA256withECDSA" ; // TODO configure via .properties or genesis block
+    
+    private static final Log logger = LogFactory.getLog(CryptoPrimitives.class);
+    
+    public CryptoPrimitives(String hashAlgorithm, int securityLevel) {
+        this.hashAlgorithm = hashAlgorithm;
+        this.securityLevel = securityLevel;
+        Security.addProvider(new BouncyCastleProvider());
+        init();
+    }
+    
+    /**
+     * Verify a signature 
+     * @param plainText original text.
+     * @param signature signature generated from plainText
+     * @param pemCertificate the X509 certificate to be used for verification
+     * @return
+     */
+    public static boolean verify(byte[] plainText, byte[] signature, byte[] pemCertificate) {
+    	boolean isVerified = false ;
+    	
+    	if (plainText == null || signature == null || pemCertificate == null )
+    		return false;
+    	
+    	logger.debug("plaintext in hex: " + DatatypeConverter.printHexBinary(plainText));
+    	logger.debug("signature in hex: " + DatatypeConverter.printHexBinary(signature));
+    	logger.debug("PEM cert in hex: " + DatatypeConverter.printHexBinary(pemCertificate));
+    	
+     	try {
+    		BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(pemCertificate));
+    		CertificateFactory certFactory = CertificateFactory.getInstance(CERTIFICATE_FORMAT) ;
+    		X509Certificate certificate = (X509Certificate) certFactory.generateCertificate(pem);
+    		Signature sig = Signature.getInstance(SIGNATURE_ALGORITHM) ;
+    		sig.initVerify(certificate);
+    		sig.update(plainText);
+    		isVerified = sig.verify(signature);
+    	} catch (InvalidKeyException | CertificateException e) {
+    		logger.error("Cannot verify. Invalid Certificate. Error is: " + 
+    	                    e.getMessage() +
+    	                    "\r\nCertificate (PEM, hex): " + DatatypeConverter.printHexBinary(pemCertificate));
+    	} catch (NoSuchAlgorithmException e) {
+    		logger.error("Cannot verify. Signature algorithm is invalid. Error is: " + e.getMessage());
+    	} catch (SignatureException e) {
+    		logger.error("Cannot verify. Error is: " + e.getMessage());;
+    	}
 
-	public CryptoPrimitives(String hashAlgorithm, int securityLevel) {
-		this.hashAlgorithm = hashAlgorithm;
-		this.securityLevel = securityLevel;
-		Security.addProvider(new BouncyCastleProvider());
-		init();
-	}
+		return isVerified;
+    } // verify
+ 
+    // TODO refactor TrustStore, CertFactory depending on whether we want to make CryptoPrimitives static 
+    private static KeyStore trustStore ;
+    
+    public static void setTrustStore(KeyStore keyStore) {
+    	CryptoPrimitives.trustStore = keyStore ;
+    }
+    
+    public static KeyStore getTrustStore() {
+    	return CryptoPrimitives.trustStore ;
+    }
+    
+    public static boolean validateCertificate(byte[] certPEM) {
+    	
+    	if (certPEM == null) 
+    		return false;
+    	
+    	try {
+    		BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(certPEM));
+    		CertificateFactory certFactory = CertificateFactory.getInstance(CERTIFICATE_FORMAT) ;
+    		X509Certificate certificate = (X509Certificate) certFactory.generateCertificate(pem);
+    		return CryptoPrimitives.validateCertificate(certificate);
+    		} catch (CertificateException e) {
+        		logger.error("Cannot validate certificate. Error is: " + 
+	                    e.getMessage() +
+	                    "\r\nCertificate (PEM, hex): " + DatatypeConverter.printHexBinary(certPEM));
+        		return false ;
+		}
+    }
+    
+    public static boolean validateCertificate(Certificate cert) {
+    	boolean isValidated = false ;
+    	
+    	if (cert == null) 
+    		return isValidated;
+    	
+    	try {
+    		PKIXParameters parms = new PKIXParameters(CryptoPrimitives.getTrustStore()) ;
+    		parms.setRevocationEnabled(false);
 
-	public int getSecurityLevel() {
-		return securityLevel;
-	}
+    		CertPathValidator certValidator = CertPathValidator.getInstance(CertPathValidator.getDefaultType()); // PKIX
 
-	public void setSecurityLevel(int securityLevel) {
-		this.securityLevel = securityLevel;
-	}
+    		ArrayList<Certificate> start = new ArrayList<Certificate>(); start.add(cert);
+    		CertificateFactory certFactory = CertificateFactory.getInstance(CERTIFICATE_FORMAT) ;
+    		CertPath certPath = certFactory.generateCertPath(start) ;
 
-	public String getHashAlgorithm() {
-		return this.hashAlgorithm;
-	}
+    		certValidator.validate(certPath, parms);
+    		isValidated = true ; // if cert not validated, CertPathValidatorException thrown
+    		
+    	} catch (KeyStoreException | InvalidAlgorithmParameterException | NoSuchAlgorithmException
+    			| CertificateException | CertPathValidatorException e) {
+    		logger.error("Cannot validate certificate. Error is: " + 
+                    e.getMessage() +
+                    "\r\nCertificate" + cert.toString());
+    		isValidated = false ;
+    	}
+    	
+    	return isValidated;
+    } // validateCertificate
 
-	public void setHashAlgorithm(String algorithm) {
-		this.hashAlgorithm = algorithm;
-	}
-
-    public byte[] generateNonce() {
-        byte[] tmp = new byte[NONCE_SIZE];
-        random.nextBytes(tmp);
-        return tmp;
+    public int getSecurityLevel() {
+        return securityLevel;
     }
 
-    public byte[] aesKeyGen() {
-        byte[] tmp = new byte[SYMMETRIC_KEY_BYTE_COUNT];
-        random.nextBytes(tmp);
-        return tmp;
+    public void setSecurityLevel(int securityLevel) {
+        this.securityLevel = securityLevel;
     }
 
-    public byte[] generateIV() {
-        byte[] tmp = new byte[BLOCK_SIZE];
-        random.nextBytes(tmp);
-        return tmp;
+    public String getHashAlgorithm() {
+        return this.hashAlgorithm;
     }
 
-	public KeyPair ecdsaKeyGen() throws CryptoException {
-		return generateKey("ECDSA", this.curveName);
-	}
+    public void setHashAlgorithm(String algorithm) {
+        this.hashAlgorithm = algorithm;
+    }
 
-    public KeyPair eciesKeyGen() throws CryptoException {
+    public KeyPair ecdsaKeyGen() throws CryptoException {
         return generateKey("ECDSA", this.curveName);
     }
 
-	private KeyPair generateKey(String encryptionName, String curveName) throws CryptoException {
-		try {
-			ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(curveName);
-			KeyPairGenerator g = KeyPairGenerator.getInstance(encryptionName, SECURITY_PROVIDER);
-			g.initialize(ecGenSpec, new SecureRandom());
-			KeyPair pair = g.generateKeyPair();
-			return pair;
-		} catch (Exception exp) {
-			throw new CryptoException("Unable to generate key pair", exp);
-		}
-	}
-
-	public byte[] eciesDecrypt(KeyPair keyPair, byte[] data) throws CryptoException {
-		try {
-			int ek_len = (int) (Math.floor((this.securityLevel + 7) / 8) * 2 + 1);
-	        int mk_len = this.securityLevel >> 3;
-	        int em_len = data.length - ek_len - mk_len;
-
-			byte[] ephemeralPublicKeyBytes = Arrays.copyOfRange(data, 0, ek_len);
-			byte[] encryptedMessage = Arrays.copyOfRange(data, ek_len, ek_len+em_len);
-			byte[] tag = Arrays.copyOfRange(data, ek_len+em_len, data.length);
-
-			// Parsing public key.
-			ECParameterSpec asymmetricKeyParams = generateECParameterSpec();
-			KeyFactory asymmetricKeyFactory = KeyFactory.getInstance(ASYMMETRIC_KEY_TYPE, SECURITY_PROVIDER);
-
-			PublicKey ephemeralPublicKey = asymmetricKeyFactory.generatePublic(new ECPublicKeySpec(
-					asymmetricKeyParams.getCurve().decodePoint(ephemeralPublicKeyBytes), asymmetricKeyParams));
-
-			// Deriving shared secret.
-			KeyAgreement keyAgreement = KeyAgreement.getInstance(KEY_AGREEMENT_ALGORITHM, SECURITY_PROVIDER);
-			keyAgreement.init(keyPair.getPrivate());
-			keyAgreement.doPhase(ephemeralPublicKey, true);
-			byte[] sharedSecret = keyAgreement.generateSecret();
-
-			// Deriving encryption and mac keys.
-			HKDFBytesGenerator hkdfBytesGenerator = new HKDFBytesGenerator(getHashDigest());
-
-			hkdfBytesGenerator.init(new HKDFParameters(sharedSecret, null, null));
-			byte[] encryptionKey = new byte[SYMMETRIC_KEY_BYTE_COUNT];
-			hkdfBytesGenerator.generateBytes(encryptionKey, 0, SYMMETRIC_KEY_BYTE_COUNT);
-
-			byte[] macKey = new byte[MAC_KEY_BYTE_COUNT];
-			hkdfBytesGenerator.generateBytes(macKey, 0, MAC_KEY_BYTE_COUNT);
-
-			// Verifying Message Authentication Code (aka mac/tag)
-			byte[] expectedTag = calculateMac(macKey, encryptedMessage);
-			if (!Arrays.areEqual(tag, expectedTag)) {
-				throw new RuntimeException("Bad Message Authentication Code!");
-			}
-
-			// Decrypting the message.
-			byte[] iv = Arrays.copyOfRange(encryptedMessage, 0, 16);
-			byte[] encrypted = Arrays.copyOfRange(encryptedMessage, 16, encryptedMessage.length);
-			byte[] output = aesDecrypt(encryptionKey, iv, encrypted);
-
-			return output;
-
-		} catch (Exception e) {
-			throw new CryptoException("Could not decrypt the message", e);
-		}
-
-	}
-
-    public byte[] calculateMac(byte[] macKey, byte[] encryptedMessage) throws CryptoException {
+    private KeyPair generateKey(String encryptionName, String curveName) throws CryptoException {
         try {
-            HMac hmac = new HMac(getHashDigest());
-            hmac.init(new KeyParameter(macKey));
-            hmac.update(encryptedMessage, 0, encryptedMessage.length);
-            byte[] out = new byte[MAC_KEY_BYTE_COUNT];
-            hmac.doFinal(out, 0);
-            return out;
-        } catch (Exception e) {
-            throw new CryptoException("calculate hmac failed", e);
+            ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(curveName);
+            KeyPairGenerator g = KeyPairGenerator.getInstance(encryptionName, SECURITY_PROVIDER);
+            g.initialize(ecGenSpec, new SecureRandom());
+            KeyPair pair = g.generateKeyPair();
+            return pair;
+        } catch (Exception exp) {
+            throw new CryptoException("Unable to generate key pair", exp);
         }
     }
 
-	private byte[] aesDecrypt(byte[] encryptionKey, byte[] iv, byte[] encryptedMessage)
-			throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
-			InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
-
-		Cipher cipher = Cipher.getInstance(AES_CFB_NO_PADDING_ALGORITHM);
-		cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(encryptionKey, SYMMETRIC_KEY_TYPE), new IvParameterSpec(iv));
-		return cipher.doFinal(encryptedMessage);
-
-	}
-
-    private byte[] aesEncrypt(byte[] encryptionKey, byte[] iv, byte[] message)
-            throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
-            InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
-
-        Cipher cipher = Cipher.getInstance(AES_CFB_NO_PADDING_ALGORITHM);
-        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(encryptionKey, SYMMETRIC_KEY_TYPE), new IvParameterSpec(iv));
-        return cipher.doFinal(message);
-    }
-
-	private ECNamedCurveParameterSpec generateECParameterSpec() {
-		ECNamedCurveParameterSpec bcParams = ECNamedCurveTable.getParameterSpec(this.curveName);
-		return bcParams;
-	}
-
-	public BigInteger[] ecdsaSign(PrivateKey privateKey, byte[] data) throws CryptoException {
-		try {
-			byte[] encoded = SDKUtil.hash(data, getHashDigest());
-			X9ECParameters params = SECNamedCurves.getByName(this.curveName);
-			ECDomainParameters ecParams = new ECDomainParameters(params.getCurve(), params.getG(), params.getN(),
-					params.getH());
-
-			ECDSASigner signer = new ECDSASigner(new HMacDSAKCalculator(new SHA512Digest()));
-			ECPrivateKeyParameters privKey = new ECPrivateKeyParameters(((ECPrivateKey) privateKey).getS(), ecParams);
-			signer.init(true, privKey);
-			return signer.generateSignature(encoded);
-		} catch (Exception e) {
-			throw new CryptoException("Could not sign the message using private key", e);
-		}
-	}
-
-    public byte[] eciesEncryptECDSA(PublicKey publicKey, byte[] data) throws CryptoException {
-        return eciesEncrypt(publicKey, data);
-    }
-
-    public byte[] eciesEncrypt(PublicKey publicKey, byte[] data) throws CryptoException {
+    public byte[] eciesDecrypt(KeyPair keyPair, byte[] data) throws CryptoException {
         try {
-            KeyPair keyPair = ecdsaKeyGen();
+            int ek_len = (int) (Math.floor((this.securityLevel + 7) / 8) * 2 + 1);
+            int mk_len = this.securityLevel >> 3;
+            int em_len = data.length - ek_len - mk_len;
+
+            byte[] ephemeralPublicKeyBytes = Arrays.copyOfRange(data, 0, ek_len);
+            byte[] encryptedMessage = Arrays.copyOfRange(data, ek_len, ek_len + em_len);
+            byte[] tag = Arrays.copyOfRange(data, ek_len + em_len, data.length);
+
+            // Parsing public key.
+            ECParameterSpec asymmetricKeyParams = generateECParameterSpec();
+            KeyFactory asymmetricKeyFactory = KeyFactory.getInstance(ASYMMETRIC_KEY_TYPE, SECURITY_PROVIDER);
+
+            PublicKey ephemeralPublicKey = asymmetricKeyFactory.generatePublic(new ECPublicKeySpec(
+                    asymmetricKeyParams.getCurve().decodePoint(ephemeralPublicKeyBytes), asymmetricKeyParams));
 
             // Deriving shared secret.
             KeyAgreement keyAgreement = KeyAgreement.getInstance(KEY_AGREEMENT_ALGORITHM, SECURITY_PROVIDER);
             keyAgreement.init(keyPair.getPrivate());
-            keyAgreement.doPhase(publicKey, true);
+            keyAgreement.doPhase(ephemeralPublicKey, true);
             byte[] sharedSecret = keyAgreement.generateSecret();
 
             // Deriving encryption and mac keys.
@@ -277,137 +264,274 @@ public class CryptoPrimitives {
             byte[] macKey = new byte[MAC_KEY_BYTE_COUNT];
             hkdfBytesGenerator.generateBytes(macKey, 0, MAC_KEY_BYTE_COUNT);
 
-            byte[] iv = generateIV();
-            byte[] encryptedMessage = aesEncrypt(encryptionKey, iv, data);
+            // Verifying Message Authentication Code (aka mac/tag)
+            byte[] expectedTag = calculateMac(macKey, encryptedMessage);
+            if (!Arrays.areEqual(tag, expectedTag)) {
+                throw new RuntimeException("Bad Message Authentication Code!");
+            }
 
-            encryptedMessage = Arrays.concatenate(iv, encryptedMessage);
+            // Decrypting the message.
+            byte[] iv = Arrays.copyOfRange(encryptedMessage, 0, 16);
+            byte[] encrypted = Arrays.copyOfRange(encryptedMessage, 16, encryptedMessage.length);
+            byte[] output = aesDecrypt(encryptionKey, iv, encrypted);
 
-            byte[] tag = calculateMac(macKey, encryptedMessage);
+            return output;
 
-            byte[] Rb = ((BCECPublicKey) keyPair.getPublic()).engineGetQ().getEncoded(false);
-            byte[] ciphertext = new byte[Rb.length + encryptedMessage.length + tag.length];
-
-            System.arraycopy(Rb, 0, ciphertext, 0, Rb.length);
-            System.arraycopy(encryptedMessage, 0, ciphertext, Rb.length, encryptedMessage.length);
-            System.arraycopy(tag, 0, ciphertext, Rb.length + encryptedMessage.length, tag.length);
-
-            return ciphertext;
         } catch (Exception e) {
-            throw new CryptoException("Could not encrypt the message", e);
+            throw new CryptoException("Could not decrypt the message", e);
         }
+
     }
 
-    public byte[] toDER(byte[][] sigs) throws IOException {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        DERSequenceGenerator seq = new DERSequenceGenerator(os);
-        seq.addObject(new ASN1Integer(sigs[0]));
-        seq.addObject(new ASN1Integer(sigs[1]));
-        seq.close();
-        return os.toByteArray();
+    private byte[] calculateMac(byte[] macKey, byte[] encryptedMessage)
+            throws InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException {
+        HMac hmac = new HMac(getHashDigest());
+        hmac.init(new KeyParameter(macKey));
+        hmac.update(encryptedMessage, 0, encryptedMessage.length);
+        byte[] out = new byte[MAC_KEY_BYTE_COUNT];
+        hmac.doFinal(out, 0);
+        return out;
     }
+
+    private byte[] aesDecrypt(byte[] encryptionKey, byte[] iv, byte[] encryptedMessage)
+            throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
+            InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
+
+        Cipher cipher = Cipher.getInstance(SYMMETRIC_ALGORITHM);
+        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(encryptionKey, SYMMETRIC_KEY_TYPE), new IvParameterSpec(iv));
+        return cipher.doFinal(encryptedMessage);
+
+    }
+
+    private ECNamedCurveParameterSpec generateECParameterSpec() {
+        ECNamedCurveParameterSpec bcParams = ECNamedCurveTable.getParameterSpec(this.curveName);
+        return bcParams;
+    }
+
+    public byte[][] ecdsaSign(PrivateKey privateKey, byte[] data) throws CryptoException {
+        try {
+            byte[] encoded = SDKUtil.hash(data, getHashDigest());
+            X9ECParameters params = SECNamedCurves.getByName(this.curveName);
+            ECDomainParameters ecParams = new ECDomainParameters(params.getCurve(), params.getG(), params.getN(),
+                    params.getH());
+
+            ECDSASigner signer = new ECDSASigner(new HMacDSAKCalculator(new SHA512Digest()));
+            ECPrivateKeyParameters privKey = new ECPrivateKeyParameters(((ECPrivateKey) privateKey).getS(), ecParams);
+            signer.init(true, privKey);
+            BigInteger[] sigs = signer.generateSignature(encoded);
+            return new byte[][]{sigs[0].toString().getBytes(), sigs[1].toString().getBytes()};
+        } catch (Exception e) {
+            throw new CryptoException("Could not sign the message using private key", e);
+        }
+
+    }
+
+    /**
+     * ecdsaSignToBytes - sign to bytes
+     *
+     * @param privateKey private key.
+     * @param data       data to sign
+     * @return
+     * @throws CryptoException
+     */
+
+    public byte[] ecdsaSignToBytes(PrivateKey privateKey, byte[] data) throws CryptoException {
+        try {
+            byte[] encoded = data;
+            encoded = SDKUtil.hash(data, getHashDigest());
+
+//            char[] hexenncoded = Hex.encodeHex(encoded);
+//            encoded = new String(hexenncoded).getBytes();
+
+            X9ECParameters params = NISTNamedCurves.getByName(this.curveName);
+            BigInteger curve_N = params.getN();
+
+            ECDomainParameters ecParams = new ECDomainParameters(params.getCurve(), params.getG(), curve_N,
+                    params.getH());
+
+
+            ECDSASigner signer = new ECDSASigner();
+
+            ECPrivateKeyParameters privKey = new ECPrivateKeyParameters(((ECPrivateKey) privateKey).getS(), ecParams);
+            signer.init(true, privKey);
+            BigInteger[] sigs = signer.generateSignature(encoded);
+
+            sigs = preventMalleability(sigs, curve_N);
+
+
+            ByteArrayOutputStream s = new ByteArrayOutputStream();
+
+            DERSequenceGenerator seq = new DERSequenceGenerator(s);
+            seq.addObject(new ASN1Integer(sigs[0]));
+            seq.addObject(new ASN1Integer(sigs[1]));
+            seq.close();
+            byte[] ret = s.toByteArray();
+            return ret;
+
+
+        } catch (Exception e) {
+            throw new CryptoException("Could not sign the message using private key", e);
+        }
+
+    }
+    
+    public static byte[] sign(PrivateKey key, byte[] data) throws CryptoException {
+    	byte[] signature ;
+    	
+    	if (key == null || data == null)
+    		throw new CryptoException("Could not sign. Key or plain text is null", new NullPointerException());
+    	
+    	try {
+			Signature sig = Signature.getInstance(SIGNATURE_ALGORITHM);
+			sig.initSign(key);
+			sig.update(data);
+			signature = sig.sign();
+			
+			// TODO see if BouncyCastle handles sig malleability already under the covers
+			
+			return signature ;
+		} catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+            throw new CryptoException("Could not sign the message.", e);
+		} 
+    	
+    } // sign
+
+    private BigInteger[] preventMalleability(BigInteger[] sigs, BigInteger curve_n) {
+        BigInteger cmpVal = curve_n.divide(BigInteger.valueOf(2l));
+
+        BigInteger sval = sigs[1];
+
+        if(sval.compareTo(cmpVal) == 1){
+
+          sigs[1] = curve_n.subtract(sval);
+        }
+
+
+        return sigs;
+    }
+
+
+
+    /**
+     * generateCertificationRequest
+     *
+     * @param subject The subject to be added to the certificate
+     * @param pair    Public private key pair
+     * @return PKCS10CertificationRequest Certificate Signing Request.
+     * @throws OperatorCreationException
+     */
+
+    public PKCS10CertificationRequest generateCertificationRequest(String subject, KeyPair pair) throws OperatorCreationException {
+
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
+                new X500Principal("CN=" + subject), pair.getPublic());
+
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withECDSA");
+
+        //    csBuilder.setProvider("EC");
+        ContentSigner signer = csBuilder.build(pair.getPrivate());
+
+        return p10Builder.build(signer);
+    }
+
+    /**
+     * certificationRequestToPEM - Convert a PKCS10CertificationRequest to PEM format.
+     *
+     * @param csr The Certificate to convert
+     * @return An equivalent PEM format certificate.
+     * @throws IOException
+     */
+
+    public String certificationRequestToPEM(PKCS10CertificationRequest csr) throws IOException {
+        PemObject pemCSR = new PemObject("CERTIFICATE REQUEST", csr.getEncoded());
+
+        StringWriter str = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(str);
+        pemWriter.writeObject(pemCSR);
+        pemWriter.close();
+        str.close();
+        return str.toString();
+    }
+
 
     public PrivateKey ecdsaKeyFromPrivate(byte[] key) throws CryptoException {
-		try {
-			EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(key);
-			KeyFactory generator = KeyFactory.getInstance("ECDSA", SECURITY_PROVIDER);
-			PrivateKey privateKey = generator.generatePrivate(privateKeySpec);
-
-			return privateKey;
-		} catch (Exception exp) {
-			throw new CryptoException("Unable to convert byte[] into PrivateKey", exp);
-		}
-	}
-
-    public PrivateKey ecdsaKeyFromBigInt(BigInteger s) throws CryptoException {
-        X9ECParameters ecCurve = SECNamedCurves.getByName(curveName);
-        java.security.spec.ECParameterSpec ecParameterSpec = new ECNamedCurveSpec(curveName,
-                ecCurve.getCurve(), ecCurve.getG(), ecCurve.getN(), ecCurve.getH(), ecCurve.getSeed());
-        java.security.spec.ECPrivateKeySpec privateKeySpec = new java.security.spec.ECPrivateKeySpec(s, ecParameterSpec);
         try {
-            KeyFactory keyFactory = KeyFactory.getInstance("ECDSA");
-            return keyFactory.generatePrivate(privateKeySpec);
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            throw new CryptoException("Unable to convert bigint to PrivateKey", e);
+            EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(key);
+            KeyFactory generator = KeyFactory.getInstance("ECDSA", SECURITY_PROVIDER);
+            PrivateKey privateKey = generator.generatePrivate(privateKeySpec);
+
+            return privateKey;
+        } catch (Exception exp) {
+            throw new CryptoException("Unable to convert byte[] into PrivateKey", exp);
         }
     }
 
-    public ASN1Encodable ecdsaPrivateKeyToASN1(PrivateKey privKey) throws IOException {
-        PrivateKeyInfo privateKeyInfo = PrivateKeyInfo.getInstance(privKey.getEncoded());
-        return privateKeyInfo.parsePrivateKey();
+    public byte[] hash(byte[] input) {
+        Digest digest = getHashDigest();
+        byte[] retValue = new byte[digest.getDigestSize()];
+        digest.update(input, 0, input.length);
+        digest.doFinal(retValue, 0);
+        return retValue;
     }
 
-	private void init() {
-		if (securityLevel != SECURITY_LEVEL_256 && securityLevel != SECURITY_LEVEL_384) {
-			throw new RuntimeException("Illegal level: " + securityLevel + " must be either 256 or 384");
-		}
-		if (StringUtil.isNullOrEmpty(this.hashAlgorithm)
-				|| !(this.hashAlgorithm.equalsIgnoreCase("SHA2") || this.hashAlgorithm.equalsIgnoreCase("SHA3"))) {
-			throw new RuntimeException(
-					"Illegal Hash function family: " + this.hashAlgorithm + " - must be either SHA2 or SHA3");
-		}
+    private void init() {
+        if (securityLevel != 256 && securityLevel != 384) {
+            throw new RuntimeException("Illegal level: " + securityLevel + " must be either 256 or 384");
+        }
+        if (StringUtil.isNullOrEmpty(this.hashAlgorithm)
+                || !(this.hashAlgorithm.equalsIgnoreCase("SHA2") || this.hashAlgorithm.equalsIgnoreCase("SHA3"))) {
+            throw new RuntimeException(
+                    "Illegal Hash function family: " + this.hashAlgorithm + " - must be either SHA2 or SHA3");
+        }
 
-		// this.suite = this.algorithm.toLowerCase() + '-' + this.securityLevel;
-		if (this.securityLevel == SECURITY_LEVEL_256) {
-			this.curveName = "secp256r1";
-			//TODO: HashOutputSize=32 ?
-		} else if (this.securityLevel == SECURITY_LEVEL_384) {
-			this.curveName = "secp384r1";
-			//TODO: HashOutputSize=48 ?
-		}
-	}
+        // this.suite = this.algorithm.toLowerCase() + '-' + this.securityLevel;
+        if (this.securityLevel == 256) {
+            this.curveName = "P-256"; //Curve that is currently used by FAB services.
+            //TODO: HashOutputSize=32 ?
+        } else if (this.securityLevel == 384) {
+            this.curveName = "secp384r1";
+            //TODO: HashOutputSize=48 ?
+        }
+    }
 
     private Digest getHashDigest() {
         if (this.hashAlgorithm.equalsIgnoreCase("SHA3")) {
-            return new SHA3Digest(this.securityLevel);
+            return new SHA3Digest();
         } else if (this.hashAlgorithm.equalsIgnoreCase("SHA2")) {
-            if (securityLevel == SECURITY_LEVEL_256) {
-                return new SHA256Digest();
-            } else if (securityLevel == SECURITY_LEVEL_384) {
-                return new SHA384Digest();
-            }
+            return new SHA256Digest();
         }
 
         return new SHA256Digest(); // default Digest?
     }
 
-    public byte[] aesCBCPKCS7Decrypt(byte[] key, byte[] bytes) throws InvalidAlgorithmParameterException, InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException {
-        byte[] iv = Arrays.copyOfRange(bytes, 0, BLOCK_SIZE);
+    /**
+     * shake256 do shake256 hashing
+     *
+     * @param in        byte array to be hashed.
+     * @param bitLength of the result.
+     * @return
+     */
+    public byte[] shake256(byte[] in, int bitLength) {
 
-        Cipher cipher = Cipher.getInstance(AES_CBC_PKCS7PADDING_ALGORITHM);
-        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, SYMMETRIC_KEY_TYPE), new IvParameterSpec(iv));
-        return cipher.doFinal(bytes, BLOCK_SIZE, bytes.length - BLOCK_SIZE);
-    }
 
-    public byte[] aes256GCMDecrypt(byte[] key, byte[] bytes) throws CryptoException {
-        try {
-            Cipher cipher = Cipher.getInstance(AES_GCM_NO_PADDING_ALGORITHM);
-            GCMParameterSpec params = new GCMParameterSpec(AES_GCM_TAG_BYTE_COUNT * 8, bytes, 0, AES_GCM_IV_BYTE_COUNT);
-            cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, SYMMETRIC_KEY_TYPE), params);
-            return cipher.doFinal(bytes, AES_GCM_IV_BYTE_COUNT, bytes.length - AES_GCM_IV_BYTE_COUNT);
-        } catch (Exception e) {
-            throw new CryptoException("Unable to decrypt with AES GCM", e);
+        if (bitLength % 8 != 0) {
+            throw new IllegalArgumentException("bit length not modulo 8");
+
         }
+
+        final int byteLen = bitLength / 8;
+
+
+        SHAKEDigest sd = new SHAKEDigest(256);
+
+        sd.update(in, 0, in.length);
+
+        byte[] out = new byte[byteLen];
+
+        sd.doFinal(out, 0, byteLen);
+
+        return out;
+
     }
 
-    public byte[] hmacAESTruncated(byte[] key, byte[] bytes) throws CryptoException {
-        return Arrays.copyOfRange(calculateMac(key, bytes), 0, SYMMETRIC_KEY_BYTE_COUNT);
-    }
-
-    public PublicKey ecdsaPEMToPublicKey(String chainKey) throws CryptoException {
-        try {
-            byte[] pem = Hex.decode(chainKey);
-            PemReader pemReader = new PemReader(new InputStreamReader(new ByteArrayInputStream(pem)));
-            PemObject chainKeyPemObj = pemReader.readPemObject();
-
-            X509EncodedKeySpec spec = new X509EncodedKeySpec(chainKeyPemObj.getContent());
-            KeyFactory kf = KeyFactory.getInstance("ECDSA");
-            return kf.generatePublic(spec);
-        } catch (Exception e) {
-            throw new CryptoException("Unable to parse PublicKey from chainKey", e);
-        }
-    }
-
-    public byte[] hash(byte[] data) {
-		return SDKUtil.hash(data, getHashDigest());
-	}
 }

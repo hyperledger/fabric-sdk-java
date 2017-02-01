@@ -16,8 +16,13 @@ package org.hyperledger.fabric.sdk.exception;
 
 public class DeploymentException extends RuntimeException {
 
-	private static final long serialVersionUID = 1L;
-	public DeploymentException(String message, Exception parent) {
-		super(message, parent);		
-	}
+    private static final long serialVersionUID = 1L;
+
+    public DeploymentException(String message, Exception parent) {
+        super(message, parent);
+    }
+
+    public DeploymentException(String message) {
+        super(message);
+    }
 }

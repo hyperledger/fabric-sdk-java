@@ -28,8 +28,13 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Properties;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import com.google.protobuf.ByteString;
+import io.netty.util.internal.StringUtil;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
@@ -248,5 +253,54 @@ public class SDKUtil {
 		}
 		return data;
 	}
+
+
+	public static Properties parseGrpcUrl(String url) {
+		if (StringUtil.isNullOrEmpty(url)) {
+			throw new RuntimeException("URL cannot be null or empty");
+		}
+
+		Properties props = new Properties();
+		Pattern p = Pattern.compile("([^:]+)[:]//([^:]+)[:]([0-9]+)", Pattern.CASE_INSENSITIVE);
+		Matcher m = p.matcher(url);
+		if (m.matches()) {
+			props.setProperty("protocol", m.group(1));
+			props.setProperty("host", m.group(2));
+			props.setProperty("port", m.group(3));
+		} else {
+			throw new RuntimeException("URL must be of the format protocol://host:port");
+		}
+
+		// TODO: allow all possible formats of the URL
+		return props;
+	}
+
+	/**
+	 * Check if the strings Grpc url is valid
+	 * @param url
+	 * @return Return the exception that indicates the error or null if ok.
+	 */
+	public static Exception checkGrpcUrl(String url) {
+		 try {
+
+			 Properties props = parseGrpcUrl(url);
+			 return null;
+
+		 }catch (Exception e){
+			 return e;
+		 }
+	}
+
+	public static boolean nullOrEmptyString(String url) {
+		return url == null || url.isEmpty();
+	}
+
+
+	public static ByteString getNonce() {
+		//TODO right now the server does not care need to figure out
+		return ByteString.copyFromUtf8(generateUUID());
+
+	}
+
 
 }

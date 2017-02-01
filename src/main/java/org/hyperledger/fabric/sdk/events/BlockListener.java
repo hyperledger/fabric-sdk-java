@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 Wanda Group - All Rights Reserved.
+ *  Copyright 2016 IBM, DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -11,10 +11,19 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
+
 package org.hyperledger.fabric.sdk.events;
 
-import org.hyperledger.protos.Fabric.Block;
+import org.hyperledger.fabric.protos.common.Common.Block;
 
+/**
+ * BlockListener  implemented by classes needing to receive block events.
+ */
 public interface BlockListener {
-    void process(Block block);
+    /**
+     * Receive a block event from  the Chain
+     *
+     * @param block The block being received.
+     */
+    void received(Block block);
 }

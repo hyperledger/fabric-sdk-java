@@ -45,12 +45,12 @@ public class FileKeyValStore implements KeyValStore {
      */
     public String getValue(String name) {
 	    	Properties properties = loadProperties();
-	    	return (String) properties.getProperty(name);
+	    	return properties.getProperty(name);
     }
 
     private Properties loadProperties() {
     	Properties properties = new Properties();
-    	try ( InputStream input = new FileInputStream(file);) {
+    	try ( InputStream input = new FileInputStream(file)) {
 	    	properties.load(input);
 	    	input.close();
     	} catch(FileNotFoundException e) {
@@ -71,8 +71,8 @@ public class FileKeyValStore implements KeyValStore {
     public void setValue(String name, String value) {
     	Properties properties = loadProperties();
     	try (
-    	    	OutputStream output = new FileOutputStream(file);
-        	) {
+    	    	OutputStream output = new FileOutputStream(file)
+        ) {
     	    	properties.setProperty(name, value);
     	    	properties.store(output, "");
     	    	output.close();

@@ -21,7 +21,7 @@ import java.util.ArrayList;
  * type of member.
  */
 public class RegistrationRequest {
-    // The enrollment ID of the member
+    // The enrollment ID of the user
     private String enrollmentID;
     // Roles associated with this member.
     // Fabric roles include: 'client', 'peer', 'validator', 'auditor'
