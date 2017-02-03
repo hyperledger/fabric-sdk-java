@@ -559,7 +559,7 @@ public class Handler {
 		}
 	}
 
-	/*public RangeQueryStateResponse handleRangeQueryState(String startKey, String endKey, String uuid) {
+	 public QueryStateResponse handleRangeQueryState(String startKey, String endKey, String uuid) {
 		// Create the channel on which to communicate the response from validating peer
 		Channel<ChaincodeMessage> responseChannel;
 		try {
@@ -598,9 +598,9 @@ public class Handler {
 				logger.debug(String.format("[%s]Received %s. Successfully got range",
 						shortID(response.getTxid()), RESPONSE));
 
-				RangeQueryStateResponse rangeQueryResponse;
+				 QueryStateResponse rangeQueryResponse;
 				try {
-					rangeQueryResponse = RangeQueryStateResponse.parseFrom(response.getPayload());
+					rangeQueryResponse = QueryStateResponse.parseFrom(response.getPayload());
 				} catch (Exception e) {
 					logger.error(String.format("[%s]unmarshall error", shortID(response.getTxid())));
 					throw new RuntimeException("Error unmarshalling RangeQueryStateResponse.");
@@ -623,7 +623,7 @@ public class Handler {
 		} finally {
 			deleteChannel(uuid);
 		}
-	}*/ //TODO: Satheesh, please uncomment above code
+	}
 
 	public ByteString handleInvokeChaincode(String chaincodeName, String function, List<ByteString> args, String uuid) {
 		ChaincodeID id = ChaincodeID.newBuilder()

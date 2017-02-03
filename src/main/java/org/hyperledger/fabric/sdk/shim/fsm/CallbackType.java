@@ -22,6 +22,6 @@ public enum CallbackType {
 	BEFORE_EVENT,
 	LEAVE_STATE,
 	ENTER_STATE,
-	AFTER_EVENT;
+	AFTER_EVENT
 
 }
