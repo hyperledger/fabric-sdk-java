@@ -14,6 +14,7 @@
 
 package org.hyperledger.fabric.sdk;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
@@ -35,6 +36,7 @@ public class EndorserClient {
 
 	private final ManagedChannel channel;
 	private final EndorserGrpc.EndorserBlockingStub blockingStub;
+	private final EndorserGrpc.EndorserFutureStub futureStub;
 
 	/**
 	 * Construct client for accessing Peer server using the existing channel.
@@ -42,13 +44,18 @@ public class EndorserClient {
 	public EndorserClient(ManagedChannelBuilder<?> channelBuilder) {
 		channel = channelBuilder.build();
 		blockingStub = EndorserGrpc.newBlockingStub(channel);
+		futureStub = EndorserGrpc.newFutureStub(channel);
 	}
 
 	public void shutdown() throws InterruptedException {
 		channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
 	}
 
-	public FabricProposalResponse.ProposalResponse sendProposal(FabricProposal.SignedProposal proposal) throws PeerException {
+    public ListenableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal) {
+        return futureStub.processProposal(proposal);
+    }
+
+    public FabricProposalResponse.ProposalResponse sendProposal(FabricProposal.SignedProposal proposal) throws PeerException {
 
 
 		try {

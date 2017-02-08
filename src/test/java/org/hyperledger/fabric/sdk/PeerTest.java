@@ -128,6 +128,18 @@ public class PeerTest {
 			Assert.assertTrue( e.getClass() == PeerException.class);
 		}
 	}
+
+	@Test(expected = PeerException.class)
+	public void testSendAsyncNullProposal() throws Exception {
+		peer.sendProposalAsync(null);
+	}
+
+	@Test(expected = PeerException.class)
+	public void testSendAsyncNullChain() throws Exception {
+		Peer peer = hfclient.newPeer("grpc://localhost:7051");
+		peer.sendProposalAsync(FabricProposal.SignedProposal.newBuilder().build());
+	}
+
 	@Test
 	public void testBadURL() {
 

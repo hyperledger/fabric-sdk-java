@@ -14,6 +14,8 @@
 
 package org.hyperledger.fabric.sdk;
 
+import org.hyperledger.fabric.sdk.helper.Config;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -21,24 +23,29 @@ import java.util.Arrays;
  * A base transaction request common for DeploymentProposalRequest, InvokeRequest, and QueryRequest.
  */
 public class TransactionRequest {
-    // The local path containing the chaincode to deploy in network mode.
-    private String chaincodePath;
-    // The name identifier for the chaincode to deploy in development mode.
-    private String chaincodeName;
+
+	private final Config config = Config.getConfig();
+
+	// The local path containing the chaincode to deploy in network mode.
+	private String chaincodePath;
+	// The name identifier for the chaincode to deploy in development mode.
+	private String chaincodeName;
 	// The chaincode ID as provided by the 'submitted' event emitted by a TransactionContext
-    private ChainCodeID chaincodeID;
-    // The name of the function to invoke
-    private String fcn;
-    // The arguments to pass to the chaincode invocation
-    private ArrayList<String> args;
-    // Specify whether the transaction is confidential or not.  The default value is false.
-    private boolean confidential = false;
-    // Optionally provide a user certificate which can be used by chaincode to perform access control
-    private Certificate userCert;
-    // Optionally provide additional metadata
-    private byte[] metadata;
-    // Chaincode language
-    private Type chaincodeLanguage = Type.GO_LANG;
+	private ChainCodeID chaincodeID;
+	// The name of the function to invoke
+	private String fcn;
+	// The arguments to pass to the chaincode invocation
+	private ArrayList<String> args;
+	// Specify whether the transaction is confidential or not.  The default value is false.
+	private boolean confidential = false;
+	// Optionally provide a user certificate which can be used by chaincode to perform access control
+	private Certificate userCert;
+	// Optionally provide additional metadata
+	private byte[] metadata;
+	// Chaincode language
+	private Type chaincodeLanguage = Type.GO_LANG;
+	// The timeout for a single proposal request to endorser in milliseconds
+	private long proposalWaitTime = config.getProposalWaitTime();
 
 
 	public String getChaincodePath() {
@@ -102,7 +109,7 @@ public class TransactionRequest {
 	}
 
 
-    //Mirror Fabric try not expose and of it's classes
+	//Mirror Fabric try not expose and of it's classes
 	public enum Type{
 		JAVA,
 		GO_LANG
@@ -120,5 +127,21 @@ public class TransactionRequest {
 		this.chaincodeLanguage = chaincodeLanguage;
 	}
 
+	/**
+	 * Gets the timeout for a single proposal request to endorser in milliseconds.
+	 *
+	 * @return the timeout for a single proposal request to endorser in milliseconds
+	 */
+	public long getProposalWaitTime() {
+		return proposalWaitTime;
+	}
 
+	/**
+	 * Sets the timeout for a single proposal request to endorser in milliseconds.
+	 *
+	 * @param proposalWaitTime the timeout for a single proposal request to endorser in milliseconds
+	 */
+	public void setProposalWaitTime(long proposalWaitTime) {
+		this.proposalWaitTime = proposalWaitTime;
+	}
 }

@@ -107,7 +107,7 @@ public class End2endIT {
                 }
                 ProposalResponse first = failed.iterator().next();
 
-                throw new Exception("Not enough endorsers :" + successful.size() + ".  " + first.getProposalResponse().getResponse().getMessage());
+                throw new Exception("Not enough endorsers :" + successful.size() + ".  " + first.getMessage());
             }
             ProposalResponse firstDeployProposalResponse = successful.iterator().next();
             final ChainCodeID chainCodeID = firstDeployProposalResponse.getChainCodeID();

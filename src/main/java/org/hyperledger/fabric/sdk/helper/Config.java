@@ -38,6 +38,7 @@ public class Config {
     private static final String SECURITY_LEVEL = "org.hyperledger.fabric.sdk.security_level";
     private static final String HASH_ALGORITHM = "org.hyperledger.fabric.sdk.hash_algorithm";
     private static final String CACERTS = "org.hyperledger.fabric.sdk.cacerts";
+    private static final String PROPOSAL_WAIT_TIME = "org.hyperledger.fabric.sdk.proposal.wait.time";
     private static Config config;
     private final static Properties sdkProperties = new Properties();
 
@@ -62,7 +63,8 @@ public class Config {
             defaultProperty(SECURITY_LEVEL, "256");
             defaultProperty(HASH_ALGORITHM, "SHA2");
             // TODO remove this once we have implemented MSP and get the peer certs from the channel
-            defaultProperty(CACERTS, "/genesisblock/peercacert.pem"); 
+            defaultProperty(CACERTS, "/genesisblock/peercacert.pem");
+            defaultProperty(PROPOSAL_WAIT_TIME, "12000");
 
         }
 
@@ -144,5 +146,14 @@ public class Config {
 
     public String[] getPeerCACerts() {
         return getProperty(CACERTS).split("'");
+    }
+
+    /**
+     * Returns the timeout for a single proposal request to endorser in milliseconds.
+     *
+     * @return the timeout for a single proposal request to endorser in milliseconds
+     */
+    public long getProposalWaitTime() {
+        return Long.parseLong(getProperty(PROPOSAL_WAIT_TIME));
     }
 }

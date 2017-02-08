@@ -14,6 +14,7 @@
 
 package org.hyperledger.fabric.sdk;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
@@ -109,24 +110,36 @@ public class Peer {
         return this.url;
     }
 
+    public ListenableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal)
+            throws PeerException, InvalidArgumentException {
+        checkSendProposal(proposal);
 
-    public FabricProposalResponse.ProposalResponse sendProposal(FabricProposal.SignedProposal proposal) throws PeerException, InvalidArgumentException {
-        if(proposal == null){
-            throw new PeerException("Proposal is null");
-        }
-        if(chain == null){
-            throw new PeerException("Chain is null");
-        }
-        Exception e = SDKUtil.checkGrpcUrl(url);
-        if(e != null){
-            throw new InvalidArgumentException("Bad peer url.", e);
+        logger.debug("peer.sendProposalAsync");
 
-        }
+        return endorserClent.sendProposalAsync(proposal);
+    }
+
+    public FabricProposalResponse.ProposalResponse sendProposal(FabricProposal.SignedProposal proposal)
+            throws PeerException, InvalidArgumentException {
+        checkSendProposal(proposal);
 
         logger.debug("peer.sendProposal");
 
         return endorserClent.sendProposal(proposal);
+    }
 
+    private void checkSendProposal(FabricProposal.SignedProposal proposal) throws PeerException, InvalidArgumentException {
+        if (proposal == null) {
+            throw new PeerException("Proposal is null");
+        }
+        if (chain == null) {
+            throw new PeerException("Chain is null");
+        }
+        Exception e = SDKUtil.checkGrpcUrl(url);
+        if (e != null) {
+            throw new InvalidArgumentException("Bad peer url.", e);
+
+        }
     }
 
 

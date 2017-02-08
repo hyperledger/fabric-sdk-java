@@ -66,6 +66,7 @@ public class TransactionContext {
     private String txID = null;
     private TCert tcert;
     private List<String> attrs;
+    private long proposalWaitTime;
 
     public TransactionContext(Chain chain, User user, CryptoPrimitives cryptoPrimitives) {
 
@@ -142,6 +143,24 @@ public class TransactionContext {
      */
     public void setAttrs(List<String> attrs) {
         this.attrs = attrs;
+    }
+
+    /**
+     * Gets the timeout for a single proposal request to endorser in milliseconds.
+     *
+     * @return the timeout for a single proposal request to endorser in milliseconds
+     */
+    public long getProposalWaitTime() {
+        return proposalWaitTime;
+    }
+
+    /**
+     * Sets the timeout for a single proposal request to endorser in milliseconds.
+     *
+     * @param proposalWaitTime the timeout for a single proposal request to endorser in milliseconds
+     */
+    public void setProposalWaitTime(long proposalWaitTime) {
+        this.proposalWaitTime = proposalWaitTime;
     }
 
 //    /**
