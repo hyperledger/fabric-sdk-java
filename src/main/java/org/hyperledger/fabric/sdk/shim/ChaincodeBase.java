@@ -34,6 +34,8 @@ import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeMessage;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeMessage.Type;
 import org.hyperledger.fabric.protos.peer.ChaincodeSupportGrpc;
 import org.hyperledger.fabric.protos.peer.ChaincodeSupportGrpc.ChaincodeSupportStub;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.sdk.ChainCodeResponse;
 
 import javax.net.ssl.SSLException;
 import java.io.File;
@@ -42,7 +44,7 @@ public abstract class ChaincodeBase {
 
 	private static Log logger = LogFactory.getLog(ChaincodeBase.class);
 
-	public abstract String invoke(ChaincodeStub stub, String function, String[] args);
+	public abstract FabricProposalResponse.Response invoke(ChaincodeStub stub, String function, String[] args);
 	public abstract String getChaincodeID();
 
 	public static final String DEFAULT_HOST = "127.0.0.1";
@@ -199,15 +201,15 @@ public abstract class ChaincodeBase {
 		}
 	}
 
-	public ByteString runRaw(ChaincodeStub stub, String function, String[] args) {
+	public FabricProposalResponse.Response runRaw(ChaincodeStub stub, String function, String[] args) {
 		return null;
 	}
 
-	protected ByteString runHelper(ChaincodeStub stub, String function, String[] args) {
-		ByteString ret = runRaw(stub, function, args);
+	protected FabricProposalResponse.Response runHelper(ChaincodeStub stub, String function, String[] args) {
+		FabricProposalResponse.Response ret = runRaw(stub, function, args);
 		if (ret == null) {
-			String tmp = invoke(stub, function, args);
-			ret = ByteString.copyFromUtf8(tmp == null ? "" : tmp);
+			FabricProposalResponse.Response tmp = invoke(stub, function, args);
+			ret = tmp;
 		}
 		return ret;
 	}
