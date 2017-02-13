@@ -229,7 +229,7 @@ public class Chain {
 
     public Chain addEventHub(EventHub eventHub) throws InvalidArgumentException {
         if (null == eventHub) {
-            throw new InvalidArgumentException("Orderer is invalid can not be null.");
+            throw new InvalidArgumentException("EventHub is invalid can not be null.");
         }
 
         Exception e = checkGrpcUrl(eventHub.getUrl());
