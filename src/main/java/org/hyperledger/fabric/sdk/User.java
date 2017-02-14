@@ -54,7 +54,7 @@ public class User implements Serializable {
      * Constructor for a user.
      *
      * @param name The user name
-     * @returns {User} A user who is neither registered nor enrolled.
+     * @param chain Chain
      */
 
     public User(String name, Chain chain) {
@@ -78,7 +78,7 @@ public class User implements Serializable {
     /**
      * Get the user name.
      *
-     * @returns {string} The user name.
+     * @return {string} The user name.
      */
     public String getName() {
         return this.name;
@@ -87,7 +87,7 @@ public class User implements Serializable {
     /**
      * Get the chain.
      *
-     * @returns {Chain} The chain.
+     * @return {Chain} The chain.
      */
     public Chain getChain() {
         return this.chain;
@@ -96,7 +96,7 @@ public class User implements Serializable {
     /**
      * Get the member services.
      *
-     * @returns {MemberServices} The member services.
+     * @return {MemberServices} The member services.
      */
 
     public MemberServices getMemberServices() {
@@ -106,7 +106,7 @@ public class User implements Serializable {
     /**
      * Get the roles.
      *
-     * @returns {string[]} The roles.
+     * @return {string[]} The roles.
      */
     public ArrayList<String> getRoles() {
         return this.roles;
@@ -124,7 +124,7 @@ public class User implements Serializable {
     /**
      * Get the account.
      *
-     * @returns {String} The account.
+     * @return {String} The account.
      */
     public String getAccount() {
         return this.account;
@@ -142,7 +142,7 @@ public class User implements Serializable {
     /**
      * Get the affiliation.
      *
-     * @returns {string} The affiliation.
+     * @return {string} The affiliation.
      */
     public String getAffiliation() {
         return this.affiliation;
@@ -161,7 +161,7 @@ public class User implements Serializable {
      * Get the transaction certificate (tcert) batch size, which is the number of tcerts retrieved
      * from member services each time (i.e. in a single batch).
      *
-     * @returns The tcert batch size.
+     * @return The tcert batch size.
      */
     public int getTCertBatchSize() {
         if (this.tcertBatchSize <= 0) {
@@ -183,7 +183,7 @@ public class User implements Serializable {
     /**
      * Get the enrollment logger.info.
      *
-     * @returns {Enrollment} The enrollment.
+     * @return {Enrollment} The enrollment.
      */
     public Enrollment getEnrollment() {
         return this.enrollment;
@@ -192,7 +192,7 @@ public class User implements Serializable {
     /**
      * Determine if this name has been registered.
      *
-     * @returns {boolean} True if registered; otherwise, false.
+     * @return {boolean} True if registered; otherwise, false.
      */
     public boolean isRegistered() {
         return this.isEnrolled() || !StringUtil.isNullOrEmpty(enrollmentSecret);
@@ -201,7 +201,7 @@ public class User implements Serializable {
     /**
      * Determine if this name has been enrolled.
      *
-     * @returns {boolean} True if enrolled; otherwise, false.
+     * @return {boolean} True if enrolled; otherwise, false.
      */
     public boolean isEnrolled() {
         return this.enrollment != null;
@@ -424,7 +424,7 @@ public class User implements Serializable {
 //     * Only call this if you want to use the same tcert for multiple transactions.
 //     *
 //     * @param tcert A transaction certificate from user services.  This is optional.
-//     * @returns A transaction context.
+//     * @return A transaction context.
 //     */
 //    public TransactionContext newTransactionContext(TCert tcert) {
 //        return new TransactionContext(this, tcert);

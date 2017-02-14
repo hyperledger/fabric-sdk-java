@@ -34,9 +34,10 @@ public class TCertGetter {
     private boolean gettingTCerts = false;
 
     /**
-    * Constructor for a user.
-    * @param cfg {string | RegistrationRequest} The user name or registration request.
-    * @returns {User} A user who is neither registered nor enrolled.
+    * Constructor for a {@link TCertGetter}.
+    * @param user User
+    * @param attrs Attributes
+    * @param key Key
     */
     public TCertGetter(User user, List<String> attrs, String key) {
         this.user = user;
@@ -49,7 +50,7 @@ public class TCertGetter {
 
     /**
     * Get the chain.
-    * @returns {Chain} The chain.
+    * @return {Chain} The chain.
     */
     public Chain getChain() {
         return this.chain;
@@ -61,7 +62,6 @@ public class TCertGetter {
 
     /**
     * Get the next available transaction certificate.
-    * @param cb
     */
     public TCert getNextTCert() {
 

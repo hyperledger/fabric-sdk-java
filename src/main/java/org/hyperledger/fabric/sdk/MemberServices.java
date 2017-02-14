@@ -18,31 +18,29 @@ import org.hyperledger.fabric.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric.sdk.exception.GetTCertBatchException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
 
-import java.util.List;
-
 public interface MemberServices {
 
     /**
      * Get the security level
-     * @returns The security level
+     * @return The security level
      */
     int getSecurityLevel();
 
     /**
      * Set the security level
-     * @params securityLevel The security level
+     * @param securityLevel The security level
      */
     void setSecurityLevel(int securityLevel);
 
     /**
      * Get the hash algorithm
-     * @returns The security level
+     * @return The security level
      */
     String getHashAlgorithm();
 
     /**
      * Set the security level
-     * @params securityLevel The security level
+     * @param hashAlgorithm The hash algorithm used
      */
     void setHashAlgorithm(String hashAlgorithm);
 

@@ -54,9 +54,9 @@ public class Orderer {
     /**
      * Constructor for a orderer given the endpoint config for the orderer.
      *
-     * @param {string} url The URL of
-     * @param {Chain}  The chain of which this orderer is a member.
-     * @returns {Orderer} The new orderer.
+     * @param url The URL of
+     * @param pem PEM for the orderer
+     * @param chain chain
      */
     public Orderer(String url, String pem, Chain chain) throws InvalidArgumentException {
 
@@ -80,7 +80,7 @@ public class Orderer {
     /**
      * Get the chain of which this orderer is a member.
      *
-     * @returns {Chain} The chain of which this orderer is a member.
+     * @return {Chain} The chain of which this orderer is a member.
      */
     public Chain getChain() {
         return this.chain;

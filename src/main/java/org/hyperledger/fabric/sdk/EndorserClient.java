@@ -40,6 +40,7 @@ public class EndorserClient {
 
 	/**
 	 * Construct client for accessing Peer server using the existing channel.
+	 * @param channelBuilder The ChannelBuilder to build the endorser client
 	 */
 	public EndorserClient(ManagedChannelBuilder<?> channelBuilder) {
 		channel = channelBuilder.build();

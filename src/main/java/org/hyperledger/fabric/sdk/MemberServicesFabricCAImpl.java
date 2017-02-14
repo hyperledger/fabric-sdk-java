@@ -137,7 +137,7 @@ public class MemberServicesFabricCAImpl implements MemberServices {
     /**
      * Get the security level
      *
-     * @returns The security level
+     * @return The security level
      */
     public int getSecurityLevel() {
         return cryptoPrimitives.getSecurityLevel();
@@ -155,7 +155,7 @@ public class MemberServicesFabricCAImpl implements MemberServices {
     /**
      * Get the hash algorithm
      *
-     * @returns {string} The hash algorithm
+     * @return {string} The hash algorithm
      */
     public String getHashAlgorithm() {
         return this.cryptoPrimitives.getHashAlgorithm();
