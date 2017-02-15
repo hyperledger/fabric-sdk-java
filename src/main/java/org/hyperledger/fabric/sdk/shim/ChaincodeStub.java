@@ -24,6 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 //import org.hyperledger.protos.peer.Chaincode.ChaincodeSecurityContext;
 //import org.hyperledger.protos.peer.TableProto;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse.Response;
 import org.hyperledger.fabric.sdk.shim.crypto.signature.EcdsaSignatureVerifier;
 import org.hyperledger.fabric.protos.peer.Chaincode;
 
@@ -120,8 +121,8 @@ public class ChaincodeStub {
      * @param args
      * @return
      */
-    public String invokeChaincode(String chaincodeName, String function, List<ByteString> args) {
-        return handler.handleInvokeChaincode(chaincodeName, function, args, uuid).toStringUtf8();
+    public Response invokeChaincode(String chaincodeName, String function, List<ByteString> args) {
+        return handler.handleInvokeChaincode(chaincodeName, function, args, uuid);
     }
 
 
@@ -152,7 +153,7 @@ public class ChaincodeStub {
      * @param args          the arguments to be provided in the chaincode call
      * @return the value returned by the chaincode call
      */
-    public ByteString invokeRawChaincode(String chaincodeName, String function, List<ByteString> args) {
+    public Response invokeRawChaincode(String chaincodeName, String function, List<ByteString> args) {
         return handler.handleInvokeChaincode(chaincodeName, function, args, uuid);
     }
 
