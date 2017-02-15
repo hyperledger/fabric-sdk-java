@@ -100,8 +100,13 @@ public class OrdererTest {
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
-                	    Ab.BroadcastResponse resp = orderer.sendTransaction(null);
-                	    Assert.fail("Transaction should not be null.");
+                try {
+                        Ab.BroadcastResponse resp = orderer.sendTransaction(null);
+                        Assert.fail("Transaction should not be null.");
+                } catch (Exception e) {
+                        e.printStackTrace();
+                        Assert.fail("Expected null chain to throw exception.");
+                }
         }
         
 }

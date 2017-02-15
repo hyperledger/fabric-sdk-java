@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
+ *  Copyright 2016 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@ package org.hyperledger.fabric.sdk;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
-import org.hyperledger.fabric.sdk.helper.SDKUtil;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.orderer.Ab;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.helper.SDKUtil;
 
 /**
  * The Orderer class represents a orderer to which SDK sends deploy, invoke, or query requests.
@@ -30,6 +30,7 @@ public class Orderer {
 
     /**
      * getUrl - the Grpc url of the Orderer
+     *
      * @return the Grpc url of the Orderer
      */
     public String getUrl() {
@@ -54,15 +55,15 @@ public class Orderer {
     /**
      * Constructor for a orderer given the endpoint config for the orderer.
      *
-     * @param url The URL of
-     * @param pem PEM for the orderer
+     * @param url   The URL of
+     * @param pem   PEM for the orderer
      * @param chain chain
      */
-    public Orderer(String url, String pem, Chain chain) throws InvalidArgumentException {
+    Orderer(String url, String pem, Chain chain) throws InvalidArgumentException {
 
 
         Exception e = SDKUtil.checkGrpcUrl(url);
-        if(e != null){
+        if (e != null) {
             throw new InvalidArgumentException("Bad Orderer url.", e);
 
         }
@@ -93,7 +94,7 @@ public class Orderer {
      * @param transaction transaction to be sent
      */
 
-    public Ab.BroadcastResponse sendTransaction(Common.Envelope transaction) {
+    public Ab.BroadcastResponse sendTransaction(Common.Envelope transaction) throws Exception {
 
         OrdererClient orderClient = new OrdererClient(new Endpoint(url, pem).getChannelBuilder());
         return orderClient.sendTransaction(transaction);
@@ -107,4 +108,4 @@ public class Orderer {
     }
 
 
-   } // end Orderer
+} // end Orderer

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
+ *  Copyright 2016 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,15 +15,15 @@
 package org.hyperledger.fabric.sdk;
 
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.hyperledger.fabric.sdk.events.EventHub;
-import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.sdk.events.EventHub;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 
 public class HFClient {
 
@@ -39,7 +39,7 @@ public class HFClient {
 
     private static final Log logger = LogFactory.getLog(HFClient.class);
 
-    private  final  Map<String, Chain> chains = new HashMap<>();
+    private final Map<String, Chain> chains = new HashMap<>();
 
     public User getUserContext() {
         return userContext;
@@ -78,8 +78,12 @@ public class HFClient {
         return chains.get(name);
     }
 
-    public DeploymentProposalRequest newDeploymentProposalRequest() {
-        return new DeploymentProposalRequest();
+    public InstallProposalRequest newInstallProposalRequest() {
+        return new InstallProposalRequest();
+    }
+
+    public InstantiateProposalRequest newInstantiationProposalRequest() {
+        return new InstantiateProposalRequest();
     }
 
     public InvokeProposalRequest newInvokeProposalRequest() {

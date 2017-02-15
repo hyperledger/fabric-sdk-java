@@ -67,15 +67,4 @@ public class SDKUtilTest {
 		}
 	}
 
-	@Test
-	@Ignore //TODO NEED to bring back ?
-	public void testReadFileFromClasspath() throws IOException {
-		byte[] data = SDKUtil.readFileFromClasspath("Go.Docker");
-		Assert.assertNotNull(data);
-		Assert.assertTrue(data.length > 0);
-
-		data = SDKUtil.readFileFromClasspath("Java.Docker");
-		Assert.assertNotNull(data);
-		Assert.assertTrue(data.length > 0);
-	}
 }

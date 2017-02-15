@@ -14,8 +14,13 @@
 
 package org.hyperledger.fabric.sdk.transaction;
 
+import java.nio.Buffer;
+import java.time.Instant;
+import java.util.List;
+
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.ASN1Encodable;
@@ -24,16 +29,13 @@ import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.DERUTF8String;
+import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.sdk.Chain;
 import org.hyperledger.fabric.sdk.MemberServices;
 import org.hyperledger.fabric.sdk.TCert;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
-
-import java.nio.Buffer;
-import java.time.Instant;
-import java.util.List;
 
 
 /**
@@ -42,6 +44,8 @@ import java.util.List;
  */
 public class TransactionContext {
     private static final Log logger = LogFactory.getLog(TransactionContext.class);
+    //TODO right now the server does not care need to figure out
+    private final ByteString nonce = ByteString.copyFromUtf8(SDKUtil.generateUUID());
 
     public CryptoPrimitives getCryptoPrimitives() {
         return cryptoPrimitives;
@@ -52,28 +56,39 @@ public class TransactionContext {
     private Chain chain;
 
     private MemberServices memberServices;
-    private String txID = null;
+    private final String txID ;
     private TCert tcert;
     private List<String> attrs;
     private long proposalWaitTime;
 
     public TransactionContext(Chain chain, User user, CryptoPrimitives cryptoPrimitives) {
 
-        this(SDKUtil.generateUUID(), chain, user, cryptoPrimitives);
-
-    }
-
-    public TransactionContext(String transactionID, Chain chain, User user, CryptoPrimitives cryptoPrimitives) {
 
         this.user = user;
         this.chain = chain;
         this.memberServices = this.chain.getMemberServices();
         this.tcert = tcert;
-        this.txID = transactionID;
+        //  this.txID = transactionID;
         this.cryptoPrimitives = cryptoPrimitives;
 
-        //      this.nonce = this.chain.cryptoPrimitives.generateNonce();
+        byte[] mspid = getMSPID().getBytes();
+
+
+        Identities.SerializedIdentity.Builder identity = Identities.SerializedIdentity.newBuilder();
+        identity.setIdBytes(ByteString.copyFromUtf8(getCreator()));
+        identity.setMspid(getMSPID());
+        
+
+        ByteString no = getNonce();
+        ByteString comp = no.concat(identity.build().toByteString());
+        byte[] txh = cryptoPrimitives.hash(comp.toByteArray());
+    //    txID = Hex.encodeHexString(txh);
+        txID = new String( Hex.encodeHex(txh));
+
+
+
     }
+
 
     /**
      * Get the user with which this transaction context is associated.
@@ -152,186 +167,6 @@ public class TransactionContext {
         this.proposalWaitTime = proposalWaitTime;
     }
 
-//    /**
-//     * Execute a transaction
-//     * @param tx {Transaction} The transaction.
-//     */
-//    private Fabric.Response execute(Transaction tx) {
-//        logger.debug(String.format("Executing transaction [%s]", tx));
-//
-//        return getChain().sendTransaction(tx);
-//        /*TODO implement security
-//        // Get the TCert
-//        self.getMyTCert();
-//        if (err) {
-//             logger.debug("Failed getting a new TCert [%s]", err);
-//             return self.emit("error", new EventTransactionError(err));
-//        }
-//
-//        if (!tcert) {
-//                logger.debug("Missing TCert...");
-//                return self.emit("error", new EventTransactionError("Missing TCert."));
-//	}
-//
-//        // Set nonce
-//        tx.pb.setNonce(self.nonce);
-//
-//        // Process confidentiality
-//        logger.debug("Process Confidentiality...");
-//
-//        self.processConfidentiality(tx);
-//
-//        logger.debug("Sign transaction...");
-//
-//        // Add the tcert
-//        tx.pb.setCert(tcert.publicKey);
-//        // sign the transaction bytes
-//        let txBytes = tx.pb.toBuffer();
-//        let derSignature = self.chain.cryptoPrimitives.ecdsaSign(tcert.privateKey.getPrivate("hex"), txBytes).toDER();
-//        // logger.debug('signature: ', derSignature);
-//        tx.pb.setSignature(new Buffer(derSignature));
-//
-//        logger.debug("Send transaction...");
-//        logger.debug("Confidentiality: ", tx.pb.getConfidentialityLevel());
-//
-//        if (tx.pb.getConfidentialityLevel() == _fabricProto.ConfidentialityLevel.CONFIDENTIAL &&
-//               tx.pb.getType() == _fabricProto.Transaction.Type.CHAINCODE_QUERY) {
-//               // Need to send a different event emitter so we can catch the response
-//               // and perform decryption before sending the real complete response
-//               // to the caller
-//               var emitter = new events.EventEmitter();
-//               emitter.on("complete", function (event:EventQueryComplete) {
-//               logger.debug("Encrypted: [%s]", event);
-//               event.result = self.decryptResult(event.result);
-//               logger.debug("Decrypted: [%s]", event);
-//               self.emit("complete", event);
-//       });
-//                    emitter.on("error", function (event:EventTransactionError) {
-//                        self.emit("error", event);
-//                    });
-//                    self.getChain().sendTransaction(tx, emitter);
-//                } else {
-//                    self.getChain().sendTransaction(tx, self);
-//                }
-//            } else {
-//            }
-//
-//        });
-//        return self;
-//    }
-//
-//    TCert getMyTCert(cb:GetTCertCallback) {
-//    	TransactionContext self = this;
-//        if (!self.getChain().isSecurityEnabled() || self.tcert) {
-//            logger.debug("[TransactionContext] TCert already cached.");
-//            return cb(null, self.tcert);
-//        }
-//        logger.debug("[TransactionContext] No TCert cached. Retrieving one.");
-//        this.user.getNextTCert(self.attrs, function (err, tcert) {
-//            if (err) return cb(err);
-//            self.tcert = tcert;
-//            return cb(null, tcert);
-//        });
-//        */
-//    }
-//
-//    private void processConfidentiality(Transaction transaction) {
-//        /* TODO implement processConfidentiality function
-//    	// is confidentiality required?
-//        if (transaction.pb.getConfidentialityLevel() != _fabricProto.ConfidentialityLevel.CONFIDENTIAL) {
-//            // No confidentiality is required
-//            return
-//        }
-//
-//        logger.debug("Process Confidentiality ...");
-//        var self = this;
-//
-//        // Set confidentiality level and protocol version
-//        transaction.pb.setConfidentialityProtocolVersion("1.2");
-//
-//        // Generate transaction key. Common to all type of transactions
-//        var txKey = self.chain.cryptoPrimitives.eciesKeyGen();
-//
-//        logger.debug("txkey [%s]", txKey.pubKeyObj.pubKeyHex);
-//        logger.debug("txKey.prvKeyObj %s", txKey.prvKeyObj.toString());
-//
-//        var privBytes = self.chain.cryptoPrimitives.ecdsaPrivateKeyToASN1(txKey.prvKeyObj.prvKeyHex);
-//        logger.debug("privBytes %s", privBytes.toString());
-//
-//        // Generate stateKey. Transaction type dependent step.
-//        var stateKey;
-//        if (transaction.pb.getType() == _fabricProto.Transaction.Type.CHAINCODE_DEPLOY) {
-//            // The request is for a deploy
-//            stateKey = new Buffer(self.chain.cryptoPrimitives.aesKeyGen());
-//        } else if (transaction.pb.getType() == _fabricProto.Transaction.Type.CHAINCODE_INVOKE ) {
-//            // The request is for an execute
-//            // Empty state key
-//            stateKey = new Buffer([]);
-//        } else {
-//            // The request is for a query
-//            logger.debug("Generate state key...");
-//            stateKey = new Buffer(self.chain.cryptoPrimitives.hmacAESTruncated(
-//                self.user.getEnrollment().queryStateKey,
-//                [CONFIDENTIALITY_1_2_STATE_KD_C6].concat(self.nonce)
-//            ));
-//        }
-//
-//        // Prepare ciphertexts
-//
-//        // Encrypts message to validators using self.enrollChainKey
-//        var chainCodeValidatorMessage1_2 = new asn1Builder.Ber.Writer();
-//        chainCodeValidatorMessage1_2.startSequence();
-//        chainCodeValidatorMessage1_2.writeBuffer(privBytes, 4);
-//        if (stateKey.length != 0) {
-//            logger.debug("STATE KEY %s", stateKey);
-//            chainCodeValidatorMessage1_2.writeBuffer(stateKey, 4);
-//        } else {
-//            chainCodeValidatorMessage1_2.writeByte(4);
-//            chainCodeValidatorMessage1_2.writeLength(0);
-//        }
-//        chainCodeValidatorMessage1_2.endSequence();
-//        logger.debug(chainCodeValidatorMessage1_2.buffer);
-//
-//        logger.debug("Using chain key [%s]", self.user.getEnrollment().chainKey);
-//        var ecdsaChainKey = self.chain.cryptoPrimitives.ecdsaPEMToPublicKey(
-//            self.user.getEnrollment().chainKey
-//        );
-//
-//        let encMsgToValidators = self.chain.cryptoPrimitives.eciesEncryptECDSA(
-//            ecdsaChainKey,
-//            chainCodeValidatorMessage1_2.buffer
-//        );
-//        transaction.pb.setToValidators(encMsgToValidators);
-//
-//        // Encrypts chaincodeID using txKey
-//        // logger.debug('CHAINCODE ID %s', transaction.chaincodeID);
-//
-//        let encryptedChaincodeID = self.chain.cryptoPrimitives.eciesEncrypt(
-//            txKey.pubKeyObj,
-//            transaction.pb.getChaincodeID().buffer
-//        );
-//        transaction.pb.setChaincodeID(encryptedChaincodeID);
-//
-//        // Encrypts payload using txKey
-//        // logger.debug('PAYLOAD ID %s', transaction.payload);
-//        let encryptedPayload = self.chain.cryptoPrimitives.eciesEncrypt(
-//            txKey.pubKeyObj,
-//            transaction.pb.getPayload().buffer
-//        );
-//        transaction.pb.setPayload(encryptedPayload);
-//
-//        // Encrypt metadata using txKey
-//        if (transaction.pb.getMetadata() != null && transaction.pb.getMetadata().buffer != null) {
-//            logger.debug("Metadata [%s]", transaction.pb.getMetadata().buffer);
-//            let encryptedMetadata = self.chain.cryptoPrimitives.eciesEncrypt(
-//                txKey.pubKeyObj,
-//                transaction.pb.getMetadata().buffer
-//            );
-//            transaction.pb.setMetadata(encryptedMetadata);
-//        }
-//
-//        */
-//    }
 
     private void decryptResult(Buffer ct) {
         /* TODO implement decryptResult function
@@ -369,10 +204,9 @@ public class TransactionContext {
         return currentTimeStamp;
     }
 
-
     public ByteString getNonce() {
-        //TODO right now the server does not care need to figure out
-        return ByteString.copyFromUtf8(SDKUtil.generateUUID());
+
+        return nonce;
 
     }
 
@@ -386,33 +220,33 @@ public class TransactionContext {
         { *version INTEGER DEFAULT 0, *created GeneralizedTime, *baseData OCTET STRING, *extraData[0]
             UTF8String OPTIONAL, *commentData[1] UTF8String OPTIONAL
         } * <pre > * */
-    public static  class MyStructure implements ASN1Encodable {
+    public static class MyStructure implements ASN1Encodable {
 
         public DERUTF8String Mspid = null;
         private DEROctetString IdBytes = null;
 
-        MyStructure(String mspid, byte[] idbytes){
-                Mspid = new DERUTF8String( mspid);
-                IdBytes = new DEROctetString(idbytes);
+        MyStructure(String mspid, byte[] idbytes) {
+            Mspid = new DERUTF8String(mspid);
+            IdBytes = new DEROctetString(idbytes);
 
         }
-
-
 
 
         @Override
         public ASN1Primitive toASN1Primitive() {
 
-            ASN1EncodableVector  asn1EncodableVector =new ASN1EncodableVector();
+            ASN1EncodableVector asn1EncodableVector = new ASN1EncodableVector();
             asn1EncodableVector.add(Mspid);
             asn1EncodableVector.add(IdBytes);
 
-          //  ASN1Sequence asn1Sequence = ASN1Sequence.getInstance();
-            return  new DERSequence(asn1EncodableVector);
+            //  ASN1Sequence asn1Sequence = ASN1Sequence.getInstance();
+            return new DERSequence(asn1EncodableVector);
         }
-    };
+    }
 
-    public  String getMSPID(){
+    ;
+
+    public String getMSPID() {
         return chain.getEnrollment().getMSPID();
     }
 
@@ -457,8 +291,6 @@ public class TransactionContext {
 //            }
 //        }
     }
-
-
 
 
     public boolean isDevMode() {

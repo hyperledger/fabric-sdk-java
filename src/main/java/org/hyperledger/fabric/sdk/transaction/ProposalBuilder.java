@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
+ *  Copyright 2016 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -14,22 +14,25 @@
 
 package org.hyperledger.fabric.sdk.transaction;
 
+import java.util.Arrays;
+import java.util.List;
+
+import javax.xml.bind.DatatypeConverter;
+
 import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common;
-import org.hyperledger.fabric.protos.common.Common.ChainHeader;
 import org.hyperledger.fabric.protos.common.Common.HeaderType;
 import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.peer.Chaincode;
+import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInput;
+import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInvocationSpec;
+import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeHeaderExtension;
 
-import javax.xml.bind.DatatypeConverter;
-import java.util.Arrays;
-import java.util.List;
-
-import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createChainHeader;
+import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createChannelHeader;
 
 
 public class ProposalBuilder {
@@ -41,7 +44,7 @@ public class ProposalBuilder {
     private Chaincode.ChaincodeID chaincodeID;
     private List<ByteString> argList;
     protected TransactionContext context;
-    private Chaincode.ChaincodeSpec.Type ccType = Chaincode.ChaincodeSpec.Type.GOLANG;
+    private ChaincodeSpec.Type ccType = ChaincodeSpec.Type.GOLANG;
 
 
     protected ProposalBuilder() {
@@ -72,9 +75,9 @@ public class ProposalBuilder {
     }
 
 
-    private FabricProposal.Proposal createFabricProposal(String chainID, Chaincode.ChaincodeID chaincodeID, List<ByteString> argList) throws Exception {
+    private FabricProposal.Proposal createFabricProposal(String chainID, Chaincode.ChaincodeID chaincodeID, List<ByteString> argList)  {
 
-        Chaincode.ChaincodeInvocationSpec chaincodeInvocationSpec = createChaincodeInvocationSpec(
+        ChaincodeInvocationSpec chaincodeInvocationSpec = createChaincodeInvocationSpec(
                 chaincodeID,
                 ccType, argList);
 
@@ -82,10 +85,10 @@ public class ProposalBuilder {
         ChaincodeHeaderExtension.Builder chaincodeHeaderExtension = ChaincodeHeaderExtension.newBuilder();
 
 
-        chaincodeHeaderExtension.setChaincodeID(chaincodeID);
+        chaincodeHeaderExtension.setChaincodeId(chaincodeID);
 
 
-        ChainHeader chainHeader = createChainHeader(HeaderType.ENDORSER_TRANSACTION,
+        Common.ChannelHeader chainHeader = createChannelHeader(HeaderType.ENDORSER_TRANSACTION,
                 context.getTxID(), chainID, 0, chaincodeHeaderExtension.build());
 
         Common.SignatureHeader.Builder sigHeaderBldr = Common.SignatureHeader.newBuilder();
@@ -103,25 +106,25 @@ public class ProposalBuilder {
 
 
         Common.Header.Builder headerbldr = Common.Header.newBuilder();
-        headerbldr.setSignatureHeader(sigHeader);
-        headerbldr.setChainHeader(chainHeader);
+        headerbldr.setSignatureHeader(sigHeader.toByteString());
+        headerbldr.setChannelHeader(chainHeader.toByteString());
 
         FabricProposal.ChaincodeProposalPayload.Builder payloadBuilder = FabricProposal.ChaincodeProposalPayload.newBuilder();
 
         payloadBuilder.setInput(chaincodeInvocationSpec.toByteString());
         FabricProposal.ChaincodeProposalPayload payload = payloadBuilder.build();
 
-        logger.trace("proposal payload. length " + payload.toByteArray().length + ",  hashcode:" + payload.toByteArray().hashCode() + ", hex:" + DatatypeConverter.printHexBinary(payload.toByteArray()));
-        logger.trace("256 HASH: " + DatatypeConverter.printHexBinary(context.getCryptoPrimitives().hash(payload.toByteArray())));
+      //  logger.trace("proposal payload. length " + payload.toByteArray().length + ",  hashcode:" + payload.toByteArray().hashCode() + ", hex:" + DatatypeConverter.printHexBinary(payload.toByteArray()));
+      //  logger.trace("256 HASH: " + DatatypeConverter.printHexBinary(context.getCryptoPrimitives().hash(payload.toByteArray())));
 
 
         FabricProposal.Proposal.Builder proposalBuilder = FabricProposal.Proposal.newBuilder();
 
 
         Common.Header header = headerbldr.build();
-        logger.trace("proposal header bytes:" + Arrays.toString(header.toByteArray()));
+        //  logger.trace("proposal header bytes:" + Arrays.toString(header.toByteArray()));
 
-        proposalBuilder.setHeader(headerbldr.build().toByteString());
+        proposalBuilder.setHeader(header.toByteString());
         proposalBuilder.setPayload(payload.toByteString());
 
 
@@ -130,30 +133,24 @@ public class ProposalBuilder {
     }
 
 
-    private Chaincode.ChaincodeInvocationSpec createChaincodeInvocationSpec(Chaincode.ChaincodeID chainCodeId, Chaincode.ChaincodeSpec.Type langType, List<ByteString> args) {
+    private ChaincodeInvocationSpec createChaincodeInvocationSpec(Chaincode.ChaincodeID chainCodeId, ChaincodeSpec.Type langType, List<ByteString> args) {
 
-        Chaincode.ChaincodeInvocationSpec.Builder invocationSpecBuilder = Chaincode.ChaincodeInvocationSpec.newBuilder();
-        Chaincode.ChaincodeSpec.Builder chaincodeSpecBuilder = Chaincode.ChaincodeSpec.newBuilder();
+        ChaincodeInput chaincodeInput = ChaincodeInput.newBuilder().addAllArgs(args).build();
 
-        chaincodeSpecBuilder.setType(langType);
+        ChaincodeSpec chaincodeSpecBuilder = ChaincodeSpec.newBuilder()
+                .setType(langType)
+                .setChaincodeId(chainCodeId)
+                .setInput(chaincodeInput)
+                .build();
 
-        chaincodeSpecBuilder.setChaincodeID(chainCodeId);
-
-        Chaincode.ChaincodeInput chaincodeInput = Chaincode.ChaincodeInput.newBuilder().addAllArgs(args).build();
-
-        chaincodeSpecBuilder.setInput(chaincodeInput);
-
-        invocationSpecBuilder.setChaincodeSpec(chaincodeSpecBuilder.build());
-
-        // invocationSpecBuilder.setIdGenerationAlg("");
-
+        ChaincodeInvocationSpec.Builder invocationSpecBuilder = ChaincodeInvocationSpec.newBuilder()
+                .setChaincodeSpec(chaincodeSpecBuilder);
 
         return invocationSpecBuilder.build();
-
     }
 
 
-    public ProposalBuilder ccType(Chaincode.ChaincodeSpec.Type ccType) {
+    public ProposalBuilder ccType(ChaincodeSpec.Type ccType) {
         this.ccType = ccType;
         return this;
     }

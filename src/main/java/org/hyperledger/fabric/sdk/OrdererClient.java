@@ -14,6 +14,9 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -22,14 +25,12 @@ import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.orderer.AtomicBroadcastGrpc;
-
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import org.hyperledger.fabric.sdk.exception.TransactionException;
 
 /**
  * Sample client code that makes gRPC calls to the server.
  */
-public class OrdererClient {
+class OrdererClient {
     private static final Log logger = LogFactory.getLog(OrdererClient.class);
 
     private final ManagedChannel channel;
@@ -38,14 +39,14 @@ public class OrdererClient {
     /**
      * Construct client for accessing Orderer server using the existing channel.
      */
-    public OrdererClient(ManagedChannelBuilder<?> channelBuilder) {
+    OrdererClient(ManagedChannelBuilder<?> channelBuilder) {
         channel = channelBuilder.build();
 
 
     }
 
 
-    public void shutdown() throws InterruptedException {
+    void shutdown() throws InterruptedException {
 
 
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
@@ -62,7 +63,7 @@ public class OrdererClient {
     }
 
 
-    public Ab.BroadcastResponse sendTransaction(Common.Envelope envelope) {
+    Ab.BroadcastResponse sendTransaction(Common.Envelope envelope) throws Exception {
 
         final CountDownLatch finishLatch = new CountDownLatch(1);
         AtomicBroadcastGrpc.AtomicBroadcastStub broadcast = AtomicBroadcastGrpc.newStub(channel);
@@ -70,12 +71,13 @@ public class OrdererClient {
         bsc.withDeadlineAfter(2, TimeUnit.MINUTES);
 
         final Ab.BroadcastResponse[] ret = new Ab.BroadcastResponse[1];
+        final Throwable[] throwable = new Throwable[]{null};
 
         StreamObserver<Ab.BroadcastResponse> so = new StreamObserver<Ab.BroadcastResponse>() {
             @Override
             public void onNext(Ab.BroadcastResponse resp) {
 
-               // logger.info("Got Broadcast response: " + resp);
+                // logger.info("Got Broadcast response: " + resp);
                 logger.debug("resp status value: " + resp.getStatusValue() + ", resp: " + resp.getStatus());
                 ret[0] = resp;
                 finishLatch.countDown();
@@ -85,7 +87,8 @@ public class OrdererClient {
             @Override
             public void onError(Throwable t) {
 
-                logger.error("broadcase error " + t);
+
+                throwable[0] = t;
 
                 finishLatch.countDown();
             }
@@ -108,10 +111,19 @@ public class OrdererClient {
 
         try {
             finishLatch.await(2, TimeUnit.MINUTES);
+            if (throwable[0] != null) {
+                //get full stack trace
+                TransactionException ste = new TransactionException("Send transactions failed. Reason: " + throwable[0].getMessage(), throwable[0]);
+                logger.error("sendTransaction error " + ste.getMessage(), ste);
+                throw ste;
+            }
             logger.debug("Done waiting for reply! Got:" + ret[0]);
 
         } catch (InterruptedException e) {
-            e.printStackTrace();
+
+            logger.error(e);
+
+
         }
 
         return ret[0];

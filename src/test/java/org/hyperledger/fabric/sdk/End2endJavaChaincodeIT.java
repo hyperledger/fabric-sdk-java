@@ -30,8 +30,11 @@ import java.util.concurrent.TimeUnit;
  */
 public class End2endJavaChaincodeIT {
 
-    static final String CHAIN_CODE_NAME = "simplesample";
-    static final String CHAIN_CODE_PATH = "src/test/fixture/java-chaincode/SimpleSample/root/chaincode";
+    static final String CHAIN_CODE_NAME = "example_cc.go";
+    static final String CHAIN_CODE_PATH = "github.com/example_cc";
+    static final String CHAIN_CODE_VERSION = "1.0";
+
+
     static final String CHAIN_NAME = "testchainid";
 
     final static Collection<String> PEER_LOCATIONS = Arrays.asList("grpc://localhost:7051");
@@ -80,25 +83,19 @@ public class End2endJavaChaincodeIT {
             Collection<Orderer> orderers = chain.getOrderers();
 
             ////////////////////////////
-            //Deploy Proposal Request
+            //Install Proposal Request
             //
 
-            out("Creating deployment proposal");
+            out("Creating install proposal");
 
-            DeploymentProposalRequest deploymentProposalRequest = client.newDeploymentProposalRequest();
-            deploymentProposalRequest.setChaincodeName(CHAIN_CODE_NAME);
-            deploymentProposalRequest.setChaincodePath(CHAIN_CODE_PATH);
-            deploymentProposalRequest.setChaincodeLanguage(TransactionRequest.Type.JAVA);
-            deploymentProposalRequest.setFcn("init");
-            deploymentProposalRequest.setArgs(new String[]{"Jane", "500", "John", "1000"});
-            out("Deploying chain code with Jane and John set to 500 and 1000 respectively");
+            InstallProposalRequest installProposalRequest = client.newInstallProposalRequest();
+            installProposalRequest.setChaincodeName(CHAIN_CODE_NAME);
+            installProposalRequest.setChaincodePath(CHAIN_CODE_PATH);
+            installProposalRequest.setChaincodeVersion(CHAIN_CODE_VERSION);
 
 
-            Collection<ProposalResponse> responses = chain.sendDeploymentProposal(deploymentProposalRequest, peers);
+            Collection<ProposalResponse> responses = chain.sendInstallProposal(installProposalRequest, peers);
 
-            //////////////////////
-            //Deploy Transaction
-            //
 
             Collection<ProposalResponse> successful = new LinkedList<>();
             Collection<ProposalResponse> failed = new LinkedList<>();
@@ -113,7 +110,7 @@ public class End2endJavaChaincodeIT {
                 }
 
             }
-            out("Received %d deployment proposal responses. Successful+verified: %d . Failed: %d", responses.size(), successful.size(), failed.size());
+            out("Received %d install proposal responses. Successful+verified: %d . Failed: %d", responses.size(), successful.size(), failed.size());
 
             if (successful.size() < 1) {  //choose this as an arbitrary limit right now.
 
@@ -123,16 +120,58 @@ public class End2endJavaChaincodeIT {
                 }
                 ProposalResponse first = failed.iterator().next();
 
-                throw new Exception("Not enough endorsers :" + successful.size() + ".  " + first.getProposalResponse().getResponse().getMessage());
+                throw new Exception("Not enough endorsers for install :" + successful.size() + ".  " + first.getMessage());
             }
-            ProposalResponse firstDeployProposalResponse = successful.iterator().next();
-            final ChainCodeID chainCodeID = firstDeployProposalResponse.getChainCodeID();
+            ProposalResponse firstInstallProposalResponse = successful.iterator().next();
+            final ChainCodeID chainCodeID = firstInstallProposalResponse.getChainCodeID();
+            //Note install chain code does not require transaction no need to send to Orderers
+
+            ///////////////
+            //// Instantiate chain code.
 
 
+            InstantiateProposalRequest instantiateProposalRequest = client.newInstantiationProposalRequest();
+
+
+            instantiateProposalRequest.setChaincodeID(chainCodeID);
+            instantiateProposalRequest.setFcn("init");
+            instantiateProposalRequest.setArgs(new String[]{"Jane", "500", "John", "1000"});
+            out("Sending instantiateProposalRequest Jane with a and John set to 500 and 1000 respectively");
+
+            responses = chain.sendInstantiationProposal(instantiateProposalRequest, peers);
+
+            successful.clear();
+            failed.clear();
+
+            for (ProposalResponse response : responses) {
+                if (response.isVerified() && response.getStatus() == ProposalResponse.Status.SUCCESS) {
+                    successful.add(response);
+
+                } else {
+                    failed.add(response);
+                }
+
+            }
+            out("Received %d instantiate proposal responses. Successful+verified: %d . Failed: %d", responses.size(), successful.size(), failed.size());
+
+            if (successful.size() < 1) {  //choose this as an arbitrary limit right now.
+
+                if (failed.size() == 0) {
+                    throw new Exception("No endorsers found ");
+
+                }
+                ProposalResponse first = failed.iterator().next();
+
+                throw new Exception("Not enough endorsers for instantiate  :" + successful.size() + ".  " + first.getMessage());
+            }
+
+
+            /// Send instantiate transaction.
             chain.sendTransaction(successful, orderers).thenApply(block -> {
 
                 try {
-                    out("Successfully completed chaincode deployment.");
+
+                    out("Successfully completed chaincode instantiation.");
 
                     out("Creating invoke proposal");
 
@@ -157,7 +196,7 @@ public class End2endJavaChaincodeIT {
                         }
 
                     }
-                    out("Received %d invoke proposal responses. Successful+verified: %d . Failed: %d", responses.size(), successful.size(), failed.size());
+                    out("Received %d invoke proposal responses. Successful+verified: %d . Failed: %d", invokePropResp.size(), successful.size(), failed.size());
 
 
                     if (successful.size() < 1) {  //choose this as an arbitrary limit right now.
@@ -166,10 +205,10 @@ public class End2endJavaChaincodeIT {
                             throw new Exception("No endorsers found ");
 
                         }
-                        ProposalResponse firstDeployProposalResponse2 = failed.iterator().next();
+                        ProposalResponse firstInvokeProposalResponse = failed.iterator().next();
 
 
-                        throw new Exception("Not enough endorsers :" + successful.size() + ".  " + firstDeployProposalResponse2.getMessage());
+                        throw new Exception("Not enough endorsers :" + successful.size() + ".  " + firstInvokeProposalResponse.getMessage());
 
 
                     }

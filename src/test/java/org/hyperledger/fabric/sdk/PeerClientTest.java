@@ -20,7 +20,7 @@ package org.hyperledger.fabric.sdk;
 //import java.util.concurrent.TimeUnit;
 //
 //import org.hyperledger.fabric.sdk.exception.ChainCodeException;
-//import org.hyperledger.fabric.sdk.exception.DeploymentException;
+//import org.hyperledger.fabric.sdk.exception.ProposalException;
 //import org.hyperledger.fabric.sdk.exception.EnrollmentException;
 //import org.hyperledger.fabric.sdk.exception.RegistrationException;
 //import org.junit.BeforeClass;
@@ -54,8 +54,8 @@ public class PeerClientTest {
 //	}
 //
 //
-//	public static ChainCodeResponse deploy() throws RegistrationException, EnrollmentException, DeploymentException {
-//		DeploymentProposalRequest request = new DeploymentProposalRequest();
+//	public static ChainCodeResponse deploy() throws RegistrationException, EnrollmentException, ProposalException {
+//		InstallProposalRequest request = new InstallProposalRequest();
 //		request.setChaincodePath("github.com/hyperledger/fabric/examples/chaincode/go/chaincode_example02");
 //		request.setArgs(new ArrayList<>(Arrays.asList("init", "a", "700", "b", "20000")));
 //		User user = getUser("User1", "bank_a");
@@ -65,7 +65,7 @@ public class PeerClientTest {
 //	}
 //
 //	public static ChainCodeResponse deployJava() throws RegistrationException, EnrollmentException {
-//		DeploymentProposalRequest request = new DeploymentProposalRequest();
+//		InstallProposalRequest request = new InstallProposalRequest();
 //		request.setChaincodePath(System.getenv("GOPATH")+"/src/github.com/hyperledger/fabric/examples/chaincode/java/Example");
 //		request.setArgs(new ArrayList<>(Arrays.asList("init", "a", "700", "b", "20000")));
 //		User user = getUser("User1", "bank_a");

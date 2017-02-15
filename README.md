@@ -29,12 +29,15 @@ To run the End-to-End tests, please use <code>mvn failsafe:integration-test -Dsk
 Hyperledger Fabric v1.0 is currently under active development and the very latest Hyperledger Fabric builds may not work with this sdk.
 You should use the following commit levels of the Hyperledger projects:
 
-| Project        | Commit level                               | Date        |
-|:---------------|:------------------------------------------:|------------:|
-| fabric         | 5d9e4ede298ab646ac918dc5b034c7d319dd1d9a   | Jan 30 2017 |
-| fabric-ca      | bf8fb4d5e497217cd6125025830aa6870de442aa   | Jan 27 2017 |
+[comment]: <> (*******************************************************************************************)
+[comment]: <> (*******   THE LEVELS HERE NEED TO MATCH THE FILE src/test/fabric_test_commitlevel.sh ******)
+
+| Project        | Commit level                               | Date                       |
+|:---------------|:------------------------------------------:|---------------------------:|
+| fabric         | e3fe66ba19c3d77d88431d74d5647d0372496313   | Feb 21 16:50:46 2017 +0000 |
+| fabric-ca      | c4e83c10292d53fa0f1a1688899a594fe4ece26b   | Jan 27 2017 |
  
- 
+ 50372c16c76fb2bfbafb2f8ffaf085f085b75b1c
  
  You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
  
@@ -89,47 +92,17 @@ It constructs the Hyperledger Chain, deploys the `GO` chain code and initializes
 It then invokes the chain code function `move` that transfers 100 from A to B on the ledger.
 Then queries the ledger to see if B is now 300.
 
- 
-
-
-
-## Using the SDK
-To use the SDK in your code, simply add the generated JAR file in your classpath. 
-Once the JAR file is in your classpath, create a chain instance to interact with the network.<br>
-<code>
-Chain testChain = new Chain("chain1");
-</code><br>
-
-Add the membership service:<br>
-<code>
-testChain.setMemberServicesUrl("grpc://localhost:7054", null);			
-</code><br>
-
-Set a keyValueStore:<br>
-<code>
-testChain.setKeyValStore(new FileKeyValStore(System.getProperty("user.home")+"/test.properties"));			
-</code><br>
-
-Add a peer to the chain:<br>
-<code>
-testChain.addPeer("grpc://localhost:7051", null);			
-</code><br>
-
-Get a member:<br>
-<code>
-Member registrar = testChain.getMember("admin");
-</code><br>
-
-Enroll a member:<br>
-<code>
-  Member member = testChain.enroll("user", "secret");
-</code><br>
-
 ## SDK dependencies
 SDK depends on few third party libraries that must be included in your classpath when using the JAR file. To get a list of dependencies, refer to pom.xml file or run
 <code>mvn dependency:tree</code> or <code>mvn dependency:list</code>.
 
 Alternatively, <code> mvn dependency:analyze-report </code> will produce a report in HTML format in target directory listing all the dependencies in a more readable format.
+
+## Using the SDK
+See the fabric-sdk-java/src/test/java/org/hyperledger/fabric/sdk/End2endIT.java for an example of installing, initialising, invoking chain code.
+The sdk jar is in. target/fabric-sdk-java-1.0-SNAPSHOT.jar  and you will need the additional dependencies listed above.
+When the SDK is published to Maven you'll will be able to simply include it in a your application's pom.xml.
+ 
 
 #Basic Troubleshooting
 **identity or token do not match**
@@ -147,3 +120,28 @@ When running the unit tests, you will always need to clean the membership servic
 **java.security.InvalidKeyException: Illegal key size**
 
 If you get this error, this means your JDK does not capable of handling unlimited strength crypto algorithms. To fix this issue, You will need to download the JCE libraries for your version of JDK. Please follow the instructions <a href="http://stackoverflow.com/questions/6481627/java-security-illegal-key-size-or-default-parameters">here</a> to download and install the JCE for your version of the JDK. 
+
+
+#Reporting Issues
+To report issue please use: <a href="http://jira.hyperledger.org/">Hyperledger's JIRA</a>. 
+To login you will need a Linux Foundation ID (LFID) which you get at <a href="https://identity.linuxfoundation.org/">The Linux Foundation</a> 
+if you don't already have one.
+
+JIRA Fields should be:
+<dl>
+  <dt>Type</dt>
+  <dd>Bug <i>or</i> New Feature</dd>
+
+  <dt>Component</dt>
+  <dd>fabric-sdk-java</dd>
+  <dt>Fix Versions</dt>
+    <dd>v1.0.0</dd>
+</dl>
+
+Pleases provide as much information that you can with the issue you're experiencing: stack traces  logs.
+ 
+#Communicating with developers and fellow users.
+ Sign into <a href="https://chat.hyperledger.org/">Hyperledger project's Rocket chat</a> 
+ For this you will also need a <a href="https://identity.linuxfoundation.org/">Linux Foundation ID</a>
+ 
+ Join the <b>fabric-sdk-java</b> channel.

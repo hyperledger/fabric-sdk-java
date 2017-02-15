@@ -50,14 +50,14 @@ package common;
 message MSPPrincipal {
 
     enum Classification {
-        ByMSPRole = 0;  // Represents the one of the dedicated MSP roles, the
+        ROLE = 0;  // Represents the one of the dedicated MSP roles, the
         // one of a member of MSP network, and the one of an
         // administrator of an MSP network
-        ByOrganizationUnit = 1; // Denotes a finer grained (affiliation-based)
+        ORGANIZATION_UNIT = 1; // Denotes a finer grained (affiliation-based)
         // groupping of entities, per MSP affiliation
         // E.g., this can well be represented by an MSP's
         // Organization unit
-        ByIdentity  = 2;    // Denotes a principal that consists of a single
+        IDENTITY  = 2;    // Denotes a principal that consists of a single
         // identity
     }
 
@@ -68,14 +68,14 @@ message MSPPrincipal {
     // "Principal" contains a specific identity. Default value
     // denotes that Principal contains one of the groups by
     // default supported by all MSPs ("admin" or "member").
-    Classification PrincipalClassification = 1;
+    Classification principal_classification = 1;
 
     // Principal completes the policy principal definition. For the default
     // principal types, Principal can be either "Admin" or "Member".
     // For the ByOrganizationUnit/ByIdentity values of Classification,
     // PolicyPrincipal acquires its value from an organization unit or
     // identity, respectively.
-    bytes Principal = 2;
+    bytes principal = 2;
 }
 
 
@@ -86,11 +86,11 @@ message OrganizationUnit {
 
     // MSPIdentifier represents the identifier of the MSP this organization unit
     // refers to
-    string MSPIdentifier = 1;
+    string msp_identifier = 1;
 
     // OrganizationUnitIdentifier defines the organization unit under the
     // MSP identified with MSPIdentifier
-    string OrganizationUnitIdentifier = 2;
+    string organizational_unit_identifier = 2;
 
 }
 
@@ -101,11 +101,11 @@ message MSPRole {
 
     // MSPIdentifier represents the identifier of the MSP this principal
     // refers to
-    string MSPIdentifier = 1;
+    string msp_identifier = 1;
 
     enum MSPRoleType {
-        Member = 0; // Represents an MSP Member
-        Admin  = 1; // Represents an MSP Admin
+        MEMBER = 0; // Represents an MSP Member
+        ADMIN  = 1; // Represents an MSP Admin
     }
 
     // MSPRoleType defines which of the available, pre-defined MSP-roles
