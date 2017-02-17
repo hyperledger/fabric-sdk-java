@@ -15,7 +15,9 @@
 package org.hyperledger.fabric.sdk;
 
 import org.hyperledger.fabric.sdk.events.EventHub;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
@@ -43,6 +45,18 @@ public class End2endIT {
 
     final static String FABRIC_CA_SERVICES_LOCATION = "http://localhost:7054";
 
+    private TestConfigHelper configHelper = new TestConfigHelper() ;
+
+    @Before
+    public void checkConfig() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+        configHelper.clearConfig();
+        configHelper.customizeConfig();
+    }
+
+    @After
+    public void clearConfig() {
+        try { configHelper.clearConfig();} catch (Exception e) {};
+    }
 
     @Test
     public void setup() {
@@ -290,7 +304,7 @@ public class End2endIT {
         System.err.flush();
         System.out.flush();
 
-        System.out.println(String.format(format, (Object[]) args));
+        System.out.println(String.format(format, args));
         System.err.flush();
         System.out.flush();
 

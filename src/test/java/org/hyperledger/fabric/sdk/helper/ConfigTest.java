@@ -18,6 +18,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Properties;
 
+import org.hyperledger.fabric.sdk.TestConfigHelper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -25,41 +26,24 @@ import org.junit.Test;
 
 public class ConfigTest {
 
-    public static Config config;
-
-    /**
-     * clearConfig "resets" Config so that the Config testcases can run without interference from other test suites.
-     * Depending on what order JUnit decides to run the tests, Config could have been instantiated earlier and could
-     * contain values that make the tests here fail.
-     * @throws SecurityException
-     * @throws NoSuchFieldException
-     * @throws IllegalAccessException
-     * @throws IllegalArgumentException
-     *
-     */
-    private void clearConfig() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-        config = Config.getConfig();
-        java.lang.reflect.Field configInstance = config.getClass().getDeclaredField("config");
-        configInstance.setAccessible(true);
-        configInstance.set(null, null);
-    }
+        private TestConfigHelper configHelper = new TestConfigHelper() ;
 
     @Before
     public void setUp() throws Exception {
         // reset Config before each test
-        this.clearConfig();
+        configHelper.clearConfig();
     }
 
     @After
     public void tearDown() {
         // reset Config after each test. We do not want to interfere with the next test or the next test suite
-        try {this.clearConfig();} catch (Exception e) {} ;
+        try {configHelper.clearConfig();} catch (Exception e) {} ;
     }
 
     @Test
     public void testGetConfig() {
         System.setProperty("org.hyperledger.fabric.sdk.hash_algorithm", "XXX");
-        config = Config.getConfig();
+        Config config = Config.getConfig();
         assertEquals(config.getSecurityLevel(), 256);
         assertEquals(config.getHashAlgorithm(), "XXX");
         String[] cacerts = config.getPeerCACerts();
