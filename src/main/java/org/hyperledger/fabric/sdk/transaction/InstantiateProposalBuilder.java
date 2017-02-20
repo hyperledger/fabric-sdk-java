@@ -29,6 +29,7 @@ import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInput;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
 import org.hyperledger.fabric.sdk.TransactionRequest;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 
@@ -47,6 +48,8 @@ public class InstantiateProposalBuilder extends ProposalBuilder {
     private List<String> argList;
     private TransactionRequest.Type chaincodeLanguage;
     private String chaincodeVersion;
+
+    private byte[] chaincodePolicy = null ;
 
     private InstantiateProposalBuilder() {
         super();
@@ -73,6 +76,12 @@ public class InstantiateProposalBuilder extends ProposalBuilder {
 
         return this;
 
+    }
+
+    public void chaincodEndorsementPolicy(ChaincodeEndorsementPolicy policy) {
+        if (policy != null) {
+            this.chaincodePolicy = policy.getChaincodeEndorsementPolicyAsBytes();
+        }
     }
 
     public InstantiateProposalBuilder argss(List<String> argList) {
@@ -130,6 +139,9 @@ public class InstantiateProposalBuilder extends ProposalBuilder {
         argList.add(ByteString.copyFrom("deploy", StandardCharsets.UTF_8));
         argList.add(ByteString.copyFrom("default", StandardCharsets.UTF_8));
         argList.add(depspec.toByteString());
+        if (chaincodePolicy != null ) {
+            argList.add(ByteString.copyFrom(chaincodePolicy));
+        }
 
         ChaincodeID lcccID = ChaincodeID.newBuilder().setName(LCCC_CHAIN_NAME).build();
 

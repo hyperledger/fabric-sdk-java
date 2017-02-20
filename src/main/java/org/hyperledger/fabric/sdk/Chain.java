@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -620,6 +620,7 @@ public class Chain {
         instantiateProposalbuilder.chaincodeName(instantiateProposalRequest.getChaincodeName());
         instantiateProposalbuilder.chaincodePath(instantiateProposalRequest.getChaincodePath());
         instantiateProposalbuilder.chaincodeVersion(instantiateProposalRequest.getChaincodeVersion());
+        instantiateProposalbuilder.chaincodEndorsementPolicy(instantiateProposalRequest.getChaincodeEndorsementPolicy());
 
 
         FabricProposal.Proposal instantiateProposal = instantiateProposalbuilder.build();
@@ -653,7 +654,6 @@ public class Chain {
         installProposalbuilder.chaincodeName(installProposalRequest.getChaincodeName());
         installProposalbuilder.chaincodePath(installProposalRequest.getChaincodePath());
         installProposalbuilder.chaincodeVersion(installProposalRequest.getChaincodeVersion());
-
 
         FabricProposal.Proposal deploymentProposal = installProposalbuilder.build();
         FabricProposal.SignedProposal signedProposal = getSignedProposal(deploymentProposal);
