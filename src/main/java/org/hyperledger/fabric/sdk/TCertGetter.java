@@ -21,7 +21,7 @@ import java.util.Stack;
 // There is one class per set of attributes requested by each user.
 public class TCertGetter {
 
-    private Chain chain;
+ //   private Chain chain;
     private User user;
     private List<String> attrs;
     private String key;
@@ -43,18 +43,18 @@ public class TCertGetter {
         this.user = user;
         this.attrs = attrs;
         this.key = key;
-        this.chain = user.getChain();
+       // this.chain = user.getChain();
         this.memberServices = user.getMemberServices();
         this.tcerts = new Stack<>();
     }
 
-    /**
-    * Get the chain.
-    * @return {Chain} The chain.
-    */
-    public Chain getChain() {
-        return this.chain;
-    }
+//    /**
+//    * Get the chain.
+//    * @return {Chain} The chain.
+//    */
+//    public Chain getChain() {
+//        return this.chain;
+//    }
 
     public void getUserCert() {
         this.getNextTCert();

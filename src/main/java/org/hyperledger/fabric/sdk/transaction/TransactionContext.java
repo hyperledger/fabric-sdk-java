@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import org.hyperledger.fabric.sdk.Chain;
 import org.hyperledger.fabric.sdk.MemberServices;
 import org.hyperledger.fabric.sdk.TCert;
 import org.hyperledger.fabric.sdk.User;
+import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 
@@ -43,23 +44,29 @@ import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
  * Each transaction context uses exactly one tcert.
  */
 public class TransactionContext {
+    private static final Config config = Config.getConfig();
     private static final Log logger = LogFactory.getLog(TransactionContext.class);
     //TODO right now the server does not care need to figure out
     private final ByteString nonce = ByteString.copyFromUtf8(SDKUtil.generateUUID());
+
+
+
+    private boolean verify = true;
 
     public CryptoPrimitives getCryptoPrimitives() {
         return cryptoPrimitives;
     }
 
     private final CryptoPrimitives cryptoPrimitives;
-    private User user;
-    private Chain chain;
+    private final User user;
+    private final Chain chain;
 
-    private MemberServices memberServices;
+    private final MemberServices memberServices;
     private final String txID ;
     private TCert tcert;
     private List<String> attrs;
-    private long proposalWaitTime;
+    private long proposalWaitTime = config.getProposalWaitTime();
+    private final  Identities.SerializedIdentity  identity;
 
     public TransactionContext(Chain chain, User user, CryptoPrimitives cryptoPrimitives) {
 
@@ -71,22 +78,31 @@ public class TransactionContext {
         //  this.txID = transactionID;
         this.cryptoPrimitives = cryptoPrimitives;
 
-        byte[] mspid = getMSPID().getBytes();
 
-
-        Identities.SerializedIdentity.Builder identity = Identities.SerializedIdentity.newBuilder();
-        identity.setIdBytes(ByteString.copyFromUtf8(getCreator()));
-        identity.setMspid(getMSPID());
+         identity = Identities.SerializedIdentity.newBuilder()
+        .setIdBytes(ByteString.copyFromUtf8(getCreator()))
+        .setMspid(getMSPID()).build();
         
 
         ByteString no = getNonce();
-        ByteString comp = no.concat(identity.build().toByteString());
+        ByteString comp = no.concat(identity.toByteString());
         byte[] txh = cryptoPrimitives.hash(comp.toByteArray());
     //    txID = Hex.encodeHexString(txh);
         txID = new String( Hex.encodeHex(txh));
 
 
 
+    }
+
+    public Identities.SerializedIdentity getIdentity(){
+
+        return identity;
+
+    }
+
+
+    public long getEpoch(){
+        return 0;
     }
 
 
@@ -181,14 +197,14 @@ public class TransactionContext {
         */
     }
 
-    private TCert getMyTCert() {
-        if (!getChain().isSecurityEnabled() || this.tcert != null) {
-            logger.debug("TCert already cached.");
-            return this.tcert;
-        }
-        logger.debug("No TCert cached. Retrieving one.");
-        return this.user.getNextTCert(this.attrs);
-    }
+//    private TCert getMyTCert() {
+//        if ( this.tcert != null) {
+//            logger.debug("TCert already cached.");
+//            return this.tcert;
+//        }
+//        logger.debug("No TCert cached. Retrieving one.");
+//        return this.user.getNextTCert(this.attrs);
+//    }
 
     Timestamp currentTimeStamp = null;
 
@@ -204,10 +220,18 @@ public class TransactionContext {
         return currentTimeStamp;
     }
 
-    public ByteString getNonce() {
+    ByteString getNonce() {
 
         return nonce;
 
+    }
+
+    public void verify(boolean verify) {
+        this.verify = verify;
+    }
+
+    public boolean getVerify() {
+        return verify;
     }
 
     private static class SerializedIdentity {
@@ -244,52 +268,14 @@ public class TransactionContext {
         }
     }
 
-    ;
 
-    public String getMSPID() {
+    String getMSPID() {
         return chain.getEnrollment().getMSPID();
     }
 
-    public String getCreator() {
-        //TODO right now the server does not care need to figure out needs to tcert or ecert of user
-
-        /**
-         * Type SerializedIdentity struct {
-         Mspid string
-         IdBytes []byte
-         }
-         */
-
+    String getCreator() {
         return chain.getEnrollment().getCert();
 
-
-//        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-//        ASN1OutputStream encoder = new ASN1OutputStream(bos);
-//
-//        try {
-//
-//            MyStructure encoding = new MyStructure("DEFAULT", chain.getEnrollment().getCert().getBytes());
-//            encoder.writeObject(encoding);
-//
-//
-//
-//
-//            encoder.close();
-//            return bos.toByteArray();
-//
-//
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            throw new RuntimeException(e);
-//
-//        } finally {
-//            try {
-//                if (null != encoder)
-//                    encoder.close();
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//        }
     }
 
 

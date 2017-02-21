@@ -14,16 +14,18 @@
 
 package org.hyperledger.fabric.sdk;
 
-import org.hyperledger.fabric.sdk.events.EventHub;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
-
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
+
+import org.hyperledger.fabric.sdk.events.EventHub;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  * Test end to end scenario
@@ -46,6 +48,22 @@ public class End2endJavaChaincodeIT {
 
     final static String FABRIC_CA_SERVICES_LOCATION = "http://localhost:7054";
 
+    private TestConfigHelper configHelper = new TestConfigHelper();
+
+    @Before
+    public void checkConfig() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+        configHelper.clearConfig();
+        configHelper.customizeConfig();
+    }
+
+    @After
+    public void clearConfig() {
+        try {
+            configHelper.clearConfig();
+        } catch (Exception e) {
+        }
+        ;
+    }
 
     @Test
     @Ignore
@@ -54,13 +72,22 @@ public class End2endJavaChaincodeIT {
         HFClient client = HFClient.createNewInstance();
         try {
 
+            client.setUserContext(new User("admin"));
+            File fileStore = new File(System.getProperty("user.home") + "/test.properties");
+            if (fileStore.exists()) {
+                fileStore.delete();
+            }
+            client.setKeyValStore(new FileKeyValStore(fileStore));
+            client.setMemberServices(new MemberServicesFabricCAImpl(FABRIC_CA_SERVICES_LOCATION, null));
+            User user = client.enroll("admin", "adminpw");
+            client.setUserContext(user);
+
+
             //////////////////////////// TODo Needs to be made out of bounds and here chain just retrieved
             //Construct the chain
             //
 
             constructChain(client);
-
-            client.setUserContext(new User("admin")); // User will be defined by pluggable
 
             Chain chain = client.getChain(CHAIN_NAME);
 
@@ -68,14 +95,6 @@ public class End2endJavaChaincodeIT {
             chain.setInvokeWaitTime(1000);
             chain.setDeployWaitTime(12000);
 
-            chain.setMemberServicesUrl(FABRIC_CA_SERVICES_LOCATION, null);
-
-            File fileStore = new File(System.getProperty("user.home") + "/test.properties");
-            if (fileStore.exists()) {
-                fileStore.delete();
-            }
-            chain.setKeyValStore(new FileKeyValStore(fileStore.getAbsolutePath()));
-            chain.enroll("admin", "adminpw");
 
             chain.initialize();
 

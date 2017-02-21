@@ -14,10 +14,9 @@
 
 package org.hyperledger.fabric.sdk;
 
-import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
-import java.security.cert.CertificateException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,40 +42,49 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.StatusRuntimeException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.common.Common.Block;
+import org.hyperledger.fabric.protos.common.Common.ChannelHeader;
 import org.hyperledger.fabric.protos.common.Common.Envelope;
+import org.hyperledger.fabric.protos.common.Common.Header;
 import org.hyperledger.fabric.protos.common.Common.Payload;
 import org.hyperledger.fabric.protos.common.Policies.Policy;
+import org.hyperledger.fabric.protos.msp.Identities;
+import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.orderer.Ab.BroadcastResponse;
+import org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse;
 import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.protos.peer.FabricProposal.SignedProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 import org.hyperledger.fabric.protos.peer.PeerEvents.Event.EventCase;
 import org.hyperledger.fabric.sdk.BlockEvent.TransactionEvent;
 import org.hyperledger.fabric.sdk.events.BlockListener;
 import org.hyperledger.fabric.sdk.events.EventHub;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
-import org.hyperledger.fabric.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.InvalidTransactionException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
-import org.hyperledger.fabric.sdk.exception.RegistrationException;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.transaction.InstallProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.InstantiateProposalBuilder;
+import org.hyperledger.fabric.sdk.transaction.JoinPeerProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.ProposalBuilder;
+import org.hyperledger.fabric.sdk.transaction.ProtoUtils;
 import org.hyperledger.fabric.sdk.transaction.TransactionBuilder;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 
 import static java.lang.String.format;
+import static org.hyperledger.fabric.protos.common.Common.HeaderType;
+import static org.hyperledger.fabric.protos.common.Common.SignatureHeader;
+import static org.hyperledger.fabric.protos.common.Common.Status;
 import static org.hyperledger.fabric.protos.common.Policies.SignaturePolicy;
 import static org.hyperledger.fabric.protos.common.Policies.SignaturePolicyEnvelope;
 import static org.hyperledger.fabric.protos.peer.PeerEvents.Event;
 import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
+import static org.hyperledger.fabric.sdk.helper.SDKUtil.getNonce;
 import static org.hyperledger.fabric.sdk.helper.SDKUtil.nullOrEmptyString;
 
 
@@ -130,6 +138,34 @@ public class Chain {
     private int max_message_count = 50;
     private final Collection<EventHub> eventHubs = new LinkedList<>();
     private final ExecutorService es = Executors.newCachedThreadPool();
+    private Block genesisBlock;
+
+    Chain(String name, HFClient hfClient, Orderer orderer, ChainConfiguration chainConfiguration) throws InvalidArgumentException, TransactionException {
+        this(name, hfClient);
+
+        try {
+            Envelope envelope = Envelope.parseFrom(chainConfiguration.getChainConfigurationAsBytes());
+
+            BroadcastResponse trxResult = orderer.sendTransaction(envelope);
+            if (200 != trxResult.getStatusValue()) {
+                throw new TransactionException(format("New chain %s error. StatusValue %d. Status %s", name,
+                        trxResult.getStatusValue(), "" + trxResult.getStatus()));
+            }
+
+            getGenesisBlock(orderer);
+            if (genesisBlock == null) {
+                throw new TransactionException(format("New chain %s error. Genesis bock returned null", name));
+            }
+            addOrderer(orderer);
+        } catch (TransactionException e) {
+            logger.error(e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            throw new TransactionException(e.getMessage(), e);
+        }
+
+    }
 
 
     public Enrollment getEnrollment() {
@@ -162,6 +198,34 @@ public class Chain {
         }
         this.name = name;
         this.client = client;
+        keyValStore = client.getKeyValStore();
+        if (null == keyValStore) {
+            throw new InvalidArgumentException(format("Keystore value in chain %s can not be null", name));
+        }
+
+        memberServices = client.getMemberServices();
+
+        if (null == memberServices) {
+            throw new InvalidArgumentException(format("MemberServices value in chain %s can not be null", name));
+        }
+
+        cryptoPrimitives = client.getCryptoPrimitives();
+
+        if (null == cryptoPrimitives) {
+            throw new InvalidArgumentException(format("CryptoPrimitives value in chain %s can not be null", name));
+        }
+
+        User user = client.getUserContext();
+        if (null == user) {
+            throw new InvalidArgumentException(format("User context in chain %s can not be null", name));
+        }
+
+        enrollment = user.getEnrollment();
+
+        if (null == enrollment) {
+            throw new InvalidArgumentException(format("User in chain %s is not enrolled.", name));
+        }
+
     }
 
     /**
@@ -186,7 +250,7 @@ public class Chain {
             throw new InvalidArgumentException("Peer is invalid can not be null.");
         }
         if (nullOrEmptyString(peer.getName())) {
-            throw new InvalidArgumentException("Peer added to chan has no name.");
+            throw new InvalidArgumentException("Peer added to chain has no name.");
         }
 
         Exception e = checkGrpcUrl(peer.getUrl());
@@ -198,6 +262,54 @@ public class Chain {
         this.peers.add(peer);
         return this;
     }
+
+    Chain joinPeer(Peer peer) throws ProposalException {
+        if (genesisBlock == null && orderers.isEmpty()) {
+            ProposalException e = new ProposalException("Chain missing genesis block and no orderers configured");
+            logger.error(e.getMessage(), e);
+        }
+        try {
+
+            genesisBlock = getGenesisBlock(orderers.iterator().next());
+
+            peer.setChain(this);
+
+            TransactionContext transactionContext = getTransactionContext();
+            transactionContext.verify(false); // not targeted to a chain does not seem to be signed.
+
+            FabricProposal.Proposal joinProposal = JoinPeerProposalBuilder.newBuilder()
+                    .context(transactionContext)
+                    .genesisBlock(genesisBlock)
+                    .build();
+
+            SignedProposal signedProposal = getSignedProposal(joinProposal);
+
+
+            Collection<ProposalResponse> resp = sendProposalToPeers(new ArrayList<>(Arrays.asList(new Peer[]{peer})),
+                    signedProposal, transactionContext);
+
+            ProposalResponse pro = resp.iterator().next();
+
+            if (pro.getStatus() == ProposalResponse.Status.SUCCESS) {
+                logger.info(format("Peer %s joined into chain %s", peer.getName(), name));
+                addPeer(peer);
+
+            } else {
+                throw new ProposalException(format("Join peer to chain %s failed.  Status %s, details: %s",
+                        name, pro.getStatus().toString(), pro.getMessage()));
+
+            }
+        } catch (ProposalException e) {
+            logger.error(e);
+            throw e;
+        } catch (Exception e) {
+            logger.error(e);
+            throw new ProposalException(e.getMessage(), e);
+        }
+
+        return this;
+    }
+
 
     /**
      * addOrderer - Add an Orderer to the chain
@@ -268,45 +380,12 @@ public class Chain {
     }
 
     /**
-     * Set the member services URL
-     *
-     * @param url User services URL of the form: "grpc://host:port" or "grpcs://host:port"
-     * @param pem
-     * @throws CertificateException
-     */
-    public void setMemberServicesUrl(String url, String pem) throws CertificateException, MalformedURLException {
-        this.setMemberServices(new MemberServicesFabricCAImpl(url, pem));
-    }
-
-    /**
      * Get the member service associated this chain.
      *
      * @return MemberServices associated with the chain, or undefined if not set.
      */
     public MemberServices getMemberServices() {
         return this.memberServices;
-    }
-
-
-    /**
-     * Set the member service
-     *
-     * @param memberServices The MemberServices instance
-     */
-    public void setMemberServices(MemberServices memberServices) {
-        this.memberServices = memberServices;
-        if (memberServices instanceof MemberServicesFabricCAImpl) {
-            this.cryptoPrimitives = ((MemberServicesFabricCAImpl) memberServices).getCrypto();
-        }
-    }
-
-    /**
-     * Determine if security is enabled.
-     *
-     * @return true if security is enabled, false otherwise
-     */
-    public boolean isSecurityEnabled() {
-        return this.memberServices != null;
     }
 
     /**
@@ -380,16 +459,16 @@ public class Chain {
      *
      * @return The current KeyValStore associated with this chain, or undefined if not set.
      */
-    public KeyValStore getKeyValStore() {
+    KeyValStore getKeyValStore() {
         return this.keyValStore;
     }
 
-    /**
-     * Set the key value store implementation.
-     */
-    public void setKeyValStore(KeyValStore keyValStore) {
-        this.keyValStore = keyValStore;
-    }
+//    /**
+//     * Set the key value store implementation.
+//     */
+//    public void setKeyValStore(KeyValStore keyValStore) {
+//        this.keyValStore = keyValStore;
+//    }
 
     /**
      * Get the tcert batch size.
@@ -444,12 +523,124 @@ public class Chain {
     }
 
 
+    private Block getGenesisBlock(Orderer order) throws TransactionException {
+        try {
+            if (null == genesisBlock) {
+
+                Ab.SeekSpecified seekSpecified = Ab.SeekSpecified.newBuilder()
+                        .setNumber(0)
+                        .build();
+                Ab.SeekPosition seekPosition = Ab.SeekPosition.newBuilder()
+                        .setSpecified(seekSpecified)
+                        .build();
+
+                Ab.SeekSpecified seekStopSpecified = Ab.SeekSpecified.newBuilder()
+                        .setNumber(0)
+                        .build();
+
+                Ab.SeekPosition seekStopPosition = Ab.SeekPosition.newBuilder()
+                        .setSpecified(seekStopSpecified)
+                        .build();
+
+                Ab.SeekInfo seekInfo = Ab.SeekInfo.newBuilder()
+                        .setStart(seekPosition)
+                        .setStop(seekStopPosition)
+                        .setBehavior(Ab.SeekInfo.SeekBehavior.BLOCK_UNTIL_READY)
+                        .build();
+
+                ChannelHeader deliverChainHeader = ProtoUtils.createChannelHeader(HeaderType.DELIVER_SEEK_INFO, "4", name, 0, null);
+
+
+                String mspid = getEnrollment().getMSPID();
+                String cert = getEnrollment().getCert();
+
+                Identities.SerializedIdentity identity = Identities.SerializedIdentity.newBuilder()
+                        .setIdBytes(ByteString.copyFromUtf8(cert)).
+                                setMspid(mspid).build();
+
+
+                SignatureHeader deliverSignatureHeader = SignatureHeader.newBuilder()
+                        .setCreator(identity.toByteString())
+                        .setNonce(getNonce())
+                        .build();
+
+                Header deliverHeader = Header.newBuilder()
+                        .setSignatureHeader(deliverSignatureHeader.toByteString())
+                        .setChannelHeader(deliverChainHeader.toByteString())
+                        .build();
+
+                Payload deliverPayload = Payload.newBuilder()
+                        .setHeader(deliverHeader)
+                        .setData(seekInfo.toByteString())
+                        .build();
+
+                byte[] deliverPayload_bytes = deliverPayload.toByteArray();
+
+                byte[] deliver_signature = cryptoPrimitives.ecdsaSignToBytes(enrollment.getKey(), deliverPayload_bytes);
+
+                Envelope deliverEnvelope = Envelope.newBuilder()
+                        .setSignature(ByteString.copyFrom(deliver_signature))
+                        .setPayload(ByteString.copyFrom(deliverPayload_bytes))
+                        .build();
+
+                DeliverResponse[] deliver = order.sendDeliver(deliverEnvelope);
+                if (deliver.length != 2) {
+                    TransactionException exp = new TransactionException(format("Bad deliver expected 2 responses and got %d", deliver.length));
+                    logger.error(exp.getMessage(), exp);
+                    throw exp;
+                }
+                DeliverResponse status = deliver[0];//status is last
+                if (status.getStatusValue() != 200) {
+                    TransactionException exp = new TransactionException(format("Bad deliver expected status 200  got  %d, Chain %s" + status.getStatusValue(), name));
+                    logger.error(exp.getMessage(), exp);
+                    throw exp;
+                }
+                DeliverResponse blockresp = deliver[1];
+                //
+                //        BlockData blockData = block.getData();
+                //        BlockHeader blockHeader = block.getHeader();
+                //        BlockMetadata blockMetadata = block.getMetadata();
+                //        int datacount = blockData.getDataCount();
+                //        ByteString data = blockData.getData(0);
+                //
+                //        Envelope respEnv = Envelope.parseFrom(data);
+                //        ByteString respPayload = respEnv.getPayload();
+                //        Payload payLoad = Payload.parseFrom(respEnv.getPayload());
+                //        ByteString payloaddata = payLoad.getData();
+                //
+
+
+                //        Configuration configurationEnvelope = Configuration.parseFrom(payLoad.getData());
+                //        int itemsCount = configurationEnvelope.getItemsCount();
+                //        System.out.println("respEnv:" + itemsCount);
+
+                ///  Now do join peer proposal....
+
+
+                genesisBlock = blockresp.getBlock();
+            }
+        } catch (CryptoException e) {
+            TransactionException exp = new TransactionException("getGenesisBlock " + e.getMessage(), e);
+            logger.error(exp.getMessage(), exp);
+            throw exp;
+        }
+        if (genesisBlock == null) {
+
+            TransactionException exp = new TransactionException("getGenesisBlock returned null");
+            logger.error(exp.getMessage(), exp);
+            throw exp;
+
+        }
+        return genesisBlock;
+    }
+
+
     private static Policy buildPolicyEnvelope(int nOf) {
 
         SignaturePolicy.NOutOf nOutOf = SignaturePolicy.NOutOf.newBuilder().setN(nOf).build();
 
         SignaturePolicy signaturePolicy = SignaturePolicy.newBuilder().setNOutOf(nOutOf)
-               .build();
+                .build();
 
         SignaturePolicyEnvelope signaturePolicyEnvelope = SignaturePolicyEnvelope.newBuilder()
                 .setVersion(0)
@@ -501,84 +692,84 @@ public class Chain {
 //        return signedConfigurationItem.build();
 //    }
 
-    /**
-     * Get the user with a given name
-     *
-     * @return user
-     */
-    public User getMember(String name) {
-        if (null == keyValStore)
-            throw new RuntimeException("No key value store was found.  You must first call Chain.setKeyValStore");
-        if (null == memberServices)
-            throw new RuntimeException("No user services was found.  You must first call Chain.setMemberServices or Chain.setMemberServicesUrl");
+//    /**
+//     * Get the user with a given name
+//     *
+//     * @return user
+//     */
+//    public User getMember(String name) {
+//        if (null == keyValStore)
+//            throw new RuntimeException("No key value store was found.  You must first call Chain.setKeyValStore");
+//        if (null == memberServices)
+//            throw new RuntimeException("No user services was found.  You must first call Chain.setMemberServices or Chain.setMemberServicesUrl");
+//
+//        // Try to get the user state from the cache
+//        User user = members.get(name);
+//        if (null != user) return user;
+//
+//        // Create the user and try to restore it's state from the key value store (if found).
+//        user = new User(name, this);
+//        user.restoreState();
+//        return user;
+//
+//    }
+//
+////    /**
+//     * Get a user.
+//     * A user is a specific type of member.
+//     * Another type of member is a peer.
+//     */
+//    User getUser(String name) {
+//        return getMember(name);
+//    }
+//
 
-        // Try to get the user state from the cache
-        User user = members.get(name);
-        if (null != user) return user;
-
-        // Create the user and try to restore it's state from the key value store (if found).
-        user = new User(name, this);
-        user.restoreState();
-        return user;
-
-    }
-
-    /**
-     * Get a user.
-     * A user is a specific type of member.
-     * Another type of member is a peer.
-     */
-    User getUser(String name) {
-        return getMember(name);
-    }
-
-
-    /**
-     * Register a user or other user type with the chain.
-     *
-     * @param registrationRequest Registration information.
-     * @throws RegistrationException if the registration fails
-     */
-    public User register(RegistrationRequest registrationRequest) throws RegistrationException {
-        User user = getMember(registrationRequest.getEnrollmentID());
-        user.register(registrationRequest);
-        return user;
-    }
-
-    /**
-     * Enroll a user or other identity which has already been registered.
-     *
-     * @param name   The name of the user or other member to enroll.
-     * @param secret The enrollment secret of the user or other member to enroll.
-     * @throws EnrollmentException
-     */
-
-    public User enroll(String name, String secret) throws EnrollmentException {
-        User user = getMember(name);
-        if (!user.isEnrolled()) {
-            user.enroll(secret);
-        }
-        enrollment = user.getEnrollment();
-
-        members.put(name, user);
-
-        return user;
-    }
-
-    /**
-     * Register and enroll a user or other member type.
-     * This assumes that a registrar with sufficient privileges has been set.
-     *
-     * @param registrationRequest Registration information.
-     * @throws RegistrationException
-     * @throws EnrollmentException
-     */
-    public User registerAndEnroll(RegistrationRequest registrationRequest) throws RegistrationException, EnrollmentException {
-        User user = getMember(registrationRequest.getEnrollmentID());
-        user.registerAndEnroll(registrationRequest);
-        return user;
-    }
-
+//    /**
+//     * Register a user or other user type with the chain.
+//     *
+//     * @param registrationRequest Registration information.
+//     * @throws RegistrationException if the registration fails
+//     */
+//    public User register(RegistrationRequest registrationRequest) throws RegistrationException {
+//        User user = getMember(registrationRequest.getEnrollmentID());
+//        user.register(registrationRequest);
+//        return user;
+//    }
+//
+//    /**
+//     * Enroll a user or other identity which has already been registered.
+//     *
+//     * @param name   The name of the user or other member to enroll.
+//     * @param secret The enrollment secret of the user or other member to enroll.
+//     * @throws EnrollmentException
+//     */
+//
+//    public User enroll(String name, String secret) throws EnrollmentException {
+//        User user = getMember(name);
+//        if (!user.isEnrolled()) {
+//            user.enroll(secret);
+//        }
+//        enrollment = user.getEnrollment();
+//
+//        members.put(name, user);
+//
+//        return user;
+//    }
+//
+//    /**
+//     * Register and enroll a user or other member type.
+//     * This assumes that a registrar with sufficient privileges has been set.
+//     *
+//     * @param registrationRequest Registration information.
+//     * @throws RegistrationException
+//     * @throws EnrollmentException
+//     */
+//    public User registerAndEnroll(RegistrationRequest registrationRequest) throws RegistrationException, EnrollmentException {
+//        User user = getMember(registrationRequest.getEnrollmentID());
+//        user.registerAndEnroll(registrationRequest);
+//        return user;
+//    }
+//
 
     public Collection<Orderer> getOrderers() {
         return Collections.unmodifiableCollection(orderers);
@@ -590,9 +781,16 @@ public class Chain {
      * @param name
      * @return A new chain
      */
-    public static Chain createNewInstance(String name, HFClient clientContext) throws InvalidArgumentException {
+    static Chain createNewInstance(String name, HFClient clientContext) throws InvalidArgumentException {
         return new Chain(name, clientContext);
     }
+
+    static Chain createNewInstance(String name, HFClient hfClient, Orderer orderer, ChainConfiguration chainConfiguration) throws InvalidArgumentException, TransactionException {
+
+        return new Chain(name, hfClient, orderer, chainConfiguration);
+
+    }
+
 
     public Collection<ProposalResponse> sendInstantiationProposal(InstantiateProposalRequest instantiateProposalRequest, Collection<Peer> peers) throws Exception {
 
@@ -610,7 +808,7 @@ public class Chain {
         }
 
 
-        TransactionContext transactionContext = new TransactionContext(this, this.client.getUserContext(), cryptoPrimitives);
+        TransactionContext transactionContext = getTransactionContext();
         transactionContext.setProposalWaitTime(instantiateProposalRequest.getProposalWaitTime());
         InstantiateProposalBuilder instantiateProposalbuilder = InstantiateProposalBuilder.newBuilder();
         instantiateProposalbuilder.context(transactionContext);
@@ -623,10 +821,14 @@ public class Chain {
 
 
         FabricProposal.Proposal instantiateProposal = instantiateProposalbuilder.build();
-        FabricProposal.SignedProposal signedProposal = getSignedProposal(instantiateProposal);
+        SignedProposal signedProposal = getSignedProposal(instantiateProposal);
 
 
         return sendProposalToPeers(peers, signedProposal, transactionContext);
+    }
+
+    private TransactionContext getTransactionContext() {
+        return new TransactionContext(this, this.client.getUserContext(), cryptoPrimitives);
     }
 
     public Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest, Collection<Peer> peers)
@@ -645,7 +847,8 @@ public class Chain {
         }
 
 
-        TransactionContext transactionContext = new TransactionContext(this, this.client.getUserContext(), cryptoPrimitives);
+        TransactionContext transactionContext = getTransactionContext();
+        transactionContext.verify(false);  // Install will have no signing cause it's not really targeted to a chain.
         transactionContext.setProposalWaitTime(installProposalRequest.getProposalWaitTime());
         InstallProposalBuilder installProposalbuilder = InstallProposalBuilder.newBuilder();
         installProposalbuilder.context(transactionContext);
@@ -655,16 +858,16 @@ public class Chain {
         installProposalbuilder.chaincodeVersion(installProposalRequest.getChaincodeVersion());
 
         FabricProposal.Proposal deploymentProposal = installProposalbuilder.build();
-        FabricProposal.SignedProposal signedProposal = getSignedProposal(deploymentProposal);
+        SignedProposal signedProposal = getSignedProposal(deploymentProposal);
 
 
         return sendProposalToPeers(peers, signedProposal, transactionContext);
     }
 
 
-    private FabricProposal.SignedProposal getSignedProposal(FabricProposal.Proposal proposal) throws CryptoException {
+    private SignedProposal getSignedProposal(FabricProposal.Proposal proposal) throws CryptoException {
         byte[] ecdsaSignature = cryptoPrimitives.ecdsaSignToBytes(enrollment.getKey(), proposal.toByteArray());
-        FabricProposal.SignedProposal.Builder signedProposal = FabricProposal.SignedProposal.newBuilder();
+        SignedProposal.Builder signedProposal = SignedProposal.newBuilder();
 
 
         signedProposal.setProposalBytes(proposal.toByteString());
@@ -673,9 +876,9 @@ public class Chain {
         return signedProposal.build();
     }
 
-    private FabricProposal.SignedProposal signTransActionEnvelope(FabricProposal.Proposal deploymentProposal) throws CryptoException {
+    private SignedProposal signTransActionEnvelope(FabricProposal.Proposal deploymentProposal) throws CryptoException {
         byte[] ecdsaSignature = cryptoPrimitives.ecdsaSignToBytes(enrollment.getKey(), deploymentProposal.toByteArray());
-        FabricProposal.SignedProposal.Builder signedProposal = FabricProposal.SignedProposal.newBuilder();
+        SignedProposal.Builder signedProposal = SignedProposal.newBuilder();
 
 
         signedProposal.setProposalBytes(deploymentProposal.toByteString());
@@ -717,7 +920,7 @@ public class Chain {
             throw new InvalidTransactionException("sendProposal on chain not initialized.");
         }
 
-        TransactionContext transactionContext = new TransactionContext(this, this.client.getUserContext(), cryptoPrimitives);
+        TransactionContext transactionContext = getTransactionContext();
         transactionContext.setProposalWaitTime(queryProposalRequest.getProposalWaitTime());
         ProposalBuilder proposalBuilder = ProposalBuilder.newBuilder();
         proposalBuilder.context(transactionContext);
@@ -735,12 +938,12 @@ public class Chain {
                 Chaincode.ChaincodeSpec.Type.JAVA : Chaincode.ChaincodeSpec.Type.GOLANG);
 
 
-        FabricProposal.SignedProposal invokeProposal = getSignedProposal(proposalBuilder.build());
+        SignedProposal invokeProposal = getSignedProposal(proposalBuilder.build());
         return sendProposalToPeers(peers, invokeProposal, transactionContext);
     }
 
     private Collection<ProposalResponse> sendProposalToPeers(Collection<Peer> peers,
-                                                             FabricProposal.SignedProposal signedProposal,
+                                                             SignedProposal signedProposal,
                                                              TransactionContext transactionContext) throws Exception {
         class Pair {
             private final Peer peer;
@@ -770,7 +973,7 @@ public class Chain {
                 status = 500;
                 logger.error(message, e);
             } catch (TimeoutException e) {
-                message = String.format("Sending proposal to peer failed because of timeout(%d milliseconds) expiration",
+                message = format("Sending proposal to peer failed because of timeout(%d milliseconds) expiration",
                         transactionContext.getProposalWaitTime());
                 status = 500;
                 logger.error(message, e);
@@ -781,10 +984,10 @@ public class Chain {
                     throw (Error) cause;
                 } else {
                     if (cause instanceof StatusRuntimeException) {
-                        message = String.format("Sending proposal to peer failed because of gRPC failure=%s",
+                        message = format("Sending proposal to peer failed because of gRPC failure=%s",
                                 ((StatusRuntimeException) cause).getStatus());
                     } else {
-                        message = String.format("Sending proposal to peer failed because of %s", cause.getMessage());
+                        message = format("Sending proposal to peer failed because of %s", cause.getMessage());
                     }
                     status = 500;
                     logger.error(message, new Exception(cause));//wrapped in exception to get full stack trace.
@@ -797,7 +1000,7 @@ public class Chain {
             proposalResponse.setProposal(signedProposal);
             proposalResponse.setPeer(peerFuturePair.peer);
 
-            if (fabricResponse != null) {
+            if (fabricResponse != null && transactionContext.getVerify()) {
                 proposalResponse.verify(cryptoPrimitives);
             }
 
@@ -832,18 +1035,18 @@ public class Chain {
 
             List<FabricProposalResponse.Endorsement> ed = new LinkedList<>();
             FabricProposal.Proposal proposal = null;
-            ByteString  proposalResponsePayload = null;
+            ByteString proposalResponsePayload = null;
             String proposalTransactionID = null;
 
 
             for (ProposalResponse sdkProposalResponse : proposalResponses) {
                 ed.add(sdkProposalResponse.getProposalResponse().getEndorsement());
-                if(proposal == null){
+                if (proposal == null) {
                     proposal = sdkProposalResponse.getProposal();
-                    proposalTransactionID =sdkProposalResponse.getTransactionID();
+                    proposalTransactionID = sdkProposalResponse.getTransactionID();
                     proposalResponsePayload = sdkProposalResponse.getProposalResponse().getPayload();
 
-                  }
+                }
             }
 
 
@@ -866,7 +1069,7 @@ public class Chain {
 
                 try {
                     BroadcastResponse resp = orderer.sendTransaction(transactionEnvelope);
-                    if (resp.getStatus() == Common.Status.SUCCESS) {
+                    if (resp.getStatus() == Status.SUCCESS) {
 
                         success = true;
                         break;
@@ -991,39 +1194,39 @@ public class Chain {
         eventTask = () -> {
 
 
-            for (;;) {
+            for (; ; ) {
                 final Event event = chainEventQue.getNextEvent();
                 if (event == null) {
                     continue;
                 }
 
-                    try {
-                        final BlockEvent blockEvent = new BlockEvent(event.getBlock());
+                try {
+                    final BlockEvent blockEvent = new BlockEvent(event.getBlock());
 
-                        String blockchainID = blockEvent.getChannelID();
+                    String blockchainID = blockEvent.getChannelID();
 
-                        if (!Objects.equals(name, blockchainID)) {
-                            continue; // not targeted for this chain
-                        }
-
-                        final ArrayList<BL> blcopy = new ArrayList<>(blockListeners.size() + 3);
-                        synchronized (blockListeners) {
-                            blcopy.addAll(blockListeners.values());
-                        }
-
-
-                        for (BL l : blcopy) {
-                            try {
-                                es.execute(() -> l.listener.received(blockEvent));
-                            } catch (Throwable e) { //Don't let one register stop rest.
-                                logger.error("Error trying to call block listener on chain " + blockEvent.getChannelID(), e);
-                            }
-                        }
-                    } catch (InvalidProtocolBufferException e) {
-                        logger.error("Unable to parse event", e);
-                        logger.debug("event:\n)");
-                        logger.debug(event.toString());
+                    if (!Objects.equals(name, blockchainID)) {
+                        continue; // not targeted for this chain
                     }
+
+                    final ArrayList<BL> blcopy = new ArrayList<>(blockListeners.size() + 3);
+                    synchronized (blockListeners) {
+                        blcopy.addAll(blockListeners.values());
+                    }
+
+
+                    for (BL l : blcopy) {
+                        try {
+                            es.execute(() -> l.listener.received(blockEvent));
+                        } catch (Throwable e) { //Don't let one register stop rest.
+                            logger.error("Error trying to call block listener on chain " + blockEvent.getChannelID(), e);
+                        }
+                    }
+                } catch (InvalidProtocolBufferException e) {
+                    logger.error("Unable to parse event", e);
+                    logger.debug("event:\n)");
+                    logger.debug(event.toString());
+                }
             }
         };
 
@@ -1186,8 +1389,8 @@ public class Chain {
                 es.execute(() -> future.complete(transactionEvent));
             else
                 es.execute(() -> future.completeExceptionally(
-                                new TransactionEventException("Received invalid transaction event. Transaction ID : " + transactionEvent.getTransactionID(),
-                                                              transactionEvent)));
+                        new TransactionEventException("Received invalid transaction event. Transaction ID : " + transactionEvent.getTransactionID(),
+                                transactionEvent)));
         }
 
         //KEEP THIS FOR NOW in case in the future we decide we want it.

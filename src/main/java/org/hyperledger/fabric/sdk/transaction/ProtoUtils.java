@@ -38,11 +38,11 @@ public class ProtoUtils {
      * @param chaincodeHeaderExtension
      * @return
      */
-    static ChannelHeader createChannelHeader(HeaderType type, String txID, String chainID, long epoch, ChaincodeHeaderExtension chaincodeHeaderExtension) {
+    public static ChannelHeader createChannelHeader(HeaderType type, String txID, String chainID, long epoch, ChaincodeHeaderExtension chaincodeHeaderExtension) {
 
         ChannelHeader.Builder ret = ChannelHeader.newBuilder()
                 .setType(type.getNumber())
-                .setVersion(0)
+                .setVersion(1)
                 .setTxId(txID)
                 .setChannelId(chainID)
                 .setEpoch(epoch);
@@ -54,9 +54,9 @@ public class ProtoUtils {
 
     }
 
-    static ChaincodeDeploymentSpec createDeploymentSpec(Type ccType, String name, String chaincodePath,
-                                                         String chainCodeVersion, List<String> args,
-                                                         byte[] codePackage) {
+    public static ChaincodeDeploymentSpec createDeploymentSpec(Type ccType, String name, String chaincodePath,
+                                                               String chainCodeVersion, List<String> args,
+                                                               byte[] codePackage) {
 
 
         ChaincodeID.Builder chaincodeIDBuilder = ChaincodeID.newBuilder().setName(name).setVersion(chainCodeVersion);
@@ -67,7 +67,7 @@ public class ProtoUtils {
         ChaincodeID chaincodeID = chaincodeIDBuilder.build();
 
         // build chaincodeInput
-        List<ByteString> argList = new ArrayList<>(args == null ? 0 :args.size());
+        List<ByteString> argList = new ArrayList<>(args == null ? 0 : args.size());
         if (args != null && args.size() != 0) {
 
             for (String arg : args) {
@@ -98,6 +98,32 @@ public class ProtoUtils {
         }
 
         return chaincodeDeploymentSpecBuilder.build();
+
+    }
+
+    public static ChaincodeSpec createChainCodeSpec(String name, ChaincodeSpec.Type ccType, Object... args) {
+
+        ChaincodeID chaincodeID = ChaincodeID.newBuilder().setName(name).build();
+
+
+        List<ByteString> argList = new ArrayList<>(args.length);
+
+        for (Object arg : args) {
+            if (arg instanceof String) {
+                arg = ByteString.copyFrom(((String) arg).getBytes());
+            } else if (arg instanceof byte[]) {
+                arg = ByteString.copyFrom((byte[]) arg);
+            }
+            argList.add((ByteString) arg);
+        }
+
+        ChaincodeInput chaincodeInput = ChaincodeInput.newBuilder()
+                .addAllArgs(argList)
+                .build();
+
+        return ChaincodeSpec.newBuilder().setType(ccType).setChaincodeId(chaincodeID)
+                .setInput(chaincodeInput)
+                .build();
 
     }
 }

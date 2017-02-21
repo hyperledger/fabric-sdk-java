@@ -14,6 +14,8 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.io.File;
+
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.PeerException;
@@ -27,10 +29,12 @@ public class PeerTest {
 	static HFClient hfclient = null;
 	static Peer peer = null;
 
+
 	@BeforeClass
 	public static void setupClient() {
         try {
-            hfclient = HFClient.createNewInstance();
+			hfclient = TestHFClient.newInstance();
+
             peer= hfclient.newPeer("grpc://localhost:7051");
         } catch (Exception e) {
             e.printStackTrace();

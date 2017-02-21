@@ -14,9 +14,12 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.io.File;
+
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class ChainTest {
@@ -24,10 +27,13 @@ public class ChainTest {
     static HFClient hfclient = null;
 
 
+
     @BeforeClass
     public static void setupClient() {
+
+
         try {
-            hfclient = HFClient.createNewInstance();
+            hfclient = TestHFClient.newInstance();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -40,7 +46,7 @@ public class ChainTest {
     public void testChainCreation() {
 
         try {
-            HFClient hfclient = HFClient.createNewInstance();
+
             final String CHAIN_NAME = "chain3";
             Chain testchain = new Chain(CHAIN_NAME, hfclient);
             Assert.assertEquals(CHAIN_NAME, testchain.getName());
@@ -60,7 +66,7 @@ public class ChainTest {
     public void testChainAddPeer() {
 
         try {
-            HFClient hfclient = HFClient.createNewInstance();
+
             final String CHAIN_NAME = "chain3";
             final Chain testchain = new Chain(CHAIN_NAME, hfclient);
             final Peer peer = hfclient.newPeer("grpc://localhost:7051");
@@ -82,7 +88,7 @@ public class ChainTest {
     public void testChainAddOrder() {
 
         try {
-            HFClient hfclient = HFClient.createNewInstance();
+
             final String CHAIN_NAME = "chain3";
             final Chain testchain = new Chain(CHAIN_NAME, hfclient);
             final Orderer orderer = hfclient.newOrderer("grpc://localhost:7051");
@@ -105,7 +111,7 @@ public class ChainTest {
         Chain testchain = null;
 
         try {
-            HFClient hfclient = HFClient.createNewInstance();
+
             final String CHAIN_NAME = "chain3";
             testchain = new Chain(CHAIN_NAME, hfclient);
 
@@ -127,7 +133,7 @@ public class ChainTest {
         Chain testchain = null;
 
         try {
-            HFClient hfclient = HFClient.createNewInstance();
+
             final String CHAIN_NAME = "chain3";
             testchain = new Chain(CHAIN_NAME, hfclient);
             final Peer peer = hfclient.newPeer("grpc://localhost:7051");
@@ -136,7 +142,7 @@ public class ChainTest {
             Assert.fail("Expected no named peer to throw exception.");
 
 
-        } catch (InvalidArgumentException e) {
+        } catch (Exception e) {
             Assert.assertEquals(testchain.getPeers().size(), 0);
             Assert.assertTrue(e.getClass() == InvalidArgumentException.class);
         }
@@ -148,7 +154,7 @@ public class ChainTest {
         Chain testchain = null;
 
         try {
-            HFClient hfclient = HFClient.createNewInstance();
+
             final String CHAIN_NAME = "chain3";
             testchain = new Chain(CHAIN_NAME, hfclient);
 
@@ -168,11 +174,10 @@ public class ChainTest {
     public void testChainInitialize() { //test may not be doable once initialize is done
 
         try {
-            HFClient hfclient = HFClient.createNewInstance();
+
             final String CHAIN_NAME = "chain3";
             final Chain testchain = new Chain(CHAIN_NAME, hfclient);
             final Peer peer = hfclient.newPeer("grpc://localhost:7051");
-            hfclient.setUserContext(new User("admin"));
             peer.setName("mypeer");
 
             testchain.addPeer(peer);
@@ -192,7 +197,7 @@ public class ChainTest {
         Chain testchain = null;
 
         try {
-            HFClient hfclient = HFClient.createNewInstance();
+
             final String CHAIN_NAME = "chain3";
             testchain = new Chain(CHAIN_NAME, hfclient);
 

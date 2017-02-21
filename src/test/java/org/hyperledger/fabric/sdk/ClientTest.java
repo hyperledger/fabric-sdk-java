@@ -14,6 +14,10 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.io.File;
+import java.io.IOException;
+import java.security.cert.CertificateException;
+
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -24,8 +28,16 @@ public class ClientTest {
     static HFClient hfclient = null;
 
     @BeforeClass
-    public static void setupClient() {
-        hfclient = HFClient.createNewInstance();
+    public static void setupClient() throws Exception {
+        try {
+            hfclient = TestHFClient.newInstance();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail("Unexpected Exception " + e.getMessage());
+
+        }
+
     }
 
     @Test

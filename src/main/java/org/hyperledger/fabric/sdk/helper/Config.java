@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 IBM, DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
+ *  Copyright 2016, 2017 IBM, DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -26,8 +26,9 @@ import org.apache.commons.logging.LogFactory;
  * toolkit configuration defaults. Has a local config file that can override any
  * property defaults. Config file can be relocated via a system property
  * "org.hyperledger.fabric.sdk.configuration". Any property can be overridden
+ * with environment variable and then overridden
  * with a java system property. Property hierarchy goes System property
- * overrides config file overrides default values specified here.
+ * overrides environment variable which overrides config file for default values specified here.
  */
 
 public class Config {
@@ -43,20 +44,20 @@ public class Config {
     private final static Properties sdkProperties = new Properties();
 
     private Config() {
-        File loadFile = null;
+        File loadFile;
         FileInputStream configProps;
 
         try {
             loadFile = new File(System.getProperty(ORG_HYPERLEDGER_FABRIC_SDK_CONFIGURATION, DEFAULT_CONFIG))
-                            .getAbsoluteFile();
+                    .getAbsoluteFile();
             logger.debug(String.format("Loading configuration from %s and it is present: %b", loadFile.toString(),
-                            loadFile.exists()));
+                    loadFile.exists()));
             configProps = new FileInputStream(loadFile);
             sdkProperties.load(configProps);
 
         } catch (IOException e) {
             logger.warn(String.format("Failed to load any configuration from: %s. Using toolkit defaults",
-                            DEFAULT_CONFIG));
+                    DEFAULT_CONFIG));
         } finally {
 
             // Default values
@@ -109,17 +110,27 @@ public class Config {
      */
     private String getProperty(String property, String defaultValue) {
 
-        String ret = sdkProperties.getProperty(property, defaultValue);
-        return ret;
+        return sdkProperties.getProperty(property, defaultValue);
     }
 
     static private void defaultProperty(String key, String value) {
 
+
         String ret = System.getProperty(key);
         if (ret != null) {
             sdkProperties.put(key, ret);
-        } else if (null == sdkProperties.getProperty(key)) {
-            sdkProperties.put(key, value);
+        } else {
+            String envKey = key.toUpperCase().replaceAll("\\.", "_");
+            ret = System.getenv(envKey);
+            if (null != ret) {
+                sdkProperties.put(key, ret);
+            } else {
+                if (null == sdkProperties.getProperty(key)) {
+                    sdkProperties.put(key, value);
+                }
+
+            }
+
         }
     }
 

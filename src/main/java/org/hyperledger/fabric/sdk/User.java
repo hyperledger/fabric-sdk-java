@@ -43,7 +43,7 @@ public class User implements Serializable {
     private String account;
     private String affiliation;
     private String enrollmentSecret;
-    private Enrollment enrollment = null;
+    Enrollment enrollment = null; //need access in test env.
     private transient MemberServices memberServices;
     private transient KeyValStore keyValStore;
     private String keyValStoreName;
@@ -67,12 +67,22 @@ public class User implements Serializable {
         this.memberServices = chain.getMemberServices();
         this.keyValStore = chain.getKeyValStore();
         this.keyValStoreName = toKeyValStoreName(this.name);
-        this.tcertBatchSize = chain.getTCertBatchSize();
+      //  this.tcertBatchSize = chain.getTCertBatchSize();
         this.tcertGetterMap = new HashMap<>();
     }
 
     public User(String name) {
         this.name = name;
+    }
+
+    public User(String name, HFClient hfClient) {
+        this.name = name;
+        this.chain = chain;
+        this.memberServices = hfClient.getMemberServices();
+        this.keyValStore = hfClient.getKeyValStore();
+        this.keyValStoreName = toKeyValStoreName(this.name);
+//        this.tcertBatchSize = chain.getTCertBatchSize();
+//        this.tcertGetterMap = new HashMap<>();
     }
 
     /**
@@ -84,15 +94,15 @@ public class User implements Serializable {
         return this.name;
     }
 
-    /**
-     * Get the chain.
-     *
-     * @return {Chain} The chain.
-     */
-    public Chain getChain() {
-        return this.chain;
-    }
-
+//    /**
+//     * Get the chain.
+//     *
+//     * @return {Chain} The chain.
+//     */
+//    public Chain getChain() {
+//        return this.chain;
+//    }
+//
     /**
      * Get the member services.
      *
@@ -157,19 +167,19 @@ public class User implements Serializable {
         this.affiliation = affiliation;
     }
 
-    /**
-     * Get the transaction certificate (tcert) batch size, which is the number of tcerts retrieved
-     * from member services each time (i.e. in a single batch).
-     *
-     * @return The tcert batch size.
-     */
-    public int getTCertBatchSize() {
-        if (this.tcertBatchSize <= 0) {
-            return this.chain.getTCertBatchSize();
-        } else {
-            return this.tcertBatchSize;
-        }
-    }
+//    /**
+//     * Get the transaction certificate (tcert) batch size, which is the number of tcerts retrieved
+//     * from member services each time (i.e. in a single batch).
+//     *
+//     * @return The tcert batch size.
+//     */
+//    public int getTCertBatchSize() {
+//        if (this.tcertBatchSize <= 0) {
+//            return this.chain.getTCertBatchSize();
+//        } else {
+//            return this.tcertBatchSize;
+//        }
+//    }
 
     /**
      * Set the transaction certificate (tcert) batch size.
@@ -251,40 +261,40 @@ public class User implements Serializable {
         enroll(this.enrollmentSecret);
     }
 
-    /**
-     * Get a user certificate.
-     *
-     * @param attrs The names of attributes to include in the user certificate.
-     */
-    public void getUserCert(List<String> attrs) {
-        this.getNextTCert(attrs);
-    }
+//    /**
+//     * Get a user certificate.
+//     *
+//     * @param attrs The names of attributes to include in the user certificate.
+//     */
+//    public void getUserCert(List<String> attrs) {
+//        this.getNextTCert(attrs);
+//    }
 
 
 
 
-    /**
-     * Get the next available transaction certificate with the appropriate attributes.
-     */
-    public TCert getNextTCert(List<String> attrs) {
-        if (!isEnrolled()) {
-            throw new RuntimeException(String.format("user '%s' is not enrolled", this.getName()));
-        }
-        String key = getAttrsKey(attrs);
-        if (key == null) {
-            return null;
-        }
-
-        logger.debug(String.format("User.getNextTCert: key=%s", key));
-        TCertGetter tcertGetter = this.tcertGetterMap.get(key);
-        if (tcertGetter == null) {
-            logger.debug(String.format("User.getNextTCert: key=%s, creating new getter", key));
-            tcertGetter = new TCertGetter(this, attrs, key);
-            this.tcertGetterMap.put(key, tcertGetter);
-        }
-        return tcertGetter.getNextTCert();
-
-    }
+//    /**
+//     * Get the next available transaction certificate with the appropriate attributes.
+//     */
+//    public TCert getNextTCert(List<String> attrs) {
+//        if (!isEnrolled()) {
+//            throw new RuntimeException(String.format("user '%s' is not enrolled", this.getName()));
+//        }
+//        String key = getAttrsKey(attrs);
+//        if (key == null) {
+//            return null;
+//        }
+//
+//        logger.debug(String.format("User.getNextTCert: key=%s", key));
+//        TCertGetter tcertGetter = this.tcertGetterMap.get(key);
+//        if (tcertGetter == null) {
+//            logger.debug(String.format("User.getNextTCert: key=%s, creating new getter", key));
+//            tcertGetter = new TCertGetter(this, attrs, key);
+//            this.tcertGetterMap.put(key, tcertGetter);
+//        }
+//        return tcertGetter.getNextTCert();
+//
+//    }
 
     private String getAttrsKey(List<String> attrs) {
         if (attrs == null || attrs.isEmpty()) return null;

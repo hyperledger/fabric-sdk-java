@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,7 +19,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.orderer.Ab;
+import org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.exception.TransactionException;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
 
 /**
@@ -104,6 +106,13 @@ public class Orderer {
 
     public static Orderer createNewInstance(String url, String pem) throws InvalidArgumentException {
         return new Orderer(url, pem, null);
+
+    }
+
+     DeliverResponse[] sendDeliver(Common.Envelope transaction) throws TransactionException {
+
+        OrdererClient orderClient = new OrdererClient(new Endpoint(url, pem).getChannelBuilder());
+        return orderClient.sendDeliver(transaction);
 
     }
 

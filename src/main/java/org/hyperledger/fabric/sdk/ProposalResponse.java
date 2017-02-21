@@ -63,7 +63,7 @@ public class ProposalResponse extends ChainCodeResponse {
             this.isVerified = crypto.verify(plainText.toByteArray(), sig.toByteArray(),
                     endorser.getIdBytes().toByteArray());
         } catch (InvalidProtocolBufferException e) {
-            logger.error("verify: Cannot retrieve peer identity from ProposalResponse. Error is: " + e.getMessage());
+            logger.error("verify: Cannot retrieve peer identity from ProposalResponse. Error is: " + e.getMessage(), e);
             this.isVerified = false;
         }
 

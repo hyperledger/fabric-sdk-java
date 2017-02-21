@@ -199,10 +199,10 @@ public class CryptoPrimitives {
             }
         } catch (InvalidKeyException | CertificateException e) {
             logger.error("Cannot verify signature. Error is: " + e.getMessage() + "\r\nCertificate (PEM, hex): "
-                            + DatatypeConverter.printHexBinary(pemCertificate));
+                            + DatatypeConverter.printHexBinary(pemCertificate),e);
             isVerified = false;
         } catch (NoSuchAlgorithmException | SignatureException e) {
-            logger.error("Cannot verify. Signature algorithm is invalid. Error is: " + e.getMessage());
+            logger.error("Cannot verify. Signature algorithm is invalid. Error is: " + e.getMessage(),e);
             isVerified = false;
         }
 

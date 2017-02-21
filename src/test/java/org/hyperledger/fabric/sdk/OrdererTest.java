@@ -16,6 +16,9 @@ package org.hyperledger.fabric.sdk;
 
 
 
+import java.io.File;
+import java.io.IOException;
+
 import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.junit.Assert;
@@ -26,12 +29,15 @@ public class OrdererTest {
         private static final String CHAIN_NAME = "chain1";
         static HFClient hfclient = null;
         static Orderer orderer = null;
+        static File tempFile;
 
         @BeforeClass
-        public static void setupClient() {
-                hfclient = HFClient.createNewInstance();
+        public static void setupClient() throws Exception {
+
+
                 try {
                         //hfclient = HFClient.createNewInstance();
+                        hfclient = TestHFClient.newInstance();
                         orderer= hfclient.newOrderer("grpc://localhost:5151");
                 } catch (Exception e) {
                         e.printStackTrace();
@@ -106,6 +112,15 @@ public class OrdererTest {
                 } catch (Exception e) {
                         e.printStackTrace();
                         Assert.fail("Expected null chain to throw exception.");
+                }
+        }
+        @Override
+        protected void finalize() throws Throwable {
+                super.finalize();
+                if( tempFile != null){
+                        tempFile.delete();
+                        tempFile = null;
+
                 }
         }
         
