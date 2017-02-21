@@ -45,10 +45,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.common.Common.Block;
-import org.hyperledger.fabric.protos.common.Common.BlockData;
-import org.hyperledger.fabric.protos.common.Common.ChannelHeader;
 import org.hyperledger.fabric.protos.common.Common.Envelope;
-import org.hyperledger.fabric.protos.common.Common.Header;
 import org.hyperledger.fabric.protos.common.Common.Payload;
 import org.hyperledger.fabric.protos.common.Policies.Policy;
 import org.hyperledger.fabric.protos.orderer.Ab.BroadcastResponse;
@@ -56,6 +53,7 @@ import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 import org.hyperledger.fabric.protos.peer.PeerEvents.Event.EventCase;
+import org.hyperledger.fabric.sdk.BlockEvent.TransactionEvent;
 import org.hyperledger.fabric.sdk.events.BlockListener;
 import org.hyperledger.fabric.sdk.events.EventHub;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
@@ -64,6 +62,7 @@ import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.InvalidTransactionException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
+import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
@@ -812,7 +811,7 @@ public class Chain {
     // transactions order
 
 
-    public CompletableFuture<Envelope> sendTransaction(Collection<ProposalResponse> proposalResponses, Collection<Orderer> orderers) throws TransactionException {
+    public CompletableFuture<TransactionEvent> sendTransaction(Collection<ProposalResponse> proposalResponses, Collection<Orderer> orderers) throws TransactionException {
         try {
 
             if (null == proposalResponses) {
@@ -859,7 +858,7 @@ public class Chain {
             Envelope transactionEnvelope = createTransactionEnvelop(transactionPayload);
 
 
-            CompletableFuture<Envelope> sret = registerTxListener(proposalTransactionID);
+            CompletableFuture<TransactionEvent> sret = registerTxListener(proposalTransactionID);
 
             boolean success = false;
             Exception se = null;
@@ -887,7 +886,7 @@ public class Chain {
                 logger.debug(format("Successful sent to Orderer transaction id: %s", proposalTransactionID));
                 return sret;
             } else {
-                CompletableFuture<Envelope> ret = new CompletableFuture<>();
+                CompletableFuture<TransactionEvent> ret = new CompletableFuture<>();
                 ret.completeExceptionally(new Exception(format("Failed to place transaction %s on Orderer. Cause: %s", proposalTransactionID, se.getMessage())));
                 return ret;
             }
@@ -998,57 +997,34 @@ public class Chain {
                     continue;
                 }
 
-
-                final Block block = event.getBlock();
-
-                BlockData data = block.getData();
-
-                for (ByteString db : data.getDataList()) {
-
                     try {
-                        Envelope env = Envelope.parseFrom(db);
+                        final BlockEvent blockEvent = new BlockEvent(event.getBlock());
 
-
-                        Payload payload = Payload.parseFrom(env.getPayload());
-                        Header plh = payload.getHeader();
-
-                        ChannelHeader channelHeader = ChannelHeader.parseFrom(plh.getChannelHeader());
-
-                        String blockchainID = channelHeader.getChannelId();
+                        String blockchainID = blockEvent.getChannelID();
 
                         if (!Objects.equals(name, blockchainID)) {
                             continue; // not targeted for this chain
                         }
 
                         final ArrayList<BL> blcopy = new ArrayList<>(blockListeners.size() + 3);
-
                         synchronized (blockListeners) {
-
                             blcopy.addAll(blockListeners.values());
                         }
 
 
                         for (BL l : blcopy) {
                             try {
-
-                                es.execute(() -> l.listener.received(event.getBlock()));
-
+                                es.execute(() -> l.listener.received(blockEvent));
                             } catch (Throwable e) { //Don't let one register stop rest.
-                                logger.error(e);
+                                logger.error("Error trying to call block listener on chain " + blockEvent.getChannelID(), e);
                             }
-
                         }
-
-
                     } catch (InvalidProtocolBufferException e) {
-                        logger.error(e);
-
+                        logger.error("Unable to parse event", e);
+                        logger.debug("event:\n)");
+                        logger.debug(event.toString());
                     }
-
-                }
-
             }
-
         };
 
         new Thread(eventTask).start();
@@ -1128,66 +1104,36 @@ public class Chain {
      * @return
      */
 
-
     private String registerTransactionListenerProcessor() {
 
-        //Transaction listener is internal Block listener for transactions
+        // Transaction listener is internal Block listener for transactions
 
-        return registerBlockListener(block -> {
+        return registerBlockListener(blockEvent -> {
 
-
-            //System.err.println("Got BLOCK :" + block);
             if (txListeners.isEmpty()) {
                 return;
             }
 
+            for (TransactionEvent transactionEvent : blockEvent.getTransactionEvents()) {
 
-            BlockData data = block.getData();
+                logger.debug("Got event for transaction " + transactionEvent.getTransactionID());
 
-            for (ByteString db : data.getDataList()) {
-
-                try {
-                    Envelope env = Envelope.parseFrom(db);
-
-
-                    Payload payload = Payload.parseFrom(env.getPayload());
-                    Header plh = payload.getHeader();
-
-                    ChannelHeader channelHeader = ChannelHeader.parseFrom(plh.getChannelHeader());
-
-                    final String txID = channelHeader.getTxId();
-
-                    logger.debug("Got Block with txID= " + txID);
-
-                    List<TL> txL = new ArrayList<>(txListeners.size() + 2);
-
-
-                    synchronized (txListeners) {
-
-                        LinkedList<TL> list = txListeners.get(txID);
-                        if (null != list) {
-                            txL.addAll(list);
-                        }
-
+                List<TL> txL = new ArrayList<>(txListeners.size() + 2);
+                synchronized (txListeners) {
+                    LinkedList<TL> list = txListeners.get(transactionEvent.getTransactionID());
+                    if (null != list) {
+                        txL.addAll(list);
                     }
-
-                    for (TL l : txL) {
-                        try {
-                            l.fire(env);
-                        } catch (Throwable e) {
-                            logger.error(e); //Don't let one register stop rest.
-                        }
-                    }
-
-
-                } catch (InvalidProtocolBufferException e) {
-                    logger.error(e);
-
                 }
 
-
+                for (TL l : txL) {
+                    try {
+                        l.fire(transactionEvent);
+                    } catch (Throwable e) {
+                        logger.error(e); // Don't let one register stop rest.
+                    }
+                }
             }
-
         });
     }
 
@@ -1197,12 +1143,12 @@ public class Chain {
     private class TL {
         final String txID;
         final AtomicBoolean fired = new AtomicBoolean(false);
-        final CompletableFuture<Envelope> future;
+        final CompletableFuture<TransactionEvent> future;
 //        final long createdTime = System.currentTimeMillis();//seconds
 //        final long waitTime;
 
 
-        TL(String txID, CompletableFuture<Envelope> future) {
+        TL(String txID, CompletableFuture<BlockEvent.TransactionEvent> future) {
             this.txID = txID;
             this.future = future;
 //            if (waitTimeSeconds > 0) {
@@ -1220,7 +1166,7 @@ public class Chain {
             }
         }
 
-        public void fire(Envelope envelope) {
+        public void fire(BlockEvent.TransactionEvent transactionEvent) {
 
             if (fired.getAndSet(true)) {
                 return;
@@ -1236,8 +1182,12 @@ public class Chain {
                 return;
             }
 
-            es.execute(() -> future.complete(envelope));
-
+            if (transactionEvent.isValid())
+                es.execute(() -> future.complete(transactionEvent));
+            else
+                es.execute(() -> future.completeExceptionally(
+                                new TransactionEventException("Received invalid transaction event. Transaction ID : " + transactionEvent.getTransactionID(),
+                                                              transactionEvent)));
         }
 
         //KEEP THIS FOR NOW in case in the future we decide we want it.
@@ -1282,9 +1232,9 @@ public class Chain {
      * @return
      */
 
-    public CompletableFuture<Envelope> registerTxListener(String txid) {
+    public CompletableFuture<TransactionEvent> registerTxListener(String txid) {
 
-        CompletableFuture<Envelope> future = new CompletableFuture<>();
+        CompletableFuture<TransactionEvent> future = new CompletableFuture<>();
 
         new TL(txid, future);
 

@@ -14,7 +14,7 @@
 
 package org.hyperledger.fabric.sdk.events;
 
-import org.hyperledger.fabric.protos.common.Common.Block;
+import org.hyperledger.fabric.sdk.BlockEvent;
 
 /**
  * BlockListener  implemented by classes needing to receive block events.
@@ -25,5 +25,5 @@ public interface BlockListener {
      *
      * @param block The block being received.
      */
-    void received(Block block);
+    void received(BlockEvent blockEvent);
 }

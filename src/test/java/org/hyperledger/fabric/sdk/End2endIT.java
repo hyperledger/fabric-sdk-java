@@ -14,6 +14,8 @@
 
 package org.hyperledger.fabric.sdk;
 
+import static org.junit.Assert.*;
+
 import java.io.File;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -68,16 +70,15 @@ public class End2endIT {
         HFClient client = HFClient.createNewInstance();
         try {
 
-            //////////////////////////// TODo Needs to be made out of bounds and here chain just retrieved
-            //Construct the chain
+            //////////////////////////// TODO Needs to be made out of bounds and
+            //////////////////////////// here chain just retrieved
+            // Construct the chain
             //
-
             constructChain(client);
 
             client.setUserContext(new User("admin")); // User will be defined by pluggable
 
             Chain chain = client.getChain(CHAIN_NAME);
-
 
             chain.setInvokeWaitTime(1000);
             chain.setDeployWaitTime(12000);
@@ -97,7 +98,7 @@ public class End2endIT {
             Collection<Orderer> orderers = chain.getOrderers();
 
             ////////////////////////////
-            //Install Proposal Request
+            // Install Proposal Request
             //
 
             out("Creating install proposal");
@@ -107,13 +108,10 @@ public class End2endIT {
             installProposalRequest.setChaincodePath(CHAIN_CODE_PATH);
             installProposalRequest.setChaincodeVersion(CHAIN_CODE_VERSION);
 
-
             Collection<ProposalResponse> responses = chain.sendInstallProposal(installProposalRequest, peers);
-
 
             Collection<ProposalResponse> successful = new LinkedList<>();
             Collection<ProposalResponse> failed = new LinkedList<>();
-
 
             for (ProposalResponse response : responses) {
                 if (response.isVerified() && response.getStatus() == ProposalResponse.Status.SUCCESS) {
@@ -126,26 +124,22 @@ public class End2endIT {
             }
             out("Received %d install proposal responses. Successful+verified: %d . Failed: %d", responses.size(), successful.size(), failed.size());
 
-            if (successful.size() < 1) {  //choose this as an arbitrary limit right now.
-
+            if (successful.size() < 1) { // TODO choose this as an arbitrary limit right now.
                 if (failed.size() == 0) {
-                    throw new Exception("No endorsers found ");
-
+                    Assert.fail("No endorsers found for CC install");
                 }
                 ProposalResponse first = failed.iterator().next();
-
-                throw new Exception("Not enough endorsers for install :" + successful.size() + ".  " + first.getMessage());
+                Assert.fail("Not enough endorsers for install :" + successful.size() + ".  " + first.getMessage());
             }
             ProposalResponse firstInstallProposalResponse = successful.iterator().next();
             final ChainCodeID chainCodeID = firstInstallProposalResponse.getChainCodeID();
-            //Note install chain code does not require transaction no need to send to Orderers
+            // Note install chain code does not require transaction no need to
+            // send to Orderers
 
             ///////////////
             //// Instantiate chain code.
 
-
             InstantiateProposalRequest instantiateProposalRequest = client.newInstantiationProposalRequest();
-
 
             instantiateProposalRequest.setChaincodeID(chainCodeID);
             instantiateProposalRequest.setFcn("init");
@@ -164,154 +158,104 @@ public class End2endIT {
             for (ProposalResponse response : responses) {
                 if (response.isVerified() && response.getStatus() == ProposalResponse.Status.SUCCESS) {
                     successful.add(response);
-
                 } else {
                     failed.add(response);
                 }
-
             }
             out("Received %d instantiate proposal responses. Successful+verified: %d . Failed: %d", responses.size(), successful.size(), failed.size());
 
-            if (successful.size() < 1) {  //choose this as an arbitrary limit right now.
-
+            if (successful.size() < 1) { // TODO choose this as an arbitrary limit right now.
                 if (failed.size() == 0) {
-                    throw new Exception("No endorsers found ");
-
+                    Assert.fail("No endorsers found for CC instantiate proposal");
                 }
                 ProposalResponse first = failed.iterator().next();
-
-                throw new Exception("Not enough endorsers for instantiate  :" + successful.size() + ".  " + first.getMessage());
+                Assert.fail("Not enough endorsers for instantiate  :" + successful.size() + ".  " + first.getMessage());
             }
 
-
             /// Send instantiate transaction.
-            chain.sendTransaction(successful, orderers).thenApply(block -> {
+            BlockEvent.TransactionEvent committedCCInstantiate = chain.sendTransaction(successful, orderers).get();
 
-                try {
+            out("Successfully completed chaincode instantiation.");
 
-                    out("Successfully completed chaincode instantiation.");
+            out("Creating invoke proposal");
 
-                    out("Creating invoke proposal");
+            InvokeProposalRequest invokeProposalRequest = client.newInvokeProposalRequest();
 
-                    InvokeProposalRequest invokeProposalRequest = client.newInvokeProposalRequest();
+            invokeProposalRequest.setChaincodeID(chainCodeID);
+            invokeProposalRequest.setFcn("invoke");
+            invokeProposalRequest.setArgs(new String[] { "move", "a", "b", "100" });
 
-                    invokeProposalRequest.setChaincodeID(chainCodeID);
-                    invokeProposalRequest.setFcn("invoke");
-                    invokeProposalRequest.setArgs(new String[]{"move", "a", "b", "100"});
+            Collection<ProposalResponse> invokePropResp = chain.sendInvokeProposal(invokeProposalRequest, peers);
 
-                    Collection<ProposalResponse> invokePropResp = chain.sendInvokeProposal(invokeProposalRequest, peers);
+            successful.clear();
+            failed.clear();
 
-
-                    successful.clear();
-                    failed.clear();
-
-                    for (ProposalResponse response : invokePropResp) {
-
-                        if (response.getStatus() == ProposalResponse.Status.SUCCESS) {
-                            successful.add(response);
-                        } else {
-                            failed.add(response);
-                        }
-
-                    }
-                    out("Received %d invoke proposal responses. Successful+verified: %d . Failed: %d", invokePropResp.size(), successful.size(), failed.size());
-
-
-                    if (successful.size() < 1) {  //choose this as an arbitrary limit right now.
-
-                        if (failed.size() == 0) {
-                            throw new Exception("No endorsers found ");
-
-                        }
-                        ProposalResponse firstInvokeProposalResponse = failed.iterator().next();
-
-
-                        throw new Exception("Not enough endorsers :" + successful.size() + ".  " + firstInvokeProposalResponse.getMessage());
-
-
-                    }
-                    out("Successfully received invoke proposal response.");
-
-                    ////////////////////////////
-                    // Invoke Transaction
-                    //
-
-                    out("Invoking chain code transaction to move 100 from a to b.");
-
-                    return chain.sendTransaction(successful, orderers).get(120, TimeUnit.SECONDS);
-
-
-                } catch (Exception e) {
-
-                    throw new RuntimeException(e);
-
+            for (ProposalResponse response : invokePropResp) {
+                if (response.getStatus() == ProposalResponse.Status.SUCCESS) {
+                    successful.add(response);
+                } else {
+                    failed.add(response);
                 }
+            }
+            out("Received %d invoke proposal responses. Successful+verified: %d . Failed: %d", invokePropResp.size(), successful.size(), failed.size());
 
-
-            }).thenApply(block -> {
-                try {
-                    out("Successfully ordered invoke chain code. BlockClass" + block.getClass());
-
-
-                    ////////////////////////////
-                    // Query Proposal
-                    //
-
-
-                    out("Now query chain code for the value of b.");
-
-
-                    // InvokeProposalRequest qr = InvokeProposalRequest.newInstance();
-                    QueryProposalRequest queryProposalRequest = client.newQueryProposalRequest();
-
-                    queryProposalRequest.setArgs(new String[]{"query", "b"});
-                    queryProposalRequest.setFcn("invoke");
-                    queryProposalRequest.setChaincodeID(chainCodeID);
-
-
-                    Collection<ProposalResponse> queryProposals = chain.sendQueryProposal(queryProposalRequest, peers);
-
-                    for (ProposalResponse proposalResponse : queryProposals) {
-                        if (!proposalResponse.isVerified() || proposalResponse.getStatus() != ProposalResponse.Status.SUCCESS) {
-                            return new Exception("Failed invoke proposal.  status: " + proposalResponse.getStatus() + ". messages: " + proposalResponse.getMessage());
-
-                        }
-
-                    }
-
-                    out("Successfully received query response.");
-
-                    String payload = queryProposals.iterator().next().getProposalResponse().getResponse().getPayload().toStringUtf8();
-
-                    out("Query payload of b returned %s", payload);
-
-
-                    Assert.assertEquals(payload, "300");
-
-                    if (!payload.equals("300")) {
-                        return new Exception("Expected 300 for value b but got: " + payload);
-                    }
-
-
-                    return null;
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+            if (successful.size() < 1) { // TODO choose this as an arbitrary limit right now.
+                if (failed.size() == 0) {
+                    Assert.fail("No endorsers found ");
                 }
+                ProposalResponse firstInvokeProposalResponse = failed.iterator().next();
+                Assert.fail("Not enough endorsers for invoke proposal:" + successful.size() + ".  " + firstInvokeProposalResponse.getMessage());
 
-            }).exceptionally(e -> {
-                System.err.println("Bad status value for proposals transaction: " + e.getMessage());
-                System.exit(8);
-                return null;
-            }).get(120, TimeUnit.SECONDS);
-            out("That's all folks!");
+            }
+            out("Successfully received invoke proposal response.");
 
+            ////////////////////////////
+            // Invoke Transaction
+            //
+
+            out("Invoking chain code transaction to move 100 from a to b.");
+
+            BlockEvent.TransactionEvent invokeCCTransaction = chain.sendTransaction(successful, orderers).get(120, TimeUnit.SECONDS);
+
+            out("Successfully ordered invoke chain code.");
+
+            ////////////////////////////
+            // Query Proposal
+            //
+            out("Now query chain code for the value of b.");
+
+            // InvokeProposalRequest qr = InvokeProposalRequest.newInstance();
+            QueryProposalRequest queryProposalRequest = client.newQueryProposalRequest();
+
+            queryProposalRequest.setArgs(new String[] { "query", "b" });
+            queryProposalRequest.setFcn("invoke");
+            queryProposalRequest.setChaincodeID(chainCodeID);
+
+            Collection<ProposalResponse> queryProposals = chain.sendQueryProposal(queryProposalRequest, peers);
+
+            for (ProposalResponse proposalResponse : queryProposals) {
+                if (!proposalResponse.isVerified() || proposalResponse.getStatus() != ProposalResponse.Status.SUCCESS) {
+                    Assert.fail("Failed invoke proposal.  status: " + proposalResponse.getStatus() + ". messages: " + proposalResponse.getMessage());
+                }
+            }
+
+            out("Successfully received query response.");
+
+            String payload = queryProposals.iterator().next().getProposalResponse().getResponse().getPayload().toStringUtf8();
+
+            out("Query payload of b returned %s", payload);
+
+            Assert.assertEquals(payload, "300");
+
+            if (!payload.equals("300")) {
+                throw new Exception("Expected 300 for value b but got: " + payload);
+            }
+
+            out("That's all folks !");
 
         } catch (Exception e) {
-            out("Caught an exception");
             e.printStackTrace();
-
-            Assert.fail(e.getMessage());
-
+            fail("Exception thrown: " + e.getMessage());
         }
 
     }
