@@ -31,6 +31,7 @@ import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
 import org.hyperledger.fabric.sdk.TransactionRequest;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createDeploymentSpec;
@@ -91,7 +92,7 @@ public class InstantiateProposalBuilder extends ProposalBuilder {
 
 
     @Override
-    public FabricProposal.Proposal build() throws Exception {
+    public FabricProposal.Proposal build() throws ProposalException, CryptoException {
 
         constructInstantiateProposal();
         return super.build();

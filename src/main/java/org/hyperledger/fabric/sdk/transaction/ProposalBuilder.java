@@ -14,6 +14,8 @@
 
 package org.hyperledger.fabric.sdk.transaction;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.google.protobuf.ByteString;
@@ -28,7 +30,9 @@ import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeHeaderExtension;
 import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeProposalPayload;
+import org.hyperledger.fabric.sdk.TransactionRequest;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.exception.ProposalException;
 
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createChannelHeader;
 
@@ -41,7 +45,9 @@ public class ProposalBuilder {
 
     private Chaincode.ChaincodeID chaincodeID;
     private List<ByteString> argList;
+    private List<byte[]> argBytesList;
     protected TransactionContext context;
+    protected TransactionRequest request;
     private ChaincodeSpec.Type ccType = ChaincodeSpec.Type.GOLANG;
     private String chainID;
 
@@ -63,11 +69,25 @@ public class ProposalBuilder {
         return this;
     }
 
+    public ProposalBuilder argBytes(List<byte[]> argBytesList) {
+        this.argBytesList = argBytesList;
+        return this;
+    }
+
     public ProposalBuilder context(TransactionContext context) {
         this.context = context;
         if (null == chainID) {
             chainID = context.getChain().getName(); //Default to context chain.
         }
+        return this;
+    }
+
+    public ProposalBuilder request(TransactionRequest request) {
+        this.request = request;
+
+        chaincodeID(request.getChaincodeID().getFabricChainCodeID());
+        ccType(request.getChaincodeLanguage() == TransactionRequest.Type.JAVA ?
+                Chaincode.ChaincodeSpec.Type.JAVA : Chaincode.ChaincodeSpec.Type.GOLANG);
         return this;
     }
 
@@ -82,12 +102,14 @@ public class ProposalBuilder {
     }
 
 
-    public FabricProposal.Proposal build() throws Exception {
-        return createFabricProposal(chainID, chaincodeID, argList);
+    public FabricProposal.Proposal build() throws CryptoException, ProposalException {
+        if (request != null && request.noChainID())
+            chainID = "";
+        return createFabricProposal(chainID, chaincodeID);
     }
 
 
-    private FabricProposal.Proposal createFabricProposal(String chainID, Chaincode.ChaincodeID chaincodeID, List<ByteString> argList) throws CryptoException {
+    private FabricProposal.Proposal createFabricProposal(String chainID, Chaincode.ChaincodeID chaincodeID) throws CryptoException {
 
 
         ChaincodeHeaderExtension chaincodeHeaderExtension = ChaincodeHeaderExtension.newBuilder()
@@ -102,7 +124,7 @@ public class ProposalBuilder {
 
         ChaincodeInvocationSpec chaincodeInvocationSpec = createChaincodeInvocationSpec(
                 chaincodeID,
-                ccType, argList);
+                ccType);
 
         ChaincodeProposalPayload payload = ChaincodeProposalPayload.newBuilder()
                 .setInput(chaincodeInvocationSpec.toByteString())
@@ -121,9 +143,35 @@ public class ProposalBuilder {
     }
 
 
-    private ChaincodeInvocationSpec createChaincodeInvocationSpec(Chaincode.ChaincodeID chainCodeId, ChaincodeSpec.Type langType, List<ByteString> args) {
+    private ChaincodeInvocationSpec createChaincodeInvocationSpec(Chaincode.ChaincodeID chainCodeId, ChaincodeSpec.Type langType) {
 
-        ChaincodeInput chaincodeInput = ChaincodeInput.newBuilder().addAllArgs(args).build();
+        List<ByteString> allArgs = new ArrayList<>();
+
+        if (argList != null && argList.size()>0) {
+            // If we already have an argList then the Builder subclasses have already set the arguments
+            // for chaincodeInput. Accept the list and pass it on to the chaincodeInput builder
+            // TODO need to clean this logic up so that common protobuf struct builds are in one place
+            allArgs = argList;
+        }
+        else if (request != null) {
+            // if argList is empty and we have a Request, build the chaincodeInput args array from the Request args and argbytes lists
+            allArgs.add(ByteString.copyFrom(request.getFcn(), StandardCharsets.UTF_8));
+            List<String> args = request.getArgs();
+            if (args != null && args.size()>0)
+                for (String arg : args) {
+                    allArgs.add(ByteString.copyFrom(arg.getBytes()));
+                }
+            // TODO currently assume that chaincodeInput args are strings followed by byte[].
+            // Either agree with Fabric folks that this will always be the case or modify all Builders to expect
+            // a List of Objects and determine if each list item is a string or a byte array
+            List<byte[]> argBytes = request.getArgBytes();
+            if (argBytes != null && argBytes.size()>0)
+                for (byte[] arg : argBytes) {
+                    allArgs.add(ByteString.copyFrom(arg));
+                }
+        }
+
+        ChaincodeInput chaincodeInput = ChaincodeInput.newBuilder().addAllArgs(allArgs).build();
 
         ChaincodeSpec chaincodeSpec = ChaincodeSpec.newBuilder()
                 .setType(langType)

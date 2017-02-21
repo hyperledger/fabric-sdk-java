@@ -14,10 +14,20 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
+import org.hyperledger.fabric.protos.peer.Chaincode;
+import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.transaction.ProposalBuilder;
+import org.hyperledger.fabric.sdk.transaction.TransactionContext;
+
+import com.google.protobuf.ByteString;
 
 /**
  * A base transaction request common for InstallProposalRequest, InvokeRequest, and QueryRequest.
@@ -25,6 +35,7 @@ import org.hyperledger.fabric.sdk.helper.Config;
 public class TransactionRequest {
 
     private final Config config = Config.getConfig();
+    private boolean noChainID = false;  // calls to QSCC leave the chainID field as a empty string.
 
     // The local path containing the chaincode to deploy in network mode.
     protected String chaincodePath;
@@ -40,8 +51,10 @@ public class TransactionRequest {
 
     // The name of the function to invoke
     protected String fcn;
-    // The arguments to pass to the chaincode invocation
+    // The arguments to pass to the chaincode invocation as strings
     protected ArrayList<String> args;
+    // the arguments to pass to the chaincode invocation as byte arrays
+    protected ArrayList<byte[]> argBytes;
     // Optionally provide a user certificate which can be used by chaincode to perform access control
     private Certificate userCert;
     // Chaincode language
@@ -51,6 +64,23 @@ public class TransactionRequest {
     // The timeout for a single proposal request to endorser in milliseconds
     protected long proposalWaitTime = config.getProposalWaitTime();
 
+    /**
+     * Some peer requests (e.g. queries to QSCC) require the field to be blank.
+     * Subclasses should override this method as needed.
+     * @param proposalBuilder
+     */
+    public boolean noChainID() {
+        return false;
+    }
+
+    /**
+     * Some proposal responses from Fabric are not signed. We default to always verify a ProposalResponse.
+     * Subclasses should override this method if you do not want the response signature to be verified
+     * @return true if proposal response is to be checked for a valid signature
+     */
+    public boolean doVerify() {
+        return true;
+    }
 
     public String getChaincodePath() {
         return null == chaincodePath ? "" : chaincodePath;
@@ -121,7 +151,22 @@ public class TransactionRequest {
 
     public TransactionRequest setArgs(String[] args) {
 
-        this.args = new ArrayList<String>(Arrays.asList(args));
+        this.args = new ArrayList<>(Arrays.asList(args));
+        return this;
+    }
+
+    public TransactionRequest setArgBytes(ArrayList<byte[]> args) {
+        this.argBytes = args;
+        return this;
+    }
+
+    public ArrayList<byte[]> getArgBytes() {
+        return argBytes;
+    }
+
+    public TransactionRequest setArgBytes(byte[][] args) {
+
+        this.argBytes = new ArrayList<>(Arrays.asList(args));
         return this;
     }
 
@@ -129,7 +174,6 @@ public class TransactionRequest {
         this.args = args;
         return this;
     }
-
     public Certificate getUserCert() {
         return userCert;
     }
@@ -138,8 +182,7 @@ public class TransactionRequest {
         this.userCert = userCert;
     }
 
-
-    //Mirror Fabric try not expose and of it's classes
+    //Mirror Fabric try not expose any of its classes
     public enum Type {
         JAVA,
         GO_LANG
@@ -195,4 +238,5 @@ public class TransactionRequest {
     public void setProposalWaitTime(long proposalWaitTime) {
         this.proposalWaitTime = proposalWaitTime;
     }
+
 }

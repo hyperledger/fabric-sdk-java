@@ -109,6 +109,15 @@ public class Peer {
         return this.url;
     }
 
+    /**
+     * for use in list of peers comparisons , e.g. list.contains() calls
+     * @param otherPeer the peer instance to compare against
+     * @return true if both peer instances have the same name and url
+     */
+    public boolean equals(Peer otherPeer) {
+        return (name.equals(otherPeer.getName()) && url.equals(otherPeer.getUrl()));
+    }
+
     public ListenableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal)
             throws PeerException, InvalidArgumentException {
         checkSendProposal(proposal);

@@ -31,7 +31,7 @@ public class ChainCodeID {
     }
 
 
-    ChaincodeID getFabricChainCodeID() {
+    public ChaincodeID getFabricChainCodeID() {
         return fabricChainCodeID;
     }
 

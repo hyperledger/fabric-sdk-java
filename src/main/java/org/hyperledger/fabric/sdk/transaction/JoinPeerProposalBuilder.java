@@ -25,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common.Block;
 import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 
 import static org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type.GOLANG;
@@ -58,7 +59,8 @@ public class JoinPeerProposalBuilder extends ProposalBuilder {
     }
 
 
-    public FabricProposal.Proposal build() throws Exception {
+    @Override
+    public FabricProposal.Proposal build() throws ProposalException, CryptoException {
 
         if (genesisBlock == null) {
             ProposalException exp = new ProposalException("No genesis block for Join proposal.");
