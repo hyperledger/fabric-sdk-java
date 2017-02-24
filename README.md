@@ -34,11 +34,9 @@ You should use the following commit levels of the Hyperledger projects:
 
 | Project        | Commit level                               | Date                       |
 |:---------------|:------------------------------------------:|---------------------------:|
-| fabric         | e3fe66ba19c3d77d88431d74d5647d0372496313   | Feb 21 16:50:46 2017 +0000 |
+| fabric         | 3e0481b7d1a7abfe7632ca86715341d410ac14ac   | Feb 22 12:01:00 2017 +0100 |
 | fabric-ca      | c4e83c10292d53fa0f1a1688899a594fe4ece26b   | Jan 27 2017 |
- 
- 50372c16c76fb2bfbafb2f8ffaf085f085b75b1c
- 
+  
  You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
  
  As sdk developement continues, this file will be updated with compatible Hyperledger Fabric commit levels.
