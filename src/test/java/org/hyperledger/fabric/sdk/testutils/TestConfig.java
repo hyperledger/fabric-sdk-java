@@ -11,7 +11,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.hyperledger.fabric.sdk.helper;
+package org.hyperledger.fabric.sdk.testutils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,20 +31,24 @@ import org.apache.commons.logging.LogFactory;
  * overrides environment variable which overrides config file for default values specified here.
  */
 
-public class Config {
-    private static final Log logger = LogFactory.getLog(Config.class);
+public class TestConfig {
+    private static final Log logger = LogFactory.getLog(TestConfig.class);
 
-    private static final String DEFAULT_CONFIG = "config.properties";
-    private static final String ORG_HYPERLEDGER_FABRIC_SDK_CONFIGURATION = "org.hyperledger.fabric.sdk.configuration";
-    private static final String SECURITY_LEVEL = "org.hyperledger.fabric.sdk.security_level";
-    private static final String HASH_ALGORITHM = "org.hyperledger.fabric.sdk.hash_algorithm";
-    private static final String CACERTS = "org.hyperledger.fabric.sdk.cacerts";
-    private static final String PROPOSAL_WAIT_TIME = "org.hyperledger.fabric.sdk.proposal.wait.time";
-    private static final String GENESISBLOCK_WAIT_TIME = "org.hyperledger.fabric.sdk.chain.genesisblock_wait_time";
-    private static Config config;
+    private static final String DEFAULT_CONFIG = "src/test/java/org/hyperledger/fabric/sdk/testutils.properties";
+    private static final String ORG_HYPERLEDGER_FABRIC_SDK_CONFIGURATION = "org.hyperledger.fabric.sdktest.configuration";
+
+    private static final String PROPBASE = "org.hyperledger.fabric.sdktest.";
+
+
+    private static final String INVOKEWAITTIME =  PROPBASE + "InvokeWaitTime";
+    private static final String DEPLOYWAITTIME =  PROPBASE + "DeployWaitTime";
+    private static final String USETESTCHAIN =  PROPBASE + "End2endIT.usetestchain";
+
+
+    private static TestConfig config;
     private final static Properties sdkProperties = new Properties();
 
-    private Config() {
+    private TestConfig() {
         File loadFile;
         FileInputStream configProps;
 
@@ -56,18 +60,16 @@ public class Config {
             configProps = new FileInputStream(loadFile);
             sdkProperties.load(configProps);
 
-        } catch (IOException e) {
-            logger.warn(String.format("Failed to load any configuration from: %s. Using toolkit defaults",
-                    DEFAULT_CONFIG));
+        } catch (IOException e) { // if not there no worries just use defaults
+//            logger.warn(String.format("Failed to load any test configuration from: %s. Using toolkit defaults",
+//                    DEFAULT_CONFIG));
         } finally {
 
             // Default values
-            defaultProperty(SECURITY_LEVEL, "256");
-            defaultProperty(HASH_ALGORITHM, "SHA2");
-            // TODO remove this once we have implemented MSP and get the peer certs from the channel
-            defaultProperty(CACERTS, "/genesisblock/peercacert.pem");
-            defaultProperty(PROPOSAL_WAIT_TIME, "12000");
-            defaultProperty(GENESISBLOCK_WAIT_TIME, "5000");
+
+            defaultProperty(INVOKEWAITTIME, "100000");
+            defaultProperty(DEPLOYWAITTIME, "120000");
+            defaultProperty(USETESTCHAIN, "false");
 
         }
 
@@ -78,9 +80,9 @@ public class Config {
      *
      * @return Global configuration
      */
-    public static Config getConfig() {
+    public static TestConfig getConfig() {
         if (null == config) {
-            config = new Config();
+            config = new TestConfig();
         }
         return config;
 
@@ -136,45 +138,15 @@ public class Config {
         }
     }
 
-    /**
-     * Returns security level.
-     *
-     * @return
-     */
-    public int getSecurityLevel() {
-
-        return Integer.parseInt(getProperty(SECURITY_LEVEL));
-
+    public int getInvokeWaitTime() {
+        return Integer.parseInt(getProperty(INVOKEWAITTIME));
     }
 
-    /**
-     * Returns hash algorithm
-     *
-     * @return
-     */
-    public String getHashAlgorithm() {
-        return getProperty(HASH_ALGORITHM);
-
+    public int getDeployWaitTime() {
+        return Integer.parseInt(getProperty(DEPLOYWAITTIME));
     }
 
-    public String[] getPeerCACerts() {
-        return getProperty(CACERTS).split("'");
-    }
-
-    /**
-     * Returns the timeout for a single proposal request to endorser in milliseconds.
-     *
-     * @return the timeout for a single proposal request to endorser in milliseconds
-     */
-    public long getProposalWaitTime() {
-        return Long.parseLong(getProperty(PROPOSAL_WAIT_TIME));
-    }
-
-    /**
-     * getGenesisBlockWaiTime time to wait for genesis block
-     * @return
-     */
-    public long getGenesisBlockWaitTime() {
-        return Long.parseLong(getProperty(GENESISBLOCK_WAIT_TIME));
+    public int getEnd2endItUseTestChain() {
+        return Integer.parseInt(getProperty(USETESTCHAIN));
     }
 }

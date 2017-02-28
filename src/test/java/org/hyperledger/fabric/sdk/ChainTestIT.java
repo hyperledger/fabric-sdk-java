@@ -23,11 +23,13 @@ import org.hyperledger.fabric.sdk.events.EventHub;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Test end to end scenario
  */
+@Ignore //Really not needed convered by End2endIt
 public class ChainTestIT {
 
     static final String CHAIN_NAME = "foo";

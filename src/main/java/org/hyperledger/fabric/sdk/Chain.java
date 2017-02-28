@@ -66,6 +66,7 @@ import org.hyperledger.fabric.sdk.exception.InvalidTransactionException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
+import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.transaction.InstallProposalBuilder;
@@ -93,6 +94,7 @@ import static org.hyperledger.fabric.sdk.helper.SDKUtil.nullOrEmptyString;
  */
 public class Chain {
     private static final Log logger = LogFactory.getLog(Chain.class);
+    private static final Config config = Config.getConfig();
 
     // Name of the chain is only meaningful to the client
     private String name;
@@ -527,105 +529,121 @@ public class Chain {
         try {
             if (null == genesisBlock) {
 
-                Ab.SeekSpecified seekSpecified = Ab.SeekSpecified.newBuilder()
-                        .setNumber(0)
-                        .build();
-                Ab.SeekPosition seekPosition = Ab.SeekPosition.newBuilder()
-                        .setSpecified(seekSpecified)
-                        .build();
+                final long start = System.currentTimeMillis();
 
-                Ab.SeekSpecified seekStopSpecified = Ab.SeekSpecified.newBuilder()
-                        .setNumber(0)
-                        .build();
+                do {
 
-                Ab.SeekPosition seekStopPosition = Ab.SeekPosition.newBuilder()
-                        .setSpecified(seekStopSpecified)
-                        .build();
+                    Ab.SeekSpecified seekSpecified = Ab.SeekSpecified.newBuilder()
+                            .setNumber(0)
+                            .build();
+                    Ab.SeekPosition seekPosition = Ab.SeekPosition.newBuilder()
+                            .setSpecified(seekSpecified)
+                            .build();
 
-                Ab.SeekInfo seekInfo = Ab.SeekInfo.newBuilder()
-                        .setStart(seekPosition)
-                        .setStop(seekStopPosition)
-                        .setBehavior(Ab.SeekInfo.SeekBehavior.BLOCK_UNTIL_READY)
-                        .build();
+                    Ab.SeekSpecified seekStopSpecified = Ab.SeekSpecified.newBuilder()
+                            .setNumber(0)
+                            .build();
 
-                ChannelHeader deliverChainHeader = ProtoUtils.createChannelHeader(HeaderType.DELIVER_SEEK_INFO, "4", name, 0, null);
+                    Ab.SeekPosition seekStopPosition = Ab.SeekPosition.newBuilder()
+                            .setSpecified(seekStopSpecified)
+                            .build();
 
+                    Ab.SeekInfo seekInfo = Ab.SeekInfo.newBuilder()
+                            .setStart(seekPosition)
+                            .setStop(seekStopPosition)
+                            .setBehavior(Ab.SeekInfo.SeekBehavior.BLOCK_UNTIL_READY)
+                            .build();
 
-                String mspid = getEnrollment().getMSPID();
-                String cert = getEnrollment().getCert();
-
-                Identities.SerializedIdentity identity = Identities.SerializedIdentity.newBuilder()
-                        .setIdBytes(ByteString.copyFromUtf8(cert)).
-                                setMspid(mspid).build();
+                    ChannelHeader deliverChainHeader = ProtoUtils.createChannelHeader(HeaderType.DELIVER_SEEK_INFO, "4", name, 0, null);
 
 
-                SignatureHeader deliverSignatureHeader = SignatureHeader.newBuilder()
-                        .setCreator(identity.toByteString())
-                        .setNonce(getNonce())
-                        .build();
+                    String mspid = getEnrollment().getMSPID();
+                    String cert = getEnrollment().getCert();
 
-                Header deliverHeader = Header.newBuilder()
-                        .setSignatureHeader(deliverSignatureHeader.toByteString())
-                        .setChannelHeader(deliverChainHeader.toByteString())
-                        .build();
-
-                Payload deliverPayload = Payload.newBuilder()
-                        .setHeader(deliverHeader)
-                        .setData(seekInfo.toByteString())
-                        .build();
-
-                byte[] deliverPayload_bytes = deliverPayload.toByteArray();
-
-                byte[] deliver_signature = cryptoPrimitives.ecdsaSignToBytes(enrollment.getKey(), deliverPayload_bytes);
-
-                Envelope deliverEnvelope = Envelope.newBuilder()
-                        .setSignature(ByteString.copyFrom(deliver_signature))
-                        .setPayload(ByteString.copyFrom(deliverPayload_bytes))
-                        .build();
-
-                DeliverResponse[] deliver = order.sendDeliver(deliverEnvelope);
-                if (deliver.length != 2) {
-                    TransactionException exp = new TransactionException(format("Bad deliver expected 2 responses and got %d", deliver.length));
-                    logger.error(exp.getMessage(), exp);
-                    throw exp;
-                }
-                DeliverResponse status = deliver[0];//status is last
-                if (status.getStatusValue() != 200) {
-                    TransactionException exp = new TransactionException(format("Bad deliver expected status 200  got  %d, Chain %s" + status.getStatusValue(), name));
-                    logger.error(exp.getMessage(), exp);
-                    throw exp;
-                }
-                DeliverResponse blockresp = deliver[1];
-                //
-                //        BlockData blockData = block.getData();
-                //        BlockHeader blockHeader = block.getHeader();
-                //        BlockMetadata blockMetadata = block.getMetadata();
-                //        int datacount = blockData.getDataCount();
-                //        ByteString data = blockData.getData(0);
-                //
-                //        Envelope respEnv = Envelope.parseFrom(data);
-                //        ByteString respPayload = respEnv.getPayload();
-                //        Payload payLoad = Payload.parseFrom(respEnv.getPayload());
-                //        ByteString payloaddata = payLoad.getData();
-                //
+                    Identities.SerializedIdentity identity = Identities.SerializedIdentity.newBuilder()
+                            .setIdBytes(ByteString.copyFromUtf8(cert)).
+                                    setMspid(mspid).build();
 
 
-                //        Configuration configurationEnvelope = Configuration.parseFrom(payLoad.getData());
-                //        int itemsCount = configurationEnvelope.getItemsCount();
-                //        System.out.println("respEnv:" + itemsCount);
+                    SignatureHeader deliverSignatureHeader = SignatureHeader.newBuilder()
+                            .setCreator(identity.toByteString())
+                            .setNonce(getNonce())
+                            .build();
 
-                ///  Now do join peer proposal....
+                    Header deliverHeader = Header.newBuilder()
+                            .setSignatureHeader(deliverSignatureHeader.toByteString())
+                            .setChannelHeader(deliverChainHeader.toByteString())
+                            .build();
 
+                    Payload deliverPayload = Payload.newBuilder()
+                            .setHeader(deliverHeader)
+                            .setData(seekInfo.toByteString())
+                            .build();
 
-                genesisBlock = blockresp.getBlock();
+                    byte[] deliverPayload_bytes = deliverPayload.toByteArray();
+
+                    byte[] deliver_signature = cryptoPrimitives.ecdsaSignToBytes(enrollment.getKey(), deliverPayload_bytes);
+
+                    Envelope deliverEnvelope = Envelope.newBuilder()
+                            .setSignature(ByteString.copyFrom(deliver_signature))
+                            .setPayload(ByteString.copyFrom(deliverPayload_bytes))
+                            .build();
+
+                    DeliverResponse[] deliver = order.sendDeliver(deliverEnvelope);
+                    if (deliver.length < 1) {
+                        logger.warn(format("Genesis block for channel %s fetch bad deliver missing status block only got blocks:", name, deliver.length));
+                        //odd so lets try again....
+                    } else {
+
+                        DeliverResponse status = deliver[0];//status is last
+                        if (status.getStatusValue() == 404) {
+                            logger.warn(format("Bad deliver expected status 200  got  %d, Chain %s", status.getStatusValue(), name));
+                            // keep trying...
+                        } else if (status.getStatusValue() != 200) {
+                            throw  new TransactionException(format("Bad deliver expected status 200  got  %d, Chain %s", status.getStatusValue(), name));
+
+                        } else {
+
+                            if (deliver.length < 2) {
+                                logger.warn(format("Genesis block for channel %s fetch bad deliver missing genesis block only got:", name, deliver.length));
+                                //odd try again
+                            } else {
+
+                                DeliverResponse blockresp = deliver[1];
+                                genesisBlock = blockresp.getBlock();
+
+                            }
+                        }
+                    }
+
+                    if (genesisBlock == null) {
+                        long now = System.currentTimeMillis();
+
+                        long duration = now - start;
+
+                        if (duration > config.getGenesisBlockWaitTime()) {
+                            throw new TransactionException(format("Getting genesis block time exceeded %l for chain %s", duration, name));
+                        }
+                        try {
+                            Thread.sleep(200);//try again
+                        } catch (InterruptedException e) {
+                            TransactionException te = new TransactionException("getGenesisBlock thread Sleep", e);
+                            logger.warn(te.getMessage(), te);
+                        }
+                    }
+                } while (genesisBlock == null);
             }
-        } catch (CryptoException e) {
+        } catch (TransactionException e) {
+            logger.error(e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
             TransactionException exp = new TransactionException("getGenesisBlock " + e.getMessage(), e);
             logger.error(exp.getMessage(), exp);
             throw exp;
         }
-        if (genesisBlock == null) {
 
+
+        if (genesisBlock == null) { //make sure it was really set.
             TransactionException exp = new TransactionException("getGenesisBlock returned null");
             logger.error(exp.getMessage(), exp);
             throw exp;
