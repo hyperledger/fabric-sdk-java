@@ -69,8 +69,8 @@ public class End2endJavaChaincodeIT {
     @Ignore
     public void setup() {
 
-        HFClient client = HFClient.createNewInstance();
         try {
+            HFClient client = HFClient.createNewInstance();
 
             client.setUserContext(new User("admin"));
             File fileStore = new File(System.getProperty("user.home") + "/test.properties");
@@ -348,7 +348,7 @@ public class End2endJavaChaincodeIT {
         System.err.flush();
         System.out.flush();
 
-        System.out.println(String.format(format, (Object[]) args));
+        System.out.println(String.format(format, args));
         System.err.flush();
         System.out.flush();
 

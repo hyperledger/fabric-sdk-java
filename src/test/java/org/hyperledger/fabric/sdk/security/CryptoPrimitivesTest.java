@@ -18,6 +18,7 @@ import static org.junit.Assert.*;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.security.*;
@@ -30,10 +31,12 @@ import java.security.cert.CertificateException;
 import javax.xml.bind.DatatypeConverter;
 
 import org.apache.commons.compress.utils.IOUtils;
+import org.apache.commons.io.FileUtils;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.util.io.pem.PemReader;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -61,6 +64,8 @@ public class CryptoPrimitivesTest {
 
     public static CryptoPrimitives crypto;
 
+    public static Certificate testCACert;
+
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
         plainText = DatatypeConverter.parseHexBinary(plainTextHex);
@@ -72,6 +77,7 @@ public class CryptoPrimitivesTest {
         cf = CertificateFactory.getInstance("X.509");
 
         crypto = new CryptoPrimitives("SHA2", 256);
+
     }
 
     @Before
@@ -79,9 +85,9 @@ public class CryptoPrimitivesTest {
         // TODO should do this in @BeforeClass. Need to find out how to get to
         // files from static junit method
         BufferedInputStream bis = new BufferedInputStream(this.getClass().getResourceAsStream("/ca.crt"));
-        Certificate caCert = cf.generateCertificate(bis);
+        testCACert = cf.generateCertificate(bis);
         bis.close();
-        crypto.getTrustStore().setCertificateEntry("ca", caCert);
+        crypto.addCACertificateToTrustStore(testCACert, "ca");
 
         bis = new BufferedInputStream(this.getClass().getResourceAsStream("/keypair-signed.crt"));
         Certificate cert = cf.generateCertificate(bis);
@@ -93,17 +99,105 @@ public class CryptoPrimitivesTest {
         PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(bcKeyPair.getPrivateKeyInfo().getEncoded());
         PrivateKey key = kf.generatePrivate(keySpec);
 
-        Certificate[] chain = new Certificate[] { cert, caCert };
+        Certificate[] chain = new Certificate[] { cert, testCACert };
         crypto.getTrustStore().setKeyEntry("key", key, "123456".toCharArray(), chain);
     }
 
     @Test
-    public void testTrustStore() {
+    public void testGetTrustStore() {
         // getTrustStore should have created a KeyStore if setTrustStore hasn't
         // been called
-        assertNotNull(crypto.getTrustStore());
+        try {
+            CryptoPrimitives myCrypto = new CryptoPrimitives("SHA2", 256);
+            assertNotNull(myCrypto.getTrustStore());
+        } catch (CryptoException e) {
+            fail("getTrustStore() fails with : "+ e.getMessage());
+        }
     }
 
+    @Test
+    public void testGetTrustStoreEntries() {
+        // trust store should contain the entries
+        try {
+            assertNotNull(crypto.getTrustStore().getCertificateAlias(testCACert));
+            assertNull(crypto.getTrustStore().getCertificate("testtesttest"));
+        } catch (KeyStoreException | CryptoException e) {
+            fail("testGetTrustStoreEntries should not have thrown exception. Error: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testSetTrustStoreNull() {
+        try {
+            CryptoPrimitives myCrypto = new CryptoPrimitives("SHA2", 256);
+            myCrypto.setTrustStore(null);
+            fail("setTrustStore(null) should have thrown exception");
+        } catch (Exception e) {
+
+        }
+    }
+
+    @Test
+    public void testSetTrustStore() {
+
+            try {
+                CryptoPrimitives myCrypto = new CryptoPrimitives("SHA2", 256);
+                KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+                keyStore.load(null, null);
+                myCrypto.setTrustStore(keyStore);
+                assertSame(keyStore, myCrypto.getTrustStore());
+            } catch (CryptoException | KeyStoreException | NoSuchAlgorithmException | CertificateException | InvalidArgumentException | IOException e) {
+                fail("testSetTrustStore() should not have thrown Exception. Error: " + e.getMessage());
+            }
+    }
+
+    @Test
+    public void testSetTrustStoreDuplicateCert() {
+        try {
+            crypto.addCACertificateToTrustStore(testCACert, "ca"); //KeyStore overrides existing cert if same alias
+        } catch (Exception e) {
+            fail("testSetTrustStoreDuplicateCert should not have thrown Exception. Error: " + e.getMessage());
+        }
+    }
+
+    @Test(expected=InvalidArgumentException.class)
+    public void testAddCACertificateToTrustStoreNoAlias() throws InvalidArgumentException {
+        try {
+            crypto.addCACertificateToTrustStore(new File("something"), null);
+        } catch (CryptoException e) {
+            fail("testAddCACertificateToTrustStoreNoAlias should not throw CryptoException. Error: " + e.getMessage());
+        }
+    }
+
+    @Test(expected=CryptoException.class)
+    public void testAddCACertificateToTrustStoreNoFile() throws CryptoException {
+        try {
+            crypto.addCACertificateToTrustStore(new File("does/not/exist"), "abc");
+        } catch (InvalidArgumentException e) {
+            fail("testAddCACertificateToTrustStoreNoFile should not throw InvalidArgumentException. Error: " + e.getMessage());
+        }
+    }
+
+    @Test(expected=InvalidArgumentException.class)
+    public void testAddCACertificateToTrustStoreNoCert() throws InvalidArgumentException {
+                try {
+                    crypto.addCACertificateToTrustStore((Certificate) null, "abc");
+                } catch (CryptoException e) {
+                    fail("testAddCACertificateToTrustStoreNoCert should not have thrown CryptoException. Error " + e.getMessage());
+                }
+    }
+
+    @Test
+    public void testLoadCACerts() {
+        try {
+            crypto.loadCACerts();
+            assertTrue(crypto.getTrustStore().containsAlias("admincert.pem"));
+            assertTrue(crypto.getTrustStore().containsAlias("cacert.pem"));
+        } catch (KeyStoreException | CryptoException e) {
+            fail("testLoadCACerts should not have thrown exception. Error: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
     @Test
     public void testValidateNullCertificateByteArray() {
         assertFalse(crypto.validateCertificate((byte[]) null));

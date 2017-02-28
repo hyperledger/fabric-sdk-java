@@ -101,6 +101,17 @@ See the fabric-sdk-java/src/test/java/org/hyperledger/fabric/sdk/End2endIT.java 
 The sdk jar is in. target/fabric-sdk-java-1.0-SNAPSHOT.jar  and you will need the additional dependencies listed above.
 When the SDK is published to Maven you'll will be able to simply include it in a your application's pom.xml.
 
+### Default CA certificates for signature validation of Peer and Orderer messages
+
+Directory _cacerts_ contains the default CA certificates used by Hyperledger Fabric for signature validation.
+
+These certificates are copied from the directories
+ * hyperledger/fabric/msp/sampleconfig/admincerts
+ * hyperledger/fabric/msp/sampleconfig/cacerts
+ 
+The SDK loads these certificates into its CryptoPrimitives trust store and uses them when validating
+signed messages from peer nodes. 
+
 ### Chaincode endorsement policies
 Policies are described in the [Fabric Endorsement Policies document](https://gerrit.hyperledger.org/r/gitweb?p=fabric.git;a=blob;f=docs/endorsement-policies.md;h=1eecf359c12c3f7c1ddc63759a0b5f3141b07f13;hb=HEAD).
 You create a policy using a Fabric tool ( an example is shown in [JIRA issue FAB-2376](https://jira.hyperledger.org/browse/FAB-2376?focusedCommentId=21121&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-21121))

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.util.encoders.Hex;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
@@ -94,8 +95,9 @@ public class MemberServicesFabricCAImpl implements MemberServices {
      * @param url URL for the membership services endpoint
      * @param pem  PEM used for SSL .. not implemented.
      * @throws CertificateException
+     * @throws CryptoException
      */
-    public MemberServicesFabricCAImpl(String url, String pem) throws CertificateException, MalformedURLException {
+    public MemberServicesFabricCAImpl(String url, String pem) throws CertificateException, MalformedURLException, CryptoException {
         this.url = url;
 
         URL purl = new URL(url);
@@ -132,6 +134,7 @@ public class MemberServicesFabricCAImpl implements MemberServices {
 
 
         this.cryptoPrimitives = new CryptoPrimitives(DEFAULT_HASH_ALGORITHM, DEFAULT_SECURITY_LEVEL);
+        this.cryptoPrimitives.loadCACerts();
     }
 
     /**
@@ -139,6 +142,7 @@ public class MemberServicesFabricCAImpl implements MemberServices {
      *
      * @return The security level
      */
+    @Override
     public int getSecurityLevel() {
         return cryptoPrimitives.getSecurityLevel();
     }
@@ -148,6 +152,7 @@ public class MemberServicesFabricCAImpl implements MemberServices {
      *
      * @param securityLevel The security level
      */
+    @Override
     public void setSecurityLevel(int securityLevel) {
         this.cryptoPrimitives.setSecurityLevel(securityLevel);
     }
@@ -157,6 +162,7 @@ public class MemberServicesFabricCAImpl implements MemberServices {
      *
      * @return {string} The hash algorithm
      */
+    @Override
     public String getHashAlgorithm() {
         return this.cryptoPrimitives.getHashAlgorithm();
     }
@@ -166,6 +172,7 @@ public class MemberServicesFabricCAImpl implements MemberServices {
      *
      * @param hashAlgorithm The hash algorithm ('SHA2' or 'SHA3')
      */
+    @Override
     public void setHashAlgorithm(String hashAlgorithm) {
         this.cryptoPrimitives.setHashAlgorithm(hashAlgorithm);
     }
@@ -180,6 +187,7 @@ public class MemberServicesFabricCAImpl implements MemberServices {
      * @param req       Registration request with the following fields: name, role
      * @param registrar The identity of the registrar (i.e. who is performing the registration)
      */
+    @Override
     public String register(RegistrationRequest req, User registrar) throws RegistrationException {
 
         //TODO fix once enroll is done.
@@ -235,6 +243,7 @@ public class MemberServicesFabricCAImpl implements MemberServices {
      * @param req Enrollment request with the following fields: name, enrollmentSecret
      * @return enrollment
      */
+    @Override
     public Enrollment enroll(EnrollmentRequest req) throws EnrollmentException {
 
 
@@ -370,6 +379,7 @@ public class MemberServicesFabricCAImpl implements MemberServices {
     /**
      *
      */
+    @Override
     public void getTCertBatch(GetTCertBatchRequest req) {
 
     	/*TODO implement getTCertBatch

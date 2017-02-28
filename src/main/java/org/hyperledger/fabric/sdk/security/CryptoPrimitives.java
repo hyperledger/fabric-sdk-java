@@ -18,8 +18,6 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.math.BigInteger;
@@ -51,6 +49,7 @@ import java.security.spec.ECGenParameterSpec;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
+import java.util.Collection;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -62,6 +61,7 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.security.auth.x500.X500Principal;
 import javax.xml.bind.DatatypeConverter;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.ASN1Integer;
@@ -97,6 +97,7 @@ import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
 
@@ -108,6 +109,7 @@ public class CryptoPrimitives {
     private String hashAlgorithm = config.getHashAlgorithm();
     private int securityLevel = config.getSecurityLevel();
     private String curveName;
+    private CertificateFactory cf;
     private static final String SECURITY_PROVIDER = BouncyCastleProvider.PROVIDER_NAME;
     private static final String ASYMMETRIC_KEY_TYPE = "EC";
     private static final String KEY_AGREEMENT_ALGORITHM = "ECDH";
@@ -123,7 +125,7 @@ public class CryptoPrimitives {
 
     private static final Log logger = LogFactory.getLog(CryptoPrimitives.class);
 
-    public CryptoPrimitives(String hashAlgorithm, int securityLevel) {
+    public CryptoPrimitives(String hashAlgorithm, int securityLevel) throws CryptoException {
         this.hashAlgorithm = hashAlgorithm;
         this.securityLevel = securityLevel;
         Security.addProvider(new BouncyCastleProvider());
@@ -146,7 +148,7 @@ public class CryptoPrimitives {
      * Note that fabric and fabric-ca have not yet standardized on which algorithms are supported.
      * While that plays out, CryptoPrimitives will try the algorithm specified in the certificate and
      * the default SHA256withECDSA that's currently hardcoded for fabric and fabric-ca
-     *  
+     *
      * @return the name of the signature algorithm
      */
     public String getSignatureAlgorithm() {
@@ -209,17 +211,15 @@ public class CryptoPrimitives {
         return isVerified;
     } // verify
 
-    // TODO refactor TrustStore, CertFactory depending on whether we want to
-    // make CryptoPrimitives static
     private KeyStore trustStore = null;
 
-    private void createTrustStore() {
+    private void createTrustStore() throws CryptoException {
         try {
             KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
             keyStore.load(null, null);
             setTrustStore(keyStore);
-        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException e) {
-            logger.error("Cannot create trust store. Error: " + e.getMessage());
+        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException | InvalidArgumentException e) {
+            throw new CryptoException("Cannot create trust store. Error: " + e.getMessage(), e);
         }
     }
 
@@ -229,57 +229,90 @@ public class CryptoPrimitives {
      *
      * @param keyStore
      *            the KeyStore which will be used to hold trusted certificates
+     * @throws InvalidArgumentException
      */
-    public void setTrustStore(KeyStore keyStore) {
+    public void setTrustStore(KeyStore keyStore) throws InvalidArgumentException {
 
-        if (keyStore == null) // no trust store == no cert is trusted
-            return;
+        if (keyStore == null)
+            throw new InvalidArgumentException("Need to specify a java.security.KeyStore input parameter");
 
         trustStore = keyStore;
+    }
 
-        CertificateFactory cf;
-        try {
-            cf = CertificateFactory.getInstance(CERTIFICATE_FORMAT);
-        } catch (CertificateException e1) {
-            logger.error("Cannot set trust store. Error = " + e1.getMessage());
-            return;
-        }
+    /**
+     * getTrustStore returns the KeyStore object where we keep trusted certificates.
+     * If no trust store has been set, this method will create one.
+     *
+     * @return the trust store as a java.security.KeyStore object
+     * @throws CryptoException
+     * @see KeyStore
+     */
+    public KeyStore getTrustStore() throws CryptoException {
+        if (trustStore == null)
+            createTrustStore();
+        return trustStore;
+    }
 
-        // Note: This section is temporary so that we can test the SDK with the
-        // existing peer code.
-        // this will be removed once the SDK can create/join channels in which
-        // case the trust store
-        // will be populated from the chain genesis block that we will receive
-        // from the orderer.
-        // TODO
-        // manually populate peer CA certs while we wait for MSP configuration
-        // to be implemented by Fabric
+    /**
+     * addCACertificateToTrustStore adds a CA cert to the set of certificates used for signature validation
+     * @param caCertPem an X.509 certificate in PEM format
+     * @param alias an alias associated with the certificate. Used as shorthand for the certificate during crypto operations
+     * @throws CryptoException
+     * @throws InvalidArgumentException
+     */
+    public void addCACertificateToTrustStore(File caCertPem, String alias) throws CryptoException, InvalidArgumentException {
+
+        if (alias==null || alias.isEmpty())
+            throw new InvalidArgumentException("You must assign an alias to a certificate when adding to the trust store.");
+
         BufferedInputStream bis;
-        String[] caCerts = config.getPeerCACerts();
-        for (String caCertFile : caCerts) {
-            try {
-                bis = new BufferedInputStream(this.getClass().getResourceAsStream(caCertFile));
-                Certificate caCert = cf.generateCertificate(bis);
-                trustStore.setCertificateEntry(caCertFile, caCert);
-            } catch (CertificateException | KeyStoreException e) {
-                logger.error("Cannot read cert " + caCertFile + ". Not adding to trust store. Error: "
-                                + e.getMessage());
-            }
+        try {
+
+            bis = new BufferedInputStream(new ByteArrayInputStream(FileUtils.readFileToByteArray(caCertPem)));
+            Certificate caCert = cf.generateCertificate(bis) ;
+            this.addCACertificateToTrustStore(caCert, alias);
+        } catch (CertificateException | IOException e) {
+            throw new CryptoException("Unable to add CA certificate to trust store. Error: " + e.getMessage(), e);
         }
     }
 
     /**
-     * getTrustStore returns the KeyStore object where we keep trusted
-     * certificates
-     *
-     * @return the trust store as a KeyStore object
+     * addCACertificateToTrustStore adds a CA cert to the set of certificates used for signature validation
+     * @param caCert an X.509 certificate
+     * @param alias an alias associated with the certificate. Used as shorthand for the certificate during crypto operations
+     * @throws CryptoException
+     * @throws InvalidArgumentException
      */
-    public KeyStore getTrustStore() {
-        // TODO refactor this based on the MSP work. Also, not thread-safe right
-        // now.
-        if (trustStore == null)
-            createTrustStore();
-        return trustStore;
+    public void addCACertificateToTrustStore(Certificate caCert, String alias) throws InvalidArgumentException, CryptoException {
+
+        if (alias==null || alias.isEmpty())
+            throw new InvalidArgumentException("You must assign an alias to a certificate when adding to the trust store.");
+        if (caCert == null)
+            throw new InvalidArgumentException("Certificate cannot be null.");
+
+        try {
+            getTrustStore().setCertificateEntry(alias, caCert);
+        } catch (KeyStoreException e) {
+            throw new CryptoException("Unable to add CA certificate to trust store. Error: "+ e.getMessage(), e);
+        }
+    }
+
+    /**
+     * loadCACerts loads into the trust stores all the certificates it finds in the <i>cacert</i> directory.
+     * This method assumes that any file with extension <i>.pem</i> is a certificate file
+     */
+    public void loadCACerts() {
+        File certsFolder = new File("cacerts").getAbsoluteFile();
+        Collection<File> certFiles = FileUtils.listFiles(certsFolder, new String[]{"pem"}, false);
+        for (File certFile : certFiles) {
+            try {
+                addCACertificateToTrustStore(certFile, certFile.getName());
+                logger.debug("adding " + certFile.getName() + "to truststore.");
+            } catch (CryptoException | InvalidArgumentException e) {
+                logger.error("Unable to load certificate " + certFile.getName() + "Error: " + e.getMessage(), e);
+                // ignore cert files we can't read
+            }
+        }
     }
 
     /**
@@ -612,11 +645,11 @@ public class CryptoPrimitives {
         return retValue;
     }
 
-    private void init() {
+    private void init() throws CryptoException {
         if (securityLevel != 256 && securityLevel != 384) {
             throw new RuntimeException("Illegal level: " + securityLevel + " must be either 256 or 384");
         }
-        if (StringUtil.isNullOrEmpty(this.hashAlgorithm) 
+        if (StringUtil.isNullOrEmpty(this.hashAlgorithm)
                 || !(this.hashAlgorithm.equalsIgnoreCase("SHA2") || this.hashAlgorithm.equalsIgnoreCase("SHA3"))) {
             throw new RuntimeException(
                             "Illegal Hash function family: " + this.hashAlgorithm + " - must be either SHA2 or SHA3");
@@ -630,6 +663,15 @@ public class CryptoPrimitives {
             this.curveName = "secp384r1";
             // TODO: HashOutputSize=48 ?
         }
+
+        try {
+            cf = CertificateFactory.getInstance(CERTIFICATE_FORMAT);
+        } catch (CertificateException e) {
+            CryptoException ex = new CryptoException("Cannot initialize X.509 certificate factory. Error = " + e.getMessage(), e);
+            logger.error(ex.getMessage(), ex);
+            throw ex;
+        }
+
     }
 
     private Digest getHashDigest() {

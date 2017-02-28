@@ -62,9 +62,9 @@ public class ChainTestIT {
     @Test
     public void setup() {
 
-        HFClient client = HFClient.createNewInstance();
         try {
 
+            HFClient client = HFClient.createNewInstance();
 
             ////////////////////////////
             // Setup client
