@@ -15,7 +15,6 @@ package org.hyperledger.fabric.sdk;
 
 import static org.junit.Assert.*;
 
-import java.util.BitSet;
 import java.util.List;
 
 import org.hyperledger.fabric.protos.common.Common.Block;
@@ -26,6 +25,7 @@ import org.hyperledger.fabric.protos.common.Common.ChannelHeader;
 import org.hyperledger.fabric.protos.common.Common.Envelope;
 import org.hyperledger.fabric.protos.common.Common.Header;
 import org.hyperledger.fabric.protos.common.Common.Payload;
+import org.hyperledger.fabric.protos.peer.FabricTransaction.TxValidationCode;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -37,8 +37,6 @@ public class BlockEventTest {
     private static BlockHeader blockHeader;
     private static BlockData blockData;
     private static BlockMetadata blockMetadata;
-    private static Envelope envelope = null ;
-
     /**
      * @throws java.lang.Exception
      */
@@ -99,9 +97,8 @@ public class BlockEventTest {
         blockMetadataBuilder.addMetadata(ByteString.copyFrom("signatures".getBytes()));   //BlockMetadataIndex.SIGNATURES_VALUE
         blockMetadataBuilder.addMetadata(ByteString.copyFrom("last_config".getBytes()));  //BlockMetadataIndex.LAST_CONFIG_VALUE,
         // mark 2nd transaction in block as invalid
-        BitSet txBitMap = new BitSet(3);
-        txBitMap.set(1);
-        blockMetadataBuilder.addMetadata(ByteString.copyFrom(txBitMap.toByteArray()));    //BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE
+        byte[] txResultsMap = new byte[]{TxValidationCode.VALID_VALUE, (byte) TxValidationCode.INVALID_OTHER_REASON_VALUE, TxValidationCode.VALID_VALUE};
+        blockMetadataBuilder.addMetadata(ByteString.copyFrom(txResultsMap));              //BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE
         blockMetadataBuilder.addMetadata(ByteString.copyFrom("orderer".getBytes()));      //BlockMetadataIndex.ORDERER_VALUE
         blockMetadata = blockMetadataBuilder.build();
 
@@ -138,6 +135,7 @@ public class BlockEventTest {
             assertEquals(txList.size(), 3);
             BlockEvent.TransactionEvent te = txList.get(1);
             assertFalse(te.isValid()) ;
+            assertEquals(te.validationCode(), (byte) TxValidationCode.INVALID_OTHER_REASON_VALUE);
             te = txList.get(2);
             assertTrue(te.isValid());
         } catch (InvalidProtocolBufferException e) {

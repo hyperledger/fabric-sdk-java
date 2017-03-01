@@ -27,6 +27,8 @@ import org.hyperledger.fabric.protos.common.Common.ChannelHeader;
 import org.hyperledger.fabric.protos.common.Common.Envelope;
 import org.hyperledger.fabric.protos.common.Common.Header;
 import org.hyperledger.fabric.protos.common.Common.Payload;
+import org.hyperledger.fabric.protos.peer.FabricTransaction.Transaction;
+import org.hyperledger.fabric.protos.peer.FabricTransaction.TxValidationCode;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -45,7 +47,7 @@ public class BlockEvent {
 
     private String channelID ;  // TODO a block contains payloads from a single channel ??????
     private final ArrayList<TransactionEvent> txList = new ArrayList<>() ;
-    private BitSet txResults;
+    private byte[] txResults;   // mapping of Block.Metadata[TRANSACTIONS_FILTER] which is an array of Golang uint8
     private int transactionsInBlock;
 
 
@@ -84,8 +86,8 @@ public class BlockEvent {
      * populateResultsMap parses the Block and retrieves the bit string that lists the transaction results
      */
     private void populateResultsMap() {
-        ByteString txBitmap = blockMetadata.getMetadata(BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE);
-        txResults = BitSet.valueOf(txBitmap.toByteArray());
+        ByteString txResultsBytes = blockMetadata.getMetadata(BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE);
+        txResults = txResultsBytes.toByteArray();
     }
 
     /**
@@ -185,16 +187,26 @@ public class BlockEvent {
         }
 
         /**
-         * @return the result of this Transaction ( currently a valid/invalid status )
+         * @return whether this Transaction is marked as TxValidationCode.VALID
          */
         public boolean isValid() {
             if (txIndex >= transactionsInBlock) {
                 return false;
             }
-            boolean bitValue = txResults.get(this.txIndex);
-            logger.debug("TxID " + this.txID + " resultsBitmap = " + bitValue);
+            byte txResult = txResults[this.txIndex];
+            logger.debug("TxID " + this.txID + " txResult = " + txResult);
 
-            return !bitValue ;  // a 0 at bit blockDataIndex indicates the transaction is valid
+            return txResult == TxValidationCode.VALID_VALUE ;
+        }
+
+        /**
+         * @return the validation code of this Transaction (enumeration TxValidationCode in Transaction.proto)
+         */
+        public byte validationCode() {
+            if (txIndex >= transactionsInBlock) {
+                return (byte) TxValidationCode.INVALID_OTHER_REASON_VALUE ;
+            }
+            return txResults[this.txIndex];
         }
     } // TransactionEvent
 
