@@ -6,7 +6,8 @@ services:
     image: hyperledger/fabric-ca
     ports:
       - "7054:7054"
-    command: sh -c 'fabric-ca server start -ca /.fabric-ca/ec.pem -ca-key /.fabric-ca/ec-key.pem -config /etc/hyperledger/fabric-ca/server-config.json -address "0.0.0.0"'
+    command: sh -c 'fabric-ca-server start -b admin:adminpw'
+    
     container_name: ca
 
   orderer:
