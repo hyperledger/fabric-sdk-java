@@ -85,10 +85,25 @@ public class TransactionRequest {
     }
 
     public void setChaincodeID(ChainCodeID chaincodeID) {
+
+        if(chaincodeName != null ){
+
+            throw new IllegalArgumentException("Chaincode name has already been set.");
+        }
+        if(chaincodeVersion != null ){
+
+            throw new IllegalArgumentException("Chaincode version has already been set.");
+        }
+
+        if(chaincodePath != null ){
+
+            throw new IllegalArgumentException("Chaincode path has already been set.");
+        }
+
         this.chaincodeID = chaincodeID;
-        this.chaincodeName = chaincodeID.getName();
-        this.chaincodePath = chaincodeID.getPath();
-        this.chaincodeVersion = chaincodeID.getVersion();
+        chaincodeName = chaincodeID.getName();
+        chaincodePath = chaincodeID.getPath();
+        chaincodeVersion = chaincodeID.getVersion();
     }
 
     public String getFcn() {
@@ -145,7 +160,7 @@ public class TransactionRequest {
 
     /**
      * sets the endorsementPolicy associated with the chaincode of this transaction
-     * @param endorsementPolicy a Policy object
+     * @param policy a Policy object
      *
      * @see ChaincodeEndorsementPolicy
      */

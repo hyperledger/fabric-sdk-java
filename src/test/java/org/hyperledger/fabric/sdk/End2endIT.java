@@ -109,10 +109,13 @@ public class End2endIT {
 
             out("Creating install proposal");
 
+            final ChainCodeID chainCodeID = ChainCodeID.newBuilder().setName(CHAIN_CODE_NAME)
+                    .setVersion(CHAIN_CODE_VERSION)
+                    .setPath(CHAIN_CODE_PATH).build();
+
             InstallProposalRequest installProposalRequest = client.newInstallProposalRequest();
-            installProposalRequest.setChaincodeName(CHAIN_CODE_NAME);
-            installProposalRequest.setChaincodePath(CHAIN_CODE_PATH);
-            installProposalRequest.setChaincodeVersion(CHAIN_CODE_VERSION);
+            installProposalRequest.setChaincodeID(chainCodeID);
+
 
             Collection<ProposalResponse> responses = chain.sendInstallProposal(installProposalRequest, peers);
 
@@ -138,7 +141,7 @@ public class End2endIT {
                 Assert.fail("Not enough endorsers for install :" + successful.size() + ".  " + first.getMessage());
             }
             ProposalResponse firstInstallProposalResponse = successful.iterator().next();
-            final ChainCodeID chainCodeID = firstInstallProposalResponse.getChainCodeID();
+            //  final ChainCodeID chainCodeID = firstInstallProposalResponse.getChainCodeID();
             // Note install chain code does not require transaction no need to
             // send to Orderers
 
