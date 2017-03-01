@@ -14,8 +14,10 @@
 
 package org.hyperledger.fabric.sdk.transaction;
 
+import static java.lang.String.*;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createDeploymentSpec;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -45,7 +47,7 @@ public class InstallProposalBuilder extends ProposalBuilder {
     private String chaincodePath;
 
 
-    private String chaincodeSource;
+    private File chaincodeSource;
     private String chaincodeName;
     private String chaincodeVersion;
     private TransactionRequest.Type chaincodeLanguage;
@@ -79,7 +81,7 @@ public class InstallProposalBuilder extends ProposalBuilder {
     }
 
 
-    public InstallProposalBuilder setChaincodeSource(String chaincodeSource) {
+    public InstallProposalBuilder setChaincodeSource(File chaincodeSource) {
         this.chaincodeSource = chaincodeSource;
 
         return this;
@@ -115,51 +117,50 @@ public class InstallProposalBuilder extends ProposalBuilder {
 
         // Verify that chaincodePath is being passed
         if (StringUtil.isNullOrEmpty(chaincodePath)) {
-            throw new IllegalArgumentException("[NetMode] Missing chaincodePath in DeployRequest");
+            throw new IllegalArgumentException("Missing chaincodePath in InstallRequest");
+        }
+        if (null == chaincodeSource) {
+            throw new IllegalArgumentException("Missing chaincodeSource in InstallRequest");
         }
 
+
         final Type ccType;
-        final Path projectSourceDir;
+        final File projectSourceDir;
         final String targetPathPrefix;
+        String dplang;
 
         switch (chaincodeLanguage) {
         case GO_LANG:
+            dplang = "Go";
             ccType = Type.GOLANG;
-            if (chaincodeSource == null) {
-                chaincodeSource = System.getenv("GOPATH");
-                logger.info(String.format("Using GOPATH :%s", chaincodeSource));
-            }
-            if (StringUtil.isNullOrEmpty(chaincodeSource)) {
-        	logger.error("[NetMode] Neither the golang chaincodeSource directory or the GOPATH environment variable set.");
-                throw new IllegalArgumentException("[NetMode] Neither the golang chaincodeSource directory or the GOPATH environment variable set.");
-            }
-            logger.info(String.format("Looking for Golang chaincode in %s", chaincodeSource));
-            projectSourceDir = Paths.get(chaincodeSource, "src", chaincodePath);
-            targetPathPrefix = SDKUtil.combinePaths("src", chaincodePath);
+            projectSourceDir = Paths.get(chaincodeSource.toString(), "src", chaincodePath).toFile();
+            targetPathPrefix = Paths.get("src", chaincodePath).toString();
             break;
+
         case JAVA:
+            dplang = "Java";
             ccType = Type.JAVA;
             targetPathPrefix = "src";
-            if(StringUtil.isNullOrEmpty(chaincodeSource)) {
-                chaincodeSource = Paths.get("").toAbsolutePath().toString();
-            }
-            logger.info(String.format("Looking for Java chaincode in %s", chaincodeSource));
-            projectSourceDir = Paths.get(chaincodeSource, chaincodePath);
+            projectSourceDir = Paths.get(chaincodeSource.toString(), chaincodePath).toFile();
         default:
             throw new IllegalArgumentException("Unexpected chaincode language: " + chaincodeLanguage);
         }
 
-        if(!projectSourceDir.toFile().exists()) {
-            final String message = "The project source directory does not exist: " + projectSourceDir.toAbsolutePath();
+        if(!projectSourceDir.exists()) {
+            final String message = "The project source directory does not exist: " + projectSourceDir.getAbsolutePath();
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
-        if(!projectSourceDir.toFile().isDirectory()) {
-            final String message = "The project source directory is not a directory: " + projectSourceDir.toAbsolutePath();
+        if(!projectSourceDir.isDirectory()) {
+            final String message = "The project source directory is not a directory: " + projectSourceDir.getAbsolutePath();
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
-        logger.debug("Project source directory: " + projectSourceDir.toAbsolutePath());
+
+        String chaincodeID = chaincodeName + "::" + chaincodePath + "::" + chaincodeVersion;
+
+        logger.info(format("Installing '%s'  %s chaincode from directory: '%s' with source location: '%s'. chaincodePath:'%s'",
+              chaincodeID,  dplang, projectSourceDir.getAbsolutePath(), targetPathPrefix, chaincodePath));
 
         // generate chain code source tar
         final byte[] data = SDKUtil.generateTarGz(projectSourceDir, targetPathPrefix);

@@ -22,20 +22,16 @@ import java.util.concurrent.TimeUnit;
 
 import org.hyperledger.fabric.sdk.Chain;
 import org.hyperledger.fabric.sdk.ChainCodeID;
-import org.hyperledger.fabric.sdk.FileKeyValStore;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.InstallProposalRequest;
 import org.hyperledger.fabric.sdk.InstantiateProposalRequest;
 import org.hyperledger.fabric.sdk.InvokeProposalRequest;
-import org.hyperledger.fabric.sdk.MemberServicesFabricCAImpl;
 import org.hyperledger.fabric.sdk.Orderer;
 import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.ProposalResponse;
 import org.hyperledger.fabric.sdk.QueryProposalRequest;
 import org.hyperledger.fabric.sdk.TestConfigHelper;
-import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.events.EventHub;
-import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -87,16 +83,12 @@ public class End2endJavaChaincodeIT {
         try {
             HFClient client = HFClient.createNewInstance();
 
-            client.setUserContext(new User("admin"));
+            //     client.setUserContext(new FSUser("admin"));
             File fileStore = new File(System.getProperty("user.home") + "/test.properties");
             if (fileStore.exists()) {
                 fileStore.delete();
             }
-            client.setKeyValStore(new FileKeyValStore(fileStore));
-            client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
-            client.setMemberServices(new MemberServicesFabricCAImpl(FABRIC_CA_SERVICES_LOCATION, null));
-            User user = client.enroll("admin", "adminpw");
-            client.setUserContext(user);
+
 
 
             //////////////////////////// TODo Needs to be made out of bounds and here chain just retrieved

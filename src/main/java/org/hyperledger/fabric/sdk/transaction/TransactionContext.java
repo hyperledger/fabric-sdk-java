@@ -31,13 +31,11 @@ import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.DERUTF8String;
 import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.sdk.Chain;
-import org.hyperledger.fabric.sdk.MemberServices;
 import org.hyperledger.fabric.sdk.TCert;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
-import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 
@@ -52,7 +50,6 @@ public class TransactionContext {
     private final ByteString nonce = ByteString.copyFromUtf8(SDKUtil.generateUUID());
 
 
-
     private boolean verify = true;
 
     public CryptoSuite getCryptoPrimitives() {
@@ -63,43 +60,43 @@ public class TransactionContext {
     private final User user;
     private final Chain chain;
 
-    private final MemberServices memberServices;
-    private String txID ;
+    private final String txID;
     private TCert tcert;
     private List<String> attrs;
     private long proposalWaitTime = config.getProposalWaitTime();
-    private final  Identities.SerializedIdentity  identity;
+    private final Identities.SerializedIdentity identity;
 
     public TransactionContext(Chain chain, User user, CryptoSuite cryptoPrimitives) {
 
 
         this.user = user;
         this.chain = chain;
-        this.memberServices = this.chain.getMemberServices();
         this.tcert = tcert;
         //  this.txID = transactionID;
         this.cryptoPrimitives = cryptoPrimitives;
 
 
-         identity = Identities.SerializedIdentity.newBuilder()
-                         .setIdBytes(ByteString.copyFromUtf8(getCreator()))
-                         .setMspid(getMSPID()).build();
+        identity = Identities.SerializedIdentity.newBuilder()
+                .setIdBytes(ByteString.copyFromUtf8(getCreator()))
+                .setMspid(getMSPID()).build();
 
-         ByteString no = getNonce();
-         ByteString comp = no.concat(identity.toByteString());
-         byte[] txh = cryptoPrimitives.hash(comp.toByteArray());
-         txID = new String( Hex.encodeHex(txh));
+
+        ByteString no = getNonce();
+        ByteString comp = no.concat(identity.toByteString());
+        byte[] txh = cryptoPrimitives.hash(comp.toByteArray());
+        //    txID = Hex.encodeHexString(txh);
+        txID = new String(Hex.encodeHex(txh));
 
     }
 
-    public Identities.SerializedIdentity getIdentity(){
+    public Identities.SerializedIdentity getIdentity() {
 
         return identity;
 
     }
 
 
-    public long getEpoch(){
+    public long getEpoch() {
         return 0;
     }
 
@@ -122,14 +119,6 @@ public class TransactionContext {
         return this.chain;
     }
 
-    /**
-     * Get the user services, or undefined if security is not enabled.
-     *
-     * @return The user services
-     */
-    public MemberServices getMemberServices() {
-        return this.memberServices;
-    }
 
     /**
      * Emit a specific event provided an event listener is already registered.
@@ -268,11 +257,11 @@ public class TransactionContext {
 
 
     String getMSPID() {
-        return chain.getEnrollment().getMSPID();
+        return user.getMSPID();
     }
 
     String getCreator() {
-        return chain.getEnrollment().getCert();
+        return getUser().getEnrollment().getCert();
 
     }
 
@@ -290,14 +279,13 @@ public class TransactionContext {
     }
 
 
-    public  byte[] sign(byte[] b) throws CryptoException {
+    public byte[] sign(byte[] b) throws CryptoException {
         return cryptoPrimitives.sign(getUser().getEnrollment().getKey(), b);
     }
 
-    public  ByteString signByteString(byte[] b) throws CryptoException {
+    public ByteString signByteString(byte[] b) throws CryptoException {
         return ByteString.copyFrom(sign(b));
     }
-
 
 
 }  // end TransactionContext

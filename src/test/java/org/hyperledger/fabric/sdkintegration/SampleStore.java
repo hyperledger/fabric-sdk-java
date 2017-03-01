@@ -12,7 +12,7 @@
  *  limitations under the License.
  */
 
-package org.hyperledger.fabric.sdk;
+package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -21,21 +21,23 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+
 /**
  * A local file-based key value store.
- * This implements the KeyValStore interface.
  */
-public class FileKeyValStore implements KeyValStore {
+public class SampleStore {
 
     private String file;
-    private Log logger = LogFactory.getLog(FileKeyValStore.class);
+    private Log logger = LogFactory.getLog(SampleStore.class);
 
-    public FileKeyValStore(File file) {
+    public SampleStore(File file) {
 
         this.file = file.getAbsolutePath();
     }
@@ -85,5 +87,24 @@ public class FileKeyValStore implements KeyValStore {
             logger.warn(String.format("Could not save the keyvalue store, reason:%s", e.getMessage()));
         }
     }
+    private final Map<String, SampleUser> members = new HashMap<>();
+    /**
+     * Get the user with a given name
+     *
+     * @return user
+     */
+    public SampleUser getMember(String name) {
+
+        // Try to get the SampleUser state from the cache
+        SampleUser sampleUser = members.get(name);
+        if (null != sampleUser) return sampleUser;
+
+        // Create the SampleUser and try to restore it's state from the key value store (if found).
+        sampleUser = new SampleUser(name, this);
+
+        return sampleUser;
+
+    }
+
 
 }

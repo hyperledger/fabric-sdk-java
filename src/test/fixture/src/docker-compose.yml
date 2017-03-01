@@ -2,11 +2,11 @@ version: '2.0'
 
 services:
 
-  cop:
+  ca:
     image: hyperledger/fabric-ca
     ports:
       - "7054:7054"
-    command: sh -c 'fabric-ca-server start -b admin:adminpw'
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
     
     container_name: ca
 

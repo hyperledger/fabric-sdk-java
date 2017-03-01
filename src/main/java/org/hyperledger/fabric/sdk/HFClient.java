@@ -20,13 +20,12 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import io.netty.util.internal.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.sdk.events.EventHub;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
-import org.hyperledger.fabric.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
-import org.hyperledger.fabric.sdk.exception.RegistrationException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
@@ -48,14 +47,12 @@ public class HFClient {
 
     private final Map<String, Chain> chains = new HashMap<>();
 
+
     public User getUserContext() {
         return userContext;
     }
 
     private User userContext;
-
-    // The key-val store used for this chain
-    private KeyValStore keyValStore;
 
     // The member services used for this chain
     private MemberServices memberServices;
@@ -71,26 +68,6 @@ public class HFClient {
     public void setCryptoSuite(CryptoSuite cryptoSuite) throws CryptoException, InvalidArgumentException {
         this.cryptoSuite = cryptoSuite;
         this.cryptoSuite.init();
-    }
-
-
-    /**
-     * Get the key val store implementation (if any) that is currently associated with this chain.
-     *
-     * @return The current KeyValStore associated with this chain, or undefined if not set.
-     */
-    public KeyValStore getKeyValStore() {
-        return this.keyValStore;
-    }
-
-
-    /**
-     * Set the key value store implementation.
-     *
-     * @param keyValStore keystore value implementation
-     */
-    public void setKeyValStore(KeyValStore keyValStore) {
-        this.keyValStore = keyValStore;
     }
 
     /**
@@ -244,7 +221,35 @@ public class HFClient {
      * @param userContext
      */
 
-    public void setUserContext(User userContext) {
+    public void setUserContext(User userContext) throws InvalidArgumentException {
+
+
+        if(userContext == null){
+            throw new  InvalidArgumentException("setUserContext is null");
+        }
+        Enrollment enrollment = userContext.getEnrollment();
+        if(enrollment  == null){
+            throw new  InvalidArgumentException("setUserContext has no Enrollment set");
+        }
+
+        if(StringUtil.isNullOrEmpty(userContext.getMSPID())){
+            throw new  InvalidArgumentException("setUserContext user's MSPID is missing");
+        }
+
+        if(StringUtil.isNullOrEmpty(userContext.getName())){
+            throw new  InvalidArgumentException("setUserContext user's name is missing");
+        }
+
+        if(StringUtil.isNullOrEmpty(enrollment.getCert())){
+            throw new  InvalidArgumentException("setUserContext Enrollment missing user certificate.");
+        }
+        if( null == enrollment.getKey()){
+            throw new  InvalidArgumentException("setUserContext has no Enrollment missing signing key");
+        }
+        if(StringUtil.isNullOrEmpty(enrollment.getPublicKey())){
+            throw new  InvalidArgumentException("setUserContext Enrollment missing user public key.");
+        }
+
         this.userContext = userContext;
     }
 
@@ -270,76 +275,6 @@ public class HFClient {
 
     public EventHub newEventHub(String url) {
         return EventHub.createNewInstance(url, null);
-    }
-
-
-    private final Map<String, User> members = new HashMap<>();
-
-    /**
-     * Register a user or other user type with the chain.
-     *
-     * @param registrationRequest Registration information.
-     * @throws RegistrationException if the registration fails
-     */
-    public User register(RegistrationRequest registrationRequest) throws RegistrationException {
-        User user = getMember(registrationRequest.getEnrollmentID());
-        user.register(registrationRequest);
-        return user;
-    }
-
-    /**
-     * Enroll a user or other identity which has already been registered.
-     *
-     * @param name   The name of the user or other member to enroll.
-     * @param secret The enrollment secret of the user or other member to enroll.
-     * @throws EnrollmentException
-     */
-
-    public User enroll(String name, String secret) throws EnrollmentException {
-        User user = getMember(name);
-        if (!user.isEnrolled()) {
-            user.enroll(secret);
-        }
-
-        members.put(name, user);
-
-        return user;
-    }
-
-    /**
-     * Register and enroll a user or other member type.
-     * This assumes that a registrar with sufficient privileges has been set.
-     *
-     * @param registrationRequest Registration information.
-     * @throws RegistrationException
-     * @throws EnrollmentException
-     */
-    public User registerAndEnroll(RegistrationRequest registrationRequest) throws RegistrationException, EnrollmentException {
-        User user = getMember(registrationRequest.getEnrollmentID());
-        user.registerAndEnroll(registrationRequest);
-        return user;
-    }
-
-    /**
-     * Get the user with a given name
-     *
-     * @return user
-     */
-    public User getMember(String name) {
-        if (null == keyValStore)
-            throw new RuntimeException("No key value store was found.  You must first call Chain.setKeyValStore");
-        if (null == memberServices)
-            throw new RuntimeException("No user services was found.  You must first call Chain.setMemberServices or Chain.setMemberServicesUrl");
-
-        // Try to get the user state from the cache
-        User user = members.get(name);
-        if (null != user) return user;
-
-        // Create the user and try to restore it's state from the key value store (if found).
-        user = new User(name, this);
-        user.restoreState();
-        return user;
-
     }
 
 

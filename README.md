@@ -1,9 +1,26 @@
 # Java SDK for Hyperledger Fabric 1.0
-Welcome to Java SDK for Hyperledger project. This is a summary of steps required to get you started with building and using the Java SDK.
- Please note that this is not the API documentation or a tutorial for the SDK, this will only help you familiarize to get started with the SDK if you are new in this domain.
+Welcome to Java SDK for Hyperledger project. The SDK helps facilitate Java applications to manage the lifecycle of
+ Hyperledger channels  (*often referred to as chains*) and user chaincode. The SDK also provides a means to execute
+  user chaincode, query blocks
+ and transactions on the chain, and monitor events on the chain.
+ 
+THe SDK acts on behave of a particular User which is defined by the embedding application through the implementation
+ of the SDK's `User` interface.
+ 
+Note, the SDK does ***not*** provide a means of persistence 
+  for the application defined channels and user artifacts on the client. This is left for the embedding application to best manage.
+  
+The SDK also provides a client for Hyperledger's certificate authority.  The SDK is however not dependent on this
+particular implementation of a certificate authority.  Other Certificate authority's maybe use by implementing the 
+SDK's `Enrollment` interface.
+ 
+ This provides a summary of steps required to get you started with building and using the Java SDK.
+ Please note that this is not the API documentation or a tutorial for the SDK, this will
+  only help you familiarize to get started with the SDK if you are new in this domain.
 
- The 1.0 sdk is currently under development and the api is still subject to change. It is likely any code depending on this 1.0 version `preview` many need updating
- with subsequent updates of this sdk.
+ The 1.0 sdk is currently under development and the ***API is still subject to change****. It is likely any code depending 
+ on this 1.0 version `preview` may need updating
+ with subsequent updates of the SDK.
 
 ## Valid builds of Fabric and Fabric-ca
 
@@ -67,7 +84,7 @@ SDK depends on few third party libraries that must be included in your classpath
 Alternatively, <code> mvn dependency:analyze-report </code> will produce a report in HTML format in target directory listing all the dependencies in a more readable format.
 
 ## Using the SDK
-The SDK test cases use a chaincode in the SDK source tree. Set the `GOPATH` environment variable to _&lt;fullpath to your sdk directory&gt;/src/test/fixture_
+The SDK's test cases uses chaincode in the SDK's source tree: `/src/test/fixture`
 
 The sdk jar is in `target/fabric-sdk-java-1.0-SNAPSHOT.jar` and you will need the additional dependencies listed above.
 When the SDK is published to `Maven` you will be able to simply include it in a your application's `pom.xml`.
@@ -140,13 +157,13 @@ For the sample in the End2endIT.java the command run was
 #Basic Troubleshooting
 **identity or token do not match**
 
-Keep in mind that you can perform the enrollment process with the membership services server only once, as the enrollmentSecret is a one-time-use password. If you have performed a user registration/enrollment with the membership services and subsequently deleted the crypto tokens stored on the client side, the next time you try to enroll, errors similar to the ones below will be seen.
+Keep in mind that you can perform the enrollment process with the membership services server only once, as the enrollmentSecret is a one-time-use password. If you have performed a FSUser registration/enrollment with the membership services and subsequently deleted the crypto tokens stored on the client side, the next time you try to enroll, errors similar to the ones below will be seen.
 
 ``Error: identity or token do not match``
 
-``Error: user is already registered``
+``Error: FSUser is already registered``
 
-To address this, remove any stored crypto material from the CA server by following the instructions <a href="https://github.com/hyperledger/fabric/blob/master/docs/Setup/Chaincode-setup.md#removing-temporary-files-when-security-is-enabled">here</a> which typically involves deleting the /var/hyperledger/production directory and restarting the membership services. You will also need to remove any of the crypto tokens stored on the client side by deleting the KeyValStore . That KeyValStore is configurable and is set to ${user.home}/test.properties within the unit tests.
+To address this, remove any stored crypto material from the CA server by following the instructions <a href="https://github.com/hyperledger/fabric/blob/master/docs/Setup/Chaincode-setup.md#removing-temporary-files-when-security-is-enabled">here</a> which typically involves deleting the /var/hyperledger/production directory and restarting the membership services. You will also need to remove any of the crypto tokens stored on the client side by deleting the KeyValStore . That KeyValStore is configurable and is set to ${FSUser.home}/test.properties within the unit tests.
 
 When running the unit tests, you will always need to clean the membership services database, and delete the KeyValStore file, otherwise the unit tests will fail.
 

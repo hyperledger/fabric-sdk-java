@@ -129,8 +129,8 @@ public class SDKUtil {
      * @param pathPrefix
      * @throws IOException
      */
-    public static byte[] generateTarGz(Path src, String pathPrefix) throws IOException {
-        File sourceDirectory = src.toFile();
+    public static byte[] generateTarGz(File src, String pathPrefix) throws IOException {
+        File sourceDirectory = src;
         //File destinationArchive = new File(target);
 
         ByteArrayOutputStream bos = new ByteArrayOutputStream(500000);

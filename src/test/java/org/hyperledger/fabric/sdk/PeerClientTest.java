@@ -21,8 +21,8 @@ package org.hyperledger.fabric.sdk;
 //
 //import org.hyperledger.fabric.sdk.exception.ChainCodeException;
 //import org.hyperledger.fabric.sdk.exception.ProposalException;
-//import org.hyperledger.fabric.sdk.exception.EnrollmentException;
-//import org.hyperledger.fabric.sdk.exception.RegistrationException;
+//import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
+//import org.hyperledger.fabric_ca.sdk.exception.RegistrationException;
 //import org.junit.BeforeClass;
 //import org.junit.Test;
 
@@ -37,10 +37,10 @@ public class PeerClientTest {
 //		testChain = new Chain("chain1");
 //		try {
 //			testChain.setMemberServicesUrl("grpc://localhost:7054", null);
-//			testChain.setKeyValStore(new FileKeyValStore(System.getProperty("user.home")+"/test.properties"));
+//			testChain.setKeyValStore(new SampleStore(System.getProperty("user.home")+"/test.properties"));
 //			testChain.addPeer("grpc://localhost:7051", null);
 //			//testChain.setDevMode(true);
-//			User registrar = testChain.getUser("admin");
+//			SampleUser registrar = testChain.getUser("admin");
 //			if (!registrar.isEnrolled()) {
 //				registrar = testChain.enroll("admin", "Xurw3yU9zI0l");
 //			}
@@ -58,7 +58,7 @@ public class PeerClientTest {
 //		InstallProposalRequest request = new InstallProposalRequest();
 //		request.setChaincodePath("github.com/hyperledger/fabric/examples/chaincode/go/chaincode_example02");
 //		request.setArgs(new ArrayList<>(Arrays.asList("init", "a", "700", "b", "20000")));
-//		User user = getUser("User1", "bank_a");
+//		SampleUser user = getUser("User1", "bank_a");
 //		request.setChaincodeName("mycc");
 //		request.setChaincodeLanguage(ChaincodeLanguage.GO_LANG);
 //		return user.deploy(request);
@@ -68,7 +68,7 @@ public class PeerClientTest {
 //		InstallProposalRequest request = new InstallProposalRequest();
 //		request.setChaincodePath(System.getenv("GOPATH")+"/src/github.com/hyperledger/fabric/examples/chaincode/java/Example");
 //		request.setArgs(new ArrayList<>(Arrays.asList("init", "a", "700", "b", "20000")));
-//		User user = getUser("User1", "bank_a");
+//		SampleUser user = getUser("User1", "bank_a");
 //		request.setChaincodeName("myccj");
 //		request.setChaincodeLanguage(ChaincodeLanguage.JAVA);
 //		return user.deploy(request);
@@ -82,7 +82,7 @@ public class PeerClientTest {
 //		request.setArgs(new ArrayList<>(Arrays.asList("query", "a")));
 //		request.setChaincodeID(deployResponse.getChainCodeID());
 //		request.setChaincodeName(deployResponse.getChainCodeID());
-//		User user = getUser("User1", "bank_a");
+//		SampleUser user = getUser("User1", "bank_a");
 //		user.query(request);
 //	}
 //
@@ -92,7 +92,7 @@ public class PeerClientTest {
 //		request.setArgs(new ArrayList<>(Arrays.asList("invoke", "a", "b", "200")));
 //		request.setChaincodeID(deployResponse.getChainCodeID());
 //		request.setChaincodeName(deployResponse.getChainCodeID());
-//		User user = getUser("User1", "bank_a");
+//		SampleUser user = getUser("User1", "bank_a");
 //		user.invoke(request);
 //	}
 //
@@ -104,7 +104,7 @@ public class PeerClientTest {
 //		request.setChaincodeID(javaDeployResponse.getChainCodeID());
 //		request.setChaincodeName(javaDeployResponse.getChainCodeID());
 //		request.setChaincodeLanguage(ChaincodeLanguage.JAVA);
-//		User user = getUser("User1", "bank_a");
+//		SampleUser user = getUser("User1", "bank_a");
 //		user.query(request);
 //	}
 //
@@ -115,12 +115,12 @@ public class PeerClientTest {
 //		request.setChaincodeID(javaDeployResponse.getChainCodeID());
 //		request.setChaincodeName(javaDeployResponse.getChainCodeID());
 //		request.setChaincodeLanguage(ChaincodeLanguage.JAVA);
-//		User user = getUser("User1", "bank_a");
+//		SampleUser user = getUser("User1", "bank_a");
 //		user.invoke(request);
 //	}
 //
-//	private static User getUser(String enrollmentId, String affiliation) throws RegistrationException, EnrollmentException {
-//		User user = testChain.getUser(enrollmentId);
+//	private static SampleUser getUser(String enrollmentId, String affiliation) throws RegistrationException, EnrollmentException {
+//		SampleUser user = testChain.getUser(enrollmentId);
 //		if (!user.isRegistered()) {
 //			RegistrationRequest registrationRequest = new RegistrationRequest();
 //			registrationRequest.setEnrollmentID(enrollmentId);

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -12,14 +12,19 @@
  *  limitations under the License.
  */
 
-package org.hyperledger.fabric.sdk.exception;
+package org.hyperledger.fabric_ca.sdk.exception;
+
 
 public class EnrollmentException extends BaseException {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	public EnrollmentException(String message, Exception parent) {
-		super(message, parent);
-	}
+    public EnrollmentException(String message, Throwable parent) {
+        super(message, parent);
+    }
+
+    public EnrollmentException(String message) {
+        super(message);
+    }
 
 }

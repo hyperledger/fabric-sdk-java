@@ -33,20 +33,20 @@ public class TCertGetter {
 //    private getTCertWaiters:GetTCertCallback[] = [];
     private boolean gettingTCerts = false;
 
-    /**
-    * Constructor for a {@link TCertGetter}.
-    * @param user User
-    * @param attrs Attributes
-    * @param key Key
-    */
-    public TCertGetter(User user, List<String> attrs, String key) {
-        this.user = user;
-        this.attrs = attrs;
-        this.key = key;
-       // this.chain = user.getChain();
-        this.memberServices = user.getMemberServices();
-        this.tcerts = new Stack<>();
-    }
+//    /**
+//    * Constructor for a {@link TCertGetter}.
+//    * @param user User
+//    * @param attrs Attributes
+//    * @param key Key
+//    */
+//    public TCertGetter(User user, List<String> attrs, String key) {
+//        this.user = user;
+//        this.attrs = attrs;
+//        this.key = key;
+//       // this.chain = user.getChain();
+//        this.memberServices = user.getMemberServices();
+//        this.tcerts = new Stack<>();
+//    }
 
 //    /**
 //    * Get the chain.

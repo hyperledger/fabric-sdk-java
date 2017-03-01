@@ -12,13 +12,32 @@
  *  limitations under the License.
  */
 
-package org.hyperledger.fabric.sdk;
+package org.hyperledger.fabric_ca.sdk;
 
-//TODO Need SSL when COP server supports.
-//TODO register  -- right now Can test without when COP is primed with admin.
+//TODO Need SSL when FCA server supports.
+//TODO register  -- right now Can test without when FCA is primed with admin.
 //TODO need to support different hash algorithms and security levels.
 
 
+import java.io.PrintWriter;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.security.KeyPair;
+import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+import javax.json.JsonReader;
+import javax.json.JsonWriter;
 
 import io.netty.util.internal.StringUtil;
 import org.apache.commons.logging.Log;
@@ -41,34 +60,33 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.util.encoders.Hex;
+import org.hyperledger.fabric.sdk.Enrollment;
+import org.hyperledger.fabric.sdk.GetTCertBatchRequest;
+import org.hyperledger.fabric.sdk.MemberServices;
+import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
-import org.hyperledger.fabric.sdk.exception.EnrollmentException;
-import org.hyperledger.fabric.sdk.exception.RegistrationException;
+import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric_ca.sdk.exception.RegistrationException;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonReader;
-import javax.json.JsonWriter;
-import java.io.PrintWriter;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.security.KeyPair;
-import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.Base64;
+import static java.lang.String.format;
 
 /**
- * MemberServicesFabricCAImpl is the default implementation of a member services client.
+ * HFCAClient is the default implementation of a member services client.
  */
-public class MemberServicesFabricCAImpl implements MemberServices {
-    private static final Log logger = LogFactory.getLog(MemberServicesFabricCAImpl.class);
-    private static final String COP_BASEPATH = "/api/v1/cfssl/";
-    private static final String COP_ENROLLMENBASE = COP_BASEPATH + "enroll";
+public class HFCAClient implements MemberServices {
+    private static final Log logger = LogFactory.getLog(HFCAClient.class);
+    private static final String HFCA_CONTEXT_ROOT = "/api/v1/cfssl/";
+    private static final String HFCA_ENROLL = HFCA_CONTEXT_ROOT + "enroll";
+    private static final String HFCA_REGISTER = HFCA_CONTEXT_ROOT + "register";
+    private static final int DEFAULT_SECURITY_LEVEL = 256;  //TODO make configurable //Right now by default FAB services is using
+    private static final String DEFAULT_HASH_ALGORITHM = "SHA2";  //Right now by default FAB services is using SHA2
+
+
+    private static final Set<Integer> VALID_KEY_SIZES =
+            Collections.unmodifiableSet(new HashSet<>(Arrays.asList(new Integer[]{256, 384})));
 
     private final String url;
 
@@ -78,39 +96,39 @@ public class MemberServicesFabricCAImpl implements MemberServices {
     private CryptoPrimitives cryptoPrimitives;
 
     /**
-     * MemberServicesFabricCAImpl constructor
+     * HFCAClient constructor
      *
      * @param url URL for the membership services endpoint
-     * @param pem  PEM used for SSL .. not implemented.
+     * @param pem PEM used for SSL .. not implemented.
      * @throws CertificateException
      * @throws CryptoException
      */
-    public MemberServicesFabricCAImpl(String url, String pem) throws MalformedURLException {
+    public HFCAClient(String url, String pem) throws MalformedURLException {
         this.url = url;
 
         URL purl = new URL(url);
         final String proto = purl.getProtocol();
-        if(!"http".equals(proto) && !"https".equals(proto)){
-            throw new IllegalArgumentException("MemberServicesFabricCAImpl only supports http or https not "+ proto);
+        if (!"http".equals(proto) && !"https".equals(proto)) {
+            throw new IllegalArgumentException("HFCAClient only supports http or https not " + proto);
         }
         final String host = purl.getHost();
 
-        if(StringUtil.isNullOrEmpty(host)){
-            throw new IllegalArgumentException("MemberServicesFabricCAImpl url needs host");
+        if (StringUtil.isNullOrEmpty(host)) {
+            throw new IllegalArgumentException("HFCAClient url needs host");
         }
 
-        final String  path = purl.getPath();
+        final String path = purl.getPath();
 
-        if(!StringUtil.isNullOrEmpty(path)){
+        if (!StringUtil.isNullOrEmpty(path)) {
 
-            throw new IllegalArgumentException("MemberServicesFabricCAImpl url does not support path portion in url remove path: '" +path +"'." );
+            throw new IllegalArgumentException("HFCAClient url does not support path portion in url remove path: '" + path + "'.");
         }
 
-        final String query =purl.getQuery();
+        final String query = purl.getQuery();
 
-        if(!StringUtil.isNullOrEmpty(query)){
+        if (!StringUtil.isNullOrEmpty(query)) {
 
-            throw new IllegalArgumentException("MemberServicesFabricCAImpl url does not support query portion in url remove query: '" +query +"'." );
+            throw new IllegalArgumentException("HFCAClient url does not support query portion in url remove query: '" + query + "'.");
         }
 
 /*
@@ -141,83 +159,61 @@ public class MemberServicesFabricCAImpl implements MemberServices {
     @Override
     public String register(RegistrationRequest req, User registrar) throws RegistrationException {
 
-        //TODO fix once enroll is done.
-        throw new RegistrationException("TODO", new IllegalArgumentException("Not yet implemented."));
-//    	if (StringUtil.isNullOrEmpty(req.getEnrollmentID())) {
-//    		throw new IllegalArgumentException("EntrollmentID cannot be null or empty");
-//    	}
-//
-//    	if (registrar == null) {
-//    		throw new IllegalArgumentException("Registrar should be a valid member");
-//    	}
-//
-//
-//    	Registrar reg = Registrar.newBuilder()
-//    			.setId(
-//    					Identity.newBuilder()
-//    					.setId(registrar.getName())
-//    					.build())
-//    			.build(); //TODO: set Roles and Delegate Roles
-//
-//    	RegisterUserReq.Builder regReqBuilder = RegisterUserReq.newBuilder();
-//    	regReqBuilder.setId(
-//    					Identity.newBuilder()
-//    					.setId(req.getEnrollmentID())
-//    					.build());
-//    	regReqBuilder.setRoleValue(rolesToMask(req.getRoles()));
-//    	regReqBuilder.setAffiliation(req.getAffiliation());
-//    	regReqBuilder.setRegistrar(reg);
-//
-//    	RegisterUserReq registerReq = regReqBuilder.build();
-//    	byte[] buffer = registerReq.toByteArray();
-//
-//    	try {
-//			PrivateKey signKey = cryptoPrimitives.ecdsaKeyFromPrivate(Hex.decode(registrar.getEnrollment().getKey()));
-//	    	logger.debug("Retreived private key");
-//			byte[][] signature = cryptoPrimitives.ecdsaSign(signKey, buffer);
-//	    	logger.debug("Signed the request with key");
-//			Signature sig = Signature.newBuilder().setType(CryptoType.ECDSA).setR(ByteString.copyFrom(signature[0])).setS(ByteString.copyFrom(signature[1])).build();
-//			regReqBuilder.setSig(sig);
-//	    	logger.debug("Now sendingt register request");
-//			Token token = this.ecaaClient.registerUser(regReqBuilder.build());
-//			return token.getTok().toStringUtf8();
-//
-//		} catch (Exception e) {
-//			throw new RegistrationException("Error while registering the user", e);
-//		}
+        if (StringUtil.isNullOrEmpty(req.getEnrollmentID())) {
+            throw new IllegalArgumentException("EntrollmentID cannot be null or empty");
+        }
+
+        if (registrar == null) {
+            throw new IllegalArgumentException("Registrar should be a valid member");
+        }
+
+
+        try {
+            String body = req.toJson();
+            String authHdr = getHTTPAuthCertificate(registrar.getEnrollment(), body);
+            JsonObject resp = httpPost(url + HFCA_REGISTER, body, authHdr);
+            String secret = resp.getString("secret");
+            if (secret == null) {
+                throw new Exception("secret was not found in response");
+            }
+            return secret;
+        } catch (Exception e) {
+
+            logger.error(e.getMessage(), e);
+
+            throw new RegistrationException("Error while registering the user. " + e.getMessage(), e);
+
+        }
 
     }
 
     /**
      * Enroll the user with member service
      *
-     * @param req Enrollment request with the following fields: name, enrollmentSecret
+     * @param user Enrollment request with the following fields: name, enrollmentSecret
      * @return enrollment
      */
     @Override
-    public Enrollment enroll(EnrollmentRequest req) throws EnrollmentException {
+    public Enrollment enroll(String user, String secret) throws EnrollmentException, InvalidArgumentException {
 
 
-        logger.debug(String.format("[MemberServicesFabricCAImpl.enroll] [%s]", req));
-        if(req == null){
-            throw new RuntimeException("req is not set");
-        }
-        final String user = req.getEnrollmentID();
-        final String secret = req.getEnrollmentSecret();
+        logger.debug(format("enroll user %s", user));
+
+
         if (StringUtil.isNullOrEmpty(user)) {
-            throw new RuntimeException("req.enrollmentID is not set");
+            throw new InvalidArgumentException("enrollment user is not set");
         }
         if (StringUtil.isNullOrEmpty(secret)) {
-            throw new RuntimeException("req.enrollmentSecret is not set");
+            throw new InvalidArgumentException("enrollment secret is not set");
         }
 
 
-        logger.debug("[MemberServicesFabricCAImpl.enroll] Generating keys...");
+        logger.debug("[HFCAClient.enroll] Generating keys...");
 
         try {
             // generate ECDSA keys: signing and encryption keys
             KeyPair signingKeyPair = cryptoPrimitives.keyGen();
-            logger.debug("[MemberServicesFabricCAImpl.enroll] Generating keys...done!");
+            logger.debug("[HFCAClient.enroll] Generating keys...done!");
             //  KeyPair encryptionKeyPair = cryptoPrimitives.ecdsaKeyGen();
 
             PKCS10CertificationRequest csr = cryptoPrimitives.generateCertificationRequest(user, signingKeyPair);
@@ -237,40 +233,39 @@ public class MemberServicesFabricCAImpl implements MemberServices {
             String str = stringWriter.toString();
 
 
-            logger.debug("[MemberServicesFabricCAImpl.enroll] Generating keys...done!");
+            logger.debug("[HFCAClient.enroll] Generating keys...done!");
 
 
-            String responseBody = httpPost(url + COP_ENROLLMENBASE, str,
+            String responseBody = httpPost(url + HFCA_ENROLL, str,
                     new UsernamePasswordCredentials(user, secret));
 
             logger.debug("response" + responseBody);
 
             JsonReader reader = Json.createReader(new StringReader(responseBody));
             JsonObject jsonst = (JsonObject) reader.read();
+
             boolean success = jsonst.getBoolean("success");
-            logger.debug(String.format("[MemberServicesFabricCAImpl] enroll success:[%s]", success));
+            logger.debug(format("[HFCAClient] enroll success:[%s]", success));
 
             if (!success) {
-                EnrollmentException e = new EnrollmentException("COP Failed response success is false. " , new Exception());
-                logger.error(e.getMessage());
-                throw e;
+                throw new EnrollmentException(format("FabricCA failed enrollment for user %s response success is false.", user));
             }
 
-            Base64.Decoder b64dec = Base64.getDecoder();
             JsonObject result = jsonst.getJsonObject("result");
+            Base64.Decoder b64dec = Base64.getDecoder();
             String signedPem = new String(b64dec.decode(result.getString("Cert").getBytes()));
-            logger.info(String.format("[MemberServicesFabricCAImpl] enroll returned pem:[%s]", signedPem));
+            logger.debug(format("[HFCAClient] enroll returned pem:[%s]", signedPem));
 
-            Enrollment enrollment = new Enrollment();
-            enrollment.setKey(signingKeyPair);
-            enrollment.setPublicKey(Hex.toHexString(signingKeyPair.getPublic().getEncoded()));
-            enrollment.setCert(signedPem);
+            Enrollment enrollment = new HFCAEnrollment(signingKeyPair, Hex.toHexString(signingKeyPair.getPublic().getEncoded()), signedPem);
             return enrollment;
 
 
-        } catch (Exception e) {
-            EnrollmentException ee = new EnrollmentException(String.format("Failed to enroll user %s ", user), e);
+        } catch (EnrollmentException ee) {
             logger.error(ee.getMessage(), ee);
+            throw ee;
+        } catch (Exception e) {
+            EnrollmentException ee = new EnrollmentException(format("Failed to enroll user %s ", user), e);
+            logger.error(e.getMessage(), e);
             throw ee;
         }
 
@@ -279,9 +274,10 @@ public class MemberServicesFabricCAImpl implements MemberServices {
 
     /**
      * Http Post Request.
-     * @param url  Target URL to POST to.
-     * @param body  Body to be sent with the post.
-     * @param credentials  Credentials to use for basic auth.
+     *
+     * @param url         Target URL to POST to.
+     * @param body        Body to be sent with the post.
+     * @param credentials Credentials to use for basic auth.
      * @return Body of post returned.
      * @throws Exception
      */
@@ -317,7 +313,7 @@ public class MemberServicesFabricCAImpl implements MemberServices {
 
         if (status >= 400) {
 
-            Exception e = new Exception(String.format("POST request to %s failed with status code: %d. Response: %s", url, status, responseBody));
+            Exception e = new Exception(format("POST request to %s failed with status code: %d. Response: %s", url, status, responseBody));
             logger.error(e.getMessage());
             throw e;
         }
@@ -325,6 +321,53 @@ public class MemberServicesFabricCAImpl implements MemberServices {
 
 
         return responseBody;
+    }
+
+    private static JsonObject httpPost(String url, String body, String authHTTPCert) throws Exception {
+
+        HttpPost httpPost = new HttpPost(url);
+        HttpClient client = HttpClientBuilder.create().build();
+        final HttpClientContext context = HttpClientContext.create();
+        httpPost.setEntity(new StringEntity(body));
+        httpPost.addHeader("Authorization", authHTTPCert);
+
+        HttpResponse response = client.execute(httpPost, context);
+        int status = response.getStatusLine().getStatusCode();
+
+        HttpEntity entity = response.getEntity();
+        String responseBody = entity != null ? EntityUtils.toString(entity) : null;
+
+        if (status >= 400) {
+            Exception e = new Exception(format("POST request to %s failed with status code: %d. Response: %s", url, status, responseBody));
+            logger.error(e.getMessage());
+            throw e;
+        }
+        logger.debug("Status: " + status);
+
+        JsonReader reader = Json.createReader(new StringReader(responseBody));
+        JsonObject jobj = (JsonObject) reader.read();
+        boolean success = jobj.getBoolean("success");
+        if (!success) {
+            EnrollmentException e = new EnrollmentException("Body of response did not contain success", new Exception());
+            logger.error(e.getMessage());
+            throw e;
+        }
+        JsonObject result = jobj.getJsonObject("result");
+        if (result == null) {
+            EnrollmentException e = new EnrollmentException("Body of response did not contain result", new Exception());
+            logger.error(e.getMessage());
+            throw e;
+        }
+        return result;
+    }
+
+    private String getHTTPAuthCertificate(Enrollment enrollment, String body) throws Exception {
+        Base64.Encoder b64 = Base64.getEncoder();
+        String cert = b64.encodeToString(enrollment.getCert().getBytes());
+        body = b64.encodeToString(body.getBytes());
+        String signString = body + "." + cert;
+        byte[] signature = cryptoPrimitives.ecdsaSignToBytes(enrollment.getKey(), signString.getBytes());
+        return cert + "." + b64.encodeToString(signature);
     }
 
     /**

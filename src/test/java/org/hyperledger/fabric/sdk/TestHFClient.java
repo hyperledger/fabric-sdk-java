@@ -16,8 +16,12 @@ package org.hyperledger.fabric.sdk;
 
 
 import java.io.File;
+import java.security.PrivateKey;
 
+import org.hyperledger.fabric.sdkintegration.SampleStore;
+import org.hyperledger.fabric.sdkintegration.SampleUser;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
+import org.hyperledger.fabric_ca.sdk.HFCAClient;
 
 public class TestHFClient {
 
@@ -34,14 +38,53 @@ public class TestHFClient {
 
         File tempFile = File.createTempFile("teststore", "properties");
         tempFile.deleteOnExit();
+
+        File sampleStoreFile = new File(System.getProperty("user.home") + "/test.properties");
+        if (sampleStoreFile.exists()) { //For testing start fresh
+            sampleStoreFile.delete();
+        }
+        final SampleStore sampleStore = new SampleStore(sampleStoreFile);
+
+        SampleUser someTestUSER = sampleStore.getMember("someTestUSER");
+        someTestUSER.setMPSID("testMSPID?");
+
         HFClient hfclient = HFClient.createNewInstance();
-        User user = new User("admin");
-        user.enrollment = new Enrollment();
-        hfclient.setUserContext(user);
-        tempFile = File.createTempFile("teststore", "properties");
-        hfclient.setKeyValStore(new FileKeyValStore(tempFile));
+
+        someTestUSER.setEnrollment(new Enrollment() {
+            @Override
+            public PrivateKey getKey() {
+                return new PrivateKey() {
+                    @Override
+                    public String getAlgorithm() {
+                        return "algorithm?";
+                    }
+
+                    @Override
+                    public String getFormat() {
+                        return "format?";
+                    }
+
+                    @Override
+                    public byte[] getEncoded() {
+                        return new byte[0];
+                    }
+                };
+            }
+
+            @Override
+            public String getCert() {
+                return "fakecert?";
+            }
+
+            @Override
+            public String getPublicKey() {
+                return "publickey";
+            }
+        });
+        hfclient.setUserContext(someTestUSER);
+
         hfclient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
-        hfclient.setMemberServices(new MemberServicesFabricCAImpl("http://Nowhere.com", null));
+        hfclient.setMemberServices(new HFCAClient("http://Nowhere.com", null));
 
         new TestHFClient(tempFile, hfclient);
 

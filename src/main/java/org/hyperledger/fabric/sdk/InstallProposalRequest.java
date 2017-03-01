@@ -14,8 +14,19 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.io.File;
+
 /**
  * Deploy request.
  */
 public class InstallProposalRequest extends TransactionRequest {
+
+    File chaincodeSourceLocation = null;
+
+    public File getChaincodeSourceLocation() {
+        return chaincodeSourceLocation;
+    }
+    public void setChaincodeSourceLocation(File chaincodeSourceLocation) {
+        this.chaincodeSourceLocation = chaincodeSourceLocation;
+    }
 }
