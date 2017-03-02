@@ -10,8 +10,9 @@ import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
-import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 public class ProposalResponse extends ChainCodeResponse {
 
@@ -35,13 +36,13 @@ public class ProposalResponse extends ChainCodeResponse {
      * concatenation of the response payload byte string and the endorsement The
      * certificate (public key) is gotten from the Endorsement.Endorser.IdBytes
      * field
-     * 
+     *
      * @param crypto the CryptoPrimitives instance to be used for signing and
      * verification
-     * 
+     *
      * @return true/false depending on result of signature verification
      */
-    public boolean verify(CryptoPrimitives crypto) {
+    public boolean verify(CryptoSuite crypto) {
 
         if (isVerified()) // check if this proposalResponse was already verified
             // by client code
@@ -62,7 +63,7 @@ public class ProposalResponse extends ChainCodeResponse {
 
             this.isVerified = crypto.verify(plainText.toByteArray(), sig.toByteArray(),
                     endorser.getIdBytes().toByteArray());
-        } catch (InvalidProtocolBufferException e) {
+        } catch (InvalidProtocolBufferException | CryptoException e) {
             logger.error("verify: Cannot retrieve peer identity from ProposalResponse. Error is: " + e.getMessage(), e);
             this.isVerified = false;
         }

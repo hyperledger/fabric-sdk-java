@@ -50,6 +50,8 @@ import java.security.spec.EncodedKeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Optional;
+import java.util.Properties;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -96,43 +98,38 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.io.pem.PemObject;
+
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Config;
-import org.hyperledger.fabric.sdk.helper.SDKUtil;
 
 import io.netty.util.internal.StringUtil;
 
-public class CryptoPrimitives {
+public class CryptoPrimitives implements CryptoSuite {
     private final Config config = Config.getConfig();
 
-    private String hashAlgorithm = config.getHashAlgorithm();
-    private int securityLevel = config.getSecurityLevel();
     private String curveName;
     private CertificateFactory cf;
-    private static final String SECURITY_PROVIDER = BouncyCastleProvider.PROVIDER_NAME;
-    private static final String ASYMMETRIC_KEY_TYPE = "EC";
-    private static final String KEY_AGREEMENT_ALGORITHM = "ECDH";
-    private static final String SYMMETRIC_KEY_TYPE = "AES";
-    private static final int SYMMETRIC_KEY_BYTE_COUNT = 32;
-    private static final String SYMMETRIC_ALGORITHM = "AES/CFB/NoPadding";
-    private static final int MAC_KEY_BYTE_COUNT = 32;
+    private final String SECURITY_PROVIDER = BouncyCastleProvider.PROVIDER_NAME;
+    private String hashAlgorithm = config.getHashAlgorithm();
+    private int securityLevel = config.getSecurityLevel();
+    private String CERTIFICATE_FORMAT = config.getCertificateFormat();
+    private String DEFAULT_SIGNATURE_ALGORITHM = config.getSignatureAlgorithm();
 
-    // TODO most of these config values should come from genesis block or config
-    // file
-    private static final String CERTIFICATE_FORMAT = "X.509";
-    private static final String DEFAULT_SIGNATURE_ALGORITHM = "SHA256withECDSA";
+    // Following configuration settings are hardcoded as they don't deal with any interactions with Fabric MSP and BCCSP components
+    // If you wish to make these customizable, follow the logic from setProperties();
+    private String ASYMMETRIC_KEY_TYPE = "EC";
+    private String KEY_AGREEMENT_ALGORITHM = "ECDH";
+    private String SYMMETRIC_KEY_TYPE = "AES";
+    private int SYMMETRIC_KEY_BYTE_COUNT = 32;
+    private String SYMMETRIC_ALGORITHM = "AES/CFB/NoPadding";
+    private int MAC_KEY_BYTE_COUNT = 32;
 
     private static final Log logger = LogFactory.getLog(CryptoPrimitives.class);
 
-    public CryptoPrimitives(String hashAlgorithm, int securityLevel) throws CryptoException {
-        this.hashAlgorithm = hashAlgorithm;
-        this.securityLevel = securityLevel;
+    public CryptoPrimitives() {
         Security.addProvider(new BouncyCastleProvider());
-        init();
     }
-
-    private String signatureAlgorithm ;
 
     /**
      * sets the signature algorithm used for signing/verifying.
@@ -140,7 +137,7 @@ public class CryptoPrimitives {
      * @param sigAlg the name of the signature algorithm. See the list of valid names in the JCA Standard Algorithm Name documentation
      */
     public void setSignatureAlgorithm(String sigAlg) {
-        this.signatureAlgorithm = sigAlg ;
+        this.DEFAULT_SIGNATURE_ALGORITHM = sigAlg ;
     }
 
     /**
@@ -152,10 +149,7 @@ public class CryptoPrimitives {
      * @return the name of the signature algorithm
      */
     public String getSignatureAlgorithm() {
-        if (this.signatureAlgorithm == null) {
-            this.signatureAlgorithm = DEFAULT_SIGNATURE_ALGORITHM;
-        }
-        return this.signatureAlgorithm;
+        return this.DEFAULT_SIGNATURE_ALGORITHM;
     }
 
     /**
@@ -165,8 +159,10 @@ public class CryptoPrimitives {
      * @param signature signature value as a byte array.
      * @param pemCertificate the X509 certificate to be used for verification
      * @return
+     * @throws CryptoException
      */
-    public boolean verify(byte[] plainText, byte[] signature, byte[] pemCertificate) {
+    @Override
+    public boolean verify(byte[] plainText, byte[] signature, byte[] pemCertificate) throws CryptoException {
         boolean isVerified = false;
 
         if (plainText == null || signature == null || pemCertificate == null)
@@ -200,12 +196,15 @@ public class CryptoPrimitives {
                 }
             }
         } catch (InvalidKeyException | CertificateException e) {
-            logger.error("Cannot verify signature. Error is: " + e.getMessage() + "\r\nCertificate (PEM, hex): "
+            CryptoException ex = new CryptoException("Cannot verify signature. Error is: "
+                            + e.getMessage() + "\r\nCertificate: "
                             + DatatypeConverter.printHexBinary(pemCertificate),e);
-            isVerified = false;
+            logger.error(ex.getMessage(), ex);
+            throw ex;
         } catch (NoSuchAlgorithmException | SignatureException e) {
-            logger.error("Cannot verify. Signature algorithm is invalid. Error is: " + e.getMessage(),e);
-            isVerified = false;
+            CryptoException ex = new CryptoException("Cannot verify. Signature algorithm is invalid. Error is: " + e.getMessage(),e);
+            logger.error(ex.getMessage(), ex) ;
+            throw ex;
         }
 
         return isVerified;
@@ -297,6 +296,12 @@ public class CryptoPrimitives {
         }
     }
 
+    @Override
+    public void loadCACertificates(Collection<Certificate> CACertificates) throws CryptoException {
+        // TODO fix up when we can get the official list of CA certs
+        loadCACerts();
+    }
+
     /**
      * loadCACerts loads into the trust stores all the certificates it finds in the <i>cacert</i> directory.
      * This method assumes that any file with extension <i>.pem</i> is a certificate file
@@ -378,19 +383,45 @@ public class CryptoPrimitives {
         return securityLevel;
     }
 
-    public void setSecurityLevel(int securityLevel) {
-        this.securityLevel = securityLevel;
+    /**
+     * Security Level determines the elliptic curve used in key generation
+     * @param securityLevel  currently 256 or 384
+     * @throws InvalidArgumentException
+     */
+    public void setSecurityLevel(int securityLevel) throws InvalidArgumentException {
+        if (securityLevel != 256 && securityLevel != 384) {
+            throw new InvalidArgumentException("Illegal level: " + securityLevel + " must be either 256 or 384");
+        }
+
+
+        // TODO need to get set of supported curves from #fabric-crypto team
+        if (this.securityLevel == 256) {
+            this.curveName = "P-256";
+        } else if (this.securityLevel == 384) {
+            this.curveName = "secp384r1";
+        }
     }
 
     public String getHashAlgorithm() {
         return this.hashAlgorithm;
     }
 
-    public void setHashAlgorithm(String algorithm) {
+    public void setHashAlgorithm(String algorithm) throws InvalidArgumentException {
+        if (StringUtil.isNullOrEmpty(algorithm)
+                        || !(algorithm.equalsIgnoreCase("SHA2") || algorithm.equalsIgnoreCase("SHA3"))) {
+            throw new InvalidArgumentException("Illegal Hash function family: "
+                        + this.hashAlgorithm + " - must be either SHA2 or SHA3");
+        }
+
         this.hashAlgorithm = algorithm;
     }
 
-    public KeyPair ecdsaKeyGen() throws CryptoException {
+    @Override
+    public KeyPair keyGen() throws CryptoException {
+        return ecdsaKeyGen();
+    }
+
+    private KeyPair ecdsaKeyGen() throws CryptoException {
         return generateKey("ECDSA", this.curveName);
     }
 
@@ -485,7 +516,7 @@ public class CryptoPrimitives {
 
     public byte[][] ecdsaSign(PrivateKey privateKey, byte[] data) throws CryptoException {
         try {
-            byte[] encoded = SDKUtil.hash(data, getHashDigest());
+            byte[] encoded = hash(data);
             X9ECParameters params = SECNamedCurves.getByName(this.curveName);
             ECDomainParameters ecParams = new ECDomainParameters(params.getCurve(), params.getG(), params.getN(),
                             params.getH());
@@ -509,11 +540,10 @@ public class CryptoPrimitives {
      * @return
      * @throws CryptoException
      */
-
     public byte[] ecdsaSignToBytes(PrivateKey privateKey, byte[] data) throws CryptoException {
         try {
             byte[] encoded = data;
-            encoded = SDKUtil.hash(data, getHashDigest());
+            encoded = hash(data);
 
             // char[] hexenncoded = Hex.encodeHex(encoded);
             // encoded = new String(hexenncoded).getBytes();
@@ -547,6 +577,12 @@ public class CryptoPrimitives {
 
     }
 
+    @Override
+    public byte[] sign(PrivateKey key, byte[] data) throws CryptoException {
+        return ecdsaSignToBytes(key, data);
+    }
+    /*
+     *  code for signing using JCA/JSSE methods only .  Still needed ?
     public byte[] sign(PrivateKey key, byte[] data) throws CryptoException {
         byte[] signature;
 
@@ -567,7 +603,8 @@ public class CryptoPrimitives {
             throw new CryptoException("Could not sign the message.", e);
         }
 
-    } // sign
+    }
+    */
 
     private BigInteger[] preventMalleability(BigInteger[] sigs, BigInteger curve_n) {
         BigInteger cmpVal = curve_n.divide(BigInteger.valueOf(2l));
@@ -637,6 +674,7 @@ public class CryptoPrimitives {
         }
     }
 
+    @Override
     public byte[] hash(byte[] input) {
         Digest digest = getHashDigest();
         byte[] retValue = new byte[digest.getDigestSize()];
@@ -645,33 +683,10 @@ public class CryptoPrimitives {
         return retValue;
     }
 
-    private void init() throws CryptoException {
-        if (securityLevel != 256 && securityLevel != 384) {
-            throw new RuntimeException("Illegal level: " + securityLevel + " must be either 256 or 384");
-        }
-        if (StringUtil.isNullOrEmpty(this.hashAlgorithm)
-                || !(this.hashAlgorithm.equalsIgnoreCase("SHA2") || this.hashAlgorithm.equalsIgnoreCase("SHA3"))) {
-            throw new RuntimeException(
-                            "Illegal Hash function family: " + this.hashAlgorithm + " - must be either SHA2 or SHA3");
-        }
-
-        // this.suite = this.algorithm.toLowerCase() + '-' + this.securityLevel;
-        if (this.securityLevel == 256) {
-            this.curveName = "P-256"; // Curve that is currently used by FAB services.
-            // TODO: HashOutputSize=32 ?
-        } else if (this.securityLevel == 384) {
-            this.curveName = "secp384r1";
-            // TODO: HashOutputSize=48 ?
-        }
-
-        try {
-            cf = CertificateFactory.getInstance(CERTIFICATE_FORMAT);
-        } catch (CertificateException e) {
-            CryptoException ex = new CryptoException("Cannot initialize X.509 certificate factory. Error = " + e.getMessage(), e);
-            logger.error(ex.getMessage(), ex);
-            throw ex;
-        }
-
+    @Override
+    public void init() throws CryptoException, InvalidArgumentException {
+        resetConfiguration();
+        loadCACerts();  // TODO fix this when we have the process for loading the real Fabric Peer CA certs
     }
 
     private Digest getHashDigest() {
@@ -710,6 +725,55 @@ public class CryptoPrimitives {
 
         return out;
 
+    }
+
+    /**
+     * Resets curve name, hash algorithm and cert factory. Call this method when a config value changes
+     * @throws CryptoException
+     * @throws InvalidArgumentException
+     */
+    private void resetConfiguration() throws CryptoException, InvalidArgumentException {
+
+        this.setSecurityLevel(this.securityLevel);
+
+        this.setHashAlgorithm(this.hashAlgorithm);
+
+        try {
+            cf = CertificateFactory.getInstance(CERTIFICATE_FORMAT);
+        } catch (CertificateException e) {
+            CryptoException ex = new CryptoException("Cannot initialize " + CERTIFICATE_FORMAT + " certificate factory. Error = " + e.getMessage(), e);
+            logger.error(ex.getMessage(), ex);
+            throw ex;
+        }
+    }
+
+    /* (non-Javadoc)
+     * @see org.hyperledger.fabric.sdk.security.CryptoSuite#setProperties(java.util.Properties)
+     */
+    @Override
+    public void setProperties(Properties properties) throws CryptoException, InvalidArgumentException {
+        if (properties != null) {
+        hashAlgorithm = Optional.ofNullable(properties.getProperty(Config.HASH_ALGORITHM)).orElse(hashAlgorithm);
+        String secLevel = Optional.ofNullable(properties.getProperty(Config.SECURITY_LEVEL)).orElse(Integer.toString(securityLevel));
+        securityLevel = Integer.parseInt(secLevel);
+        CERTIFICATE_FORMAT = Optional.ofNullable(properties.getProperty(Config.CERTIFICATE_FORMAT)).orElse(CERTIFICATE_FORMAT);
+        DEFAULT_SIGNATURE_ALGORITHM = Optional.ofNullable(properties.getProperty(Config.SIGNATURE_ALGORITHM)).orElse(DEFAULT_SIGNATURE_ALGORITHM);
+
+        resetConfiguration() ;
+        }
+    }
+
+    /* (non-Javadoc)
+     * @see org.hyperledger.fabric.sdk.security.CryptoSuite#getProperties()
+     */
+    @Override
+    public Properties getProperties() {
+        Properties properties = new Properties();
+        properties.setProperty(Config.HASH_ALGORITHM, hashAlgorithm);
+        properties.setProperty(Config.SECURITY_LEVEL, Integer.toString(securityLevel));
+        properties.setProperty(Config.CERTIFICATE_FORMAT, CERTIFICATE_FORMAT);
+        properties.setProperty(Config.SIGNATURE_ALGORITHM, DEFAULT_SIGNATURE_ALGORITHM);
+        return properties ;
     }
 
 }

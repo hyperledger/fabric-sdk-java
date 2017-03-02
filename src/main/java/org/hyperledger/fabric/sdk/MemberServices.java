@@ -17,32 +17,19 @@ package org.hyperledger.fabric.sdk;
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric.sdk.exception.GetTCertBatchException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 public interface MemberServices {
 
     /**
-     * Get the security level
-     * @return The security level
+     * @param cryptoSuite the {@link CryptoSuite} instance for use with signing and signature verification
      */
-    int getSecurityLevel();
+    public void setCryptoSuite(CryptoSuite cryptoSuite);
 
     /**
-     * Set the security level
-     * @param securityLevel The security level
+     * @return the {@link CryptoSuite} associated with this MemberSevices instance.
      */
-    void setSecurityLevel(int securityLevel);
-
-    /**
-     * Get the hash algorithm
-     * @return The security level
-     */
-    String getHashAlgorithm();
-
-    /**
-     * Set the security level
-     * @param hashAlgorithm The hash algorithm used
-     */
-    void setHashAlgorithm(String hashAlgorithm);
+    public CryptoSuite getCryptoSuite();
 
     /**
      * Register the user and return an enrollment secret.

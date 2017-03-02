@@ -45,7 +45,7 @@ import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric.sdk.exception.RegistrationException;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
-
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 import javax.json.Json;
 import javax.json.JsonObject;
@@ -60,11 +60,7 @@ import java.net.URL;
 import java.security.KeyPair;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * MemberServicesFabricCAImpl is the default implementation of a member services client.
@@ -73,20 +69,12 @@ public class MemberServicesFabricCAImpl implements MemberServices {
     private static final Log logger = LogFactory.getLog(MemberServicesFabricCAImpl.class);
     private static final String COP_BASEPATH = "/api/v1/cfssl/";
     private static final String COP_ENROLLMENBASE = COP_BASEPATH + "enroll";
-    private static final int DEFAULT_SECURITY_LEVEL = 256;  //TODO make configurable //Right now by default FAB services is using
-    private static final String DEFAULT_HASH_ALGORITHM = "SHA2";  //Right now by default FAB services is using SHA2
-
-
-    private static final Set<Integer> VALID_KEY_SIZES =
-            Collections.unmodifiableSet(new HashSet<>(Arrays.asList(new Integer[]{256, 384})));
 
     private final String url;
 
-    /*  private ECAABlockingStub ecaaClient;
-      private ECAPBlockingStub ecapClient;
-      private TCAPBlockingStub tcapClient;
-      private TLSCAPBlockingStub tlscapClient;
-      */
+    // TODO require use of CryptoPrimitives since we need the generateCertificateRequests methods
+    // clean this up when we do have multiple implementations of CryptoSuite
+    // see FAB-2628
     private CryptoPrimitives cryptoPrimitives;
 
     /**
@@ -97,7 +85,7 @@ public class MemberServicesFabricCAImpl implements MemberServices {
      * @throws CertificateException
      * @throws CryptoException
      */
-    public MemberServicesFabricCAImpl(String url, String pem) throws CertificateException, MalformedURLException, CryptoException {
+    public MemberServicesFabricCAImpl(String url, String pem) throws MalformedURLException {
         this.url = url;
 
         URL purl = new URL(url);
@@ -132,52 +120,15 @@ public class MemberServicesFabricCAImpl implements MemberServices {
     	this.tlscapClient = TLSCAPGrpc.newBlockingStub(ep.getChannelBuilder().build());
     	*/
 
-
-        this.cryptoPrimitives = new CryptoPrimitives(DEFAULT_HASH_ALGORITHM, DEFAULT_SECURITY_LEVEL);
-        this.cryptoPrimitives.loadCACerts();
     }
 
-    /**
-     * Get the security level
-     *
-     * @return The security level
-     */
     @Override
-    public int getSecurityLevel() {
-        return cryptoPrimitives.getSecurityLevel();
+    public void setCryptoSuite(CryptoSuite cryptoSuite) {
+        this.cryptoPrimitives = (CryptoPrimitives) cryptoSuite;
     }
 
-    /**
-     * Set the security level
-     *
-     * @param securityLevel The security level
-     */
     @Override
-    public void setSecurityLevel(int securityLevel) {
-        this.cryptoPrimitives.setSecurityLevel(securityLevel);
-    }
-
-    /**
-     * Get the hash algorithm
-     *
-     * @return {string} The hash algorithm
-     */
-    @Override
-    public String getHashAlgorithm() {
-        return this.cryptoPrimitives.getHashAlgorithm();
-    }
-
-    /**
-     * Set the hash algorithm
-     *
-     * @param hashAlgorithm The hash algorithm ('SHA2' or 'SHA3')
-     */
-    @Override
-    public void setHashAlgorithm(String hashAlgorithm) {
-        this.cryptoPrimitives.setHashAlgorithm(hashAlgorithm);
-    }
-
-    public CryptoPrimitives getCrypto() {
+    public CryptoSuite getCryptoSuite() {
         return this.cryptoPrimitives;
     }
 
@@ -265,7 +216,7 @@ public class MemberServicesFabricCAImpl implements MemberServices {
 
         try {
             // generate ECDSA keys: signing and encryption keys
-            KeyPair signingKeyPair = cryptoPrimitives.ecdsaKeyGen();
+            KeyPair signingKeyPair = cryptoPrimitives.keyGen();
             logger.debug("[MemberServicesFabricCAImpl.enroll] Generating keys...done!");
             //  KeyPair encryptionKeyPair = cryptoPrimitives.ecdsaKeyGen();
 

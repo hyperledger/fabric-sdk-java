@@ -35,6 +35,7 @@ import org.hyperledger.fabric.sdk.QueryProposalRequest;
 import org.hyperledger.fabric.sdk.TestConfigHelper;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.events.EventHub;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -92,6 +93,7 @@ public class End2endJavaChaincodeIT {
                 fileStore.delete();
             }
             client.setKeyValStore(new FileKeyValStore(fileStore));
+            client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
             client.setMemberServices(new MemberServicesFabricCAImpl(FABRIC_CA_SERVICES_LOCATION, null));
             User user = client.enroll("admin", "adminpw");
             client.setUserContext(user);

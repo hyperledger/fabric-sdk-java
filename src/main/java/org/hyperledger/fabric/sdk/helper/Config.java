@@ -35,12 +35,21 @@ public class Config {
     private static final Log logger = LogFactory.getLog(Config.class);
 
     private static final String DEFAULT_CONFIG = "config.properties";
-    private static final String ORG_HYPERLEDGER_FABRIC_SDK_CONFIGURATION = "org.hyperledger.fabric.sdk.configuration";
-    private static final String SECURITY_LEVEL = "org.hyperledger.fabric.sdk.security_level";
-    private static final String HASH_ALGORITHM = "org.hyperledger.fabric.sdk.hash_algorithm";
-    private static final String CACERTS = "org.hyperledger.fabric.sdk.cacerts";
-    private static final String PROPOSAL_WAIT_TIME = "org.hyperledger.fabric.sdk.proposal.wait.time";
-    private static final String GENESISBLOCK_WAIT_TIME = "org.hyperledger.fabric.sdk.chain.genesisblock_wait_time";
+    public static final String ORG_HYPERLEDGER_FABRIC_SDK_CONFIGURATION = "org.hyperledger.fabric.sdk.configuration";
+    public static final String SECURITY_LEVEL = "org.hyperledger.fabric.sdk.security_level";
+    public static final String HASH_ALGORITHM = "org.hyperledger.fabric.sdk.hash_algorithm";
+    public static final String CACERTS = "org.hyperledger.fabric.sdk.cacerts";
+    public static final String PROPOSAL_WAIT_TIME = "org.hyperledger.fabric.sdk.proposal.wait.time";
+    public static final String GENESISBLOCK_WAIT_TIME = "org.hyperledger.fabric.sdk.chain.genesisblock_wait_time";
+    public static final String ASYMMETRIC_KEY_TYPE = "org.hyperledger.fabric.sdk.crypto.asymmetric_key_type";
+    public static final String KEY_AGREEMENT_ALGORITHM = "org.hyperledger.fabric.sdk.crypto.key_agreement_algorithm";
+    public static final String SYMMETRIC_KEY_TYPE = "org.hyperledger.fabric.sdk.crypto.symmetric_key_type";
+    public static final String SYMMETRIC_KEY_BYTE_COUNT = "org.hyperledger.fabric.sdk.crypto.symmetric_key_byte_count";
+    public static final String SYMMETRIC_ALGORITHM = "org.hyperledger.fabric.sdk.crypto.symmetric_algorithm";
+    public static final String MAC_KEY_BYTE_COUNT = "org.hyperledger.fabric.sdk.crypto.mac_key_byte_count";
+    public static final String CERTIFICATE_FORMAT = "org.hyperledger.fabric.sdk.crypto.certificate_format";
+    public static final String SIGNATURE_ALGORITHM = "org.hyperledger.fabric.sdk.crypto.default_signature_algorithm";
+
     private static Config config;
     private final static Properties sdkProperties = new Properties();
 
@@ -62,10 +71,19 @@ public class Config {
         } finally {
 
             // Default values
+            defaultProperty(ASYMMETRIC_KEY_TYPE, "EC");
+            defaultProperty(KEY_AGREEMENT_ALGORITHM, "ECDH");
+            defaultProperty(SYMMETRIC_KEY_TYPE, "AES");
+            defaultProperty(SYMMETRIC_KEY_BYTE_COUNT, "32");
+            defaultProperty(SYMMETRIC_ALGORITHM, "AES/CFB/NoPadding");
+            defaultProperty(MAC_KEY_BYTE_COUNT, "32");
+            defaultProperty(CERTIFICATE_FORMAT, "X.509");
+            defaultProperty(SIGNATURE_ALGORITHM, "SHA256withECDSA");
             defaultProperty(SECURITY_LEVEL, "256");
             defaultProperty(HASH_ALGORITHM, "SHA2");
             // TODO remove this once we have implemented MSP and get the peer certs from the channel
             defaultProperty(CACERTS, "/genesisblock/peercacert.pem");
+
             defaultProperty(PROPOSAL_WAIT_TIME, "12000");
             defaultProperty(GENESISBLOCK_WAIT_TIME, "5000");
 
@@ -177,4 +195,37 @@ public class Config {
     public long getGenesisBlockWaitTime() {
         return Long.parseLong(getProperty(GENESISBLOCK_WAIT_TIME));
     }
+
+    public String getAsymmetricKeyType() {
+        return getProperty(ASYMMETRIC_KEY_TYPE);
+    }
+
+    public String getKeyAgreementAlgorithm() {
+        return getProperty(KEY_AGREEMENT_ALGORITHM);
+    }
+
+    public String getSymmetricKeyType() {
+        return getProperty(SYMMETRIC_KEY_TYPE);
+    }
+
+    public int getSymmetricKeyByteCount() {
+        return Integer.parseInt(getProperty(SYMMETRIC_KEY_BYTE_COUNT));
+    }
+
+    public String getSymmetricAlgorithm() {
+        return getProperty(SYMMETRIC_ALGORITHM);
+    }
+
+    public int getMACKeyByteCount() {
+        return Integer.parseInt(getProperty(MAC_KEY_BYTE_COUNT));
+    }
+
+    public String getCertificateFormat() {
+        return getProperty(CERTIFICATE_FORMAT);
+    }
+
+    public String getSignatureAlgorithm() {
+        return getProperty(SIGNATURE_ALGORITHM);
+    }
+
 }

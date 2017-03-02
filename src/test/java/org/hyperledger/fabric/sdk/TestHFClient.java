@@ -17,6 +17,8 @@ package org.hyperledger.fabric.sdk;
 
 import java.io.File;
 
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
+
 public class TestHFClient {
 
     final File tempFile;
@@ -38,6 +40,7 @@ public class TestHFClient {
         hfclient.setUserContext(user);
         tempFile = File.createTempFile("teststore", "properties");
         hfclient.setKeyValStore(new FileKeyValStore(tempFile));
+        hfclient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
         hfclient.setMemberServices(new MemberServicesFabricCAImpl("http://Nowhere.com", null));
 
         new TestHFClient(tempFile, hfclient);
@@ -46,6 +49,7 @@ public class TestHFClient {
 
     }
 
+    @Override
     protected void finalize() throws Throwable {
         super.finalize();
         if (tempFile != null) {

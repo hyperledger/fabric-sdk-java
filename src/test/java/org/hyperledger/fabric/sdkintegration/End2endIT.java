@@ -40,6 +40,8 @@ import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.events.EventHub;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -106,6 +108,7 @@ public class End2endIT {
                 fileStore.delete();
             }
             client.setKeyValStore(new FileKeyValStore(fileStore));
+            client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
             client.setMemberServices(new MemberServicesFabricCAImpl(FABRIC_CA_SERVICES_LOCATION, null));
             User user = client.enroll("admin", "adminpw");
             client.setUserContext(user);

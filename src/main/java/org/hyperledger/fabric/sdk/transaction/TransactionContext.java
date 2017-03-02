@@ -34,9 +34,11 @@ import org.hyperledger.fabric.sdk.Chain;
 import org.hyperledger.fabric.sdk.MemberServices;
 import org.hyperledger.fabric.sdk.TCert;
 import org.hyperledger.fabric.sdk.User;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 
 /**
@@ -53,22 +55,22 @@ public class TransactionContext {
 
     private boolean verify = true;
 
-    public CryptoPrimitives getCryptoPrimitives() {
+    public CryptoSuite getCryptoPrimitives() {
         return cryptoPrimitives;
     }
 
-    private final CryptoPrimitives cryptoPrimitives;
+    private final CryptoSuite cryptoPrimitives;
     private final User user;
     private final Chain chain;
 
     private final MemberServices memberServices;
-    private final String txID ;
+    private String txID ;
     private TCert tcert;
     private List<String> attrs;
     private long proposalWaitTime = config.getProposalWaitTime();
     private final  Identities.SerializedIdentity  identity;
 
-    public TransactionContext(Chain chain, User user, CryptoPrimitives cryptoPrimitives) {
+    public TransactionContext(Chain chain, User user, CryptoSuite cryptoPrimitives) {
 
 
         this.user = user;
@@ -80,17 +82,13 @@ public class TransactionContext {
 
 
          identity = Identities.SerializedIdentity.newBuilder()
-        .setIdBytes(ByteString.copyFromUtf8(getCreator()))
-        .setMspid(getMSPID()).build();
-        
+                         .setIdBytes(ByteString.copyFromUtf8(getCreator()))
+                         .setMspid(getMSPID()).build();
 
-        ByteString no = getNonce();
-        ByteString comp = no.concat(identity.toByteString());
-        byte[] txh = cryptoPrimitives.hash(comp.toByteArray());
-    //    txID = Hex.encodeHexString(txh);
-        txID = new String( Hex.encodeHex(txh));
-
-
+         ByteString no = getNonce();
+         ByteString comp = no.concat(identity.toByteString());
+         byte[] txh = cryptoPrimitives.hash(comp.toByteArray());
+         txID = new String( Hex.encodeHex(txh));
 
     }
 
@@ -286,7 +284,6 @@ public class TransactionContext {
     public String getChainID() {
         return getChain().getName();
     }
-
 
     public String getTxID() {
         return txID;

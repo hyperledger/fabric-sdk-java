@@ -27,9 +27,11 @@ import org.junit.Test;
 public class ConfigTest {
 
         private TestConfigHelper configHelper = new TestConfigHelper() ;
+        private String originalValue;
 
     @Before
     public void setUp() throws Exception {
+        originalValue = Config.getConfig().getHashAlgorithm();
         // reset Config before each test
         configHelper.clearConfig();
     }
@@ -42,13 +44,17 @@ public class ConfigTest {
 
     @Test
     public void testGetConfig() {
-        System.setProperty("org.hyperledger.fabric.sdk.hash_algorithm", "XXX");
+        System.setProperty(Config.HASH_ALGORITHM, "XXX");
         Config config = Config.getConfig();
         assertEquals(config.getSecurityLevel(), 256);
         assertEquals(config.getHashAlgorithm(), "XXX");
         String[] cacerts = config.getPeerCACerts();
         assertEquals(cacerts[0], "/genesisblock/peercacert.pem");
-        System.clearProperty("org.hyperledger.fabric.sdk.hash_algorithm");
+
+        // Clean up so that other tests can get valid values from the Config singleton.
+        // configHelper.clearConfig() is not enough. System.clearProperty() is not enough.
+        // Have to set the system property back to the original value as well.
+        System.setProperty(Config.HASH_ALGORITHM, originalValue);
     }
 
 }
