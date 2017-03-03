@@ -12,7 +12,7 @@
  *  limitations under the License.
  */
 
-package org.hyperledger.fabric.sdk;
+package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
 import java.util.Arrays;
@@ -20,6 +20,23 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 
+import org.hyperledger.fabric.sdk.BlockEvent;
+import org.hyperledger.fabric.sdk.Chain;
+import org.hyperledger.fabric.sdk.ChainCodeID;
+import org.hyperledger.fabric.sdk.ChainConfiguration;
+import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
+import org.hyperledger.fabric.sdk.FileKeyValStore;
+import org.hyperledger.fabric.sdk.HFClient;
+import org.hyperledger.fabric.sdk.InstallProposalRequest;
+import org.hyperledger.fabric.sdk.InstantiateProposalRequest;
+import org.hyperledger.fabric.sdk.InvokeProposalRequest;
+import org.hyperledger.fabric.sdk.MemberServicesFabricCAImpl;
+import org.hyperledger.fabric.sdk.Orderer;
+import org.hyperledger.fabric.sdk.Peer;
+import org.hyperledger.fabric.sdk.ProposalResponse;
+import org.hyperledger.fabric.sdk.QueryProposalRequest;
+import org.hyperledger.fabric.sdk.TestConfigHelper;
+import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.events.EventHub;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
@@ -130,7 +147,7 @@ public class End2endIT {
             Collection<Peer> peers = chain.getPeers();
             Collection<Orderer> orderers = chain.getOrderers();
             final ChainCodeID chainCodeID;
-            Collection<ProposalResponse> responses = null;
+            Collection<ProposalResponse> responses;
             Collection<ProposalResponse> successful  = new LinkedList<>();
             Collection<ProposalResponse> failed = new LinkedList<>();
 
@@ -148,15 +165,10 @@ public class End2endIT {
                 out("Creating install proposal");
 
 
-
                 InstallProposalRequest installProposalRequest = client.newInstallProposalRequest();
                 installProposalRequest.setChaincodeID(chainCodeID);
 
-
                 responses = chain.sendInstallProposal(installProposalRequest, peers);
-
-
-
 
                 for (ProposalResponse response : responses) {
                     if (response.getStatus() == ProposalResponse.Status.SUCCESS) {

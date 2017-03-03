@@ -12,7 +12,7 @@
  *  limitations under the License.
  */
 
-package org.hyperledger.fabric.sdk;
+package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
 import java.util.Arrays;
@@ -20,6 +20,20 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 
+import org.hyperledger.fabric.sdk.Chain;
+import org.hyperledger.fabric.sdk.ChainCodeID;
+import org.hyperledger.fabric.sdk.FileKeyValStore;
+import org.hyperledger.fabric.sdk.HFClient;
+import org.hyperledger.fabric.sdk.InstallProposalRequest;
+import org.hyperledger.fabric.sdk.InstantiateProposalRequest;
+import org.hyperledger.fabric.sdk.InvokeProposalRequest;
+import org.hyperledger.fabric.sdk.MemberServicesFabricCAImpl;
+import org.hyperledger.fabric.sdk.Orderer;
+import org.hyperledger.fabric.sdk.Peer;
+import org.hyperledger.fabric.sdk.ProposalResponse;
+import org.hyperledger.fabric.sdk.QueryProposalRequest;
+import org.hyperledger.fabric.sdk.TestConfigHelper;
+import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.events.EventHub;
 import org.junit.After;
 import org.junit.Assert;

@@ -17,5 +17,5 @@ package org.hyperledger.fabric.sdk;
 /**
  * Deploy request.
  */
-class InstantiateProposalRequest extends TransactionRequest {
+public class InstantiateProposalRequest extends TransactionRequest {
 }

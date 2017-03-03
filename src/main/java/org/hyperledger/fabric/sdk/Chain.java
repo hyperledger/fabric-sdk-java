@@ -265,7 +265,7 @@ public class Chain {
         return this;
     }
 
-    Chain joinPeer(Peer peer) throws ProposalException {
+    public  Chain joinPeer(Peer peer) throws ProposalException {
         if (genesisBlock == null && orderers.isEmpty()) {
             ProposalException e = new ProposalException("Chain missing genesis block and no orderers configured");
             logger.error(e.getMessage(), e);
@@ -591,11 +591,11 @@ public class Chain {
 
                     DeliverResponse[] deliver = order.sendDeliver(deliverEnvelope);
                     if (deliver.length < 1) {
-                        logger.warn(format("Genesis block for channel %s fetch bad deliver missing status block only got blocks:", name, deliver.length));
+                        logger.warn(format("Genesis block for channel %s fetch bad deliver missing status block only got blocks:%d", name, deliver.length));
                         //odd so lets try again....
                     } else {
 
-                        DeliverResponse status = deliver[0];//status is last
+                        DeliverResponse status = deliver[0];
                         if (status.getStatusValue() == 404) {
                             logger.warn(format("Bad deliver expected status 200  got  %d, Chain %s", status.getStatusValue(), name));
                             // keep trying...
@@ -605,7 +605,7 @@ public class Chain {
                         } else {
 
                             if (deliver.length < 2) {
-                                logger.warn(format("Genesis block for channel %s fetch bad deliver missing genesis block only got:", name, deliver.length));
+                                logger.warn(format("Genesis block for channel %s fetch bad deliver missing genesis block only got %d:", name, deliver.length));
                                 //odd try again
                             } else {
 

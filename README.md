@@ -58,10 +58,9 @@ Follow the instructions <a href="https://github.com/hyperledger/fabric/blob/mast
 ssh into vagrant,
 * go to $GOPATH/src/github.com/hyperledger/fabric
   * run `make docker` to create the docker images for peer and orderer
-* go to 4GOPATH/src/github/hyperledger/fabric-cop
+* go to $GOPATH/src/github/hyperledger/fabric-ca
   * currently, you want to run fabric-ca with TLS disabled which is the default for commit aa5fb82 mentioned above.
-  * if you do need to turn off TLS, edit the COP server configuration file at _/hyperledger/fabric-ca/images/fabric-ca/config/server-config.json_
-  * run `make docker` to create the docker image for COP
+  * run `make docker` to create the docker image for Fabric_ca
 
 On your native system where you have the sdk installed you need to copy the docker compose file that starts the services to the directory mapped
  to vagrant On your native system from the sdk directory:
@@ -85,7 +84,7 @@ With the Fabric services up and running you can run the End2end integration test
 
 `mvn failsafe:integration-test -DskipITs=false`
 
-This runs the src/test/java/org/hyperledger/fabric/sdk/End2endIT.java code.
+This runs the src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java code.
 It constructs the Hyperledger Chain, deploys the `GO` chain code and initializes the ledger with to variables A= "100", B= "200"
 It then invokes the chain code function `move` that transfers 100 from A to B on the ledger.
 Then queries the ledger to see if B is now 300.
@@ -97,7 +96,7 @@ SDK depends on few third party libraries that must be included in your classpath
 Alternatively, <code> mvn dependency:analyze-report </code> will produce a report in HTML format in target directory listing all the dependencies in a more readable format.
 
 ## Using the SDK
-See the fabric-sdk-java/src/test/java/org/hyperledger/fabric/sdk/End2endIT.java for an example of installing, initialising, invoking chain code.
+See the fabric-sdk-java/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java for an example of installing, initialising, invoking chain code.
 The sdk jar is in. target/fabric-sdk-java-1.0-SNAPSHOT.jar  and you will need the additional dependencies listed above.
 When the SDK is published to Maven you'll will be able to simply include it in a your application's pom.xml.
 
