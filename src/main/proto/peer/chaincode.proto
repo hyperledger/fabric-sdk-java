@@ -20,7 +20,6 @@ package protos;
 
 option go_package = "github.com/hyperledger/fabric/protos/peer";
 option java_package = "org.hyperledger.fabric.protos.peer";
-import "peer/chaincodeevent.proto";
 import "google/protobuf/timestamp.proto";
 
 

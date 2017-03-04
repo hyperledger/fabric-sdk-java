@@ -29,12 +29,14 @@ To run the End-to-End tests, please use <code>mvn failsafe:integration-test -Dsk
 Hyperledger Fabric v1.0 is currently under active development and the very latest Hyperledger Fabric builds may not work with this sdk.
 You should use the following commit levels of the Hyperledger projects:
 
+<!--
 [comment]: <> (*******************************************************************************************)
 [comment]: <> (*******   THE LEVELS HERE NEED TO MATCH THE FILE src/test/fabric_test_commitlevel.sh ******)
+-->
 
 | Project        | Commit level                               | Date                       |
 |:---------------|:------------------------------------------:|---------------------------:|
-| fabric         | 39da6d5f263913668567112399c1708e3f87efc3   | Mar 1 17:08:05 2017 +0000 |
+| fabric         | 2dd7a75ada71a376fe7c292e131989e0abe8452b   | Mar 3 19:18:28 2017 +0000  |
 | fabric-ca      | c9fb04e0f795589485915883fcbca3ae2fc0aaad   | Feb 27 21:36:23 2017 +0000 |
 
  You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
@@ -46,12 +48,14 @@ You should use the following commit levels of the Hyperledger projects:
  To make the ports available to the sdk from vagrant, edit the `devenv/Vagrantfile` file
  * Open the file `Vagrantfile` and verify that the following `config.vm.network` statements are set:
 ```
-  config.vm.network :forwarded_port, guest: 7050, host: 7050 # orderer service
-  config.vm.network :forwarded_port, guest: 7051, host: 7051 # Openchain gRPC services
-  config.vm.network :forwarded_port, guest: 7054, host: 7054 # Membership service/Fabric CA
-  config.vm.network :forwarded_port, guest: 7053, host: 7053 # GRPCCient gRPC services
+  config.vm.network :forwarded_port, guest: 7050, host: 7050 # fabric orderer service
+  config.vm.network :forwarded_port, guest: 7051, host: 7051 # fabric peer vp0 service
+  config.vm.network :forwarded_port, guest: 7056, host: 7056 # fabric peer vp1 service
+  config.vm.network :forwarded_port, guest: 7053, host: 7053 # fabric peer event service
+  config.vm.network :forwarded_port, guest: 7054, host: 7054 # fabric-ca service
   config.vm.network :forwarded_port, guest: 5984, host: 15984 # CouchDB service
 ```
+**Most likely the second peer vp1 port 7056 is missing **
 
 Follow the instructions <a href="https://github.com/hyperledger/fabric/blob/master/docs/dev-setup/devenv.md">here</a> to setup the development environment.
 
@@ -124,11 +128,17 @@ For testing purposes, there are 2 policy files in the _src/test/resources_ direc
   
   
 ### Chain creation
-A chain code configuration file (src/test/fixture/foo.configtx)is needed when creating a new Chain. This is created with Hyperledger Fabric configtxgen tool.
+A chain code configuration files (src/test/fixture/foo.configtx src/test/fixture/bar.configtx)is needed when creating a new Chain.
+ This is created with Hyperledger Fabric configtxgen tool.
 
-For the sample in the End2endIT.java the command run was <code>configtxgen -outputCreateChannelTx foo.configtx -profile SampleSingleMSPSolo -channelID foo<code>
-
-
+For the sample in the End2endIT.java the command run was
+ 
+ `build/bin/configtxgen -outputCreateChannelTx foo.configtx -profile SampleSingleMSPSolo -channelID foo`
+ 
+ If `build/bin/configtxgen` tool is not present  run `make configtxgen`
+ Before running this you may need to modify `common/configtx/tool/configtx.yaml` changing the 127.0.0.1 address that match
+ your servers. For Docker environment OrdererDefaults Addresses 127.0.0.1 changed to `orderer` and Organizations 
+  AnchorPeers Hosts 127.0.0.1 to `vp0`.  Repeat the Host's section to add second peer `vp1`
 
 #Basic Troubleshooting
 **identity or token do not match**

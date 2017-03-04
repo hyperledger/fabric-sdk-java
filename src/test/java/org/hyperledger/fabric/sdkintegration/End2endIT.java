@@ -52,7 +52,7 @@ import static java.lang.String.format;
  */
 public class End2endIT {
 
-    TestConfig testConfig = TestConfig.getConfig();
+    static final TestConfig testConfig = TestConfig.getConfig();
 
 
     static final String CHAIN_CODE_NAME = "example_cc.go";
@@ -60,19 +60,20 @@ public class End2endIT {
     static final String CHAIN_CODE_VERSION = "1.0";
 
 
-    static final String TEST_CHAIN_NAME = "testchainid";
+  ///  static final String TEST_CHAIN_NAME = "testchainid";
     static final String FOO_CHAIN_NAME = "foo";
-    static final String CHAIN_NAME = FOO_CHAIN_NAME;
-    //static final String CHAIN_NAME = TEST_CHAIN_NAME;
-
-    final static Collection<String> PEER_LOCATIONS = Arrays.asList("grpc://localhost:7051");
+    static final String BAR_CHAIN_NAME = "bar";
 
 
-    final static Collection<String> ORDERER_LOCATIONS = Arrays.asList("grpc://localhost:7050"); //Vagrant maps to this
 
-    final static Collection<String> EVENTHUB_LOCATIONS = Arrays.asList("grpc://localhost:7053"); //Vagrant maps to this
+    final static Collection<String> PEER_LOCATIONS = Arrays.asList(testConfig.getIntegrationTestsPeers().split(","));
 
-    final static String FABRIC_CA_SERVICES_LOCATION = "http://localhost:7054";
+
+    final static Collection<String> ORDERER_LOCATIONS = Arrays.asList(testConfig.getIntegrationTestsOrderers().split(","));
+
+    final static Collection<String> EVENTHUB_LOCATIONS = Arrays.asList(testConfig.getIntegrationtestsEventhubs().split(","));
+
+    final static String FABRIC_CA_SERVICES_LOCATION = testConfig.getIntegrationtestsFabricCA();
 
     private final TestConfigHelper configHelper = new TestConfigHelper();
 
@@ -112,16 +113,12 @@ public class End2endIT {
 
             ////////////////////////////
             //Construct the chains
-            //
 
-            runChain(client, constructChain(client), true, 0);// Run test chai
-
-
+            runChain(client, constructChain(FOO_CHAIN_NAME, client), true, 0);
             out("\n");
-            runChain(client, constructFooChain(client), false, 100);//run a newly constructed foo chain with different b value!
+            runChain(client, constructChain(BAR_CHAIN_NAME, client), false, 100);//run a newly constructed foo chain with different b value!
 
             out("That's all folks!");
-
 
 
         }catch (Exception e){
@@ -172,6 +169,7 @@ public class End2endIT {
 
                 for (ProposalResponse response : responses) {
                     if (response.getStatus() == ProposalResponse.Status.SUCCESS) {
+                        out("Successful install proposal response Txid: %s", response.getTransactionID());
                         successful.add(response);
 
                     } else {
@@ -203,6 +201,12 @@ public class End2endIT {
             instantiateProposalRequest.setFcn("init");
             instantiateProposalRequest.setArgs(new String[]{"a", "100", "b", ""+(200 + delta)});
 
+
+            /*
+              policyBitsAdmin - which has policy AND(DEFAULT.admin) meaning 1 signature from the DEFAULT MSP admin' is required
+              See README.md Chaincode endorsement policies section for more details.
+             */
+
             ChaincodeEndorsementPolicy chaincodeEndorsementPolicy = new ChaincodeEndorsementPolicy(new File("src/test/resources/policyBitsAdmin"));
             instantiateProposalRequest.setChaincodeEndorsementPolicy(chaincodeEndorsementPolicy);
 
@@ -216,6 +220,7 @@ public class End2endIT {
             for (ProposalResponse response : responses) {
                 if (response.isVerified() && response.getStatus() == ProposalResponse.Status.SUCCESS) {
                     successful.add(response);
+                    out("Succesful instantiate proposal response Txid: %s", response.getTransactionID());
                 } else {
                     failed.add(response);
                 }
@@ -260,6 +265,7 @@ public class End2endIT {
                     for (ProposalResponse response : invokePropResp) {
 
                         if (response.getStatus() == ProposalResponse.Status.SUCCESS) {
+                            out("Successful invoke proposal response Txid: %s", response.getTransactionID());
                             successful.add(response);
                         } else {
                             failed.add(response);
@@ -383,34 +389,8 @@ public class End2endIT {
     }
 
 
-    private static Chain constructChain(HFClient client) throws Exception {
-        //////////////////////////// TODo Needs to be made out of bounds and here chain just retrieved
-        //Construct the chain
-        //
 
-        Chain newChain = client.newChain(TEST_CHAIN_NAME);
-
-        for (String peerloc : PEER_LOCATIONS) {
-            Peer peer = client.newPeer(peerloc);
-            peer.setName("peer1");
-            newChain.addPeer(peer);
-        }
-
-        for (String orderloc : ORDERER_LOCATIONS) {
-            Orderer orderer = client.newOrderer(orderloc);
-            newChain.addOrderer(orderer);
-        }
-
-        for (String eventHubLoc : EVENTHUB_LOCATIONS) {
-            EventHub eventHub = client.newEventHub(eventHubLoc);
-            newChain.addEventHub(eventHub);
-        }
-
-        return newChain;
-
-    }
-
-    private static Chain constructFooChain(HFClient client) throws Exception {
+    private static Chain constructChain(String  name, HFClient client) throws Exception {
         //////////////////////////// TODo Needs to be made out of bounds and here chain just retrieved
         //Construct the chain
         //
@@ -428,9 +408,9 @@ public class End2endIT {
         Orderer anOrderer = orderers.iterator().next();
         orderers.remove(anOrderer);
 
-        ChainConfiguration chainConfiguration = new ChainConfiguration(new File("src/test/fixture/foo.configtx"));
+        ChainConfiguration chainConfiguration = new ChainConfiguration(new File("src/test/fixture/" + name+ ".configtx"));
 
-        Chain newChain = client.newChain(FOO_CHAIN_NAME, anOrderer, chainConfiguration);
+        Chain newChain = client.newChain(name, anOrderer, chainConfiguration);
 
         int i = 0;
         for (String peerloc : PEER_LOCATIONS) {

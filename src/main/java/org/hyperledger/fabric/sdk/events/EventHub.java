@@ -14,6 +14,8 @@
 
 package org.hyperledger.fabric.sdk.events;
 
+import java.util.ArrayList;
+
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
 import org.apache.commons.logging.Log;
@@ -22,6 +24,7 @@ import org.hyperledger.fabric.protos.peer.EventsGrpc;
 import org.hyperledger.fabric.protos.peer.PeerEvents;
 import org.hyperledger.fabric.sdk.Chain;
 import org.hyperledger.fabric.sdk.Endpoint;
+import org.hyperledger.fabric.sdk.exception.EventHubException;
 
 /**
  * Class to manage fabric events.
@@ -54,7 +57,7 @@ public class EventHub {
         this.pem = pem;
     }
 
-    public void connect() {
+    public void connect() throws EventHubException {
         if (connected) {
             logger.warn("Event Hub already connected.");
             return;
@@ -63,6 +66,9 @@ public class EventHub {
         channel = new Endpoint(url, pem).getChannelBuilder().build();
 
         events = EventsGrpc.newStub(channel);
+
+
+        final ArrayList<Throwable> threw = new ArrayList<>();
 
 
         StreamObserver<PeerEvents.Event> eventStream = new StreamObserver<PeerEvents.Event>() {
@@ -74,11 +80,15 @@ public class EventHub {
 
             @Override
             public void onError(Throwable t) {
-                logger.error("Error in stream: " + t.getMessage());
+
+                logger.error("Error in stream: " + t.getMessage(), t);
+                threw.add(t);
+                eventQue.eventError(t);
             }
 
             @Override
             public void onCompleted() {
+
                 logger.info("Stream completed");
             }
         };
@@ -87,6 +97,17 @@ public class EventHub {
         sender = events.chat(eventStream);
         blockListen();
 
+        //
+
+        if (!threw.isEmpty()) {
+            Throwable t = threw.iterator().next();
+
+            EventHubException evh = new EventHubException(t.getMessage(), t);
+            logger.error(String.format("EventHub %s Error in stream. error: " + t.getMessage(), url), evh);
+            throw evh;
+
+        }
+
         connected = true;
 
     }
@@ -94,9 +115,9 @@ public class EventHub {
     private void blockListen() {
 
 
-        PeerEvents.Register.Builder register = PeerEvents.Register.newBuilder()
+        PeerEvents.Register register = PeerEvents.Register.newBuilder()
                 .addEvents(PeerEvents.Interest.newBuilder()
-                        .setEventType(PeerEvents.EventType.BLOCK));
+                        .setEventType(PeerEvents.EventType.BLOCK).build()).build();
 
         PeerEvents.Event blockEvent = PeerEvents.Event.newBuilder().setRegister(register).build();
         sender.onNext(blockEvent);

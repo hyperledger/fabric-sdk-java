@@ -61,6 +61,7 @@ import org.hyperledger.fabric.sdk.BlockEvent.TransactionEvent;
 import org.hyperledger.fabric.sdk.events.BlockListener;
 import org.hyperledger.fabric.sdk.events.EventHub;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.exception.EventHubException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.InvalidTransactionException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
@@ -487,7 +488,7 @@ public class Chain {
     }
 
 
-    public Chain initialize() throws InvalidArgumentException { //TODO for multi chain
+    public Chain initialize() throws InvalidArgumentException, EventHubException { //TODO for multi chain
         if (peers.size() == 0) {  // assume this makes no sense.  have no orders seems reasonable if all you do is query.
 
             throw new InvalidArgumentException("Chain needs at least one peer.");
@@ -1159,6 +1160,11 @@ public class Chain {
 
         private final BlockingQueue<Event> events = new LinkedBlockingQueue<>();//Thread safe
         private long previous = Long.MIN_VALUE;
+        private Throwable eventException;
+
+        public void eventError(Throwable t){
+            eventException =t;
+        }
 
         public boolean addBEvent(Event event) {
 
@@ -1186,12 +1192,25 @@ public class Chain {
 
         }
 
-        public Event getNextEvent() {
+        public Event getNextEvent() throws EventHubException {
             Event ret = null;
+            if(eventException != null){
+                throw new EventHubException(eventException);
+            }
             try {
                 ret = events.take();
             } catch (InterruptedException e) {
                 logger.warn(e);
+                if(eventException != null){
+
+                    EventHubException eve = new EventHubException(eventException);
+                    logger.error(eve.getMessage(), eve);
+                    throw eve;
+                }
+            }
+
+            if(eventException != null){
+                throw new EventHubException(eventException);
             }
 
             return ret;
@@ -1213,7 +1232,13 @@ public class Chain {
 
 
             for (; ; ) {
-                final Event event = chainEventQue.getNextEvent();
+                final Event event;
+                try {
+                    event = chainEventQue.getNextEvent();
+                } catch (EventHubException e) {
+                    logger.error(e);
+                    continue;
+                }
                 if (event == null) {
                     continue;
                 }

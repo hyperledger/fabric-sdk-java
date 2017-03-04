@@ -42,7 +42,10 @@ public class TestConfig {
 
     private static final String INVOKEWAITTIME =  PROPBASE + "InvokeWaitTime";
     private static final String DEPLOYWAITTIME =  PROPBASE + "DeployWaitTime";
-    private static final String USETESTCHAIN =  PROPBASE + "End2endIT.usetestchain";
+    private static final String INTEGRATIONTESTPEERS = PROPBASE +  "integrationTests.peers";
+    private static final String INTEGRATIONTESTSORDERERS = PROPBASE +  "integrationTests.orderers";
+    private static final String INTEGRATIONTESTSEVENTHUBS = PROPBASE +  "integrationTests.eventhubs";
+    private static final String INTEGRATIONTESTSFABRICCA = PROPBASE +  "integrationTests.fabric_ca";
 
 
     private static TestConfig config;
@@ -69,7 +72,11 @@ public class TestConfig {
 
             defaultProperty(INVOKEWAITTIME, "100000");
             defaultProperty(DEPLOYWAITTIME, "120000");
-            defaultProperty(USETESTCHAIN, "false");
+            defaultProperty(INTEGRATIONTESTPEERS, "grpc://localhost:7051,grpc://localhost:7056");
+            defaultProperty(INTEGRATIONTESTSORDERERS, "grpc://localhost:7050");
+
+            defaultProperty(INTEGRATIONTESTSEVENTHUBS, "grpc://localhost:7053");
+            defaultProperty(INTEGRATIONTESTSFABRICCA, "http://localhost:7054");
 
         }
 
@@ -146,7 +153,21 @@ public class TestConfig {
         return Integer.parseInt(getProperty(DEPLOYWAITTIME));
     }
 
-    public int getEnd2endItUseTestChain() {
-        return Integer.parseInt(getProperty(USETESTCHAIN));
+
+    public String getIntegrationTestsPeers() {
+        return getProperty(INTEGRATIONTESTPEERS);
     }
+
+    public String getIntegrationTestsOrderers() {
+        return getProperty(INTEGRATIONTESTSORDERERS);
+    }
+
+    public String getIntegrationtestsEventhubs() {
+        return getProperty(INTEGRATIONTESTSEVENTHUBS);
+    }
+
+    public String getIntegrationtestsFabricCA() {
+        return getProperty(INTEGRATIONTESTSFABRICCA);
+    }
+
 }
