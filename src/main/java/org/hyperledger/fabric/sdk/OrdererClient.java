@@ -37,36 +37,25 @@ import static org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse.TypeCase.
  */
 class OrdererClient {
     private static final Log logger = LogFactory.getLog(OrdererClient.class);
-
     private final ManagedChannel channel;
-
 
     /**
      * Construct client for accessing Orderer server using the existing channel.
      */
     OrdererClient(ManagedChannelBuilder<?> channelBuilder) {
         channel = channelBuilder.build();
-
-
     }
 
-
-    private void shutdown() throws InterruptedException {
-
-
-        channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
-    }
-
-
-    @Override
-    public void finalize() {
-        try {
-            shutdown();
-        } catch (InterruptedException e) {
-            logger.debug("Failed to shutdown the OrdererClient");
+    private void shutdown() {
+        if(!channel.isShutdown()) {
+            channel.shutdownNow();
         }
     }
 
+    @Override
+    public void finalize() {
+        shutdown();
+    }
 
     Ab.BroadcastResponse sendTransaction(Common.Envelope envelope) throws Exception {
 
@@ -81,7 +70,6 @@ class OrdererClient {
         StreamObserver<Ab.BroadcastResponse> so = new StreamObserver<Ab.BroadcastResponse>() {
             @Override
             public void onNext(Ab.BroadcastResponse resp) {
-
                 // logger.info("Got Broadcast response: " + resp);
                 logger.debug("resp status value: " + resp.getStatusValue() + ", resp: " + resp.getStatus());
                 ret[0] = resp;
@@ -91,25 +79,19 @@ class OrdererClient {
 
             @Override
             public void onError(Throwable t) {
-
-
                 throwable[0] = t;
-
                 finishLatch.countDown();
             }
 
             @Override
             public void onCompleted() {
-
                 logger.debug("onCompleted");
-
                 finishLatch.countDown();
             }
         };
 
 
         StreamObserver<Common.Envelope> nso = broadcast.broadcast(so);
-
 
         nso.onNext(envelope);
         //nso.onCompleted();
@@ -125,14 +107,13 @@ class OrdererClient {
             logger.debug("Done waiting for reply! Got:" + ret[0]);
 
         } catch (InterruptedException e) {
-
             logger.error(e);
 
-
+        } finally {
+            shutdown();
         }
 
         return ret[0];
-
     }
 
     public DeliverResponse[] sendDeliver(Common.Envelope envelope) throws TransactionException{
@@ -174,27 +155,19 @@ class OrdererClient {
 
             @Override
             public void onError(Throwable t) {
-
                 logger.error("broadcase error " + t);
-
                 throwableList.add(t);
-
                 finishLatch.countDown();
             }
 
             @Override
             public void onCompleted() {
-
                 logger.debug("onCompleted");
-
                 finishLatch.countDown();
             }
         };
 
-
         StreamObserver<Common.Envelope> nso = broadcast.deliver(so);
-
-
         nso.onNext(envelope);
         //nso.onCompleted();
 
@@ -203,9 +176,7 @@ class OrdererClient {
             logger.debug("Done waiting for reply! Got:" + retList);
 
         } catch (InterruptedException e) {
-
             logger.error(e);
-
         }
 
         if(!throwableList.isEmpty()){
@@ -216,6 +187,5 @@ class OrdererClient {
         }
 
         return retList.toArray(new DeliverResponse[retList.size()]);
-
     }
 }
