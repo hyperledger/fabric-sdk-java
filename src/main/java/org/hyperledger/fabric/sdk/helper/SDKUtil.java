@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
+ *  Copyright 2017 DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -33,10 +33,6 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.common.io.ByteStreams;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Timestamp;
-import io.netty.util.internal.StringUtil;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
@@ -49,6 +45,12 @@ import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.SHA3Digest;
 import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.encoders.Hex;
+
+import com.google.common.io.ByteStreams;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Timestamp;
+
+import io.netty.util.internal.StringUtil;
 
 public class SDKUtil {
     private static final Log logger = LogFactory.getLog(SDKUtil.class);
@@ -127,8 +129,8 @@ public class SDKUtil {
      * @param pathPrefix
      * @throws IOException
      */
-    public static byte[] generateTarGz(String src, String pathPrefix) throws IOException {
-        File sourceDirectory = new File(src);
+    public static byte[] generateTarGz(Path src, String pathPrefix) throws IOException {
+        File sourceDirectory = src.toFile();
         //File destinationArchive = new File(target);
 
         ByteArrayOutputStream bos = new ByteArrayOutputStream(500000);
