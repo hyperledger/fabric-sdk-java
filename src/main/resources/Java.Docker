@@ -1,5 +1,0 @@
-FROM hyperledger/fabric-javaenv
-    COPY . /root/chaincode
-    RUN cd /root/chaincode && gradle -b build.gradle build
-    RUN  cp /root/chaincode/build/chaincode.jar /root
-    RUN  cp /root/chaincode/build/libs/* /root/libs
