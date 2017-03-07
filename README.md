@@ -36,8 +36,8 @@ You should use the following commit levels of the Hyperledger projects:
 
 | Project        | Commit level                               | Date                       |
 |:---------------|:------------------------------------------:|---------------------------:|
-| fabric         | 2dd7a75ada71a376fe7c292e131989e0abe8452b   | Mar 3 19:18:28 2017 +0000  |
-| fabric-ca      | c9fb04e0f795589485915883fcbca3ae2fc0aaad   | Feb 27 21:36:23 2017 +0000 |
+| fabric         | db2021e3f8c826eb008e72321cfc60e72c93ad5e   | Mar 6 20:59:26 2017 +0000  |
+| fabric-ca      | f18b6b769b80c889cb6b82ce34d755d9303ec881   | Mar 4 23:51:45 2017 +0000  |
 
  You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
 
