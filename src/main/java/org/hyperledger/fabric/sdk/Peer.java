@@ -141,7 +141,7 @@ public class Peer {
             throws PeerException, InvalidArgumentException {
         checkSendProposal(proposal);
 
-        logger.debug(format("peer.sendProposalAsync name:%s, url: %s", name, url));
+        logger.debug(format("peer.sendProposalAsync name: %s, url: %s", name, url));
 
         return endorserClent.sendProposalAsync(proposal);
     }

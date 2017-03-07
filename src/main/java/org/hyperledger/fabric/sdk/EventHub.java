@@ -183,6 +183,8 @@ public class EventHub {
             @Override
             public void onNext(PeerEvents.Event event) {
 
+                logger.debug(format("EventHub %s got  event type: %s", EventHub.this.name, event.getEventCase().name()));
+
                 if (event.getEventCase() == PeerEvents.Event.EventCase.BLOCK) {
                     try {
                         eventQue.addBEvent(new BlockEvent(EventHub.this, event));  //add to chain queue
@@ -238,7 +240,7 @@ public class EventHub {
             @Override
             public void onCompleted() {
 
-                logger.info(format("Stream completed %s", EventHub.this.toString()));
+                logger.warn(format("Stream completed %s", EventHub.this.toString()));
 
             }
         };

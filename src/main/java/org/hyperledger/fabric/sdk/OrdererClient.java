@@ -122,7 +122,11 @@ class OrdererClient {
         //nso.onCompleted();
 
         try {
-            finishLatch.await(2, TimeUnit.MINUTES);
+            if(!finishLatch.await(2, TimeUnit.MINUTES)){
+                TransactionException ste = new TransactionException("Send transactions failed. Reason:  timeout");
+                logger.error("sendTransaction error " + ste.getMessage(), ste);
+                throw ste;
+            }
             if (throwable[0] != null) {
                 //get full stack trace
                 TransactionException ste = new TransactionException("Send transactions failed. Reason: " + throwable[0].getMessage(), throwable[0]);
@@ -162,7 +166,7 @@ class OrdererClient {
             public void onNext(DeliverResponse resp) {
 
                 // logger.info("Got Broadcast response: " + resp);
-                logger.debug("resp status value: " + resp.getStatusValue() + ", resp: " + resp.getStatus() + ", type case" + resp.getTypeCase());
+                logger.debug("resp status value: " + resp.getStatusValue() + ", resp: " + resp.getStatus() + ", type case: " + resp.getTypeCase());
 
                 if (done) {
                     return;
@@ -201,8 +205,12 @@ class OrdererClient {
         //nso.onCompleted();
 
         try {
-            boolean res = finishLatch.await(2, TimeUnit.MINUTES);
-            logger.trace("Done waiting for reply! Got:" + retList);
+            if(!finishLatch.await(2, TimeUnit.MINUTES)){
+                TransactionException ex = new TransactionException("sendDeliver time exceeded for orderer");
+                logger.error(ex.getMessage(),ex);
+                throw  ex;
+            }
+            logger.trace("Done waiting for reply!");
 
         } catch (InterruptedException e) {
             logger.error(e);

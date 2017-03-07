@@ -271,6 +271,8 @@ public class HFClient {
 //            throw new InvalidArgumentException(format("setUserContext for user %s  Enrollment missing user public key.", userName));
 //        }
 
+        logger.debug(format("Setting user context to MSPID: %s user: %s", userContext.getMSPID(), userContext.getName()));
+
         this.userContext = userContext;
     }
 

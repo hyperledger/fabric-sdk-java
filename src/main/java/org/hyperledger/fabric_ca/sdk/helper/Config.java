@@ -20,6 +20,7 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Level;
 
 /**
  * Config allows for a global config of the toolkit. Central location for all
@@ -50,6 +51,7 @@ public class Config {
     public static final String CERTIFICATE_FORMAT = "org.hyperledger.fabric.sdk.crypto.certificate_format";
     public static final String SIGNATURE_ALGORITHM = "org.hyperledger.fabric.sdk.crypto.default_signature_algorithm";
     public static final String MAX_LOG_STRING_LENGTH = "org.hyperledger.fabric.sdk.log.stringlengthmax";
+    public static final String LOGGERLEVEL = "org.hyperledger.fabric_ca.sdk.loglevel";  // ORG_HYPERLEDGER_FABRIC_CA_SDK_LOGLEVEL=TRACE,DEBUG
 
     private static Config config;
     private final static Properties sdkProperties = new Properties();
@@ -88,6 +90,44 @@ public class Config {
             defaultProperty(PROPOSAL_WAIT_TIME, "12000");
             defaultProperty(GENESISBLOCK_WAIT_TIME, "5000");
             defaultProperty(MAX_LOG_STRING_LENGTH, "64");
+
+            defaultProperty(LOGGERLEVEL, null);
+
+            final String inLogLevel = sdkProperties.getProperty(LOGGERLEVEL);
+
+            if (null != inLogLevel) {
+
+                org.apache.log4j.Level setTo = null;
+
+                switch (inLogLevel) {
+
+                    case "TRACE":
+                        setTo = org.apache.log4j.Level.TRACE;
+                        break;
+
+                    case "DEBUG":
+                        setTo = org.apache.log4j.Level.DEBUG;
+                        break;
+
+                    case "INFO":
+                        setTo = Level.INFO;
+                        break;
+
+                    case "WARN":
+                        setTo = Level.WARN;
+                        break;
+
+                    case "ERROR":
+                        setTo = Level.ERROR;
+                        break;
+
+                }
+
+                if (null != setTo) {
+                     org.apache.log4j.Logger.getLogger("org.hyperledger.fabric_ca").setLevel(setTo);
+                }
+
+            }
 
         }
 
@@ -147,7 +187,7 @@ public class Config {
             if (null != ret) {
                 sdkProperties.put(key, ret);
             } else {
-                if (null == sdkProperties.getProperty(key)) {
+                if (null == sdkProperties.getProperty(key) && value != null) {
                     sdkProperties.put(key, value);
                 }
 

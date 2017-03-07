@@ -24,6 +24,7 @@ import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Comparator;
@@ -317,9 +318,9 @@ public class SDKUtil {
     }
 
     /**
-     * @deprecated
      * @param url
      * @return
+     * @deprecated
      */
     public static boolean nullOrEmptyString(String url) {
         return url == null || url.isEmpty();
@@ -327,6 +328,7 @@ public class SDKUtil {
 
     /**
      * Check if string is null or empty
+     *
      * @param url
      * @return
      */
@@ -335,14 +337,6 @@ public class SDKUtil {
         return url == null || url.isEmpty();
     }
 
-
-
-
-    public static ByteString getNonce() {
-        //TODO right now the server does not care need to figure out
-        return ByteString.copyFromUtf8(generateUUID());
-
-    }
 
     /**
      * Makes logging strings which can be long or with unprintable characters be logged and trimmed.
@@ -363,28 +357,38 @@ public class SDKUtil {
 
     }
 
+    private static final int NONONCE_LENGTH = 24;
 
-    public static String toHexString(ByteString byteString){
+
+    private final static SecureRandom random = new SecureRandom();
+
+    public static byte[] generateNonce() {
+
+        byte[] values = new byte[NONONCE_LENGTH];
+        random.nextBytes(values);
+
+        return values;
+    }
+
+
+
+    public static String toHexString(ByteString byteString) {
         assert (byteString != null);
-        if(byteString == null)
-        {
+        if (byteString == null) {
             return null;
         }
 
-       return encodeHexString( byteString.toByteArray());
-
+        return encodeHexString(byteString.toByteArray());
 
     }
 
-    public static String toHexString(byte[] bytes){
+    public static String toHexString(byte[] bytes) {
         assert (bytes != null);
-        if(bytes == null)
-        {
+        if (bytes == null) {
             return null;
         }
 
-        return encodeHexString( bytes);
-
+        return encodeHexString(bytes);
 
     }
 

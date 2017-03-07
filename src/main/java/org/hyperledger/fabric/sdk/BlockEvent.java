@@ -14,22 +14,14 @@
 package org.hyperledger.fabric.sdk;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
-import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common.Block;
-import org.hyperledger.fabric.protos.common.Common.BlockData;
-import org.hyperledger.fabric.protos.common.Common.BlockMetadata;
-import org.hyperledger.fabric.protos.common.Common.BlockMetadataIndex;
-import org.hyperledger.fabric.protos.common.Common.ChannelHeader;
-import org.hyperledger.fabric.protos.common.Common.Envelope;
-import org.hyperledger.fabric.protos.common.Common.Header;
-import org.hyperledger.fabric.protos.common.Common.Payload;
-import org.hyperledger.fabric.protos.peer.FabricTransaction.Transaction;
-import org.hyperledger.fabric.protos.peer.FabricTransaction.TxValidationCode;
+import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
 
 import static org.hyperledger.fabric.protos.peer.PeerEvents.Event;
 
@@ -38,10 +30,8 @@ import static org.hyperledger.fabric.protos.peer.PeerEvents.Event;
  *
  * @see Block
  */
-public class BlockEvent {
+public class BlockEvent extends BlockInfo {
     private static final Log logger = LogFactory.getLog(BlockEvent.class);
-
-    private final Block block;
 
     /**
      * Get eventhub that received the event
@@ -55,14 +45,6 @@ public class BlockEvent {
 
     private final EventHub eventHub;
     private final Event event;
-    private final BlockMetadata blockMetadata;
-
-    private BlockData blockData;
-
-    private String channelID;  // TODO a block contains payloads from a single channel ??????
-    private final ArrayList<TransactionEvent> txList = new ArrayList<>();
-    private byte[] txResults;   // mapping of Block.Metadata[TRANSACTIONS_FILTER] which is an array of Golang uint8
-    private int transactionsInBlock;
 
     public Event getEvent() {
         return event;
@@ -76,165 +58,78 @@ public class BlockEvent {
      * @see Block
      */
     BlockEvent(EventHub eventHub, Event event) throws InvalidProtocolBufferException {
-        this.event = event;
-        this.block = event.getBlock();
+        super(event.getBlock());
         this.eventHub = eventHub;
-        blockMetadata = this.block.getMetadata();
-        getChannelIDFromBlock();
-        populateResultsMap();
-        processTransactions();
+        this.event = event;
     }
 
-    /**
-     * getChannelIDFromBlock retrieves the channel ID from the Block by parsing
-     * the header of the first transaction in the block
-     *
-     * @throws InvalidProtocolBufferException
-     */
-    private void getChannelIDFromBlock() throws InvalidProtocolBufferException {
-        blockData = block.getData();
-        ByteString data = blockData.getData(0);
-        Envelope envelope = Envelope.parseFrom(data);
-        Payload payload = Payload.parseFrom(envelope.getPayload());
-        Header plh = payload.getHeader();
-        ChannelHeader channelHeader = ChannelHeader.parseFrom(plh.getChannelHeader());
-        channelID = channelHeader.getChannelId();
+    TransactionEvent getTransactionEvent(int index) throws InvalidProtocolBufferException {
+
+        return new TransactionEvent((TansactionEnvelopeInfo) getEnvelopeInfo(index), index);
     }
 
-    /**
-     * populateResultsMap parses the Block and retrieves the bit string that lists the transaction results
-     */
-    private void populateResultsMap() {
-        ByteString txResultsBytes = blockMetadata.getMetadata(BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE);
-        txResults = txResultsBytes.toByteArray();
-    }
-
-    /**
-     * processTransactions retrieves the Transactions from the Block and wrappers each into
-     * its own TransactionEvent
-     *
-     * @throws InvalidProtocolBufferException
-     * @see Block
-     * @see Transaction
-     * @see TransactionEvent
-     */
-    private void processTransactions() throws InvalidProtocolBufferException {
-        int blockIndex = -1;
-        transactionsInBlock = blockData.getDataCount();
-        for (ByteString db : blockData.getDataList()) {
-            blockIndex++;
-            Envelope env = Envelope.parseFrom(db);
-            txList.add(new TransactionEvent(blockIndex, env));
-        }
-    }
-
-    /**
-     * @return the Block associated with this BlockEvent
-     */
-    public Block getBlock() {
-        return block;
-    }
-
-    /**
-     * @return the channel ID from the Block
-     */
-    public String getChannelID() {
-        return channelID;
-    }
-
-    /**
-     * @return a List of the TransactionEvents contained in this Block
-     */
-    public List<BlockEvent.TransactionEvent> getTransactionEvents() {
-        return txList;
-    }
-
-    /**
-     * A wrapper of a Transaction contained in the Block of this event.
-     */
-    public class TransactionEvent {
-        private final int txIndex;
-        private final Block enclosingBlock;
-        private final Envelope txEnvelope;
-        private final String txID;
-
-        /**
-         * constructs a TransactionEvent by parsing the given Envelope
-         *
-         * @param index      the position of this Transaction in the Block
-         * @param txEnvelope the Envelope that wraps the Transaction payload in the Block
-         * @throws InvalidProtocolBufferException
-         */
-        TransactionEvent(int index, Envelope txEnvelope) throws InvalidProtocolBufferException {
-            this.txIndex = index;
-            this.enclosingBlock = block;
-            this.txEnvelope = txEnvelope;
-            Payload payload = Payload.parseFrom(txEnvelope.getPayload());
-            Header plh = payload.getHeader();
-            ChannelHeader channelHeader = ChannelHeader.parseFrom(plh.getChannelHeader());
-            txID = channelHeader.getTxId();
+    public class TransactionEvent extends BlockInfo.TansactionEnvelopeInfo {
+        TransactionEvent(TansactionEnvelopeInfo tansactionEnvelopeInfo, int index) {
+            super(tansactionEnvelopeInfo.getTransactionDeserializer(), index);
         }
 
-        /**
-         * @return the transaction ID
-         */
-        public String getTransactionID() {
-            return this.txID;
-        }
+        EventHub getEventHub() {
 
-        /**
-         * @return the Envelope wrapper of this Transaction payload
-         */
-        public Envelope getEnvelope() {
-            return this.txEnvelope;
-        }
-
-        /**
-         * @return the Block that contains this Transaction
-         */
-        public Block getBlock() {
-            return this.enclosingBlock;
-        }
-
-        /**
-         * @return the position of this Transaction in the Block
-         */
-        public int getIndexInBlock() {
-            return this.txIndex;
-        }
-
-        /**
-         * @return whether this Transaction is marked as TxValidationCode.VALID
-         */
-        public boolean isValid() {
-            if (txIndex >= transactionsInBlock) {
-                return false;
-            }
-            byte txResult = txResults[this.txIndex];
-            logger.debug("TxID " + this.txID + " txResult = " + txResult);
-
-            return txResult == TxValidationCode.VALID_VALUE;
-        }
-
-        /**
-         * @return the validation code of this Transaction (enumeration TxValidationCode in Transaction.proto)
-         */
-        public byte validationCode() {
-            if (txIndex >= transactionsInBlock) {
-                return (byte) TxValidationCode.INVALID_OTHER_REASON_VALUE;
-            }
-            return txResults[this.txIndex];
-        }
-
-        /**
-         * Return eventhub that received the event
-         *
-         * @return
-         */
-
-        public EventHub getEventHub() {
             return BlockEvent.this.getEventHub();
         }
-    } // TransactionEvent
+    }
+
+    List<TransactionEvent> getTransactionEventsList() {
+
+        ArrayList<TransactionEvent> ret = new ArrayList<TransactionEvent>(getEnvelopCount());
+        for (TransactionEvent transactionEvent : getTransactionEvents()) {
+            ret.add(transactionEvent);
+        }
+
+        return ret;
+
+    }
+
+    public Iterable<TransactionEvent> getTransactionEvents() {
+
+        return new TransactionEventIterable();
+
+    }
+
+    class TransactionEventIterator implements Iterator<TransactionEvent> {
+        int ci = 0;
+        final int max;
+
+        TransactionEventIterator() {
+            max = getEnvelopCount();
+
+        }
+
+        @Override
+        public boolean hasNext() {
+            return ci < max;
+
+        }
+
+        @Override
+        public TransactionEvent next() {
+
+            try {
+                return getTransactionEvent(ci++);
+            } catch (InvalidProtocolBufferException e) {
+                throw new InvalidProtocolBufferRuntimeException(e);
+            }
+
+        }
+
+    }
+
+    class TransactionEventIterable implements Iterable<TransactionEvent> {
+
+        @Override
+        public Iterator<TransactionEvent> iterator() {
+            return new TransactionEventIterator();
+        }
+    }
 
 } // BlockEvent

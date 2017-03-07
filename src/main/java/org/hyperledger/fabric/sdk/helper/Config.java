@@ -178,7 +178,6 @@ public class Config {
 
     static private void defaultProperty(String key, String value) {
 
-
         String ret = System.getProperty(key);
         if (ret != null) {
             sdkProperties.put(key, ret);

@@ -31,6 +31,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.hyperledger.fabric.protos.common.Common.HeaderType;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -58,6 +59,7 @@ public class BlockEventTest {
         BlockData.Builder blockDataBuilder = BlockData.newBuilder();
         Payload.Builder payloadBuilder = Payload.newBuilder();
         ChannelHeader.Builder channelHeaderBuilder = ChannelHeader.newBuilder();
+        channelHeaderBuilder.setType(HeaderType.ENDORSER_TRANSACTION_VALUE);
         Header.Builder headerBuilder = Header.newBuilder();
         Envelope.Builder envelopeBuilder = Envelope.newBuilder();
 
@@ -144,13 +146,13 @@ public class BlockEventTest {
     public void testBlockEvent() {
         try {
             BlockEvent be = new BlockEvent(eventHub, goodEventBlock);
-            assertEquals(be.getChannelID(), "TESTCHANNEL");
+            assertEquals(be.getChannelId(), "TESTCHANNEL");
             assertArrayEquals(be.getBlock().toByteArray(), block.toByteArray());
-            List<BlockEvent.TransactionEvent> txList = be.getTransactionEvents();
+            List<BlockEvent.TransactionEvent> txList = be.getTransactionEventsList();
             assertEquals(txList.size(), 3);
             BlockEvent.TransactionEvent te = txList.get(1);
             assertFalse(te.isValid());
-            assertEquals(te.validationCode(), (byte) TxValidationCode.INVALID_OTHER_REASON_VALUE);
+            assertEquals(te.getValidationCode(), (byte) TxValidationCode.INVALID_OTHER_REASON_VALUE);
             te = txList.get(2);
             assertTrue(te.isValid());
         } catch (InvalidProtocolBufferException e) {
@@ -167,6 +169,7 @@ public class BlockEventTest {
     @Test (expected = InvalidProtocolBufferException.class)
     public void testBlockEventBadBlock() throws InvalidProtocolBufferException {
         BlockEvent be = new BlockEvent(eventHub, badEventBlock);
+        be.getChannelId();
     }
 
 }

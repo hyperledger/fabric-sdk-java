@@ -14,9 +14,12 @@
 package org.hyperledger.fabric.sdk.transaction;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Timestamp;
+import com.google.protobuf.util.Timestamps;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common.ChannelHeader;
@@ -50,10 +53,11 @@ public class ProtoUtils {
      * @param txID
      * @param chainID
      * @param epoch
+     * @param timeStamp
      * @param chaincodeHeaderExtension
      * @return
      */
-    public static ChannelHeader createChannelHeader(HeaderType type, String txID, String chainID, long epoch, ChaincodeHeaderExtension chaincodeHeaderExtension) {
+    public static ChannelHeader createChannelHeader(HeaderType type, String txID, String chainID, long epoch, Timestamp timeStamp, ChaincodeHeaderExtension chaincodeHeaderExtension) {
 
         if (isDebugLevel) {
             logger.debug(format("ChannelHeader: type: %s, version: 1, Txid: %s, channelId: %s, epoch %d",
@@ -66,6 +70,7 @@ public class ProtoUtils {
                 .setVersion(1)
                 .setTxId(txID)
                 .setChannelId(chainID)
+                .setTimestamp(timeStamp)
                 .setEpoch(epoch);
         if (null != chaincodeHeaderExtension) {
             ret.setExtension(chaincodeHeaderExtension.toByteString());
@@ -226,4 +231,20 @@ public class ProtoUtils {
                 .setIdBytes(ByteString.copyFromUtf8(user.getEnrollment().getCert()))
                 .setMspid(user.getMSPID()).build();
     }
+
+    public static Timestamp getCurrentFabricTimestamp() {
+
+        final long millis = System.currentTimeMillis();
+
+        return Timestamp.newBuilder().setSeconds(millis / 1000)
+                .setNanos((int) ((millis % 1000) * 1000000)).build();
+
+    }
+
+    public static Date getDateFromTimestamp(Timestamp timestamp) {
+
+        return new Date(Timestamps.toMillis(timestamp));
+
+    }
+
 }
