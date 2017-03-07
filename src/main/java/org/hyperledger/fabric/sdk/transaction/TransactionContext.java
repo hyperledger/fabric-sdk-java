@@ -110,7 +110,7 @@ public class TransactionContext {
      * @return The user
      */
     public User getUser() {
-        return this.user;
+        return user;
     }
 
     /**
@@ -218,7 +218,7 @@ public class TransactionContext {
         return currentTimeStamp;
     }
 
-    ByteString getNonce() {
+    public ByteString getNonce() {
 
         return nonce;
 
@@ -288,4 +288,16 @@ public class TransactionContext {
     public String getTxID() {
         return txID;
     }
+
+
+    public  byte[] sign(byte[] b) throws CryptoException {
+        return cryptoPrimitives.sign(getUser().getEnrollment().getKey(), b);
+    }
+
+    public  ByteString signByteString(byte[] b) throws CryptoException {
+        return ByteString.copyFrom(sign(b));
+    }
+
+
+
 }  // end TransactionContext

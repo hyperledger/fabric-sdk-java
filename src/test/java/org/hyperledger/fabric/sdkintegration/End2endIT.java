@@ -244,10 +244,15 @@ public class End2endIT {
             chain.sendTransaction(successful, orderers).thenApply(transactionEvent -> {
 
 
+
+
+
                 Assert.assertTrue(transactionEvent.isValid()); // must be valid to be here.
                 out("Finished instantiate transaction with transaction id %s", transactionEvent.getTransactionID());
 
                 try {
+
+
 
                     out("Successfully completed chaincode instantiation.");
 
