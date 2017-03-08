@@ -623,7 +623,7 @@ public class Chain {
                         long duration = now - start;
 
                         if (duration > config.getGenesisBlockWaitTime()) {
-                            throw new TransactionException(format("Getting genesis block time exceeded %l for chain %s", duration, name));
+                            throw new TransactionException(format("Getting genesis block time exceeded %s seconds for chain %s", Long.toString(TimeUnit.MILLISECONDS.toSeconds(duration)), name));
                         }
                         try {
                             Thread.sleep(200);//try again
