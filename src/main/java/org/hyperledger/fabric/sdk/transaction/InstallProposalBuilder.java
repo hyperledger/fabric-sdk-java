@@ -16,7 +16,6 @@ package org.hyperledger.fabric.sdk.transaction;
 
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createDeploymentSpec;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,7 +32,6 @@ import org.hyperledger.fabric.sdk.TransactionRequest;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
 
-import com.google.common.io.Files;
 import com.google.protobuf.ByteString;
 
 import io.netty.util.internal.StringUtil;
@@ -43,7 +41,7 @@ public class InstallProposalBuilder extends ProposalBuilder {
 
 
     private final static Log logger = LogFactory.getLog(InstallProposalBuilder.class);
-    private final static String LCCC_CHAIN_NAME = "lccc";
+    private static final ChaincodeID LIFECYCLE_CHAINCODE_ID = ChaincodeID.newBuilder().setName("lccc").build();
     private String chaincodePath;
 
 
@@ -163,43 +161,19 @@ public class InstallProposalBuilder extends ProposalBuilder {
         }
         logger.debug("Project source directory: " + projectSourceDir.toAbsolutePath());
 
-        Path dockerFilePath = null;
+        // generate chain code source tar
+        final byte[] data = SDKUtil.generateTarGz(projectSourceDir, targetPathPrefix);
+        
+        final ChaincodeDeploymentSpec depspec = createDeploymentSpec(
+        	ccType, this.chaincodeName, this.chaincodePath, this.chaincodeVersion, null, data);
 
-        ChaincodeDeploymentSpec depspec = null;
-        String dockerFileContents = getDockerFileContents(chaincodeLanguage);
-        try {
-            if (dockerFileContents != null) {
-
-
-                dockerFileContents = String.format(dockerFileContents, chaincodeName);
-
-                // Create a Docker file with dockerFileContents
-                dockerFilePath = projectSourceDir.resolve("Dockerfile");
-                Files.write(dockerFileContents.getBytes(), dockerFilePath.toFile());
-
-                logger.debug(String.format("Created Dockerfile at [%s]", dockerFilePath));
-            }
-
-
-            byte[] data = SDKUtil.generateTarGz(projectSourceDir, targetPathPrefix);
-
-
-            depspec = createDeploymentSpec(ccType,
-                    chaincodeName, chaincodePath, chaincodeVersion, null, data);
-        } finally {
-            if (dockerFilePath != null)
-                SDKUtil.deleteFileOrDirectory(dockerFilePath.toFile());
-        }
-
-
-        List<ByteString> argList = new ArrayList<>();
+        // set args
+        final List<ByteString> argList = new ArrayList<>();
         argList.add(ByteString.copyFrom("install", StandardCharsets.UTF_8));
         argList.add(depspec.toByteString());
-
-        ChaincodeID lcccID = ChaincodeID.newBuilder().setName(LCCC_CHAIN_NAME).build();
-
         args(argList);
-        chaincodeID(lcccID);
+
+        chaincodeID(LIFECYCLE_CHAINCODE_ID);
         ccType(ccType);
         chainID(""); //Installing chaincode is not targeted to a chain.
 
@@ -213,28 +187,14 @@ public class InstallProposalBuilder extends ProposalBuilder {
         ChaincodeDeploymentSpec depspec = createDeploymentSpec(Type.GOLANG,
                 chaincodeName, null, null, null, null);
 
-        ChaincodeID lcccID = ChaincodeID.newBuilder().setName(LCCC_CHAIN_NAME).build();
-
         List<ByteString> argList = new ArrayList<>();
         argList.add(ByteString.copyFrom("install", StandardCharsets.UTF_8));
         argList.add(depspec.toByteString());
 
 
         args(argList);
-        chaincodeID(lcccID);
+        chaincodeID(LIFECYCLE_CHAINCODE_ID);
     }
-
-
-    private String getDockerFileContents(TransactionRequest.Type lang) throws IOException {
-        if (chaincodeLanguage == TransactionRequest.Type.GO_LANG) {
-            return null; //No dockerfile for GO
-        } else if (chaincodeLanguage == TransactionRequest.Type.JAVA) {
-            return new String(SDKUtil.readFileFromClasspath("Java.Docker"));
-        }
-
-        throw new UnsupportedOperationException(String.format("Unknown chaincode language: %s", lang));
-    }
-
 
     public void setChaincodeLanguage(TransactionRequest.Type chaincodeLanguage) {
         this.chaincodeLanguage = chaincodeLanguage;
