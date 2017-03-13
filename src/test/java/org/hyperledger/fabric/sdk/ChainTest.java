@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -175,8 +175,20 @@ public class ChainTest {
 
         try {
 
+            class MockChain extends Chain{
+
+                MockChain(String name, HFClient client) throws InvalidArgumentException {
+                    super(name, client);
+                }
+
+                @Override
+                protected void parseConfigBlock(){
+
+                }
+            }
+
             final String CHAIN_NAME = "chain3";
-            final Chain testchain = new Chain(CHAIN_NAME, hfclient);
+            final Chain testchain = new MockChain(CHAIN_NAME, hfclient);
             final Peer peer = hfclient.newPeer("grpc://localhost:7051");
             peer.setName("mypeer");
 

@@ -43,15 +43,24 @@ import io.grpc.StatusRuntimeException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common.Block;
+import org.hyperledger.fabric.protos.common.Common.BlockMetadata;
 import org.hyperledger.fabric.protos.common.Common.ChannelHeader;
 import org.hyperledger.fabric.protos.common.Common.Envelope;
 import org.hyperledger.fabric.protos.common.Common.Header;
+import org.hyperledger.fabric.protos.common.Common.LastConfig;
+import org.hyperledger.fabric.protos.common.Common.Metadata;
 import org.hyperledger.fabric.protos.common.Common.Payload;
+import org.hyperledger.fabric.protos.common.Configtx.ConfigEnvelope;
+import org.hyperledger.fabric.protos.common.Configtx.ConfigGroup;
 import org.hyperledger.fabric.protos.common.Policies.Policy;
 import org.hyperledger.fabric.protos.msp.Identities;
+import org.hyperledger.fabric.protos.msp.Mspconfig;
 import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.orderer.Ab.BroadcastResponse;
 import org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse;
+import org.hyperledger.fabric.protos.orderer.Ab.SeekInfo;
+import org.hyperledger.fabric.protos.orderer.Ab.SeekPosition;
+import org.hyperledger.fabric.protos.orderer.Ab.SeekSpecified;
 import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposal.SignedProposal;
@@ -74,7 +83,6 @@ import org.hyperledger.fabric.sdk.transaction.InstallProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.InstantiateProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.JoinPeerProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.ProposalBuilder;
-import org.hyperledger.fabric.sdk.transaction.ProtoUtils;
 import org.hyperledger.fabric.sdk.transaction.TransactionBuilder;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 
@@ -82,12 +90,14 @@ import static java.lang.String.format;
 import static org.hyperledger.fabric.protos.common.Common.HeaderType;
 import static org.hyperledger.fabric.protos.common.Common.SignatureHeader;
 import static org.hyperledger.fabric.protos.common.Common.Status;
+import static org.hyperledger.fabric.protos.common.Configtx.ConfigValue;
 import static org.hyperledger.fabric.protos.common.Policies.SignaturePolicy;
 import static org.hyperledger.fabric.protos.common.Policies.SignaturePolicyEnvelope;
 import static org.hyperledger.fabric.protos.peer.PeerEvents.Event;
 import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
 import static org.hyperledger.fabric.sdk.helper.SDKUtil.getNonce;
 import static org.hyperledger.fabric.sdk.helper.SDKUtil.nullOrEmptyString;
+import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createChannelHeader;
 
 
 /**
@@ -266,7 +276,7 @@ public class Chain {
         return this;
     }
 
-    public  Chain joinPeer(Peer peer) throws ProposalException {
+    public Chain joinPeer(Peer peer) throws ProposalException {
         if (genesisBlock == null && orderers.isEmpty()) {
             ProposalException e = new ProposalException("Chain missing genesis block and no orderers configured");
             logger.error(e.getMessage(), e);
@@ -488,35 +498,39 @@ public class Chain {
     }
 
 
-    public Chain initialize() throws InvalidArgumentException, EventHubException { //TODO for multi chain
-        if (peers.size() == 0) {  // assume this makes no sense.  have no orders seems reasonable if all you do is query.
+    public Chain initialize() throws InvalidArgumentException, EventHubException, TransactionException { //TODO for multi chain
+        if (peers.size() == 0) {
 
             throw new InvalidArgumentException("Chain needs at least one peer.");
 
         }
         if (nullOrEmptyString(name)) {
 
-            throw new InvalidArgumentException("Chain initialized with null or empty name.");
+            throw new InvalidArgumentException("Can not initialize Chain without a valid name.");
 
         }
         if (client == null) {
-            throw new InvalidArgumentException("Chain initialized with no client.");
+            throw new InvalidArgumentException("Can not initialize chain without a client object.");
         }
 
         if (this.client.getUserContext() == null) {
 
-            throw new InvalidArgumentException("Chain initialized on HFClient with no user context.");
+            throw new InvalidArgumentException("Can not initialize the chain without a valid user context");
         }
 
-        runEventQue();
 
 
-        for (EventHub eh : eventHubs) {
+        parseConfigBlock();// Parse config block for this chain to get it's information.
+
+        startEventQue(); //Run the event for event messages from event hubs.
+
+
+        for (EventHub eh : eventHubs) { //Connect all event hubs
             eh.connect();
         }
 
 
-        registerTransactionListenerProcessor();
+        registerTransactionListenerProcessor(); //Manage transactions.
 
 
         this.initialized = true;
@@ -534,28 +548,28 @@ public class Chain {
 
                 do {
 
-                    Ab.SeekSpecified seekSpecified = Ab.SeekSpecified.newBuilder()
+                    SeekSpecified seekSpecified = SeekSpecified.newBuilder()
                             .setNumber(0)
                             .build();
-                    Ab.SeekPosition seekPosition = Ab.SeekPosition.newBuilder()
+                    SeekPosition seekPosition = SeekPosition.newBuilder()
                             .setSpecified(seekSpecified)
                             .build();
 
-                    Ab.SeekSpecified seekStopSpecified = Ab.SeekSpecified.newBuilder()
+                    SeekSpecified seekStopSpecified = SeekSpecified.newBuilder()
                             .setNumber(0)
                             .build();
 
-                    Ab.SeekPosition seekStopPosition = Ab.SeekPosition.newBuilder()
+                    SeekPosition seekStopPosition = SeekPosition.newBuilder()
                             .setSpecified(seekStopSpecified)
                             .build();
 
-                    Ab.SeekInfo seekInfo = Ab.SeekInfo.newBuilder()
+                    SeekInfo seekInfo = SeekInfo.newBuilder()
                             .setStart(seekPosition)
                             .setStop(seekStopPosition)
-                            .setBehavior(Ab.SeekInfo.SeekBehavior.BLOCK_UNTIL_READY)
+                            .setBehavior(SeekInfo.SeekBehavior.BLOCK_UNTIL_READY)
                             .build();
 
-                    ChannelHeader deliverChainHeader = ProtoUtils.createChannelHeader(HeaderType.DELIVER_SEEK_INFO, "4", name, 0, null);
+                    ChannelHeader deliverChainHeader = createChannelHeader(HeaderType.DELIVER_SEEK_INFO, "4", name, 0, null);
 
 
                     String mspid = getEnrollment().getMSPID();
@@ -601,7 +615,7 @@ public class Chain {
                             logger.warn(format("Bad deliver expected status 200  got  %d, Chain %s", status.getStatusValue(), name));
                             // keep trying...
                         } else if (status.getStatusValue() != 200) {
-                            throw  new TransactionException(format("Bad deliver expected status 200  got  %d, Chain %s", status.getStatusValue(), name));
+                            throw new TransactionException(format("Bad deliver expected status 200  got  %d, Chain %s", status.getStatusValue(), name));
 
                         } else {
 
@@ -654,6 +668,336 @@ public class Chain {
     }
 
 
+    Map<String, MSP> msps = new HashMap();
+
+    /**
+     * MSPs
+     */
+
+    class MSP {
+        final String orgName;
+        final Mspconfig.FabricMSPConfig fabricMSPConfig;
+        byte[][] adminCerts;
+        byte[][] rootCerts;
+        byte[][] intermediateCerts;
+
+        MSP(String orgName, Mspconfig.FabricMSPConfig fabricMSPConfig) {
+            this.orgName = orgName;
+            this.fabricMSPConfig = fabricMSPConfig;
+        }
+
+        /**
+         * Known as the MSPID internally
+         *
+         * @return
+         */
+
+        String getID() {
+            return fabricMSPConfig.getName();
+
+        }
+
+        /**
+         * AdminCerts
+         *
+         * @return array of admin certs in PEM bytes format.
+         */
+        byte[][] getAdminCerts() {
+
+            if (null == adminCerts) {
+                adminCerts = new byte[fabricMSPConfig.getAdminsList().size()][];
+                int i = 0;
+                for (ByteString cert : fabricMSPConfig.getAdminsList()) {
+                    adminCerts[i++] = cert.toByteArray();
+                }
+            }
+            return adminCerts;
+        }
+
+        /**
+         * RootCerts
+         *
+         * @return array of admin certs in PEM bytes format.
+         */
+        byte[][] getRootCerts() {
+
+            if (null == rootCerts) {
+                rootCerts = new byte[fabricMSPConfig.getRootCertsList().size()][];
+                int i = 0;
+                for (ByteString cert : fabricMSPConfig.getRootCertsList()) {
+                    rootCerts[i++] = cert.toByteArray();
+                }
+            }
+
+            return rootCerts;
+        }
+
+        /**
+         * IntermediateCerts
+         *
+         * @return array of intermediate certs in PEM bytes format.
+         */
+        byte[][] getIntermediateCerts() {
+
+            if (null == intermediateCerts) {
+                intermediateCerts = new byte[fabricMSPConfig.getIntermediateCertsList().size()][];
+                int i = 0;
+                for (ByteString cert : fabricMSPConfig.getIntermediateCertsList()) {
+                    intermediateCerts[i++] = cert.toByteArray();
+                }
+            }
+            return intermediateCerts;
+        }
+
+    }
+
+
+    protected void parseConfigBlock() throws TransactionException {
+
+        try {
+
+            final Block configBlock = getConfigurationBlock();
+
+            logger.trace(format("Got config block getting MSP data"));
+
+            Envelope envelope = Envelope.parseFrom(configBlock.getData().getData(0));
+            Payload payload = Payload.parseFrom(envelope.getPayload());
+            ConfigEnvelope configEnvelope = ConfigEnvelope.parseFrom(payload.getData());
+            ConfigGroup channelGroup = configEnvelope.getConfig().getChannelGroup();
+            Map<String, MSP> newMSPS = traverseConfigGroups("", channelGroup, new HashMap<>(20));
+
+            msps = Collections.unmodifiableMap(newMSPS);
+
+
+        } catch (TransactionException e) {
+            logger.error(e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            throw new TransactionException(e);
+        }
+
+    }
+
+    private Map<String, MSP> traverseConfigGroups(String name, ConfigGroup configGroup, Map<String, MSP> msps) throws InvalidProtocolBufferException {
+
+        ConfigValue mspv = configGroup.getValuesMap().get("MSP");
+        if (null != mspv) {
+            if (!msps.containsKey(name)) {
+
+                Mspconfig.MSPConfig mspConfig = Mspconfig.MSPConfig.parseFrom(mspv.getValue());
+
+                Mspconfig.FabricMSPConfig fabricMSPConfig = Mspconfig.FabricMSPConfig.parseFrom(mspConfig.getConfig());
+
+                msps.put(name, new MSP(name, fabricMSPConfig));
+
+            }
+        }
+
+        for (Map.Entry<String, ConfigGroup> gm : configGroup.getGroupsMap().entrySet()) {
+            traverseConfigGroups(gm.getKey(), gm.getValue(), msps);
+        }
+
+        return msps;
+    }
+
+
+    private Block getConfigurationBlock() throws TransactionException {
+
+        logger.trace(format("getConfigurationBlock for chain %s", name));
+
+        try {
+            if (orderers.isEmpty()) {
+                throw new TransactionException(format("No orderers for chain %s", name));
+            }
+            Orderer orderer = orderers.iterator().next();
+
+
+            Block latestBlock = getLatestBlock(orderer);
+
+            BlockMetadata blockMetadata = latestBlock.getMetadata();
+
+            Metadata metaData = Metadata.parseFrom(blockMetadata.getMetadata(1));
+
+            LastConfig lastConfig = LastConfig.parseFrom(metaData.getValue());
+
+            long lastConfigIndex = lastConfig.getIndex();
+
+            logger.trace(format("Last config index is %d", lastConfigIndex));
+
+            ///................................................................................
+
+            TransactionContext txContext = getTransactionContext();
+
+            SeekSpecified seekSpecified = SeekSpecified.newBuilder().setNumber(lastConfigIndex).build();
+
+            SeekPosition seekPosition = SeekPosition.newBuilder()
+                    .setSpecified(seekSpecified)
+                    .setNewest(Ab.SeekNewest.getDefaultInstance())
+                    .build();
+
+
+            SeekInfo seekInfo = SeekInfo.newBuilder()
+                    .setStart(seekPosition)
+                    .setStop(seekPosition)
+                    .setBehavior(SeekInfo.SeekBehavior.BLOCK_UNTIL_READY)
+                    .build();
+
+            ChannelHeader seekInfoHeader = createChannelHeader(HeaderType.DELIVER_SEEK_INFO,
+                    txContext.getTxID(), name, txContext.getEpoch(), null);
+
+            SignatureHeader signatureHeader = SignatureHeader.newBuilder()
+                    .setCreator(txContext.getIdentity().toByteString())
+                    .setNonce(txContext.getNonce())
+                    .build();
+
+            Header seekHeader = Header.newBuilder()
+                    .setSignatureHeader(signatureHeader.toByteString())
+                    .setChannelHeader(seekInfoHeader.toByteString())
+                    .build();
+
+            Payload seekPayload = Payload.newBuilder()
+                    .setHeader(seekHeader)
+                    .setData(seekInfo.toByteString())
+                    .build();
+
+            Envelope envelope = Envelope.newBuilder().setSignature(txContext.signByteString(seekPayload.toByteArray()))
+                    .setPayload(seekPayload.toByteString())
+                    .build();
+
+            DeliverResponse[] deliver = orderer.sendDeliver(envelope);
+
+            Block configBlock;
+            if (deliver.length < 1) {
+                throw new TransactionException(format("newest block for channel %s fetch bad deliver missing status block only got blocks:%d", name, deliver.length));
+
+            } else {
+
+                DeliverResponse status = deliver[0];
+                if (status.getStatusValue() != 200) {
+                    throw new TransactionException(format("Bad newest block expected status 200  got  %d, Chain %s", status.getStatusValue(), name));
+                } else {
+                    if (deliver.length < 2) {
+                        throw new TransactionException(format("newest block for channel %s fetch bad deliver missing genesis block only got %d:", name, deliver.length));
+                    } else {
+
+                        DeliverResponse blockresp = deliver[1];
+                        configBlock = blockresp.getBlock();
+
+                        int dataCount = configBlock.getData().getDataCount();
+                        if (dataCount < 1) {
+                            throw new TransactionException(format("Bad config block data count %d", dataCount));
+                        }
+                        //Little extra parsing but make sure this really is a config block for this chain.
+                        Envelope envelopeRet = Envelope.parseFrom(configBlock.getData().getData(0));
+                        Payload payload = Payload.parseFrom(envelopeRet.getPayload());
+                        ChannelHeader channelHeader = ChannelHeader.parseFrom(payload.getHeader().getChannelHeader());
+                        if (channelHeader.getType() != HeaderType.CONFIG.getNumber()) {
+                            throw new TransactionException(format("Bad last configuation block type %d, expected %d",
+                                    channelHeader.getType(), HeaderType.CONFIG.getNumber()));
+                        }
+
+                        if (!name.equals(channelHeader.getChannelId())) {
+                            throw new TransactionException(format("Bad last configuation block channel id %s, expected %s",
+                                    channelHeader.getChannelId(), name));
+                        }
+                    }
+                }
+            }
+
+            if (configBlock == null) {
+                throw new TransactionException(format("newest block for channel %s fetch bad deliver returned null:", name));
+            }
+
+            //getChannelConfig -  config block number ::%s  -- numberof tx :: %s', block.header.number, block.data.data.length)
+
+            logger.trace(format("Received latest config block for channel %s, block no:%d, transaction count:",
+                    name, configBlock.getHeader().getNumber(), configBlock.getData().getDataCount()));
+
+            return configBlock;
+
+
+        } catch (TransactionException e) {
+            logger.error(e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            throw new TransactionException(e);
+        }
+
+    }
+
+    private Block getLatestBlock(Orderer orderer) throws CryptoException, TransactionException {
+
+
+        logger.trace(format("getConfigurationBlock for chain %s", name));
+
+        SeekPosition seekPosition = SeekPosition.newBuilder()
+                .setNewest(Ab.SeekNewest.getDefaultInstance())
+                .build();
+
+        TransactionContext txContext = getTransactionContext();
+
+
+        SeekInfo seekInfo = SeekInfo.newBuilder()
+                .setStart(seekPosition)
+                .setStop(seekPosition)
+                .setBehavior(SeekInfo.SeekBehavior.BLOCK_UNTIL_READY)
+                .build();
+
+        ChannelHeader seekInfoHeader = createChannelHeader(HeaderType.DELIVER_SEEK_INFO,
+                txContext.getTxID(), name, txContext.getEpoch(), null);
+
+        SignatureHeader signatureHeader = SignatureHeader.newBuilder()
+                .setCreator(txContext.getIdentity().toByteString())
+                .setNonce(txContext.getNonce())
+                .build();
+
+        Header seekHeader = Header.newBuilder()
+                .setSignatureHeader(signatureHeader.toByteString())
+                .setChannelHeader(seekInfoHeader.toByteString())
+                .build();
+
+        Payload seekPayload = Payload.newBuilder()
+                .setHeader(seekHeader)
+                .setData(seekInfo.toByteString())
+                .build();
+
+        Envelope envelope = Envelope.newBuilder().setSignature(txContext.signByteString(seekPayload.toByteArray()))
+                .setPayload(seekPayload.toByteString())
+                .build();
+
+        DeliverResponse[] deliver = orderer.sendDeliver(envelope);
+
+        Block latestBlock;
+        if (deliver.length < 1) {
+            throw new TransactionException(format("newest block for channel %s fetch bad deliver missing status block only got blocks:%d", name, deliver.length));
+
+        } else {
+
+            DeliverResponse status = deliver[0];
+            if (status.getStatusValue() != 200) {
+                throw new TransactionException(format("Bad newest block expected status 200  got  %d, Chain %s", status.getStatusValue(), name));
+            } else {
+                if (deliver.length < 2) {
+                    throw new TransactionException(format("newest block for channel %s fetch bad deliver missing genesis block only got %d:", name, deliver.length));
+                } else {
+
+                    DeliverResponse blockresp = deliver[1];
+                    latestBlock = blockresp.getBlock();
+                }
+            }
+        }
+
+        if (latestBlock == null) {
+            throw new TransactionException(format("newest block for channel %s fetch bad deliver returned null:", name));
+        }
+
+        logger.trace(format("Received latest  block for channel %s, block no:%d", name, latestBlock.getHeader().getNumber()));
+        return latestBlock;
+    }
+
+
     private static Policy buildPolicyEnvelope(int nOf) {
 
         SignaturePolicy.NOutOf nOutOf = SignaturePolicy.NOutOf.newBuilder().setN(nOf).build();
@@ -672,123 +1016,6 @@ public class Chain {
     }
 
 
-//    private static SignedConfigurationItem buildSignedConfigurationItem(ChannelHeader chainHeader, ConfigurationType type,
-//                                                                        long lastModified, String modificationPolicy,
-//                                                                        String key, ByteString value
-//    ) {
-//        return buildSignedConfigurationItem(chainHeader, type,
-//                lastModified, modificationPolicy,
-//                key, value,
-//                null);
-//
-//    }
-//
-//    private static SignedConfigurationItem buildSignedConfigurationItem(ChannelHeader chainHeader, ConfigurationType type,
-//                                                                        long lastModified, String modificationPolicy,
-//                                                                        String key, ByteString value,
-//                                                                        ConfigurationSignature signatures) {
-//
-//
-//
-//
-//
-//        int configurationItem = Configtx.ConfigItem.newBuilder()
-//
-//                .setHeader(chainHeader)
-//                .setType(type)
-//                .setLastModified(lastModified)
-//                .setModificationPolicy(modificationPolicy)
-//                .setKey(key)
-//                .setValue(value)
-//                .build();
-//
-//        SignedConfigurationItem.Builder signedConfigurationItem = SignedConfigurationItem.newBuilder();
-//        signedConfigurationItem.setConfigurationItem(configurationItem.toByteString());
-//        if (signatures != null) {
-//            signedConfigurationItem.addSignatures(signatures);
-//        }
-//
-//        return signedConfigurationItem.build();
-//    }
-
-//    /**
-//     * Get the user with a given name
-//     *
-//     * @return user
-//     */
-//    public User getMember(String name) {
-//        if (null == keyValStore)
-//            throw new RuntimeException("No key value store was found.  You must first call Chain.setKeyValStore");
-//        if (null == memberServices)
-//            throw new RuntimeException("No user services was found.  You must first call Chain.setMemberServices or Chain.setMemberServicesUrl");
-//
-//        // Try to get the user state from the cache
-//        User user = members.get(name);
-//        if (null != user) return user;
-//
-//        // Create the user and try to restore it's state from the key value store (if found).
-//        user = new User(name, this);
-//        user.restoreState();
-//        return user;
-//
-//    }
-//
-////    /**
-//     * Get a user.
-//     * A user is a specific type of member.
-//     * Another type of member is a peer.
-//     */
-//    User getUser(String name) {
-//        return getMember(name);
-//    }
-//
-
-//    /**
-//     * Register a user or other user type with the chain.
-//     *
-//     * @param registrationRequest Registration information.
-//     * @throws RegistrationException if the registration fails
-//     */
-//    public User register(RegistrationRequest registrationRequest) throws RegistrationException {
-//        User user = getMember(registrationRequest.getEnrollmentID());
-//        user.register(registrationRequest);
-//        return user;
-//    }
-//
-//    /**
-//     * Enroll a user or other identity which has already been registered.
-//     *
-//     * @param name   The name of the user or other member to enroll.
-//     * @param secret The enrollment secret of the user or other member to enroll.
-//     * @throws EnrollmentException
-//     */
-//
-//    public User enroll(String name, String secret) throws EnrollmentException {
-//        User user = getMember(name);
-//        if (!user.isEnrolled()) {
-//            user.enroll(secret);
-//        }
-//        enrollment = user.getEnrollment();
-//
-//        members.put(name, user);
-//
-//        return user;
-//    }
-//
-//    /**
-//     * Register and enroll a user or other member type.
-//     * This assumes that a registrar with sufficient privileges has been set.
-//     *
-//     * @param registrationRequest Registration information.
-//     * @throws RegistrationException
-//     * @throws EnrollmentException
-//     */
-//    public User registerAndEnroll(RegistrationRequest registrationRequest) throws RegistrationException, EnrollmentException {
-//        User user = getMember(registrationRequest.getEnrollmentID());
-//        user.registerAndEnroll(registrationRequest);
-//        return user;
-//    }
-//
 
     public Collection<Orderer> getOrderers() {
         return Collections.unmodifiableCollection(orderers);
@@ -1162,8 +1389,8 @@ public class Chain {
         private long previous = Long.MIN_VALUE;
         private Throwable eventException;
 
-        public void eventError(Throwable t){
-            eventException =t;
+        public void eventError(Throwable t) {
+            eventException = t;
         }
 
         public boolean addBEvent(Event event) {
@@ -1194,14 +1421,14 @@ public class Chain {
 
         public Event getNextEvent() throws EventHubException {
             Event ret = null;
-            if(eventException != null){
+            if (eventException != null) {
                 throw new EventHubException(eventException);
             }
             try {
                 ret = events.take();
             } catch (InterruptedException e) {
                 logger.warn(e);
-                if(eventException != null){
+                if (eventException != null) {
 
                     EventHubException eve = new EventHubException(eventException);
                     logger.error(eve.getMessage(), eve);
@@ -1209,7 +1436,7 @@ public class Chain {
                 }
             }
 
-            if(eventException != null){
+            if (eventException != null) {
                 throw new EventHubException(eventException);
             }
 
@@ -1226,7 +1453,7 @@ public class Chain {
      * Runs processing events from event hubs.
      */
 
-    private void runEventQue() {
+    private void startEventQue() {
 
         eventTask = () -> {
 
