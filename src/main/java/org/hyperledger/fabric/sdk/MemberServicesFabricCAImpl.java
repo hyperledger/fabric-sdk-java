@@ -247,18 +247,18 @@ public class MemberServicesFabricCAImpl implements MemberServices {
 
             JsonReader reader = Json.createReader(new StringReader(responseBody));
             JsonObject jsonst = (JsonObject) reader.read();
-            String result = jsonst.getString("result");
             boolean success = jsonst.getBoolean("success");
-            logger.debug(String.format("[MemberServicesFabricCAImpl] enroll success:[%s], result:[%s]", success, result));
+            logger.debug(String.format("[MemberServicesFabricCAImpl] enroll success:[%s]", success));
 
             if (!success) {
-                EnrollmentException e = new EnrollmentException("COP Failed response success is false. " + result, new Exception());
+                EnrollmentException e = new EnrollmentException("COP Failed response success is false. " , new Exception());
                 logger.error(e.getMessage());
                 throw e;
             }
 
             Base64.Decoder b64dec = Base64.getDecoder();
-            String signedPem = new String(b64dec.decode(result.getBytes()));
+            JsonObject result = jsonst.getJsonObject("result");
+            String signedPem = new String(b64dec.decode(result.getString("Cert").getBytes()));
             logger.info(String.format("[MemberServicesFabricCAImpl] enroll returned pem:[%s]", signedPem));
 
             Enrollment enrollment = new Enrollment();
