@@ -22,4 +22,8 @@ public class CryptoException extends BaseException {
 		super(message, parent);
 	}
 
+	public CryptoException(String message) {
+	    super(message);
+	}
+
 }

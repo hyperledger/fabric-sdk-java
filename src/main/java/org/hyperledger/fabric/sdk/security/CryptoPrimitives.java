@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -63,6 +63,7 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.security.auth.x500.X500Principal;
 import javax.xml.bind.DatatypeConverter;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -150,6 +151,25 @@ public class CryptoPrimitives implements CryptoSuite {
      */
     public String getSignatureAlgorithm() {
         return this.DEFAULT_SIGNATURE_ALGORITHM;
+    }
+
+    private Certificate bytesToCertificate(byte[] certBytes) throws CryptoException {
+        if (certBytes == null || certBytes.length == 0)
+            throw new CryptoException("bytesToCertificate: input null or zero length");
+
+        X509Certificate certificate;
+        try {
+            BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(certBytes));
+            CertificateFactory certFactory = CertificateFactory.getInstance(CERTIFICATE_FORMAT);
+            certificate = (X509Certificate) certFactory.generateCertificate(pem);
+        } catch (CertificateException e) {
+            String emsg = "Unable to converts byte array to certificate. error : " + e.getMessage();
+            logger.error(emsg);
+            logger.debug("input bytes array :" + Hex.encodeHexString(certBytes));
+            throw new CryptoException(emsg, e);
+        }
+
+        return certificate;
     }
 
     /**
@@ -290,23 +310,51 @@ public class CryptoPrimitives implements CryptoSuite {
             throw new InvalidArgumentException("Certificate cannot be null.");
 
         try {
+            logger.debug("Adding cert to trust store. alias:  " + alias + "cert: " + caCert.toString());
             getTrustStore().setCertificateEntry(alias, caCert);
         } catch (KeyStoreException e) {
-            throw new CryptoException("Unable to add CA certificate to trust store. Error: "+ e.getMessage(), e);
+            String emsg = "Unable to add CA certificate to trust store. Error: "+ e.getMessage();
+            logger.error(emsg, e);
+            throw new CryptoException(emsg, e);
         }
     }
 
     @Override
     public void loadCACertificates(Collection<Certificate> CACertificates) throws CryptoException {
-        // TODO fix up when we can get the official list of CA certs
-        loadCACerts();
+        if (CACertificates == null || CACertificates.size() == 0)
+            throw new CryptoException("Unable to load CA certificates. List is empty");
+
+        try {
+            for (Certificate cert : CACertificates) {
+                addCACertificateToTrustStore(cert, Integer.toString(cert.hashCode()));
+            }
+        } catch (InvalidArgumentException e) {
+            String emsg = "Unable to add certificate to trust store. Error: " + e.getMessage();
+            logger.error(emsg, e);
+            throw new CryptoException(emsg, e);
+        }
+    }
+
+    /* (non-Javadoc)
+     * @see org.hyperledger.fabric.sdk.security.CryptoSuite#loadCACertificatesAsBytes(java.util.Collection)
+     */
+    @Override
+    public void loadCACertificatesAsBytes(Collection<byte[]> CACertificatesBytes) throws CryptoException {
+        if (CACertificatesBytes == null || CACertificatesBytes.size() == 0)
+            throw new CryptoException("List of CA certificates is empty. Nothing to load.");
+
+        ArrayList<Certificate> certList = new ArrayList<>();
+        for (byte[] certBytes : CACertificatesBytes) {
+            certList.add(bytesToCertificate(certBytes));
+        }
+        loadCACertificates(certList);
     }
 
     /**
      * loadCACerts loads into the trust stores all the certificates it finds in the <i>cacert</i> directory.
      * This method assumes that any file with extension <i>.pem</i> is a certificate file
      */
-    public void loadCACerts() {
+    private void loadCACerts() {
         File certsFolder = new File("cacerts").getAbsoluteFile();
         Collection<File> certFiles = FileUtils.listFiles(certsFolder, new String[]{"pem"}, false);
         for (File certFile : certFiles) {
@@ -686,7 +734,7 @@ public class CryptoPrimitives implements CryptoSuite {
     @Override
     public void init() throws CryptoException, InvalidArgumentException {
         resetConfiguration();
-        loadCACerts();  // TODO fix this when we have the process for loading the real Fabric Peer CA certs
+        loadCACerts();   // TODO get rid of this when we have correct multiorgs configBlock
     }
 
     private Digest getHashDigest() {

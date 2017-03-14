@@ -19,10 +19,14 @@ import static org.junit.Assert.*;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.*;
 import java.security.spec.*;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Properties;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -234,13 +238,40 @@ public class CryptoPrimitivesTest {
                 }
     }
 
+    @Test(expected=CryptoException.class)
+    public void testLoadCACertsBadInput() throws CryptoException {
+        crypto.loadCACertificates(null);
+    }
+
+    @Test(expected=CryptoException.class)
+    public void testLoadCACertsBytesBadInput() throws CryptoException {
+        crypto.loadCACertificatesAsBytes(null);
+    }
+
     @Test
     public void testLoadCACerts() {
         try {
-            crypto.loadCACerts();
-            assertTrue(crypto.getTrustStore().containsAlias("admincert.pem"));
-            assertTrue(crypto.getTrustStore().containsAlias("cacert.pem"));
-        } catch (KeyStoreException | CryptoException e) {
+            File certsFolder = new File("cacerts").getAbsoluteFile();
+            Collection<File> certFiles = FileUtils.listFiles(certsFolder, new String[]{"pem"}, false);
+            int numFiles = certFiles.size();
+            int numStore = crypto.getTrustStore().size();
+
+            BufferedInputStream bis;
+            ArrayList<byte[]> certBytesList = new ArrayList<>();
+            ArrayList<String> certIDs = new ArrayList<>();
+            byte[] certB;
+            for (File certFile : certFiles) {
+                certB = IOUtils.toByteArray(new FileInputStream(certFile));
+                certBytesList.add(certB);
+                bis = new BufferedInputStream(new ByteArrayInputStream(certB));
+                certIDs.add(Integer.toString(cf.generateCertificate(bis).hashCode()));
+            }
+            crypto.loadCACertificatesAsBytes(certBytesList);
+            assertEquals(crypto.getTrustStore().size(), numStore+numFiles);
+            for (String cID : certIDs) {
+                assertTrue(crypto.getTrustStore().containsAlias(cID));
+            }
+        } catch (KeyStoreException | CryptoException | IOException | CertificateException e) {
             fail("testLoadCACerts should not have thrown exception. Error: " + e.getMessage());
             e.printStackTrace();
         }

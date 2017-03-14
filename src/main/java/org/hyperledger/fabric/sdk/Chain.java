@@ -498,7 +498,7 @@ public class Chain {
     }
 
 
-    public Chain initialize() throws InvalidArgumentException, EventHubException, TransactionException { //TODO for multi chain
+    public Chain initialize() throws InvalidArgumentException, EventHubException, TransactionException, CryptoException {
         if (peers.size() == 0) {
 
             throw new InvalidArgumentException("Chain needs at least one peer.");
@@ -522,6 +522,8 @@ public class Chain {
 
         parseConfigBlock();// Parse config block for this chain to get it's information.
 
+        loadCACertificates();  // put all MSP certs into cryptoSuite
+
         startEventQue(); //Run the event for event messages from event hubs.
 
 
@@ -537,6 +539,30 @@ public class Chain {
 
         return this;
 
+    }
+
+    /**
+     *  load the peer organizations CA certificates into the channel's trust store so that we
+     *  can verify signatures from peer messages
+     * @throws InvalidArgumentException
+     * @throws CryptoException
+     */
+    private void loadCACertificates() throws InvalidArgumentException, CryptoException {
+        if (cryptoSuite == null)
+            throw new InvalidArgumentException("Unable to load CA certificates. Channel "+ name +" does not have a CryptoSuite.");
+        if (msps ==  null)
+            throw new InvalidArgumentException("Unable to load CA certificates. Channel " + name + " does not have any MSPs.");
+
+        List<byte[]> certList;
+        for (MSP msp : msps.values()) {
+            certList = Arrays.asList(msp.getRootCerts());
+            if (certList != null && certList.size()>0)
+                cryptoSuite.loadCACertificatesAsBytes(certList);
+            certList = Arrays.asList(msp.getIntermediateCerts());
+            if (certList != null && certList.size()>0)
+                cryptoSuite.loadCACertificatesAsBytes(certList);
+            // not adding admin certs. Admin certs should be signed by the CA
+        }
     }
 
 

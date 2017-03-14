@@ -51,6 +51,13 @@ public interface CryptoSuite {
      */
     public void loadCACertificates(Collection<Certificate> CACertificates) throws CryptoException;
     /**
+     * Set the Certificate Authority certificates to be used when validating a certificate chain of trust.
+     *
+     * @param CACertificates a collection of certificates in PEM format
+     * @throws CryptoException
+     */
+    public void loadCACertificatesAsBytes(Collection<byte[]> CACertificatesBytes) throws CryptoException;
+    /**
      * @return a {@link java.security.KeyPair} according to the options set via {@link #setKeyGenProperties}
      * @throws CryptoException
      */
