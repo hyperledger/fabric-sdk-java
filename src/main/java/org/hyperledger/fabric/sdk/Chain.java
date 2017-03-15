@@ -488,6 +488,7 @@ public class Chain {
 
         List<byte[]> certList;
         for (MSP msp : msps.values()) {
+            logger.debug("loading certificates for MSP : " + msp.getID());
             certList = Arrays.asList(msp.getRootCerts());
             if (certList != null && certList.size()>0)
                 cryptoSuite.loadCACertificatesAsBytes(certList);
@@ -1460,6 +1461,7 @@ public class Chain {
     private Collection<ProposalResponse> sendProposalToPeers(Collection<Peer> peers,
                                                              SignedProposal signedProposal,
                                                              TransactionContext transactionContext) throws PeerException, InvalidArgumentException, ProposalException {
+
         class Pair {
             private final Peer peer;
             private final Future<FabricProposalResponse.ProposalResponse> future;
@@ -1484,25 +1486,26 @@ public class Chain {
                 message = fabricResponse.getResponse().getMessage();
                 status = fabricResponse.getResponse().getStatus();
             } catch (InterruptedException e) {
-                message = "Sending proposal to peer failed because of interruption";
+                message = "Sending proposal to " + peerFuturePair.peer.getName() + " failed because of interruption";
                 status = 500;
                 logger.error(message, e);
             } catch (TimeoutException e) {
-                message = format("Sending proposal to peer failed because of timeout(%d milliseconds) expiration",
+                message = format("Sending proposal to " + peerFuturePair.peer.getName() + " failed because of timeout(%d milliseconds) expiration",
                         transactionContext.getProposalWaitTime());
                 status = 500;
                 logger.error(message, e);
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
                 if (cause instanceof Error) {
-                    logger.error(cause.getMessage(), new Exception(cause));//wrapped in exception to get full stack trace.
+                    String emsg  = "Sending proposal to " + peerFuturePair.peer.getName() + " failed because of " + cause.getMessage();
+                    logger.error(emsg, new Exception(cause));//wrapped in exception to get full stack trace.
                     throw (Error) cause;
                 } else {
                     if (cause instanceof StatusRuntimeException) {
-                        message = format("Sending proposal to peer failed because of gRPC failure=%s",
+                        message = format("Sending proposal to " + peerFuturePair.peer.getName() + " failed because of gRPC failure=%s",
                                 ((StatusRuntimeException) cause).getStatus());
                     } else {
-                        message = format("Sending proposal to peer failed because of %s", cause.getMessage());
+                        message = format("Sending proposal to " + peerFuturePair.peer.getName() + " failed because of %s", cause.getMessage());
                     }
                     status = 500;
                     logger.error(message, new Exception(cause));//wrapped in exception to get full stack trace.
@@ -1577,13 +1580,15 @@ public class Chain {
 
 
             CompletableFuture<TransactionEvent> sret = registerTxListener(proposalTransactionID);
+            logger.debug("sending transaction to orderer(s) with TxID " + proposalTransactionID) ;
 
             boolean success = false;
             Exception se = null;
+            BroadcastResponse resp = null;
             for (Orderer orderer : orderers) {
 
                 try {
-                    BroadcastResponse resp = orderer.sendTransaction(transactionEnvelope);
+                    resp = orderer.sendTransaction(transactionEnvelope);
                     if (resp.getStatus() == Status.SUCCESS) {
 
                         success = true;
@@ -1592,7 +1597,8 @@ public class Chain {
                     }
                 } catch (Exception e) {
                     se = e;
-                    logger.error(e.getMessage(), e);
+                    String emsg = format("Unsuccesful sendTransaction to orderer. Status %s", resp.getStatus());
+                    logger.error(emsg);
 
                 }
 
@@ -1604,12 +1610,15 @@ public class Chain {
                 logger.debug(format("Successful sent to Orderer transaction id: %s", proposalTransactionID));
                 return sret;
             } else {
+                String emsg = format("Failed to place transaction %s on Orderer. Cause: UNSUCCESSFUL", proposalTransactionID);
                 CompletableFuture<TransactionEvent> ret = new CompletableFuture<>();
-                ret.completeExceptionally(new Exception(format("Failed to place transaction %s on Orderer. Cause: %s", proposalTransactionID, se.getMessage())));
+                ret.completeExceptionally(new Exception(emsg));
                 return ret;
             }
         } catch (Exception e) {
-            throw new TransactionException("sendTransaction: " + e.getMessage(), e);
+            String emsg = String.format("error sending transaction to orderer. Error: %s", e.getMessage());
+            logger.error(emsg);
+            throw new TransactionException(emsg, e);
         }
 
     }
@@ -1928,8 +1937,10 @@ public class Chain {
                 es.execute(() -> future.complete(transactionEvent));
             else
                 es.execute(() -> future.completeExceptionally(
-                        new TransactionEventException("Received invalid transaction event. Transaction ID : " + transactionEvent.getTransactionID(),
-                                transactionEvent)));
+                        new TransactionEventException(format("Received invalid transaction event. Transaction ID %s status %s",
+                                                                transactionEvent.getTransactionID(),
+                                                                transactionEvent.validationCode()),
+                                                      transactionEvent)));
         }
 
         //KEEP THIS FOR NOW in case in the future we decide we want it.

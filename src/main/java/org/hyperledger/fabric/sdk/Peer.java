@@ -15,6 +15,9 @@
 package org.hyperledger.fabric.sdk;
 
 import com.google.common.util.concurrent.ListenableFuture;
+
+import java.util.Objects;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
@@ -114,8 +117,16 @@ public class Peer {
      * @param otherPeer the peer instance to compare against
      * @return true if both peer instances have the same name and url
      */
-    public boolean equals(Peer otherPeer) {
-        return (name.equals(otherPeer.getName()) && url.equals(otherPeer.getUrl()));
+    @Override
+    public boolean equals(Object otherPeer) {
+        if (this == otherPeer)
+            return true;
+        if (otherPeer == null)
+            return false;
+        if (! (otherPeer instanceof Peer))
+            return false;
+        Peer p = (Peer) otherPeer;
+        return Objects.equals(getName(), p.getName()) && Objects.equals(getUrl(), p.getUrl());
     }
 
     public ListenableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal)

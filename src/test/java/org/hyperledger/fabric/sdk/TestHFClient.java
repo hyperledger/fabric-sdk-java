@@ -45,7 +45,7 @@ public class TestHFClient {
         }
         final SampleStore sampleStore = new SampleStore(sampleStoreFile);
 
-        SampleUser someTestUSER = sampleStore.getMember("someTestUSER");
+        SampleUser someTestUSER = sampleStore.getMember("someTestUSER", "someTestORG");
         someTestUSER.setMPSID("testMSPID?");
 
         HFClient hfclient = HFClient.createNewInstance();

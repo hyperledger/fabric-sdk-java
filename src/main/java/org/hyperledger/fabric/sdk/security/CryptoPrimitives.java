@@ -167,7 +167,7 @@ public class CryptoPrimitives implements CryptoSuite {
         } catch (CertificateException e) {
             String emsg = "Unable to converts byte array to certificate. error : " + e.getMessage();
             logger.error(emsg);
-            logger.debug("input bytes array :" + Hex.encodeHexString(certBytes));
+            logger.debug("input bytes array :" + new String(certBytes));
             throw new CryptoException(emsg, e);
         }
 
@@ -344,9 +344,9 @@ public class CryptoPrimitives implements CryptoSuite {
     public void loadCACertificatesAsBytes(Collection<byte[]> CACertificatesBytes) throws CryptoException {
         if (CACertificatesBytes == null || CACertificatesBytes.size() == 0)
             throw new CryptoException("List of CA certificates is empty. Nothing to load.");
-
         ArrayList<Certificate> certList = new ArrayList<>();
         for (byte[] certBytes : CACertificatesBytes) {
+            logger.debug("certificate to load:\n" + new String(certBytes));
             certList.add(bytesToCertificate(certBytes));
         }
         loadCACertificates(certList);
@@ -736,7 +736,6 @@ public class CryptoPrimitives implements CryptoSuite {
     @Override
     public void init() throws CryptoException, InvalidArgumentException {
         resetConfiguration();
-        loadCACerts();   // TODO get rid of this when we have correct multiorgs configBlock
     }
 
     private Digest getHashDigest() {

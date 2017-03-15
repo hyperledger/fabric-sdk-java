@@ -37,6 +37,7 @@ public class SampleUser implements User, Serializable {
     private ArrayList<String> roles;
     private String account;
     private String affiliation;
+    private String organization;
     private String enrollmentSecret;
     Enrollment enrollment = null; //need access in test env.
 
@@ -44,11 +45,12 @@ public class SampleUser implements User, Serializable {
     private String keyValStoreName;
 
 
-    SampleUser(String name, SampleStore fs) {
+    SampleUser(String name, String org, SampleStore fs) {
         this.name = name;
 
         this.keyValStore = fs;
-        this.keyValStoreName = toKeyValStoreName(this.name);
+        this.organization = org;
+        this.keyValStoreName = toKeyValStoreName(this.name, org);
         String memberStr = keyValStore.getValue(keyValStoreName);
         if(null == memberStr){
             saveState();
@@ -64,6 +66,7 @@ public class SampleUser implements User, Serializable {
      *
      * @return {string} The user name.
      */
+    @Override
     public String getName() {
         return this.name;
     }
@@ -73,6 +76,7 @@ public class SampleUser implements User, Serializable {
      *
      * @return {string[]} The roles.
      */
+    @Override
     public ArrayList<String> getRoles() {
         return this.roles;
     }
@@ -93,6 +97,7 @@ public class SampleUser implements User, Serializable {
      *
      * @return {String} The account.
      */
+    @Override
     public String getAccount() {
         return this.account;
     }
@@ -113,6 +118,7 @@ public class SampleUser implements User, Serializable {
      *
      * @return {string} The affiliation.
      */
+    @Override
     public String getAffiliation() {
         return this.affiliation;
     }
@@ -131,6 +137,7 @@ public class SampleUser implements User, Serializable {
      *
      * @return {Enrollment} The enrollment.
      */
+    @Override
     public Enrollment getEnrollment() {
         return this.enrollment;
     }
@@ -194,6 +201,7 @@ public class SampleUser implements User, Serializable {
                     this.roles = state.roles;
                     this.account = state.account;
                     this.affiliation = state.affiliation;
+                    this.organization = state.organization;
                     this.enrollmentSecret = state.enrollmentSecret;
                     this.enrollment = state.enrollment;
                     this.mspID = state.mspID;
@@ -223,12 +231,12 @@ public class SampleUser implements User, Serializable {
 
     }
 
-    private String toKeyValStoreName(String name) {
-
-        return "user." + name;
+    public static String toKeyValStoreName(String name, String org) {
+        return "user." + name + org;
     }
 
 
+    @Override
     public String getMSPID() {
         return mspID;
     }

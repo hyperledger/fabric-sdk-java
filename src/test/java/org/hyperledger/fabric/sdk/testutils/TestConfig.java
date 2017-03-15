@@ -16,10 +16,17 @@ package org.hyperledger.fabric.sdk.testutils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.sdkintegration.SampleOrg;
 
 /**
  * Config allows for a global config of the toolkit. Central location for all
@@ -39,21 +46,26 @@ public class TestConfig {
 
     private static final String PROPBASE = "org.hyperledger.fabric.sdktest.";
 
-
-    private static final String INVOKEWAITTIME =  PROPBASE + "InvokeWaitTime";
-    private static final String DEPLOYWAITTIME =  PROPBASE + "DeployWaitTime";
-    private static final String INTEGRATIONTESTPEERS = PROPBASE +  "integrationTests.peers";
-    private static final String INTEGRATIONTESTSORDERERS = PROPBASE +  "integrationTests.orderers";
-    private static final String INTEGRATIONTESTSEVENTHUBS = PROPBASE +  "integrationTests.eventhubs";
-    private static final String INTEGRATIONTESTSFABRICCA = PROPBASE +  "integrationTests.fabric_ca";
+    private static final String GOSSIPWAITTIME = PROPBASE + "GossipWaitTime";
+    private static final String INVOKEWAITTIME = PROPBASE + "InvokeWaitTime";
+    private static final String DEPLOYWAITTIME = PROPBASE + "DeployWaitTime";
+    private static final String INTEGRATIONTESTSMSPIDS = PROPBASE + "integrationTests.mspids";
+    private static final String INTEGRATIONTESTS_ORG = PROPBASE + "integrationTests.org.";
+    private static final String INTEGRATIONTESTPEERS = PROPBASE + "integrationTests.peers";
+    private static final String INTEGRATIONTESTSORDERERS = PROPBASE + "integrationTests.orderers";
+    private static final String INTEGRATIONTESTSEVENTHUBS = PROPBASE + "integrationTests.eventhubs";
+    private static final String INTEGRATIONTESTSFABRICCA = PROPBASE + "integrationTests.fabric_ca";
+    private static final  Pattern orgPat = Pattern.compile("^" + Pattern.quote(INTEGRATIONTESTS_ORG) + "([^\\.]+)\\.mspid$");
 
 
     private static TestConfig config;
     private final static Properties sdkProperties = new Properties();
+    private final static HashMap<String, SampleOrg> sampleOrgs = new HashMap<>();
 
     private TestConfig() {
         File loadFile;
         FileInputStream configProps;
+
 
         try {
             loadFile = new File(System.getProperty(ORG_HYPERLEDGER_FABRIC_SDK_CONFIGURATION, DEFAULT_CONFIG))
@@ -70,13 +82,72 @@ public class TestConfig {
 
             // Default values
 
+            defaultProperty(GOSSIPWAITTIME, "5000");
             defaultProperty(INVOKEWAITTIME, "100000");
             defaultProperty(DEPLOYWAITTIME, "120000");
-            defaultProperty(INTEGRATIONTESTPEERS, "grpc://localhost:7051,grpc://localhost:7056");
-            defaultProperty(INTEGRATIONTESTSORDERERS, "grpc://localhost:7050");
 
-            defaultProperty(INTEGRATIONTESTSEVENTHUBS, "grpc://localhost:7053");
-            defaultProperty(INTEGRATIONTESTSFABRICCA, "http://localhost:7054");
+            //////
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.mspid", "Org1MSP");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.ca_location", "http://localhost:7054");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.peer_locations", "peer0@grpc://localhost:7051, peer1@grpc://localhost:7056");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.orderer_locations", "orderer0@grpc://localhost:7050");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.eventhub_locations", "eventhub1@grpc://localhost:7053");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.mspid", "Org2MSP");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.ca_location", "http://localhost:8054");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.peer_locations", "peer2@grpc://localhost:8051,peer3@grpc://localhost:8056");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.orderer_locations", "orderer0@grpc://localhost:7050");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.eventhub_locations", "eventhub1@grpc://localhost:8053");
+
+
+
+            for (Map.Entry<Object, Object> x : sdkProperties.entrySet()) {
+                String key = x.getKey() + "";
+                String val = x.getValue() + "";
+
+
+                if (key.startsWith(INTEGRATIONTESTS_ORG)) {
+
+                    Matcher match = orgPat.matcher(key);
+
+
+                    if (match.matches() &&match.groupCount() == 1) {
+                        String orgname = match.group(1).trim();
+                        sampleOrgs.put(orgname, new SampleOrg(orgname, val.trim()));
+
+                    }
+
+                }
+
+            }
+
+            for( Map.Entry<String, SampleOrg> org : sampleOrgs.entrySet()){
+                final SampleOrg sampleOrg = org.getValue();
+
+                String peerNames=  sdkProperties.getProperty(INTEGRATIONTESTS_ORG + org.getKey() + ".peer_locations");
+                String[] ps = peerNames.split("[ \t]*,[ \t]*");
+                for( String peer : ps){
+                    String[] nl = peer.split("[ \t]*@[ \t]*");
+                    sampleOrg.addPeerLocation(nl[0], nl[1]);
+                }
+
+
+                String ordererNames=  sdkProperties.getProperty(INTEGRATIONTESTS_ORG + org.getKey() + ".orderer_locations");
+                ps = ordererNames.split("[ \t]*,[ \t]*");
+                for( String peer : ps){
+                    String[] nl = peer.split("[ \t]*@[ \t]*");
+                    sampleOrg.addOrdererLocation(nl[0], nl[1]);
+                }
+
+                String eventHubNames=  sdkProperties.getProperty(INTEGRATIONTESTS_ORG + org.getKey() + ".eventhub_locations");
+                ps = eventHubNames.split("[ \t]*,[ \t]*");
+                for( String peer : ps){
+                    String[] nl = peer.split("[ \t]*@[ \t]*");
+                    sampleOrg.addEventHubLocation(nl[0], nl[1]);
+                }
+
+                sampleOrg.setCALocation( sdkProperties.getProperty(INTEGRATIONTESTS_ORG + org.getKey() + ".ca_location"));
+
+            }
 
         }
 
@@ -153,6 +224,9 @@ public class TestConfig {
         return Integer.parseInt(getProperty(DEPLOYWAITTIME));
     }
 
+    public String getIntegrationTestsMSPIDs() {
+        return getProperty(INTEGRATIONTESTSMSPIDS);
+    }
 
     public String getIntegrationTestsPeers() {
         return getProperty(INTEGRATIONTESTPEERS);
@@ -170,4 +244,16 @@ public class TestConfig {
         return getProperty(INTEGRATIONTESTSFABRICCA);
     }
 
+    public int getGossipWaitTime() {
+        return Integer.parseInt(getProperty(GOSSIPWAITTIME));
+    }
+
+    public Collection<SampleOrg>  getIntegrationTestsSampleOrgs(){
+        return Collections.unmodifiableCollection(sampleOrgs.values());
+    }
+
+    public SampleOrg getIntegrationTestsSampleOrg(String name) {
+        return sampleOrgs.get(name);
+
+    }
 }

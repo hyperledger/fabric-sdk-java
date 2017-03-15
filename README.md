@@ -48,34 +48,49 @@ You should use the following commit levels of the Hyperledger projects:
 
  * Follow the instructions <a href="https://github.com/hyperledger/fabric/blob/master/docs/dev-setup/devenv.md">here</a> to setup the development environment.
  
- * Open the file `Vagrantfile` and verify that the following `config.vm.network` statements are set:
+ * Open the file `Vagrantfile` and verify that the following `config.vm.network` statements are set. If not, then add them:
 ```
   config.vm.network :forwarded_port, guest: 7050, host: 7050 # fabric orderer service
   config.vm.network :forwarded_port, guest: 7051, host: 7051 # fabric peer vp0 service
-  config.vm.network :forwarded_port, guest: 7056, host: 7056 # fabric peer vp1 service
   config.vm.network :forwarded_port, guest: 7053, host: 7053 # fabric peer event service
   config.vm.network :forwarded_port, guest: 7054, host: 7054 # fabric-ca service
   config.vm.network :forwarded_port, guest: 5984, host: 15984 # CouchDB service
+  ### Below are probably missing.....
+  config.vm.network :forwarded_port, guest: 7056, host: 7056
+  config.vm.network :forwarded_port, guest: 7058, host: 7058
+  config.vm.network :forwarded_port, guest: 8051, host: 8051
+  config.vm.network :forwarded_port, guest: 8053, host: 8053
+  config.vm.network :forwarded_port, guest: 8054, host: 8054
+  config.vm.network :forwarded_port, guest: 8056, host: 8056
+  config.vm.network :forwarded_port, guest: 8058, host: 8058
+ 
 ```
+**Most likely the peer1,2,3 ports 7056-8058 are missing ***
 
-**Most likely the second peer vp1 port 7056 is missing **
+Add to your Vagrant file a folder for referencing the sdkintegration folder 
 
+  
+  config.vm.synced_folder "..", "/opt/gopath/src/github.com/hyperledger/fabric"</br>
+  
+  ***config.vm.synced_folder "/home/user/fabric-sdk-java/src/test/fixture/sdkintegration", "/opt/gopath/src/github.com/hyperledger/fabric/sdkintegration"***</br>
+  
+  config.vm.synced_folder ENV.fetch('LOCALDEVDIR', ".."), "#{LOCALDEV}"</br>
+  
+ * Start the vagrant virtual machine
+```
+vagrant up
+```
  * ssh into vagrant,
    * go to $GOPATH/src/github.com/hyperledger/fabric
    * run `make docker` to create the docker images for peer and orderer
    * go to $GOPATH/src/github/hyperledger/fabric-ca
    * run `make docker` to create the docker image for Fabric_ca
-
- * On your native system where you have the sdk installed you need to copy the docker compose file that starts the services to the directory mapped
- to vagrant On your native system from the sdk directory:
-   * cp ./test/fixture/src/docker-compose.yml &lt;directory where fabric was installed &gt;
-
  * The fabric service creation may have created some files for testing that need to be removed.
    * _rm -rf /var/hyperledger/*_
    
- * Now start the needed fabric services in vagrant.  In the vagrant system:
-   1. _cd /hyperledger_
-   1. _docker-compose up_
+ * Start the needed fabric services in vagrant.  In the vagrant system:
+   1. _cd $GOPATH/src/github.com/hyperledger/fabric/sdkintegration
+   1. _docker-compose up -d --force-recreate_
 
 ## SDK dependencies
 SDK depends on few third party libraries that must be included in your classpath when using the JAR file. To get a list of dependencies, refer to pom.xml file or run
@@ -108,26 +123,36 @@ To run the unit tests, please use <code>mvn test</code> or <code>mvn install</co
 You must be running a local peer and orderer to be able to run the unit tests.
 
 ### Running the integration tests
-You must be running local instances of Fabric-ca  and Fabric to be able to run the integration tests. See above for running these services in Vagrant.
+You must be running local instances of Fabric-ca, Fabric peers and Fabric orderers to be able to run the integration tests. See above for running these services in Vagrant.
 Use this `maven` command to run the integration tests: 
  * _mvn failsafe:integration-test -DskipITs=false_ 
 
 ### End to end test scenario
 The _src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java_ integration test is an example of installing, instantiating, invoking and querying a chaincode.
-It constructs the Hyperledger Chain, deploys the `GO` chain code and initializes the ledger with to variables A= "100", B= "200".
-It then invokes the chain code function `move` that transfers 100 from A to B on the ledger.
-It then queries the ledger to see if B is now 300.
+It constructs the Hyperledger channel, deploys the `GO` chain code, invokes the chaincode to do a transfer amount operation and queries the resulting blockchain world state.
 
-### Default CA certificates for signature validation of Peer and Orderer messages
+This test is a reworked version of the Fabric [e2e_cli example](https://github.com/hyperledger/fabric/tree/master/examples/e2e_cli) to demonstrate the features of the SDK.
+To better understand blockchain and Fabric concepts, we recommend you install and run the _e2e_cli_ example.
 
-Directory _cacerts_ contains the default CA certificates used by Hyperledger Fabric for signature validation.
+#### End to end test environment
+The test defines one Fabric orderer and two organizations (peerOrg1, peerOrg2), each of which has 2 peers, one fabric-ca service.
 
-These certificates are copied from the directories
- * hyperledger/fabric/msp/sampleconfig/admincerts
- * hyperledger/fabric/msp/sampleconfig/cacerts
- 
-The SDK loads these certificates into its CryptoPrimitives trust store and uses them when validating
-signed messages from peer nodes. 
+For ease of assigning ports and mapping of artifacts to physical files, all peers, orderers and fabric-ca are run as Docker containers controlled via a docker-compose configuration file.
+
+The files used by the end to end are:
+ * _src/test/fixture/sdkintegration/e2e-2Orgs/channel_  (everything needed to bootstrap the orderer and create the channels)
+ * _src/test/fixture/sdkintegration/e2e-2Orgs/crypto-config_ (as-is. Used by `configtxgen` and `docker-compose` to map the MSP directories)
+ * _src/test/fixture/sdkintegration/docker-compose.yaml_
+
+### Certificates and other cryptography artifacts
+
+Fabric requires that each organization have private keys and certificates for use in signing and verifying messages going to and from clients, peers and orderers.
+Each organization groups these artifacts in an **MSP** (Membership Service Provider) with a unique _MSPID_ .
+
+Furthermore, each organization is assumed to generate these artifacts independently. The *fabric-ca* project is an example of such a certificate generation service.
+Fabric also provides the `cryptogen` tool to automatically generate all cryptographic artifacts needed for the end to end test.
+
+The end to end test case artifacts are stored under in directory _src/test/fixture/sdkintegration/e2e-2Org/crypto-config_ .
 
 ### Chaincode endorsement policies
 Policies are described in the [Fabric Endorsement Policies document](https://gerrit.hyperledger.org/r/gitweb?p=fabric.git;a=blob;f=docs/endorsement-policies.md;h=1eecf359c12c3f7c1ddc63759a0b5f3141b07f13;hb=HEAD).
@@ -137,27 +162,38 @@ and give it to the SDK either as a file or a byte array. The SDK, in turn, will 
 To input a policy to the SDK, use the [ChaincodeEndorsementPolicy class](https://gerrit.hyperledger.org/r/gitweb?p=fabric-sdk-java.git;a=blob;f=src/main/java/org/hyperledger/fabric/sdk/ChaincodeEndorsementPolicy.java;h=b67b5514b1e26ffac71210a33d788b83ee7cf288;hb=HEAD).
 
 For testing purposes, there are 2 policy files in the _src/test/resources_ directory
-  * policyBitsAdmin  ( which has policy **AND(DEFAULT.admin)** meaning _'1 signature from the DEFAULT MSP admin' is required_ )
-  * polibBitsMember ( which has policy **AND(DEFAULT.member)** meaning _'1 signature from a member of the DEFAULT MSP is required'_ )
-  
-  
-### Chain creation
-A chain code configuration files (src/test/fixture/foo.configtx src/test/fixture/bar.configtx)is needed when creating a new Chain.
- This is created with Hyperledger Fabric configtxgen tool.
+  * _policyBitsAdmin_ ( which has policy **AND(DEFAULT.admin)** meaning _1 signature from the DEFAULT MSP admin' is required_ )
+  * _policyBitsMember_ ( which has policy **AND(DEFAULT.member)** meaning _1 signature from a member of the DEFAULT MSP is required_ )
 
-For the sample in the End2endIT.java the command run was
- 
- `build/bin/configtxgen -outputCreateChannelTx foo.configtx -profile SampleSingleMSPSolo -channelID foo`
- 
- If `build/bin/configtxgen` tool is not present  run `make configtxgen`
- Before running this you may need to modify `common/configtx/tool/configtx.yaml` changing the 127.0.0.1 address that match
- your servers. For Docker environment OrdererDefaults Addresses 127.0.0.1 changed to `orderer` and Organizations 
-  AnchorPeers Hosts 127.0.0.1 to `vp0`.  Repeat the Host's section to add second peer `vp1`
+and one file in th _src/test/fixture/sdkintegration/e2e-2Orgs/channel_ directory specifically for use in the end to end test scenario
+  * _members_from_org1_or_2.policy_ ( which has policy **OR(peerOrg1.member, peerOrg2.member)** meaning  _1 signature from a member of either organizations peerOrg1, PeerOrg2 is required_)
   
+### Chain creation artifacts
+Channel configuration files and orderer bootstrap files ( see directory _src/test/fixture/sdkintegration/e2e-2Orgs/channel_ ) are needed when creating a new channel.
+This is created with the Hyperledger Fabric `configtxgen` tool.
+
+For End2endIT.java the commands are
+
+ * build/bin/configtxgen -outputCreateChannelTx foo.tx -profile TwoOrgs -channelID foo
+ * build/bin/configtxgen -outputCreateChannelTx bar.tx -profile TwoOrgs -channelID bar
+ * build/bin/configtxgen -outputBlock twoorgs.orderer.block -profile TwoOrgs
+ 
+with the configtxgen config file _src/test/fixture/sdkintegration/e2e-2Orgs/channel/configtx.yaml_
+ 
+ 
+If `build/bin/configtxgen` tool is not present  run `make configtxgen`
+ 
+Before running the end to end test case:
+ *  you may need to modify `configtx.yaml` to change all hostname and port definitions to match
+your server(s) hostname(s) and port(s).
+ *  you **WILL** have to modify `configtx.yaml` to have the _MSPDir_ point to the correct path to the _crypto-config_ directories. 
+   * `configtx.yaml` currently assumes that you are running in a Vagrant environment where the fabric, fabric-ca and fabric-sdk-java projects exist under the _/opt/gopath/src/github.com/hyperledger_ directory.
+
 ### GO Lang chaincode
 Go lang chaincode dependencies must be contained in vendor folder. 
  For an explanation of this see [Vender folder explanation](https://blog.gopheracademy.com/advent-2015/vendor-folder/)
-
+ 
+ 
 #Basic Troubleshooting
 **identity or token do not match**
 

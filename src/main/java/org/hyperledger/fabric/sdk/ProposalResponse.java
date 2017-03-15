@@ -104,6 +104,10 @@ public class ProposalResponse extends ChainCodeResponse {
         this.peer = peer;
     }
 
+    public Peer getPeer() {
+        return this.peer;
+    }
+
     public ByteString getPayload() {
         return proposalResponse.getPayload();
     }

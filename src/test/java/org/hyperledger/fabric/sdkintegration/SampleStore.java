@@ -93,14 +93,14 @@ public class SampleStore {
      *
      * @return user
      */
-    public SampleUser getMember(String name) {
+    public SampleUser getMember(String name, String org) {
 
         // Try to get the SampleUser state from the cache
-        SampleUser sampleUser = members.get(name);
+        SampleUser sampleUser = members.get(SampleUser.toKeyValStoreName(name, org));
         if (null != sampleUser) return sampleUser;
 
         // Create the SampleUser and try to restore it's state from the key value store (if found).
-        sampleUser = new SampleUser(name, this);
+        sampleUser = new SampleUser(name, org, this);
 
         return sampleUser;
 
