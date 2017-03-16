@@ -201,8 +201,11 @@ public class Peer {
         throw new RuntimeException("TODO: implement"); //TODO implement remove
     }
 
-    public static Peer createNewInstance(String name, String pem) throws InvalidArgumentException {
-        return new Peer(name, pem);
+    /**
+     * create a new peer with given peer endpoint config.
+     */
+    static Peer createNewInstance(String grpcUrl, String pem) throws InvalidArgumentException {
+        return new Peer(grpcUrl, pem);
     }
 
 
