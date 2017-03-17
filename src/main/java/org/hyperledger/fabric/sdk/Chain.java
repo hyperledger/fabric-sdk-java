@@ -792,7 +792,6 @@ public class Chain {
 
             SeekPosition seekPosition = SeekPosition.newBuilder()
                     .setSpecified(seekSpecified)
-                    .setNewest(Ab.SeekNewest.getDefaultInstance())
                     .build();
 
 
