@@ -14,6 +14,7 @@
 
 package org.hyperledger.fabric.sdk.security;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.*;
 
 import java.io.BufferedInputStream;
@@ -399,7 +400,7 @@ public class CryptoPrimitivesTest {
     // TODO need to regen key now that we're using CryptoSuite
     public void testSign() {
 
-        byte[] plainText = "123456".getBytes();
+        byte[] plainText = "123456".getBytes(UTF_8);
         byte[] signature;
         try {
             PrivateKey key = (PrivateKey) crypto.getTrustStore().getKey("key", "123456".toCharArray());

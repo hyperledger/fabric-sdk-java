@@ -13,8 +13,10 @@
  */
 package org.hyperledger.fabric.sdk;
 
+import static java.nio.charset.StandardCharsets.*;
 import static org.junit.Assert.*;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.hyperledger.fabric.protos.common.Common.Block;
@@ -55,7 +57,7 @@ public class BlockEventTest {
         channelHeaderBuilder.setTxId("TRANSACTION1");
         headerBuilder.setChannelHeader(channelHeaderBuilder.build().toByteString());
         payloadBuilder.setHeader(headerBuilder.build());
-        payloadBuilder.setData(ByteString.copyFrom("test data".getBytes()));
+        payloadBuilder.setData(ByteString.copyFrom("test data".getBytes(UTF_8)));
         envelopeBuilder.setPayload(payloadBuilder.build().toByteString());
         blockDataBuilder.addData(envelopeBuilder.build().toByteString());
 
@@ -66,7 +68,7 @@ public class BlockEventTest {
         headerBuilder.setChannelHeader(channelHeaderBuilder.build().toByteString());
         payloadBuilder.clearHeader();
         payloadBuilder.setHeader(headerBuilder.build());
-        payloadBuilder.setData(ByteString.copyFrom("test data".getBytes()));
+        payloadBuilder.setData(ByteString.copyFrom("test data".getBytes(UTF_8)));
         envelopeBuilder.clearPayload();
         envelopeBuilder.setPayload(payloadBuilder.build().toByteString());
         blockDataBuilder.addData(envelopeBuilder.build().toByteString());
@@ -78,7 +80,7 @@ public class BlockEventTest {
         headerBuilder.setChannelHeader(channelHeaderBuilder.build().toByteString());
         payloadBuilder.clearHeader();
         payloadBuilder.setHeader(headerBuilder.build());
-        payloadBuilder.setData(ByteString.copyFrom("test data".getBytes()));
+        payloadBuilder.setData(ByteString.copyFrom("test data".getBytes(UTF_8)));
         envelopeBuilder.clearPayload();
         envelopeBuilder.setPayload(payloadBuilder.build().toByteString());
         blockDataBuilder.addData(envelopeBuilder.build().toByteString());
@@ -88,18 +90,18 @@ public class BlockEventTest {
         // block header
         BlockHeader.Builder blockHeaderBuilder = BlockHeader.newBuilder();
         blockHeaderBuilder.setNumber(1);
-        blockHeaderBuilder.setPreviousHash(ByteString.copyFrom("previous_hash".getBytes()));
-        blockHeaderBuilder.setDataHash(ByteString.copyFrom("data_hash".getBytes()));
+        blockHeaderBuilder.setPreviousHash(ByteString.copyFrom("previous_hash".getBytes(UTF_8)));
+        blockHeaderBuilder.setDataHash(ByteString.copyFrom("data_hash".getBytes(UTF_8)));
         blockHeader = blockHeaderBuilder.build();
 
         // block metadata
         BlockMetadata.Builder blockMetadataBuilder = BlockMetadata.newBuilder();
-        blockMetadataBuilder.addMetadata(ByteString.copyFrom("signatures".getBytes()));   //BlockMetadataIndex.SIGNATURES_VALUE
-        blockMetadataBuilder.addMetadata(ByteString.copyFrom("last_config".getBytes()));  //BlockMetadataIndex.LAST_CONFIG_VALUE,
+        blockMetadataBuilder.addMetadata(ByteString.copyFrom("signatures".getBytes(UTF_8)));   //BlockMetadataIndex.SIGNATURES_VALUE
+        blockMetadataBuilder.addMetadata(ByteString.copyFrom("last_config".getBytes(UTF_8)));  //BlockMetadataIndex.LAST_CONFIG_VALUE,
         // mark 2nd transaction in block as invalid
         byte[] txResultsMap = new byte[]{TxValidationCode.VALID_VALUE, (byte) TxValidationCode.INVALID_OTHER_REASON_VALUE, TxValidationCode.VALID_VALUE};
         blockMetadataBuilder.addMetadata(ByteString.copyFrom(txResultsMap));              //BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE
-        blockMetadataBuilder.addMetadata(ByteString.copyFrom("orderer".getBytes()));      //BlockMetadataIndex.ORDERER_VALUE
+        blockMetadataBuilder.addMetadata(ByteString.copyFrom("orderer".getBytes(UTF_8)));      //BlockMetadataIndex.ORDERER_VALUE
         blockMetadata = blockMetadataBuilder.build();
 
         Block.Builder blockBuilder = Block.newBuilder();
@@ -110,10 +112,10 @@ public class BlockEventTest {
 
         // block with bad header
         headerBuilder.clearChannelHeader();
-        headerBuilder.setChannelHeader(ByteString.copyFrom("bad channel header".getBytes()));
+        headerBuilder.setChannelHeader(ByteString.copyFrom("bad channel header".getBytes(UTF_8)));
         payloadBuilder.clearHeader();
         payloadBuilder.setHeader(headerBuilder.build());
-        payloadBuilder.setData(ByteString.copyFrom("test data".getBytes()));
+        payloadBuilder.setData(ByteString.copyFrom("test data".getBytes(UTF_8)));
         envelopeBuilder.clearPayload();
         envelopeBuilder.setPayload(payloadBuilder.build().toByteString());
         blockDataBuilder.clearData();

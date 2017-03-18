@@ -26,6 +26,8 @@ import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type;
 import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeHeaderExtension;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 public class ProtoUtils {
 
     /**
@@ -71,7 +73,7 @@ public class ProtoUtils {
         if (args != null && args.size() != 0) {
 
             for (String arg : args) {
-                argList.add(ByteString.copyFrom(arg.getBytes()));
+                argList.add(ByteString.copyFrom(arg.getBytes(UTF_8)));
             }
 
         }
@@ -110,7 +112,7 @@ public class ProtoUtils {
 
         for (Object arg : args) {
             if (arg instanceof String) {
-                arg = ByteString.copyFrom(((String) arg).getBytes());
+                arg = ByteString.copyFrom(((String) arg).getBytes(UTF_8));
             } else if (arg instanceof byte[]) {
                 arg = ByteString.copyFrom((byte[]) arg);
             }

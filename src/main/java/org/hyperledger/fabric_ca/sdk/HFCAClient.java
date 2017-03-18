@@ -72,6 +72,7 @@ import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * HFCAClient is the default implementation of a member services client.
@@ -253,7 +254,7 @@ public class HFCAClient implements MemberServices {
 
             JsonObject result = jsonst.getJsonObject("result");
             Base64.Decoder b64dec = Base64.getDecoder();
-            String signedPem = new String(b64dec.decode(result.getString("Cert").getBytes()));
+            String signedPem = new String(b64dec.decode(result.getString("Cert").getBytes(UTF_8)));
             logger.debug(format("[HFCAClient] enroll returned pem:[%s]", signedPem));
 
             Enrollment enrollment = new HFCAEnrollment(signingKeyPair, Hex.toHexString(signingKeyPair.getPublic().getEncoded()), signedPem);
@@ -363,10 +364,10 @@ public class HFCAClient implements MemberServices {
 
     private String getHTTPAuthCertificate(Enrollment enrollment, String body) throws Exception {
         Base64.Encoder b64 = Base64.getEncoder();
-        String cert = b64.encodeToString(enrollment.getCert().getBytes());
-        body = b64.encodeToString(body.getBytes());
+        String cert = b64.encodeToString(enrollment.getCert().getBytes(UTF_8));
+        body = b64.encodeToString(body.getBytes(UTF_8));
         String signString = body + "." + cert;
-        byte[] signature = cryptoPrimitives.ecdsaSignToBytes(enrollment.getKey(), signString.getBytes());
+        byte[] signature = cryptoPrimitives.ecdsaSignToBytes(enrollment.getKey(), signString.getBytes(UTF_8));
         return cert + "." + b64.encodeToString(signature);
     }
 

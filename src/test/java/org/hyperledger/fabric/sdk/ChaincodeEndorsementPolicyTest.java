@@ -14,6 +14,7 @@
 
 package org.hyperledger.fabric.sdk;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.*;
 
 import java.io.File;
@@ -65,7 +66,7 @@ public class ChaincodeEndorsementPolicyTest {
      */
     @Test
     public void testPolicyCtorByteArray() {
-        byte[] testInput = "this is a test".getBytes();
+        byte[] testInput = "this is a test".getBytes(UTF_8);
         ChaincodeEndorsementPolicy fakePolicy = new ChaincodeEndorsementPolicy(testInput) ;
         assertEquals(fakePolicy.getChaincodeEndorsementPolicyAsBytes(), testInput);
     }
@@ -75,7 +76,7 @@ public class ChaincodeEndorsementPolicyTest {
      */
     @Test
     public void testSetPolicy() {
-        byte[] testInput = "this is a test".getBytes();
+        byte[] testInput = "this is a test".getBytes(UTF_8);
         ChaincodeEndorsementPolicy fakePolicy = new ChaincodeEndorsementPolicy() ;
         fakePolicy.setChaincodeEndorsementPolicy(testInput);
         assertEquals(fakePolicy.getChaincodeEndorsementPolicyAsBytes(), testInput);

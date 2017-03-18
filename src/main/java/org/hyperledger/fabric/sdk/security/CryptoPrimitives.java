@@ -106,6 +106,8 @@ import org.hyperledger.fabric.sdk.helper.Config;
 
 import io.netty.util.internal.StringUtil;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 public class CryptoPrimitives implements CryptoSuite {
     private final Config config = Config.getConfig();
 
@@ -573,7 +575,7 @@ public class CryptoPrimitives implements CryptoSuite {
             ECPrivateKeyParameters privKey = new ECPrivateKeyParameters(((ECPrivateKey) privateKey).getS(), ecParams);
             signer.init(true, privKey);
             BigInteger[] sigs = signer.generateSignature(encoded);
-            return new byte[][] { sigs[0].toString().getBytes(), sigs[1].toString().getBytes() };
+            return new byte[][] { sigs[0].toString().getBytes(UTF_8), sigs[1].toString().getBytes(UTF_8) };
         } catch (Exception e) {
             throw new CryptoException("Could not sign the message using private key", e);
         }

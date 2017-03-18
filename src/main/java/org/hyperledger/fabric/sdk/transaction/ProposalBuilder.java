@@ -34,6 +34,7 @@ import org.hyperledger.fabric.sdk.TransactionRequest;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createChannelHeader;
 
 
@@ -155,11 +156,11 @@ public class ProposalBuilder {
         }
         else if (request != null) {
             // if argList is empty and we have a Request, build the chaincodeInput args array from the Request args and argbytes lists
-            allArgs.add(ByteString.copyFrom(request.getFcn(), StandardCharsets.UTF_8));
+            allArgs.add(ByteString.copyFrom(request.getFcn(), UTF_8));
             List<String> args = request.getArgs();
             if (args != null && args.size()>0)
                 for (String arg : args) {
-                    allArgs.add(ByteString.copyFrom(arg.getBytes()));
+                    allArgs.add(ByteString.copyFrom(arg.getBytes(UTF_8)));
                 }
             // TODO currently assume that chaincodeInput args are strings followed by byte[].
             // Either agree with Fabric folks that this will always be the case or modify all Builders to expect

@@ -52,6 +52,8 @@ import com.google.protobuf.Timestamp;
 
 import io.netty.util.internal.StringUtil;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 public class SDKUtil {
     private static final Log logger = LogFactory.getLog(SDKUtil.class);
 
@@ -73,7 +75,7 @@ public class SDKUtil {
 
         // Compute the hash
 
-        return Hex.toHexString(hash(param.toString().getBytes(), new SHA3Digest()));
+        return Hex.toHexString(hash(param.toString().getBytes(UTF_8), new SHA3Digest()));
     }
 
     /**
@@ -107,7 +109,7 @@ public class SDKUtil {
                 .forEach(file -> {
                     try {
                         byte[] buf = readFile(file);
-                        byte[] toHash = Arrays.concatenate(buf, hashBuilder.toString().getBytes());
+                        byte[] toHash = Arrays.concatenate(buf, hashBuilder.toString().getBytes(UTF_8));
                         hashBuilder.setLength(0);
                         hashBuilder.append(Hex.toHexString(hash(toHash, new SHA3Digest())));
                     } catch (IOException ex) {

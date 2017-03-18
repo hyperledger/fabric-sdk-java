@@ -26,6 +26,8 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.Ignore;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 @Ignore
 public class SDKUtilTest {
 
@@ -35,7 +37,7 @@ public class SDKUtilTest {
 		args.add("a");
 		args.add("b");
 		String hash = SDKUtil.generateParameterHash("mypath", "myfunc", args);
-		Assert.assertEquals(Hex.toHexString(SDKUtil.hash("mypathmyfuncab".getBytes(), new SHA3Digest())), hash);
+		Assert.assertEquals(Hex.toHexString(SDKUtil.hash("mypathmyfuncab".getBytes(UTF_8), new SHA3Digest())), hash);
 	}
 
 	@Test
