@@ -34,8 +34,8 @@ You should use the following commit levels of the Hyperledger projects:
 
 | Project        | Commit level                               | Date                       |
 |:---------------|:------------------------------------------:|---------------------------:|
-| fabric         | 96b1b901ce2f2f3800a554e4a56c9568954633d5   | Mar 12 22:08:12 2017 +0000 |
-| fabric-ca      | 3b8932ac46e9779b6d1e9aae456816019460bf73   | Mar 14 02:08:32 2017 +0000 |
+| fabric         | 0ef35105f4a7d64279551562f9a0dc9381a9249f   | Mar 18 11:07:39 2017 +0000 |
+| fabric-ca      | 894b7e400ddfabee0e7d87c53ab0f454cf955204   | Mar 16 18:24:09 2017 +0000 |
 
  You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
 
@@ -153,6 +153,10 @@ For the sample in the End2endIT.java the command run was
  Before running this you may need to modify `common/configtx/tool/configtx.yaml` changing the 127.0.0.1 address that match
  your servers. For Docker environment OrdererDefaults Addresses 127.0.0.1 changed to `orderer` and Organizations 
   AnchorPeers Hosts 127.0.0.1 to `vp0`.  Repeat the Host's section to add second peer `vp1`
+  
+### GO Lang chaincode
+Go lang chaincode dependencies must be contained in vendor folder. 
+ For an explanation of this see [Vender folder explanation](https://blog.gopheracademy.com/advent-2015/vendor-folder/)
 
 #Basic Troubleshooting
 **identity or token do not match**
