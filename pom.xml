@@ -32,6 +32,7 @@
         <bouncycastle.version>1.55</bouncycastle.version>
         <httpclient.version>4.5.2</httpclient.version>
         <skipITs>true</skipITs>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <dependencies>
         <dependency>
