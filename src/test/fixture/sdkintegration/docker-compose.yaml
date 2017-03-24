@@ -1,7 +1,7 @@
 version: '2'
 
 #
-# TLS is off 
+#
 #
 
 services:
@@ -12,9 +12,10 @@ services:
     ports:
       - "7054:7054"
     # ca_PeerOrg1 uses the key of peerOrg1 so any new registration is automatically included in peerOrg1
-    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/peerOrg1-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/d8a5b3cac1b821f6e4b487ceaf1fd239cdcfc310894150908b90f05e9179556a_sk -b admin:adminpw' -d
+    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/peerOrg1-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/d8a5b3cac1b821f6e4b487ceaf1fd239cdcfc310894150908b90f05e9179556a_sk -b admin:adminpw ${ORG_HYPERLEDGER_FABRIC_SDKTEST_INTEGRATIONTESTS_CA_TLS} --tls.certfile /etc/hyperledger/tls/cas/peerOrg1/cert.pem --tls.keyfile /etc/hyperledger/tls/cas/peerOrg1/key.pem -d'
     volumes:
       - ./e2e-2Orgs/crypto-config/peerOrganizations/peerOrg1/ca/:/etc/hyperledger/fabric-ca-server-config
+      - ./e2e-2Orgs/tls:/etc/hyperledger/tls
     container_name: ca_peerOrg1
 
   ca1:
@@ -24,9 +25,10 @@ services:
     ports:
       - "8054:7054"
     # ca_PeerOrg1 uses the key of peerOrg2 so any new registration is automatically included in peerOrg2
-    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/peerOrg2-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/96bdb57f4efbdcf201a269899eb47e2a73fbb728ae14d47d0d5afb75ddea71de_sk -b admin:adminpw' -d
+    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/peerOrg2-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/96bdb57f4efbdcf201a269899eb47e2a73fbb728ae14d47d0d5afb75ddea71de_sk -b admin:adminpw ${ORG_HYPERLEDGER_FABRIC_SDKTEST_INTEGRATIONTESTS_CA_TLS} --tls.certfile /etc/hyperledger/tls/cas/peerOrg2/cert.pem --tls.keyfile /etc/hyperledger/tls/cas/peerOrg2/key.pem -d'
     volumes:
       - ./e2e-2Orgs/crypto-config/peerOrganizations/peerOrg2/ca/:/etc/hyperledger/fabric-ca-server-config
+      - ./e2e-2Orgs/tls:/etc/hyperledger/tls
     container_name: ca_peerOrg2
 
   orderer0:
@@ -41,7 +43,7 @@ services:
       - ORDERER_GENERAL_GENESISFILE=/etc/hyperledger/configtx/twoorgs.orderer.block
       - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
       - ORDERER_GENERAL_LOCALMSPDIR=/etc/hyperledger/msp/orderer
-      - ORDERER_GENERAL_TLS_ENABLED=false
+      - ORDERER_GENERAL_TLS_ENABLED=${ORG_HYPERLEDGER_FABRIC_SDKTEST_INTEGRATIONTESTS_TLS}
       - ORDERER_GENERAL_TLS_PRIVATEKEY=/etc/hyperledger/tls/orderer/key.pem
       - ORDERER_GENERAL_TLS_CERTIFICATE=/etc/hyperledger/tls/orderer/cert.pem
       - ORDERER_GENERAL_TLS_ROOTCAS=[/etc/hyperledger/tls/orderer/ca-cert.pem, /etc/hyperledger/tls/peers/peer0/ca-cert.pem, /etc/hyperledger/tls/peers/peer2/ca-cert.pem]
@@ -69,10 +71,11 @@ services:
       - CORE_PEER_GOSSIP_ORGLEADER=true
       - CORE_PEER_ADDRESS=peer0:7051
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0:7051
-      - CORE_PEER_TLS_ENABLED=false
+      - CORE_PEER_TLS_ENABLED=${ORG_HYPERLEDGER_FABRIC_SDKTEST_INTEGRATIONTESTS_TLS}
       - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/tls/key.pem
       - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/tls/cert.pem
       - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/tls/ca-cert.pem
+#      - CORE_PEER_TLS_SERVERHOSTOVERRIDE=peer0
       # the following setting starts chaincode containers on the same
       # bridge network as the peers
       # note: Docker changes the project name to lowercase and throws out special characters
@@ -104,10 +107,11 @@ services:
       - CORE_PEER_GOSSIP_ORGLEADER=false
       - CORE_PEER_ADDRESS=peer1:7051
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1:7051
-      - CORE_PEER_TLS_ENABLED=false
+      - CORE_PEER_TLS_ENABLED=${ORG_HYPERLEDGER_FABRIC_SDKTEST_INTEGRATIONTESTS_TLS}
       - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/tls/key.pem
       - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/tls/cert.pem
       - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/tls/ca-cert.pem
+#      - CORE_PEER_TLS_SERVERHOSTOVERRIDE=peer1
       # the following setting starts chaincode containers on the same
       # bridge network as the peers
       # note: Docker changes the project name to lowercase and throws out special characters
@@ -140,10 +144,11 @@ services:
       - CORE_PEER_GOSSIP_ORGLEADER=true
       - CORE_PEER_ADDRESS=peer2:7051
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer2:7051
-      - CORE_PEER_TLS_ENABLED=false
+      - CORE_PEER_TLS_ENABLED=${ORG_HYPERLEDGER_FABRIC_SDKTEST_INTEGRATIONTESTS_TLS}
       - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/tls/key.pem
       - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/tls/cert.pem
       - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/tls/ca-cert.pem
+#      - CORE_PEER_TLS_SERVERHOSTOVERRIDE=peer2
       # the following setting starts chaincode containers on the same
       # bridge network as the peers
       # note: Docker changes the project name to lowercase and throws out special characters
@@ -175,10 +180,11 @@ services:
       - CORE_PEER_GOSSIP_ORGLEADER=false
       - CORE_PEER_ADDRESS=peer3:7051
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer3:7051
-      - CORE_PEER_TLS_ENABLED=false
+      - CORE_PEER_TLS_ENABLED=${ORG_HYPERLEDGER_FABRIC_SDKTEST_INTEGRATIONTESTS_TLS}
       - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/tls/key.pem
       - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/tls/cert.pem
       - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/tls/ca-cert.pem
+#      - CORE_PEER_TLS_SERVERHOSTOVERRIDE=peer3
       # the following setting starts chaincode containers on the same
       # bridge network as the peers
       # note: Docker changes the project name to lowercase and throws out special characters

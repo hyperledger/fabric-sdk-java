@@ -33,6 +33,10 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.io.ByteStreams;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Timestamp;
+import io.netty.util.internal.StringUtil;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
@@ -45,12 +49,6 @@ import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.SHA3Digest;
 import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.encoders.Hex;
-
-import com.google.common.io.ByteStreams;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Timestamp;
-
-import io.netty.util.internal.StringUtil;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -286,6 +284,10 @@ public class SDKUtil {
             props.setProperty("protocol", m.group(1));
             props.setProperty("host", m.group(2));
             props.setProperty("port", m.group(3));
+
+            String protocol = props.getProperty("protocol");
+            if (!"grpc".equals(protocol) && !"grpcs".equals(protocol))
+                throw new RuntimeException(String.format("Invalid protocol expected grpc or grpcs and found %s.", protocol));
         } else {
             throw new RuntimeException("URL must be of the format protocol://host:port");
         }

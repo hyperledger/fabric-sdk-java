@@ -12,19 +12,22 @@
  *  limitations under the License.
  */
 
-package org.hyperledger.fabric.sdk.events;
+package org.hyperledger.fabric.sdk;
 
 import java.util.ArrayList;
+import java.util.Properties;
 
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
+import io.netty.util.internal.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.peer.EventsGrpc;
 import org.hyperledger.fabric.protos.peer.PeerEvents;
-import org.hyperledger.fabric.sdk.Chain;
-import org.hyperledger.fabric.sdk.Endpoint;
 import org.hyperledger.fabric.sdk.exception.EventHubException;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+
+import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
 
 /**
  * Class to manage fabric events.
@@ -37,33 +40,77 @@ public class EventHub {
 
 
     private final String url;
-    private final String pem;
+    private final String name;
+    private final Properties properties;
     private ManagedChannel channel;
     private boolean connected = false;
     private EventsGrpc.EventsStub events;
     private StreamObserver<PeerEvents.Event> sender;
-
     /**
      * Event queue for all events from eventhubs in the chain
      */
     private Chain.ChainEventQue eventQue;
 
+    EventHub(String name, String grpcURL, Properties properties) throws InvalidArgumentException {
 
-    //private static EventHub eventHub = null;
+        Exception e = checkGrpcUrl(grpcURL);
+        if (e != null) {
+            throw new InvalidArgumentException("Bad peer url.", e);
+
+        }
 
 
-    private EventHub(String url, String pem) {
-        this.url = url;
-        this.pem = pem;
+        if (StringUtil.isNullOrEmpty(name)) {
+            throw new InvalidArgumentException("Invalid name for eventHub");
+        }
+
+        this.url = grpcURL;
+        this.name = name;
+        this.properties = properties == null ? null : (Properties) properties.clone(); //keep our own copy.
     }
 
-    public void connect() throws EventHubException {
+    /**
+     * Create a new instance.
+     *
+     * @param name
+     * @param url
+     * @param properties
+     * @return
+     */
+
+    static EventHub createNewInstance(String name, String url, Properties properties) throws InvalidArgumentException {
+        return new EventHub(name, url, properties);
+    }
+
+
+    /**
+     * Event hub name
+     *
+     * @return event hub name
+     */
+
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Event hub properties
+     *
+     * @see HFClient#newEventHub(String, String, Properties)
+     *
+     * @return Event hub properties
+     */
+    public Properties getProperties() {
+        return properties == null ? null : (Properties) properties.clone();
+    }
+
+    void connect() throws EventHubException {
         if (connected) {
             logger.warn("Event Hub already connected.");
             return;
         }
 
-        channel = new Endpoint(url, pem).getChannelBuilder().build();
+        channel = new Endpoint(url, properties).getChannelBuilder().build();
 
         events = EventsGrpc.newStub(channel);
 
@@ -126,18 +173,6 @@ public class EventHub {
     }
 
     /**
-     * Create a new instance.
-     *
-     * @param url
-     * @param pem
-     * @return
-     */
-
-    public static EventHub createNewInstance(String url, String pem) {
-        return new EventHub(url, pem);
-    }
-
-    /**
      * Get URL connected to.
      *
      * @return
@@ -151,7 +186,7 @@ public class EventHub {
      *
      * @param eventQue
      */
-    public void setEventQue(Chain.ChainEventQue eventQue) {
+    void setEventQue(Chain.ChainEventQue eventQue) {
         this.eventQue = eventQue;
     }
 

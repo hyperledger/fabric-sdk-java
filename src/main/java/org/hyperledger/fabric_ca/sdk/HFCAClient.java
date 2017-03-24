@@ -14,23 +14,29 @@
 
 package org.hyperledger.fabric_ca.sdk;
 
-//TODO Need SSL when FCA server supports.
-//TODO register  -- right now Can test without when FCA is primed with admin.
-//TODO need to support different hash algorithms and security levels.
-
-
+import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
+import java.net.Socket;
 import java.net.URL;
+import java.net.UnknownHostException;
+import java.security.KeyManagementException;
 import java.security.KeyPair;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.Set;
 
 import javax.json.Json;
@@ -38,6 +44,9 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.json.JsonWriter;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import io.netty.util.internal.StringUtil;
 import org.apache.commons.logging.Log;
@@ -52,11 +61,19 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.BasicAuthCache;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.util.encoders.Hex;
@@ -64,18 +81,17 @@ import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.GetTCertBatchRequest;
 import org.hyperledger.fabric.sdk.MemberServices;
 import org.hyperledger.fabric.sdk.User;
-import org.hyperledger.fabric.sdk.exception.CryptoException;
-import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
-import org.hyperledger.fabric_ca.sdk.exception.RegistrationException;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
+import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
+import org.hyperledger.fabric_ca.sdk.exception.RegistrationException;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
- * HFCAClient is the default implementation of a member services client.
+ * HFCAClient Hyperledger Fabric Certificate Authority Client.
  */
 public class HFCAClient implements MemberServices {
     private static final Log logger = LogFactory.getLog(HFCAClient.class);
@@ -90,6 +106,8 @@ public class HFCAClient implements MemberServices {
             Collections.unmodifiableSet(new HashSet<>(Arrays.asList(new Integer[]{256, 384})));
 
     private final String url;
+    private final boolean isSSL;
+    private final Properties properties;
 
     // TODO require use of CryptoPrimitives since we need the generateCertificateRequests methods
     // clean this up when we do have multiple implementations of CryptoSuite
@@ -99,12 +117,17 @@ public class HFCAClient implements MemberServices {
     /**
      * HFCAClient constructor
      *
-     * @param url URL for the membership services endpoint
-     * @param pem PEM used for SSL .. not implemented.
-     * @throws CertificateException
-     * @throws CryptoException
+     * @param url        Http URL for the Fabric's certificate authority services endpoint
+     * @param properties PEM used for SSL .. not implemented.
+     *                   <p>
+     *                   Supported properties
+     *                   <ul>
+     *                   <li>pemFile - File location for x509 pem certificate for SSL.</li>
+     *                   <li>allowAllHostNames - boolen(true/false) override certificates CN Host matching -- for development only.</li>
+     *                   </ul>
+     * @throws MalformedURLException
      */
-    public HFCAClient(String url, String pem) throws MalformedURLException {
+    public HFCAClient(String url, Properties properties) throws MalformedURLException {
         this.url = url;
 
         URL purl = new URL(url);
@@ -132,12 +155,14 @@ public class HFCAClient implements MemberServices {
             throw new IllegalArgumentException("HFCAClient url does not support query portion in url remove query: '" + query + "'.");
         }
 
-/*
-        this.ecaaClient = ECAAGrpc.newBlockingStub(ep.getChannelBuilder().build());
-    	this.ecapClient = ECAPGrpc.newBlockingStub(ep.getChannelBuilder().build());
-    	this.tcapClient = TCAPGrpc.newBlockingStub(ep.getChannelBuilder().build());
-    	this.tlscapClient = TLSCAPGrpc.newBlockingStub(ep.getChannelBuilder().build());
-    	*/
+        isSSL = "https".equals(proto);
+
+
+        if (properties != null) {
+            this.properties = (Properties) properties.clone(); //keep our own copy.
+        } else {
+            this.properties = null;
+        }
 
     }
 
@@ -158,7 +183,9 @@ public class HFCAClient implements MemberServices {
      * @param registrar The identity of the registrar (i.e. who is performing the registration)
      */
     @Override
-    public String register(RegistrationRequest req, User registrar) throws RegistrationException {
+    public String register(RegistrationRequest req, User registrar) throws RegistrationException, InvalidArgumentException {
+
+        setUpSSL();
 
         if (StringUtil.isNullOrEmpty(req.getEnrollmentID())) {
             throw new IllegalArgumentException("EntrollmentID cannot be null or empty");
@@ -199,6 +226,8 @@ public class HFCAClient implements MemberServices {
 
 
         logger.debug(format("enroll user %s", user));
+
+        setUpSSL();
 
 
         if (StringUtil.isNullOrEmpty(user)) {
@@ -257,8 +286,7 @@ public class HFCAClient implements MemberServices {
             String signedPem = new String(b64dec.decode(result.getString("Cert").getBytes(UTF_8)));
             logger.debug(format("[HFCAClient] enroll returned pem:[%s]", signedPem));
 
-            Enrollment enrollment = new HFCAEnrollment(signingKeyPair, Hex.toHexString(signingKeyPair.getPublic().getEncoded()), signedPem);
-            return enrollment;
+            return new HFCAEnrollment(signingKeyPair, Hex.toHexString(signingKeyPair.getPublic().getEncoded()), signedPem);
 
 
         } catch (EnrollmentException ee) {
@@ -283,14 +311,23 @@ public class HFCAClient implements MemberServices {
      * @throws Exception
      */
 
-    private static String httpPost(String url, String body, UsernamePasswordCredentials credentials) throws Exception {
+    private String httpPost(String url, String body, UsernamePasswordCredentials credentials) throws Exception {
         CredentialsProvider provider = new BasicCredentialsProvider();
-
 
         provider.setCredentials(AuthScope.ANY, credentials);
 
 
-        HttpClient client = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).build();
+        final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
+        httpClientBuilder.setDefaultCredentialsProvider(provider);
+        if (registry != null) {
+
+
+            httpClientBuilder.setConnectionManager(new PoolingHttpClientConnectionManager(registry));
+
+        }
+
+        HttpClient client = httpClientBuilder.build();
+
 
         HttpPost httpPost = new HttpPost(url);
 
@@ -302,9 +339,11 @@ public class HFCAClient implements MemberServices {
 
         final HttpClientContext context = HttpClientContext.create();
         context.setCredentialsProvider(provider);
+
         context.setAuthCache(authCache);
 
         httpPost.setEntity(new StringEntity(body));
+        httpPost.addHeader(new BasicScheme().authenticate(credentials, httpPost, context));
 
         HttpResponse response = client.execute(httpPost, context);
         int status = response.getStatusLine().getStatusCode();
@@ -324,10 +363,16 @@ public class HFCAClient implements MemberServices {
         return responseBody;
     }
 
-    private static JsonObject httpPost(String url, String body, String authHTTPCert) throws Exception {
+    private JsonObject httpPost(String url, String body, String authHTTPCert) throws Exception {
 
         HttpPost httpPost = new HttpPost(url);
-        HttpClient client = HttpClientBuilder.create().build();
+
+        final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
+        if (registry != null) {
+            httpClientBuilder.setConnectionManager(new PoolingHttpClientConnectionManager(registry));
+        }
+        HttpClient client = httpClientBuilder.build();
+
         final HttpClientContext context = HttpClientContext.create();
         httpPost.setEntity(new StringEntity(body));
         httpPost.addHeader("Authorization", authHTTPCert);
@@ -342,6 +387,13 @@ public class HFCAClient implements MemberServices {
             Exception e = new Exception(format("POST request to %s failed with status code: %d. Response: %s", url, status, responseBody));
             logger.error(e.getMessage());
             throw e;
+        }
+        if (responseBody == null) {
+
+            Exception e = new Exception(format("POST request to %s failed with null response body returned.", url));
+            logger.error(e.getMessage());
+            throw e;
+
         }
         logger.debug("Status: " + status);
 
@@ -448,6 +500,81 @@ public class HFCAClient implements MemberServices {
 
         if (mask == 0) mask = 1;  // Client
         return mask;
+    }
+
+
+    private Registry<ConnectionSocketFactory> registry = null;
+
+
+    private void setUpSSL() throws InvalidArgumentException {
+
+        if (isSSL && null == registry) {
+            try {
+
+                String pemFile = properties.getProperty("pemFile");
+                if (pemFile != null) {
+
+                    cryptoPrimitives.addCACertificateToTrustStore(new File(pemFile), pemFile);
+
+                }
+
+                SSLContext sslContext = SSLContexts.custom()
+                        .loadTrustMaterial(cryptoPrimitives.getTrustStore(), null)
+                        .build();
+
+                ConnectionSocketFactory sf;
+                if (null != properties &&
+                        "true".equals(properties.getProperty("allowAllHostNames"))) {
+                    AllHostsSSLSocketFactory msf = new AllHostsSSLSocketFactory(cryptoPrimitives.getTrustStore());
+                    msf.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+                    sf = msf;
+                } else {
+                    sf = new SSLConnectionSocketFactory(sslContext);
+                }
+
+                registry = RegistryBuilder.<ConnectionSocketFactory>create()
+                        .register("https", sf)
+                        .register("http", new PlainConnectionSocketFactory())
+                        .build();
+
+            } catch (Exception e) {
+                logger.error(e);
+                throw new InvalidArgumentException(e);
+            }
+        }
+
+    }
+
+    private class AllHostsSSLSocketFactory extends SSLSocketFactory {
+        final SSLContext sslContext = SSLContext.getInstance("TLS");
+
+        AllHostsSSLSocketFactory(KeyStore truststore) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException, UnrecoverableKeyException {
+            super(truststore);
+
+            TrustManager tm = new X509TrustManager() {
+                public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                }
+
+                public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                }
+
+                public X509Certificate[] getAcceptedIssuers() {
+                    return null;
+                }
+            };
+
+            sslContext.init(null, new TrustManager[]{tm}, null);
+        }
+
+        @Override
+        public Socket createSocket(Socket socket, String host, int port, boolean autoClose) throws IOException, UnknownHostException {
+            return sslContext.getSocketFactory().createSocket(socket, host, port, autoClose);
+        }
+
+        @Override
+        public Socket createSocket() throws IOException {
+            return sslContext.getSocketFactory().createSocket();
+        }
     }
 
 }

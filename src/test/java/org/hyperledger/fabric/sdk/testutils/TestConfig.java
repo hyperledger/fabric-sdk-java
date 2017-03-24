@@ -26,6 +26,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.sdk.helper.SDKUtil;
 import org.hyperledger.fabric.sdkintegration.SampleOrg;
 
 /**
@@ -36,6 +37,10 @@ import org.hyperledger.fabric.sdkintegration.SampleOrg;
  * with environment variable and then overridden
  * with a java system property. Property hierarchy goes System property
  * overrides environment variable which overrides config file for default values specified here.
+ */
+
+/**
+ * Test Configuration
  */
 
 public class TestConfig {
@@ -49,17 +54,16 @@ public class TestConfig {
     private static final String GOSSIPWAITTIME = PROPBASE + "GossipWaitTime";
     private static final String INVOKEWAITTIME = PROPBASE + "InvokeWaitTime";
     private static final String DEPLOYWAITTIME = PROPBASE + "DeployWaitTime";
-    private static final String INTEGRATIONTESTSMSPIDS = PROPBASE + "integrationTests.mspids";
+
     private static final String INTEGRATIONTESTS_ORG = PROPBASE + "integrationTests.org.";
-    private static final String INTEGRATIONTESTPEERS = PROPBASE + "integrationTests.peers";
-    private static final String INTEGRATIONTESTSORDERERS = PROPBASE + "integrationTests.orderers";
-    private static final String INTEGRATIONTESTSEVENTHUBS = PROPBASE + "integrationTests.eventhubs";
-    private static final String INTEGRATIONTESTSFABRICCA = PROPBASE + "integrationTests.fabric_ca";
-    private static final  Pattern orgPat = Pattern.compile("^" + Pattern.quote(INTEGRATIONTESTS_ORG) + "([^\\.]+)\\.mspid$");
+    private static final Pattern orgPat = Pattern.compile("^" + Pattern.quote(INTEGRATIONTESTS_ORG) + "([^\\.]+)\\.mspid$");
+
+    private static final String INTEGRATIONTESTSTLS = PROPBASE + "integrationtests.tls";
 
 
     private static TestConfig config;
     private final static Properties sdkProperties = new Properties();
+    private final boolean runningTLS;
     private final static HashMap<String, SampleOrg> sampleOrgs = new HashMap<>();
 
     private TestConfig() {
@@ -91,65 +95,97 @@ public class TestConfig {
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.ca_location", "http://localhost:7054");
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.peer_locations", "peer0@grpc://localhost:7051, peer1@grpc://localhost:7056");
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.orderer_locations", "orderer0@grpc://localhost:7050");
-            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.eventhub_locations", "eventhub1@grpc://localhost:7053");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.eventhub_locations", "peer0@grpc://localhost:7053");
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.mspid", "Org2MSP");
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.ca_location", "http://localhost:8054");
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.peer_locations", "peer2@grpc://localhost:8051,peer3@grpc://localhost:8056");
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.orderer_locations", "orderer0@grpc://localhost:7050");
-            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.eventhub_locations", "eventhub1@grpc://localhost:8053");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.eventhub_locations", "peer2@grpc://localhost:8053");
 
+            defaultProperty(INTEGRATIONTESTSTLS, null);
+            runningTLS = null != sdkProperties.getProperty(INTEGRATIONTESTSTLS, null);
 
 
             for (Map.Entry<Object, Object> x : sdkProperties.entrySet()) {
-                String key = x.getKey() + "";
-                String val = x.getValue() + "";
+                final String key = x.getKey() + "";
+                final String val = x.getValue() + "";
 
 
                 if (key.startsWith(INTEGRATIONTESTS_ORG)) {
 
                     Matcher match = orgPat.matcher(key);
 
-
-                    if (match.matches() &&match.groupCount() == 1) {
-                        String orgname = match.group(1).trim();
-                        sampleOrgs.put(orgname, new SampleOrg(orgname, val.trim()));
+                    if (match.matches() && match.groupCount() == 1) {
+                        String orgName = match.group(1).trim();
+                        sampleOrgs.put(orgName, new SampleOrg(orgName, val.trim()));
 
                     }
-
                 }
-
             }
 
-            for( Map.Entry<String, SampleOrg> org : sampleOrgs.entrySet()){
+            for (Map.Entry<String, SampleOrg> org : sampleOrgs.entrySet()) {
                 final SampleOrg sampleOrg = org.getValue();
+                final String orgName = org.getKey();
 
-                String peerNames=  sdkProperties.getProperty(INTEGRATIONTESTS_ORG + org.getKey() + ".peer_locations");
+                String peerNames = sdkProperties.getProperty(INTEGRATIONTESTS_ORG + orgName + ".peer_locations");
                 String[] ps = peerNames.split("[ \t]*,[ \t]*");
-                for( String peer : ps){
+                for (String peer : ps) {
                     String[] nl = peer.split("[ \t]*@[ \t]*");
-                    sampleOrg.addPeerLocation(nl[0], nl[1]);
+                    sampleOrg.addPeerLocation(nl[0], grpcTLSify(nl[1]));
                 }
 
 
-                String ordererNames=  sdkProperties.getProperty(INTEGRATIONTESTS_ORG + org.getKey() + ".orderer_locations");
+                String ordererNames = sdkProperties.getProperty(INTEGRATIONTESTS_ORG + orgName + ".orderer_locations");
                 ps = ordererNames.split("[ \t]*,[ \t]*");
-                for( String peer : ps){
+                for (String peer : ps) {
                     String[] nl = peer.split("[ \t]*@[ \t]*");
-                    sampleOrg.addOrdererLocation(nl[0], nl[1]);
+                    sampleOrg.addOrdererLocation(nl[0], grpcTLSify(nl[1]));
                 }
 
-                String eventHubNames=  sdkProperties.getProperty(INTEGRATIONTESTS_ORG + org.getKey() + ".eventhub_locations");
+                String eventHubNames = sdkProperties.getProperty(INTEGRATIONTESTS_ORG + orgName + ".eventhub_locations");
                 ps = eventHubNames.split("[ \t]*,[ \t]*");
-                for( String peer : ps){
+                for (String peer : ps) {
                     String[] nl = peer.split("[ \t]*@[ \t]*");
-                    sampleOrg.addEventHubLocation(nl[0], nl[1]);
+                    sampleOrg.addEventHubLocation(nl[0], grpcTLSify(nl[1]));
                 }
 
-                sampleOrg.setCALocation( sdkProperties.getProperty(INTEGRATIONTESTS_ORG + org.getKey() + ".ca_location"));
 
+                sampleOrg.setCALocation(httpTLSify(sdkProperties.getProperty((INTEGRATIONTESTS_ORG + org.getKey() + ".ca_location"))));
+                if(runningTLS){
+                    String cert = tlsbase + "/cas/" + sampleOrg.getName() + "/cert.pem";
+                    File cf = new File(cert);
+                    if (!cf.exists() || !cf.isFile()) {
+                        throw new RuntimeException("TEST is missing cert file " + cf.getAbsolutePath());
+                    }
+                    Properties properties =new Properties();
+                    properties.setProperty("pemFile", cf.getAbsolutePath());
+
+                    properties.setProperty("allowAllHostNames", "true");//testing environment only NOT FOR PRODUCTION!
+
+                    sampleOrg.setCAProperties( properties);
+                }
             }
 
         }
+
+    }
+
+    private String grpcTLSify(String location) {
+        location = location.trim();
+        Exception e = SDKUtil.checkGrpcUrl(location);
+        if (e != null) {
+            throw new RuntimeException(String.format("Bad TEST parameters for grpc url %s", location), e);
+        }
+        return runningTLS ?
+                location.replaceFirst("^grpc://", "grpcs://") : location;
+
+    }
+
+    private String httpTLSify(String location) {
+        location = location.trim();
+
+        return runningTLS ?
+                location.replaceFirst("^http://", "https://") : location;
 
     }
 
@@ -184,7 +220,7 @@ public class TestConfig {
 
     /**
      * getProperty returns the value for given property key. If not found, it
-     * will set the property to defaultValue
+     * will set the property to defaultValueidea-IC-171.3780.107
      *
      * @param property
      * @param defaultValue
@@ -207,7 +243,7 @@ public class TestConfig {
             if (null != ret) {
                 sdkProperties.put(key, ret);
             } else {
-                if (null == sdkProperties.getProperty(key)) {
+                if (null == sdkProperties.getProperty(key) && value != null) {
                     sdkProperties.put(key, value);
                 }
 
@@ -224,31 +260,12 @@ public class TestConfig {
         return Integer.parseInt(getProperty(DEPLOYWAITTIME));
     }
 
-    public String getIntegrationTestsMSPIDs() {
-        return getProperty(INTEGRATIONTESTSMSPIDS);
-    }
-
-    public String getIntegrationTestsPeers() {
-        return getProperty(INTEGRATIONTESTPEERS);
-    }
-
-    public String getIntegrationTestsOrderers() {
-        return getProperty(INTEGRATIONTESTSORDERERS);
-    }
-
-    public String getIntegrationtestsEventhubs() {
-        return getProperty(INTEGRATIONTESTSEVENTHUBS);
-    }
-
-    public String getIntegrationtestsFabricCA() {
-        return getProperty(INTEGRATIONTESTSFABRICCA);
-    }
 
     public int getGossipWaitTime() {
         return Integer.parseInt(getProperty(GOSSIPWAITTIME));
     }
 
-    public Collection<SampleOrg>  getIntegrationTestsSampleOrgs(){
+    public Collection<SampleOrg> getIntegrationTestsSampleOrgs() {
         return Collections.unmodifiableCollection(sampleOrgs.values());
     }
 
@@ -256,4 +273,54 @@ public class TestConfig {
         return sampleOrgs.get(name);
 
     }
+
+    private final static String tlsbase = "src/test/fixture/sdkintegration/e2e-2Orgs/tls/";
+
+    public Properties getPeerProperties(String name) {
+
+        return getTLSProperties("peers", name);
+
+    }
+
+    public Properties getOrdererProperties(String name) {
+
+        return getTLSProperties( "orderer/cert.pem");
+    }
+
+    public Properties getEventHubProperties(String name) {
+
+        return getTLSProperties("peers", name); //uses same as named peer
+
+    }
+
+    private Properties getTLSProperties(String type, String name) {
+        Properties ret = null;
+        if (runningTLS) {
+            String cert = tlsbase + "/" + type + "/" + name + "/cert.pem";
+            File cf = new File(cert);
+            if (!cf.exists() || !cf.isFile()) {
+                throw new RuntimeException("Missing cert file " + cf.getAbsolutePath());
+            }
+            ret = new Properties();
+            ret.setProperty("pemFile", cert);
+            ret.setProperty("trustServerCertificate", "true"); //testing environment only NOT FOR PRODUCTION!
+        }
+        return ret;
+    }
+
+    private Properties getTLSProperties(String cert) {
+        Properties ret = null;
+        if (runningTLS) {
+         //   String cert = tlsbase + "/" + type + "/" + name + "/ca.pem";
+            File cf = new File(tlsbase + cert);
+            if (!cf.exists() || !cf.isFile()) {
+                throw new RuntimeException("TEST error missing cert file " + cf.getAbsolutePath());
+            }
+            ret = new Properties();
+            ret.setProperty("pemFile", cf.getAbsolutePath());
+            ret.setProperty("trustServerCertificate", "true"); //testing environment only NOT FOR PRODUCTION!
+        }
+        return ret;
+    }
+
 }

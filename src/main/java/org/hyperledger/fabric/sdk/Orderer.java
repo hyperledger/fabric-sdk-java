@@ -15,6 +15,9 @@
 package org.hyperledger.fabric.sdk;
 
 
+import java.util.Properties;
+
+import io.netty.util.internal.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common;
@@ -22,13 +25,53 @@ import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
-import org.hyperledger.fabric.sdk.helper.SDKUtil;
+
+import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
 
 /**
  * The Orderer class represents a orderer to which SDK sends deploy, invoke, or query requests.
  */
 public class Orderer {
     private static final Log logger = LogFactory.getLog(Orderer.class);
+    private final Properties properties;
+
+
+    /**
+     * Get Orderer properties.
+     * @return
+     */
+
+    public Properties getProperties() {
+
+        return properties == null ? null : (Properties) properties.clone();
+    }
+
+    /**
+     * Return Orderer's name
+     * @return orderer's name.
+     */
+    public String getName() {
+        return name;
+    }
+
+    private final String name;
+    private final String url;
+
+    Orderer(String name, String url, Properties properties) throws InvalidArgumentException {
+
+        if (StringUtil.isNullOrEmpty(name)) {
+            throw new InvalidArgumentException("Invalid name for orderer");
+        }
+        Exception e = checkGrpcUrl(url);
+        if (e != null) {
+            throw new InvalidArgumentException(e);
+        }
+
+        this.name = name;
+        this.url = url;
+        this.properties = properties == null ? null : (Properties) properties.clone(); //keep our own copy.
+
+    }
 
     /**
      * getUrl - the Grpc url of the Orderer
@@ -39,11 +82,8 @@ public class Orderer {
         return url;
     }
 
-    private final String url;
-    private final String pem;
-//    private final EndorserClient endorserClent;
 
-    public void setChain(Chain chain) throws InvalidArgumentException {
+    void setChain(Chain chain) throws InvalidArgumentException {
         if (chain == null) {
             throw new InvalidArgumentException("Chain can not be null");
         }
@@ -52,40 +92,13 @@ public class Orderer {
     }
 
     private Chain chain;
-//    private OrdererClient ordererClient;
-
-    /**
-     * Constructor for a orderer given the endpoint config for the orderer.
-     *
-     * @param url   The URL of
-     * @param pem   PEM for the orderer
-     * @param chain chain
-     */
-    Orderer(String url, String pem, Chain chain) throws InvalidArgumentException {
-
-
-        Exception e = SDKUtil.checkGrpcUrl(url);
-        if (e != null) {
-            throw new InvalidArgumentException("Bad Orderer url.", e);
-
-        }
-        //  super(url, pem);
-        this.url = url;
-        this.pem = pem;
-
-
-        this.chain = chain;
-        // Endpoint ep = new Endpoint(url, pem);
-        // Ab.BroadcastMessageOrBuilder bb = Ab.BroadcastMessage.newBuilder();
-
-    }
 
     /**
      * Get the chain of which this orderer is a member.
      *
      * @return {Chain} The chain of which this orderer is a member.
      */
-    public Chain getChain() {
+    Chain getChain() {
         return this.chain;
     }
 
@@ -96,22 +109,22 @@ public class Orderer {
      * @param transaction transaction to be sent
      */
 
-    public Ab.BroadcastResponse sendTransaction(Common.Envelope transaction) throws Exception {
+    Ab.BroadcastResponse sendTransaction(Common.Envelope transaction) throws Exception {
 
-        OrdererClient orderClient = new OrdererClient(new Endpoint(url, pem).getChannelBuilder());
+        OrdererClient orderClient = new OrdererClient(new Endpoint(url, properties).getChannelBuilder());
         return orderClient.sendTransaction(transaction);
 
     }
 
 
-    public static Orderer createNewInstance(String url, String pem) throws InvalidArgumentException {
-        return new Orderer(url, pem, null);
+    static Orderer createNewInstance(String name, String url, Properties properties) throws InvalidArgumentException {
+        return new Orderer(name, url, properties);
 
     }
 
-     DeliverResponse[] sendDeliver(Common.Envelope transaction) throws TransactionException {
+    DeliverResponse[] sendDeliver(Common.Envelope transaction) throws TransactionException {
 
-        OrdererClient orderClient = new OrdererClient(new Endpoint(url, pem).getChannelBuilder());
+        OrdererClient orderClient = new OrdererClient(new Endpoint(url, properties).getChannelBuilder());
         return orderClient.sendDeliver(transaction);
 
     }

@@ -39,7 +39,7 @@ public interface MemberServices {
      * @param registrar The identity of the registar (i.e. who is performing the registration)
      * @return enrollment secret
      */
-    String register(RegistrationRequest req, User registrar) throws RegistrationException;
+    String register(RegistrationRequest req, User registrar) throws RegistrationException, InvalidArgumentException;
 
     /**
      * Enroll the user and return an opaque user object

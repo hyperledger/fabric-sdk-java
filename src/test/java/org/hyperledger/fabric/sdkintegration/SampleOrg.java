@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import org.hyperledger.fabric.sdk.Peer;
@@ -43,6 +44,7 @@ public class SampleOrg {
     Set<Peer> peers = new HashSet<>();
     private SampleUser admin;
     private String caLocation;
+    private Properties caProperties= null;
 
 
     public SampleOrg(String name, String mspid) {
@@ -90,9 +92,30 @@ public class SampleOrg {
 
     }
 
+    public String getOrdererLocation(String name) {
+        return ordererLocations.get(name);
+
+    }
+
+    public String getEventHubLocation(String name) {
+        return eventHubLocations.get(name);
+
+    }
+
     public Set<String> getPeerNames() {
 
         return Collections.unmodifiableSet(peerLocations.keySet());
+    }
+
+
+    public Set<String> getOrdererNames() {
+
+        return Collections.unmodifiableSet(ordererLocations.keySet());
+    }
+
+    public Set<String> getEventHubNames() {
+
+        return Collections.unmodifiableSet(eventHubLocations.keySet());
     }
 
     public HFCAClient getCAClient() {
@@ -133,4 +156,11 @@ public class SampleOrg {
         peers.add(peer);
     }
 
+    public void setCAProperties(Properties CAProperties) {
+        this.caProperties = CAProperties;
+    }
+
+    public Properties getCAProperties() {
+        return caProperties;
+    }
 }

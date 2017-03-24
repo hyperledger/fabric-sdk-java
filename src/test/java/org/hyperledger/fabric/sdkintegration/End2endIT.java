@@ -17,7 +17,6 @@ package org.hyperledger.fabric.sdkintegration;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.util.Collection;
-import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +39,7 @@ import org.hyperledger.fabric.sdk.ProposalResponse;
 import org.hyperledger.fabric.sdk.QueryProposalRequest;
 import org.hyperledger.fabric.sdk.TestConfigHelper;
 import org.hyperledger.fabric.sdk.TransactionInfo;
-import org.hyperledger.fabric.sdk.events.EventHub;
+import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
@@ -74,7 +73,6 @@ public class End2endIT {
     private static final String FOO_CHAIN_NAME = "foo";
     private static final String BAR_CHAIN_NAME = "bar";
 
-    private Hashtable<String, HFCAClient> fabricCAs = new Hashtable<>();
 
     String testTxID = null;  // save the CC invoke TxID and use in queries
 
@@ -93,8 +91,7 @@ public class End2endIT {
         //Set up hfca for each sample org
 
         for (SampleOrg sampleOrg : testSampleOrgs) {
-            String caURL = sampleOrg.getCALocation();
-            sampleOrg.setCAClient(new HFCAClient(caURL, null));
+            sampleOrg.setCAClient(new HFCAClient(sampleOrg.getCALocation(), sampleOrg.getCAProperties()));
         }
     }
 
@@ -178,10 +175,14 @@ public class End2endIT {
             //runChain(client, constructChain(MYCHANNEL_CHAIN_NAME, client, "peerOrg2"), true, "peerOrg1", 0);
             out("That's all folks!");
 
+
         } catch (Exception e) {
             e.printStackTrace();
+
             fail(e.getMessage());
         }
+
+
     }
 
 
@@ -211,6 +212,10 @@ public class End2endIT {
                 ////////////////////////////
                 // Install Proposal Request
                 //
+
+                out("Creating install proposal");
+
+
                 InstallProposalRequest installProposalRequest = client.newInstallProposalRequest();
                 installProposalRequest.setChaincodeID(chainCodeID);
                 ////For GO language and serving just a single user, chaincodeSource is mostly likely the users GOPATH
@@ -470,12 +475,13 @@ public class End2endIT {
         //Construct the chain
         //
 
+        out("Constructing chain %s", name);
 
         Collection<Orderer> orderers = new LinkedList<>();
 
-        for (String orderloc : sampleOrg.getOrdererLocations()) {
-            orderers.add(client.newOrderer(orderloc));
-
+        for (String orderName : sampleOrg.getOrdererNames()) {
+            orderers.add(client.newOrderer(orderName, sampleOrg.getOrdererLocation(orderName),
+                    testConfig.getOrdererProperties(orderName)));
         }
 
         //Just pick the first orderer in the list to create the chain.
@@ -483,30 +489,35 @@ public class End2endIT {
         Orderer anOrderer = orderers.iterator().next();
         orderers.remove(anOrderer);
 
-        //ChainConfiguration chainConfiguration = new ChainConfiguration(new File("src/test/fixture/" + name+ ".configtx"));
         ChainConfiguration chainConfiguration = new ChainConfiguration(new File(TEST_FIXTURES_PATH + "/sdkintegration/e2e-2Orgs/channel/" + name + ".tx"));
 
         client.setUserContext(sampleOrg.getAdmin());
         Chain newChain = client.newChain(name, anOrderer, chainConfiguration);
 
+        out("Created chain %s", name);
+
         for (String peerName : sampleOrg.getPeerNames()) {
             String peerLocation = sampleOrg.getPeerLocation(peerName);
-            Peer peer = client.newPeer(peerLocation);
-            peer.setName(peerName);
+            Peer peer = client.newPeer(peerName, peerLocation, testConfig.getPeerProperties(peerName));
             newChain.joinPeer(peer);
+            out("Peer %s joined chain %s", peerName, name);
             sampleOrg.addPeer(peer);
         }
 
-        for (Orderer orderer : orderers) {
+        for (Orderer orderer : orderers) { //add remaining orderers if any.
             newChain.addOrderer(orderer);
         }
 
-        for (String eventHubLoc : sampleOrg.getEventHubLocations()) {
-            EventHub eventHub = client.newEventHub(eventHubLoc);
+        for (String eventHubName : sampleOrg.getEventHubNames()) {
+            EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
+                    testConfig.getEventHubProperties(eventHubName));
             newChain.addEventHub(eventHub);
         }
 
         newChain.initialize();
+
+        out("Finished initialization chain %s", name);
+
         return newChain;
 
     }

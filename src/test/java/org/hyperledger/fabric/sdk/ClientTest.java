@@ -14,10 +14,6 @@
 
 package org.hyperledger.fabric.sdk;
 
-import java.io.File;
-import java.io.IOException;
-import java.security.cert.CertificateException;
-
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -65,7 +61,7 @@ public class ClientTest {
     @Test
     public void testNewPeer() {
         try {
-            Peer peer = hfclient.newPeer("grpc://localhost:7051");
+            Peer peer = hfclient.newPeer("peer_" , "grpc://localhost:7051");
             Assert.assertTrue(peer != null);
         } catch (Exception e) {
             e.printStackTrace();
@@ -76,7 +72,7 @@ public class ClientTest {
     @Test
 	public void testBadURL() {
 		try {
-			Peer peer = hfclient.newPeer(" ");
+			Peer peer = hfclient.newPeer("peer_", " ");
 			Assert.fail("Expected peer with no chain throw exception");
 		} catch (Exception e) {
 			Assert.assertTrue( e.getClass() == InvalidArgumentException.class);
@@ -86,7 +82,7 @@ public class ClientTest {
     @Test
     public void testNewOrderer() {
     	try {
-            Orderer orderer = hfclient.newOrderer("grpc://localhost:5005");
+            Orderer orderer = hfclient.newOrderer("xx", "grpc://localhost:5005");
             Assert.assertTrue(orderer != null);
     	} catch (Exception e) {
             e.printStackTrace();
@@ -97,7 +93,7 @@ public class ClientTest {
     @Test 
     public void testBadAddress() {
          try {
-              Orderer orderer= hfclient.newOrderer("xxxxxx");
+              Orderer orderer= hfclient.newOrderer("xx","xxxxxx");
               Assert.fail("Orderer did not allow setting bad URL.");
          } catch (Exception e) {
               Assert.assertTrue( e.getClass() == InvalidArgumentException.class);
@@ -109,8 +105,7 @@ public class ClientTest {
         Peer peer = null;
         try {
             Chain chain = hfclient.newChain(CHAIN_NAME);
-            peer = hfclient.newPeer("grpc://localhost:7051");
-            peer.setName("peer1");
+            peer = hfclient.newPeer("peer1" , "grpc://localhost:7051");
             chain.addPeer(peer);
         } catch (Exception e) {
             Assert.fail("Unexpected Exception " + e.getMessage());

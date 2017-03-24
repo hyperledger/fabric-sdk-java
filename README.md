@@ -21,6 +21,14 @@ SDK's `Enrollment` interface.
  The 1.0 sdk is currently under development and the ***API is still subject to change****. It is likely any code depending 
  on this 1.0 version `preview` may need updating
  with subsequent updates of the SDK.
+ 
+## Known limitations
+
+* TLS Is supported but demo/test/sample code does not use it: JIRA FAB-2855
+* TCerts are not supported: JIRA FAB-1401 
+* Chain code upgrade not supported: JIRA FAB-2752
+* Query Channels, instantiated chaincodes, and installed chaincodes : JIRA FAB-2754
+
 
 ## Valid builds of Fabric and Fabric-ca
 
@@ -65,7 +73,6 @@ You should use the following commit levels of the Hyperledger projects:
   config.vm.network :forwarded_port, guest: 8058, host: 8058
  
 ```
-**Most likely the peer1,2,3 ports 7056-8058 are missing ***
 
 Add to your Vagrant file a folder for referencing the sdkintegration folder 
 

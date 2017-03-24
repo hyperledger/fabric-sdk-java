@@ -155,7 +155,7 @@ public class CryptoPrimitives implements CryptoSuite {
         return this.DEFAULT_SIGNATURE_ALGORITHM;
     }
 
-    private Certificate bytesToCertificate(byte[] certBytes) throws CryptoException {
+    public Certificate bytesToCertificate(byte[] certBytes) throws CryptoException {
         if (certBytes == null || certBytes.length == 0)
             throw new CryptoException("bytesToCertificate: input null or zero length");
 

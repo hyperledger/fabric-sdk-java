@@ -31,7 +31,7 @@ import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.ProposalResponse;
 import org.hyperledger.fabric.sdk.QueryProposalRequest;
 import org.hyperledger.fabric.sdk.TestConfigHelper;
-import org.hyperledger.fabric.sdk.events.EventHub;
+import org.hyperledger.fabric.sdk.EventHub;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -332,19 +332,20 @@ public class End2endJavaChaincodeIT {
 
         Chain newChain = client.newChain(CHAIN_NAME);
 
+        int i=0;
+
         for (String peerloc : PEER_LOCATIONS) {
-            Peer peer = client.newPeer(peerloc);
-            peer.setName("peer1");
+            Peer peer = client.newPeer("peer_" + i++, peerloc);
             newChain.addPeer(peer);
         }
 
         for (String orderloc : ORDERER_LOCATIONS) {
-            Orderer orderer = client.newOrderer(orderloc);
+            Orderer orderer = client.newOrderer("myorderer", orderloc);
             newChain.addOrderer(orderer);
         }
 
         for (String eventHub : EVENTHUB_LOCATIONS) {
-            EventHub orderer = client.newEventHub(eventHub);
+            EventHub orderer = client.newEventHub("myeventhub", eventHub);
             newChain.addEventHub(orderer);
         }
 

@@ -12,7 +12,7 @@
  *  limitations under the License.
  */
 
-package org.hyperledger.fabric.sdk.events;
+package org.hyperledger.fabric.sdk;
 
 import org.hyperledger.fabric.sdk.BlockEvent;
 

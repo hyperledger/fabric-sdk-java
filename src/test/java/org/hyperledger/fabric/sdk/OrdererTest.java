@@ -38,7 +38,7 @@ public class OrdererTest {
                 try {
                         //hfclient = HFClient.createNewInstance();
                         hfclient = TestHFClient.newInstance();
-                        orderer= hfclient.newOrderer("grpc://localhost:5151");
+                        orderer= hfclient.newOrderer("myorder", "grpc://localhost:5151");
                 } catch (Exception e) {
                         e.printStackTrace();
                         Assert.fail("Unexpected Exception " + e.getMessage());
@@ -73,7 +73,7 @@ public class OrdererTest {
         @Test 
         public void testBadAddress() {
                 try {
-                        orderer= hfclient.newOrderer("xxxxxx");
+                        orderer= hfclient.newOrderer("badorderer", "xxxxxx");
                         Assert.fail("Orderer did not allow setting bad URL.");
                 } catch (Exception e) {
                         Assert.assertTrue( e.getClass() == InvalidArgumentException.class);
@@ -82,7 +82,7 @@ public class OrdererTest {
         @Test
         public void testMissingAddress() {
                 try {
-                        orderer= hfclient.newOrderer("");
+                        orderer= hfclient.newOrderer("badaddress", "");
                         Assert.fail("Orderer did not allow setting a missing address.");
                 } catch (Exception e) {
                 	    Assert.assertTrue( e.getClass() == InvalidArgumentException.class);
@@ -92,7 +92,7 @@ public class OrdererTest {
         public void testGetChain() {
                 try {
                         Chain chain = hfclient.newChain("chain");
-                        orderer = hfclient.newOrderer("grpc://localhost:5151");
+                        orderer = hfclient.newOrderer("odererName", "grpc://localhost:5151");
                         chain.addOrderer(orderer);
                  } catch (Exception e) {
                         Assert.fail("Unexpected Exception " + e.getMessage());
@@ -102,7 +102,7 @@ public class OrdererTest {
         @Test(expected=AssertionError.class)
         public void testBroadcast() {
                 	    try {
-							orderer = hfclient.newOrderer("grpc://localhost:5151");
+							orderer = hfclient.newOrderer("orderertest", "grpc://localhost:5151");
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
