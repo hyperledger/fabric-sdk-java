@@ -12,21 +12,13 @@
  *  limitations under the License.
  */
 
-package org.hyperledger.fabric.sdk.exception;
+package org.hyperledger.fabric.sdk;
 
-public class ProposalException extends BaseException {
+import java.io.File;
 
-    private static final long serialVersionUID = 1L;
+/**
+ * Upgrade chaincode proposal request.
+ */
+public class UpgradeProposalRequest extends TransactionRequest {
 
-    public ProposalException(String message, Exception parent) {
-        super(message, parent);
-    }
-
-    public ProposalException(String message) {
-        super(message);
-    }
-
-    public ProposalException(Throwable t) {
-        super(t);
-    }
-}
+ }

@@ -51,8 +51,9 @@ public class InstantiateProposalBuilder extends ProposalBuilder {
     private String chaincodeVersion;
 
     private byte[] chaincodePolicy = null ;
+    protected String action = "deploy";
 
-    private InstantiateProposalBuilder() {
+    protected InstantiateProposalBuilder() {
         super();
     }
 
@@ -125,8 +126,6 @@ public class InstantiateProposalBuilder extends ProposalBuilder {
         }
 
 
-        Type ccType = chaincodeLanguage == TransactionRequest.Type.GO_LANG ? Type.GOLANG : Type.JAVA;
-
 
         List<String> modlist = new LinkedList<>();
         modlist.add("init");
@@ -137,7 +136,7 @@ public class InstantiateProposalBuilder extends ProposalBuilder {
 
 
         List<ByteString> argList = new ArrayList<>();
-        argList.add(ByteString.copyFrom("deploy", StandardCharsets.UTF_8));
+        argList.add(ByteString.copyFrom(action, StandardCharsets.UTF_8));
         argList.add(ByteString.copyFrom("default", StandardCharsets.UTF_8));
         argList.add(depspec.toByteString());
         if (chaincodePolicy != null ) {

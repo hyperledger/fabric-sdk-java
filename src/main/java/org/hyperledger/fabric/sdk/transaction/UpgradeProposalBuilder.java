@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *  Copyright 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -12,21 +12,26 @@
  *  limitations under the License.
  */
 
-package org.hyperledger.fabric.sdk.exception;
+package org.hyperledger.fabric.sdk.transaction;
 
-public class ProposalException extends BaseException {
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
-    private static final long serialVersionUID = 1L;
 
-    public ProposalException(String message, Exception parent) {
-        super(message, parent);
+public class UpgradeProposalBuilder extends InstantiateProposalBuilder {
+
+
+    private final static Log logger = LogFactory.getLog(UpgradeProposalBuilder.class);
+
+
+    private UpgradeProposalBuilder() {
+        super();
+        action = "upgrade";
     }
 
-    public ProposalException(String message) {
-        super(message);
+    public static UpgradeProposalBuilder newBuilder() {
+        return new UpgradeProposalBuilder();
+
     }
 
-    public ProposalException(Throwable t) {
-        super(t);
-    }
 }

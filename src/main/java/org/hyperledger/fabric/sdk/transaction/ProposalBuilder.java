@@ -49,7 +49,7 @@ public class ProposalBuilder {
     private List<byte[]> argBytesList;
     protected TransactionContext context;
     protected TransactionRequest request;
-    private ChaincodeSpec.Type ccType = ChaincodeSpec.Type.GOLANG;
+    protected ChaincodeSpec.Type ccType = ChaincodeSpec.Type.GOLANG;
     private String chainID;
 
 

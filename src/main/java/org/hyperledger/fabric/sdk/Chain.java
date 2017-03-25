@@ -84,6 +84,7 @@ import org.hyperledger.fabric.sdk.transaction.JoinPeerProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.ProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.TransactionBuilder;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
+import org.hyperledger.fabric.sdk.transaction.UpgradeProposalBuilder;
 
 import static java.lang.String.format;
 import static org.hyperledger.fabric.protos.common.Common.HeaderType;
@@ -328,6 +329,7 @@ public class Chain {
 
     /**
      * Add eventhub to chain.
+     *
      * @param eventHub
      * @return
      * @throws InvalidArgumentException
@@ -428,6 +430,7 @@ public class Chain {
 
     /**
      * Initialize the Chain.  Starts the channel. event hubs will connect.
+     *
      * @return
      * @throws InvalidArgumentException
      * @throws EventHubException
@@ -435,7 +438,7 @@ public class Chain {
      * @throws CryptoException
      */
 
-    public Chain initialize() throws InvalidArgumentException, EventHubException, TransactionException, CryptoException { //TODO for multi chain
+    public Chain initialize() throws InvalidArgumentException, TransactionException {
         if (peers.size() == 0) {
 
             throw new InvalidArgumentException("Chain needs at least one peer.");
@@ -456,24 +459,33 @@ public class Chain {
         }
 
 
-        parseConfigBlock();// Parse config block for this chain to get it's information.
+        try {
+            parseConfigBlock();// Parse config block for this chain to get it's information.
 
-        loadCACertificates();  // put all MSP certs into cryptoSuite
+            loadCACertificates();  // put all MSP certs into cryptoSuite
 
-        startEventQue(); //Run the event for event messages from event hubs.
+            startEventQue(); //Run the event for event messages from event hubs.
 
 
-        for (EventHub eh : eventHubs) { //Connect all event hubs
-            eh.connect();
+            for (EventHub eh : eventHubs) { //Connect all event hubs
+                eh.connect();
+            }
+
+
+            registerTransactionListenerProcessor(); //Manage transactions.
+
+
+            this.initialized = true;
+
+            return this;
+        } catch (TransactionException e) {
+            throw e;
+
+        } catch (Exception e) {
+            TransactionException exp = new TransactionException(e);
+            logger.error(exp.getMessage(), exp);
+            throw exp;
         }
-
-
-        registerTransactionListenerProcessor(); //Manage transactions.
-
-
-        this.initialized = true;
-
-        return this;
 
     }
 
@@ -1000,14 +1012,15 @@ public class Chain {
     }
 
     /**
-     *  Send instantiate request to the channel. Chaincode is created and initialized.
+     * Send instantiate request to the channel. Chaincode is created and initialized.
+     *
      * @param instantiateProposalRequest
      * @param peers
      * @return
      * @throws Exception
      */
 
-    public Collection<ProposalResponse> sendInstantiationProposal(InstantiateProposalRequest instantiateProposalRequest, Collection<Peer> peers) throws Exception {
+    public Collection<ProposalResponse> sendInstantiationProposal(InstantiateProposalRequest instantiateProposalRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
 
         if (null == instantiateProposalRequest) {
             throw new InvalidArgumentException("sendDeploymentProposal deploymentProposalRequest is null");
@@ -1019,26 +1032,29 @@ public class Chain {
             throw new InvalidArgumentException("sendDeploymentProposal peers to send to is empty.");
         }
         if (!isInitialized()) {
-            throw new ProposalException("sendDeploymentProposal on chain not initialized.");
+            throw new InvalidArgumentException("sendDeploymentProposal on chain not initialized.");
         }
 
+        try {
+            TransactionContext transactionContext = getTransactionContext();
+            transactionContext.setProposalWaitTime(instantiateProposalRequest.getProposalWaitTime());
+            InstantiateProposalBuilder instantiateProposalbuilder = InstantiateProposalBuilder.newBuilder();
+            instantiateProposalbuilder.context(transactionContext);
+            instantiateProposalbuilder.setChaincodeLanguage(instantiateProposalRequest.getChaincodeLanguage());
+            instantiateProposalbuilder.argss(instantiateProposalRequest.getArgs());
+            instantiateProposalbuilder.chaincodeName(instantiateProposalRequest.getChaincodeName());
+            instantiateProposalbuilder.chaincodePath(instantiateProposalRequest.getChaincodePath());
+            instantiateProposalbuilder.chaincodeVersion(instantiateProposalRequest.getChaincodeVersion());
+            instantiateProposalbuilder.chaincodEndorsementPolicy(instantiateProposalRequest.getChaincodeEndorsementPolicy());
 
-        TransactionContext transactionContext = getTransactionContext();
-        transactionContext.setProposalWaitTime(instantiateProposalRequest.getProposalWaitTime());
-        InstantiateProposalBuilder instantiateProposalbuilder = InstantiateProposalBuilder.newBuilder();
-        instantiateProposalbuilder.context(transactionContext);
-        instantiateProposalbuilder.setChaincodeLanguage(instantiateProposalRequest.getChaincodeLanguage());
-        instantiateProposalbuilder.argss(instantiateProposalRequest.getArgs());
-        instantiateProposalbuilder.chaincodeName(instantiateProposalRequest.getChaincodeName());
-        instantiateProposalbuilder.chaincodePath(instantiateProposalRequest.getChaincodePath());
-        instantiateProposalbuilder.chaincodeVersion(instantiateProposalRequest.getChaincodeVersion());
-        instantiateProposalbuilder.chaincodEndorsementPolicy(instantiateProposalRequest.getChaincodeEndorsementPolicy());
-
-        FabricProposal.Proposal instantiateProposal = instantiateProposalbuilder.build();
-        SignedProposal signedProposal = getSignedProposal(instantiateProposal);
+            FabricProposal.Proposal instantiateProposal = instantiateProposalbuilder.build();
+            SignedProposal signedProposal = getSignedProposal(instantiateProposal);
 
 
-        return sendProposalToPeers(peers, signedProposal, transactionContext);
+            return sendProposalToPeers(peers, signedProposal, transactionContext);
+        } catch (Exception e) {
+            throw new ProposalException(e);
+        }
     }
 
     private TransactionContext getTransactionContext() {
@@ -1047,6 +1063,7 @@ public class Chain {
 
     /**
      * Send install chaincode request proposal to the channel.
+     *
      * @param installProposalRequest
      * @param peers
      * @return
@@ -1054,7 +1071,7 @@ public class Chain {
      */
 
     public Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest, Collection<Peer> peers)
-            throws Exception {
+            throws ProposalException, InvalidArgumentException {
         if (null == installProposalRequest) {
             throw new InvalidArgumentException("sendInstallProposal deploymentProposalRequest is null");
         }
@@ -1069,22 +1086,70 @@ public class Chain {
         }
 
 
-        TransactionContext transactionContext = getTransactionContext();
-        transactionContext.verify(false);  // Install will have no signing cause it's not really targeted to a chain.
-        transactionContext.setProposalWaitTime(installProposalRequest.getProposalWaitTime());
-        InstallProposalBuilder installProposalbuilder = InstallProposalBuilder.newBuilder();
-        installProposalbuilder.context(transactionContext);
-        installProposalbuilder.setChaincodeLanguage(installProposalRequest.getChaincodeLanguage());
-        installProposalbuilder.chaincodeName(installProposalRequest.getChaincodeName());
-        installProposalbuilder.chaincodePath(installProposalRequest.getChaincodePath());
-        installProposalbuilder.chaincodeVersion(installProposalRequest.getChaincodeVersion());
-        installProposalbuilder.setChaincodeSource(installProposalRequest.getChaincodeSourceLocation());
+        try {
+            TransactionContext transactionContext = getTransactionContext();
+            transactionContext.verify(false);  // Install will have no signing cause it's not really targeted to a chain.
+            transactionContext.setProposalWaitTime(installProposalRequest.getProposalWaitTime());
+            InstallProposalBuilder installProposalbuilder = InstallProposalBuilder.newBuilder();
+            installProposalbuilder.context(transactionContext);
+            installProposalbuilder.setChaincodeLanguage(installProposalRequest.getChaincodeLanguage());
+            installProposalbuilder.chaincodeName(installProposalRequest.getChaincodeName());
+            installProposalbuilder.chaincodePath(installProposalRequest.getChaincodePath());
+            installProposalbuilder.chaincodeVersion(installProposalRequest.getChaincodeVersion());
+            installProposalbuilder.setChaincodeSource(installProposalRequest.getChaincodeSourceLocation());
 
-        FabricProposal.Proposal deploymentProposal = installProposalbuilder.build();
-        SignedProposal signedProposal = getSignedProposal(deploymentProposal);
+            FabricProposal.Proposal deploymentProposal = installProposalbuilder.build();
+            SignedProposal signedProposal = getSignedProposal(deploymentProposal);
 
 
-        return sendProposalToPeers(peers, signedProposal, transactionContext);
+            return sendProposalToPeers(peers, signedProposal, transactionContext);
+        } catch (Exception e) {
+            throw new ProposalException(e);
+        }
+
+    }
+
+    public Collection<ProposalResponse> sendUpgradeProposal(UpgradeProposalRequest upgradeProposalRequest) throws ProposalException, InvalidArgumentException {
+
+        return sendUpgradeProposal(upgradeProposalRequest, peers);
+
+    }
+
+    public Collection<ProposalResponse> sendUpgradeProposal(UpgradeProposalRequest upgradeProposalRequest, Collection<Peer> peers)
+            throws InvalidArgumentException, ProposalException {
+        if (null == upgradeProposalRequest) {
+            throw new InvalidArgumentException("sendInstallProposal deploymentProposalRequest is null");
+        }
+        if (null == peers) {
+            throw new InvalidArgumentException("sendInstallProposal peers is null");
+        }
+        if (peers.isEmpty()) {
+            throw new InvalidArgumentException("sendInstallProposal peers to send to is empty.");
+        }
+        if (!isInitialized()) {
+            throw new InvalidArgumentException("sendInstallProposal on chain not initialized.");
+        }
+
+        try {
+            TransactionContext transactionContext = getTransactionContext();
+            //transactionContext.verify(false);  // Install will have no signing cause it's not really targeted to a chain.
+            transactionContext.setProposalWaitTime(upgradeProposalRequest.getProposalWaitTime());
+            UpgradeProposalBuilder upgradeProposalBuilder = UpgradeProposalBuilder.newBuilder();
+            upgradeProposalBuilder.context(transactionContext);
+            upgradeProposalBuilder.argss(upgradeProposalRequest.getArgs());
+            upgradeProposalBuilder.chaincodeName(upgradeProposalRequest.getChaincodeName());
+            upgradeProposalBuilder.chaincodePath(upgradeProposalRequest.getChaincodePath());
+            upgradeProposalBuilder.chaincodeVersion(upgradeProposalRequest.getChaincodeVersion());
+            upgradeProposalBuilder.chaincodEndorsementPolicy(upgradeProposalRequest.getChaincodeEndorsementPolicy());
+
+            FabricProposal.Proposal updradeProposal = upgradeProposalBuilder.build();
+            SignedProposal signedProposal = getSignedProposal(updradeProposal);
+
+
+            return sendProposalToPeers(peers, signedProposal, transactionContext);
+        } catch (Exception e) {
+            throw new ProposalException(e);
+        }
     }
 
 
@@ -1443,28 +1508,30 @@ public class Chain {
 
     /**
      * Send a Invoke already instantiated chaincode proposal.
+     *
      * @param invokeProposalRequest
      * @param peers
      * @return
      * @throws Exception
      */
-    public Collection<ProposalResponse> sendInvokeProposal(InvokeProposalRequest invokeProposalRequest, Collection<Peer> peers) throws Exception {
+    public Collection<ProposalResponse> sendInvokeProposal(InvokeProposalRequest invokeProposalRequest, Collection<Peer> peers) throws ProposalException, InvalidArgumentException {
         return sendProposal(invokeProposalRequest, peers);
     }
 
     /**
      * Send Query proposal
+     *
      * @param queryProposalRequest
      * @param peers
      * @return
      * @throws Exception
      */
 
-    public Collection<ProposalResponse> sendQueryProposal(QueryProposalRequest queryProposalRequest, Collection<Peer> peers) throws Exception {
+    public Collection<ProposalResponse> sendQueryProposal(QueryProposalRequest queryProposalRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
         return sendProposal(queryProposalRequest, peers);
     }
 
-    private Collection<ProposalResponse> sendProposal(TransactionRequest proposalRequest, Collection<Peer> peers) throws CryptoException, InvalidArgumentException, ProposalException, PeerException {
+    private Collection<ProposalResponse> sendProposal(TransactionRequest proposalRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
 
         if (null == proposalRequest) {
             throw new InvalidArgumentException("sendProposal queryProposalRequest is null");
@@ -1483,17 +1550,26 @@ public class Chain {
             throw new ProposalException("sendProposal on chain not initialized.");
         }
 
-        TransactionContext transactionContext = getTransactionContext();
-        transactionContext.verify(proposalRequest.doVerify());
-        transactionContext.setProposalWaitTime(proposalRequest.getProposalWaitTime());
+        try {
+            TransactionContext transactionContext = getTransactionContext();
+            transactionContext.verify(proposalRequest.doVerify());
+            transactionContext.setProposalWaitTime(proposalRequest.getProposalWaitTime());
 
-        // Protobuf message builder
-        ProposalBuilder proposalBuilder = ProposalBuilder.newBuilder();
-        proposalBuilder.context(transactionContext);
-        proposalBuilder.request(proposalRequest);
+            // Protobuf message builder
+            ProposalBuilder proposalBuilder = ProposalBuilder.newBuilder();
+            proposalBuilder.context(transactionContext);
+            proposalBuilder.request(proposalRequest);
 
-        SignedProposal invokeProposal = getSignedProposal(proposalBuilder.build());
-        return sendProposalToPeers(peers, invokeProposal, transactionContext);
+            SignedProposal invokeProposal = getSignedProposal(proposalBuilder.build());
+            return sendProposalToPeers(peers, invokeProposal, transactionContext);
+        } catch (ProposalException e) {
+            throw e;
+
+        } catch (Exception e) {
+            ProposalException exp = new ProposalException(e);
+            logger.error(exp.getMessage(), exp);
+            throw exp;
+        }
     }
 
     private Collection<ProposalResponse> sendProposalToPeers(Collection<Peer> peers,
@@ -1571,13 +1647,14 @@ public class Chain {
 
     /**
      * Send transaction to orderer.
+     *
      * @param proposalResponses
      * @param orderers
      * @return
      * @throws TransactionException
      */
 
-    public CompletableFuture<TransactionEvent> sendTransaction(Collection<ProposalResponse> proposalResponses, Collection<Orderer> orderers) throws TransactionException {
+    public CompletableFuture<TransactionEvent> sendTransaction(Collection<ProposalResponse> proposalResponses, Collection<Orderer> orderers) {
         try {
 
             if (null == proposalResponses) {
@@ -1660,9 +1737,11 @@ public class Chain {
                 return ret;
             }
         } catch (Exception e) {
-            String emsg = String.format("error sending transaction to orderer. Error: %s", e.getMessage());
-            logger.error(emsg);
-            throw new TransactionException(emsg, e);
+
+            CompletableFuture<TransactionEvent> future = new CompletableFuture<>();
+            future.completeExceptionally(e);
+            return future;
+
         }
 
     }

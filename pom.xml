@@ -179,7 +179,7 @@
                 <version>2.19.1</version>
                 <configuration>
                     <includes>
-                        <include>**/*IT.java</include>
+                        <include>**/IntegrationSuite.java</include>
                     </includes>
                     <skipITs>${skipITs}</skipITs>
                     <argLine>

@@ -14,16 +14,14 @@
 
 package org.hyperledger.fabric.sdk.transaction;
 
-import static java.lang.String.*;
-import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createDeploymentSpec;
-
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.protobuf.ByteString;
+import io.netty.util.internal.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeDeploymentSpec;
@@ -35,9 +33,8 @@ import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
 
-import com.google.protobuf.ByteString;
-
-import io.netty.util.internal.StringUtil;
+import static java.lang.String.format;
+import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createDeploymentSpec;
 
 
 public class InstallProposalBuilder extends ProposalBuilder {
@@ -52,9 +49,11 @@ public class InstallProposalBuilder extends ProposalBuilder {
     private String chaincodeName;
     private String chaincodeVersion;
     private TransactionRequest.Type chaincodeLanguage;
+    protected String action = "install";
+    protected String chainId = ""; // no specific chain.
 
 
-    private InstallProposalBuilder() {
+    protected InstallProposalBuilder() {
         super();
     }
 
@@ -131,30 +130,30 @@ public class InstallProposalBuilder extends ProposalBuilder {
         String dplang;
 
         switch (chaincodeLanguage) {
-        case GO_LANG:
-            dplang = "Go";
-            ccType = Type.GOLANG;
-            projectSourceDir = Paths.get(chaincodeSource.toString(), "src", chaincodePath).toFile();
-            targetPathPrefix = Paths.get("src", chaincodePath).toString();
-            break;
+            case GO_LANG:
+                dplang = "Go";
+                ccType = Type.GOLANG;
+                projectSourceDir = Paths.get(chaincodeSource.toString(), "src", chaincodePath).toFile();
+                targetPathPrefix = Paths.get("src", chaincodePath).toString();
+                break;
 
-        case JAVA:
-            dplang = "Java";
-            ccType = Type.JAVA;
-            targetPathPrefix = "src";
-            projectSourceDir = Paths.get(chaincodeSource.toString(), chaincodePath).toFile();
-            break;
+            case JAVA:
+                dplang = "Java";
+                ccType = Type.JAVA;
+                targetPathPrefix = "src";
+                projectSourceDir = Paths.get(chaincodeSource.toString(), chaincodePath).toFile();
+                break;
 
-        default:
-            throw new IllegalArgumentException("Unexpected chaincode language: " + chaincodeLanguage);
+            default:
+                throw new IllegalArgumentException("Unexpected chaincode language: " + chaincodeLanguage);
         }
 
-        if(!projectSourceDir.exists()) {
+        if (!projectSourceDir.exists()) {
             final String message = "The project source directory does not exist: " + projectSourceDir.getAbsolutePath();
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
-        if(!projectSourceDir.isDirectory()) {
+        if (!projectSourceDir.isDirectory()) {
             final String message = "The project source directory is not a directory: " + projectSourceDir.getAbsolutePath();
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -163,23 +162,23 @@ public class InstallProposalBuilder extends ProposalBuilder {
         String chaincodeID = chaincodeName + "::" + chaincodePath + "::" + chaincodeVersion;
 
         logger.info(format("Installing '%s'  %s chaincode from directory: '%s' with source location: '%s'. chaincodePath:'%s'",
-              chaincodeID,  dplang, projectSourceDir.getAbsolutePath(), targetPathPrefix, chaincodePath));
+                chaincodeID, dplang, projectSourceDir.getAbsolutePath(), targetPathPrefix, chaincodePath));
 
         // generate chain code source tar
         final byte[] data = SDKUtil.generateTarGz(projectSourceDir, targetPathPrefix);
-        
+
         final ChaincodeDeploymentSpec depspec = createDeploymentSpec(
-        	ccType, this.chaincodeName, this.chaincodePath, this.chaincodeVersion, null, data);
+                ccType, this.chaincodeName, this.chaincodePath, this.chaincodeVersion, null, data);
 
         // set args
         final List<ByteString> argList = new ArrayList<>();
-        argList.add(ByteString.copyFrom("install", StandardCharsets.UTF_8));
+        argList.add(ByteString.copyFrom(action, StandardCharsets.UTF_8));
         argList.add(depspec.toByteString());
         args(argList);
 
         chaincodeID(LIFECYCLE_CHAINCODE_ID);
         ccType(ccType);
-        chainID(""); //Installing chaincode is not targeted to a chain.
+        chainID(chainId); //Installing chaincode is not targeted to a chain.
 
     }
 

@@ -130,7 +130,7 @@ public class End2endIT {
             }
 
             final SampleStore sampleStore = new SampleStore(sampleStoreFile);
-            sampleStoreFile.deleteOnExit();
+          //  sampleStoreFile.deleteOnExit();
 
             //SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface
 
@@ -219,7 +219,8 @@ public class End2endIT {
                 InstallProposalRequest installProposalRequest = client.newInstallProposalRequest();
                 installProposalRequest.setChaincodeID(chainCodeID);
                 ////For GO language and serving just a single user, chaincodeSource is mostly likely the users GOPATH
-                installProposalRequest.setChaincodeSourceLocation(new File(TEST_FIXTURES_PATH));
+                installProposalRequest.setChaincodeSourceLocation(new File(TEST_FIXTURES_PATH + "/sdkintegration/gocc/sample1"));
+                installProposalRequest.setChaincodeVersion(CHAIN_CODE_VERSION);
 
                 out("Sending install proposal");
 
@@ -258,7 +259,7 @@ public class End2endIT {
             InstantiateProposalRequest instantiateProposalRequest = client.newInstantiationProposalRequest();
             instantiateProposalRequest.setChaincodeID(chainCodeID);
             instantiateProposalRequest.setFcn("init");
-            instantiateProposalRequest.setArgs(new String[]{"a", "100", "b", "" + (200 + delta)});
+            instantiateProposalRequest.setArgs(new String[]{"a", "500", "b", "" + (200 + delta)});
 
             /*
               policy OR(Org1MSP.member, Org2MSP.member) meaning 1 signature from someone in either Org1 or Org2
