@@ -29,17 +29,17 @@ import org.hyperledger.fabric.sdk.Chain;
 import org.hyperledger.fabric.sdk.ChainCodeID;
 import org.hyperledger.fabric.sdk.ChainConfiguration;
 import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
+import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.InstallProposalRequest;
 import org.hyperledger.fabric.sdk.InstantiateProposalRequest;
-import org.hyperledger.fabric.sdk.InvokeProposalRequest;
 import org.hyperledger.fabric.sdk.Orderer;
 import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.ProposalResponse;
-import org.hyperledger.fabric.sdk.QueryProposalRequest;
+import org.hyperledger.fabric.sdk.QueryByChaincodeRequest;
 import org.hyperledger.fabric.sdk.TestConfigHelper;
 import org.hyperledger.fabric.sdk.TransactionInfo;
-import org.hyperledger.fabric.sdk.EventHub;
+import org.hyperledger.fabric.sdk.TransactionProposalRequest;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
@@ -66,9 +66,9 @@ public class End2endIT {
 
     private final int gossipWaitTime = testConfig.getGossipWaitTime();
 
-    private static final String CHAIN_CODE_NAME = "example_cc.go";
+    private static final String CHAIN_CODE_NAME = "example_cc_go";
     private static final String CHAIN_CODE_PATH = "github.com/example_cc";
-    private static final String CHAIN_CODE_VERSION = "1.0";
+    private static final String CHAIN_CODE_VERSION = "1";
 
     private static final String FOO_CHAIN_NAME = "foo";
     private static final String BAR_CHAIN_NAME = "bar";
@@ -130,7 +130,7 @@ public class End2endIT {
             }
 
             final SampleStore sampleStore = new SampleStore(sampleStoreFile);
-          //  sampleStoreFile.deleteOnExit();
+            //  sampleStoreFile.deleteOnExit();
 
             //SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface
 
@@ -192,7 +192,7 @@ public class End2endIT {
 
             final String chainName = chain.getName();
             out("Running Chain %s", chainName);
-            chain.setInvokeWaitTime(testConfig.getInvokeWaitTime());
+            chain.setTransactionWaitTime(testConfig.getInvokeWaitTime());
             chain.setDeployWaitTime(testConfig.getDeployWaitTime());
 
             Collection<Peer> channelPeers = chain.getPeers();
@@ -296,7 +296,7 @@ public class End2endIT {
                 out("Finished instantiate transaction with transaction id %s", transactionEvent.getTransactionID());
 
                 // wait a few seconds for the peers to catch up with each other via the gossip network.
-                // We need the instantiate to be committed at all peers before we can do invoke on all peers
+                // We need the instantiate to be committed at all peers before we can do transaction on all peers
                 try {
                     out("Wait %d milliseconds for peers to sync with each other", gossipWaitTime);
                     TimeUnit.MILLISECONDS.sleep(gossipWaitTime);
@@ -310,34 +310,34 @@ public class End2endIT {
                     client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME)); // select the user for all subsequent requests
 
                     ///////////////
-                    /// Send invoke proposal to all peers
-                    InvokeProposalRequest invokeProposalRequest = client.newInvokeProposalRequest();
-                    invokeProposalRequest.setChaincodeID(chainCodeID);
-                    invokeProposalRequest.setFcn("invoke");
-                    invokeProposalRequest.setArgs(new String[]{"move", "a", "b", "100"});
-                    out("sending invokeProposal to all peers with arguments: move(a,b,100)");
+                    /// Send transaction proposal to all peers
+                    TransactionProposalRequest transactionProposalRequest = client.newTransactionProposalRequest();
+                    transactionProposalRequest.setChaincodeID(chainCodeID);
+                    transactionProposalRequest.setFcn("invoke");
+                    transactionProposalRequest.setArgs(new String[]{"move", "a", "b", "100"});
+                    out("sending transactionProposal to all peers with arguments: move(a,b,100)");
 
-                    Collection<ProposalResponse> invokePropResp = chain.sendInvokeProposal(invokeProposalRequest, chain.getPeers());
-                    for (ProposalResponse response : invokePropResp) {
+                    Collection<ProposalResponse> transactionPropResp = chain.sendTransactionProposal(transactionProposalRequest, chain.getPeers());
+                    for (ProposalResponse response : transactionPropResp) {
                         if (response.getStatus() == ProposalResponse.Status.SUCCESS) {
-                            out("Successful invoke proposal response Txid: %s from peer %s", response.getTransactionID(), response.getPeer().getName());
+                            out("Successful transaction proposal response Txid: %s from peer %s", response.getTransactionID(), response.getPeer().getName());
                             successful.add(response);
                         } else {
                             failed.add(response);
                         }
                     }
-                    out("Received %d invoke proposal responses. Successful+verified: %d . Failed: %d",
-                            invokePropResp.size(), successful.size(), failed.size());
+                    out("Received %d transaction proposal responses. Successful+verified: %d . Failed: %d",
+                            transactionPropResp.size(), successful.size(), failed.size());
                     if (failed.size() > 0) {
-                        ProposalResponse firstInvokeProposalResponse = failed.iterator().next();
+                        ProposalResponse firstTransactionProposalResponse = failed.iterator().next();
                         fail("Not enough endorsers for invoke(move a,b,100):" + failed.size() + " endorser error: " +
-                                firstInvokeProposalResponse.getMessage() +
-                                ". Was verified: " + firstInvokeProposalResponse.isVerified());
+                                firstTransactionProposalResponse.getMessage() +
+                                ". Was verified: " + firstTransactionProposalResponse.isVerified());
                     }
-                    out("Successfully received invoke proposal responses.");
+                    out("Successfully received transaction proposal responses.");
 
                     ////////////////////////////
-                    // Send Invoke Transaction to orderer
+                    // Send Transaction Transaction to orderer
                     out("Sending chain code transaction(move a,b,100) to orderer.");
                     return chain.sendTransaction(successful, orderers).get(120, TimeUnit.SECONDS);
 
@@ -353,11 +353,11 @@ public class End2endIT {
                 try {
 
                     assertTrue(transactionEvent.isValid()); // must be valid to be here.
-                    out("Finished invoke transaction with transaction id %s", transactionEvent.getTransactionID());
+                    out("Finished transaction with transaction id %s", transactionEvent.getTransactionID());
                     testTxID = transactionEvent.getTransactionID(); // used in the channel queries later
 
                     // wait a few seconds for the peers to catch up with each other via the gossip network.
-                    // Another way would be to wait on all the peers event hubs for the event containing the invoke TxID
+                    // Another way would be to wait on all the peers event hubs for the event containing the TxID
                     try {
                         out("Wait %d milliseconds for peers to sync with each other", gossipWaitTime);
                         TimeUnit.MILLISECONDS.sleep(gossipWaitTime);
@@ -370,12 +370,12 @@ public class End2endIT {
                     //
                     String expect = "" + (300 + delta);
                     out("Now query chain code for the value of b.");
-                    QueryProposalRequest queryProposalRequest = client.newQueryProposalRequest();
-                    queryProposalRequest.setArgs(new String[]{"query", "b"});
-                    queryProposalRequest.setFcn("invoke");
-                    queryProposalRequest.setChaincodeID(chainCodeID);
+                    QueryByChaincodeRequest queryByChaincodeRequest = client.newQueryProposalRequest();
+                    queryByChaincodeRequest.setArgs(new String[]{"query", "b"});
+                    queryByChaincodeRequest.setFcn("invoke");
+                    queryByChaincodeRequest.setChaincodeID(chainCodeID);
 
-                    Collection<ProposalResponse> queryProposals = chain.sendQueryProposal(queryProposalRequest, chain.getPeers());
+                    Collection<ProposalResponse> queryProposals = chain.queryByChaincode(queryByChaincodeRequest, chain.getPeers());
                     for (ProposalResponse proposalResponse : queryProposals) {
                         if (!proposalResponse.isVerified() || proposalResponse.getStatus() != ProposalResponse.Status.SUCCESS) {
                             fail("Failed query proposal from peer " + proposalResponse.getPeer().getName() + " status: " + proposalResponse.getStatus() +
@@ -519,51 +519,10 @@ public class End2endIT {
 
         out("Finished initialization chain %s", name);
 
-
         return newChain;
 
     }
 
-
-//    /**
-//     * TODO not working as currently done
-//     * Sample how to reconstruct chain
-//     * @param name
-//     * @param client
-//     * @return
-//     * @throws Exception
-//     */
-//    private Chain reconstructChain(String  name, HFClient client) throws Exception {
-//
-//        //Construct the chain
-//        //
-//
-//
-//        Chain newChain = client.newChain(name);
-//
-//        int i = 0;
-//        for (String peerloc : PEER_LOCATIONS) {
-//            Peer peer = client.newPeer(peerloc);
-//            peer.setName("peer_" + i);
-//            newChain.addPeer(peer);
-//
-//        }
-//
-//        for (String orderloc : ORDERER_LOCATIONS) {
-//            Orderer orderer = client.newOrderer(orderloc);
-//            newChain.addOrderer(orderer);
-//        }
-//
-//        for (String eventHubLoc : EVENTHUB_LOCATIONS) {
-//            EventHub eventHub = client.newEventHub(eventHubLoc);
-//            newChain.addEventHub(eventHub);
-//        }
-//
-//        newChain.initialize();
-//        return newChain;
-//
-//    }
-//
 
     static void out(String format, Object... args) {
 

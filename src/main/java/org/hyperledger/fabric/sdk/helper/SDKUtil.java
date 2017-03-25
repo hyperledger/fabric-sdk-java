@@ -1,5 +1,5 @@
 /*
- *  Copyright 2017 DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
+ *  Copyright 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -54,6 +54,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class SDKUtil {
     private static final Log logger = LogFactory.getLog(SDKUtil.class);
+    private static final Config confg = Config.getConfig();
+    private static final int maxLogStringLength = confg.maxLogStringLength();
 
     /**
      * Generate parameter hash for the given chain code path,func and args
@@ -324,5 +326,25 @@ public class SDKUtil {
 
     }
 
+
+    /**
+     * Makes logging strings which can be long or with unprintable characters be logged and trimmed.
+     *
+     * @param string Unsafe string too long
+     * @return returns a string which does not have unprintable characters and trimmed in length.
+     */
+    public static String logString(final String string) {
+        if (string == null || string.length() == 0) {
+            return string;
+        }
+
+        String ret = string.replaceAll("[^\\p{Print}]", "?");
+
+        ret = ret.substring(0, Math.min(ret.length(), maxLogStringLength)) + (ret.length() >= maxLogStringLength ? "..." : "");
+
+        return ret;
+
+
+    }
 
 }

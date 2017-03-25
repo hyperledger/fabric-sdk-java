@@ -26,6 +26,7 @@ import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.PeerException;
 
+import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
 
 /**
@@ -84,26 +85,6 @@ public class Peer {
      * @param chain
      */
 
-    void setChain(Chain chain) throws InvalidArgumentException {
-        if (chain == null) {
-            throw new InvalidArgumentException("Chain can not be null");
-        }
-
-        this.chain = chain;
-    }
-
-    private Chain chain;
-
-
-    /**
-     * Get the chain of which this peer is a member.
-     *
-     * @return {Chain} The chain of which this peer is a member.
-     */
-    Chain getChain() {
-        return this.chain;
-    }
-
     /**
      * Get the URL of the peer.
      *
@@ -136,7 +117,7 @@ public class Peer {
             throws PeerException, InvalidArgumentException {
         checkSendProposal(proposal);
 
-        logger.debug("peer.sendProposalAsync");
+        logger.debug(format("peer.sendProposalAsync name:%s, url: %s", name, url ));
 
         return endorserClent.sendProposalAsync(proposal);
     }
@@ -145,7 +126,7 @@ public class Peer {
             throws PeerException, InvalidArgumentException {
         checkSendProposal(proposal);
 
-        logger.debug("peer.sendProposal");
+        logger.debug(format("peer.sendProposalAsync name: %s, url: %s", name, url ));
 
         return endorserClent.sendProposal(proposal);
     }
@@ -153,9 +134,6 @@ public class Peer {
     private void checkSendProposal(FabricProposal.SignedProposal proposal) throws PeerException, InvalidArgumentException {
         if (proposal == null) {
             throw new PeerException("Proposal is null");
-        }
-        if (chain == null) {
-            throw new PeerException("Chain is null");
         }
         Exception e = checkGrpcUrl(url);
         if (e != null) {
@@ -169,4 +147,6 @@ public class Peer {
 
         return new Peer(name, grpcURL, properties);
     }
+
+
 } // end Peer

@@ -56,10 +56,10 @@ public class ProposalResponse extends ChainCodeResponse {
                     .parseFrom(endorsement.getEndorser());
             ByteString plainText = this.getPayload().concat(endorsement.getEndorser());
 
-            logger.debug("payload bytes in hex: " + DatatypeConverter.printHexBinary(this.getPayload().toByteArray()));
-            logger.debug("endorser bytes in hex: "
+            logger.trace("payload TransactionBuilderbytes in hex: " + DatatypeConverter.printHexBinary(this.getPayload().toByteArray()));
+            logger.trace("endorser bytes in hex: "
                     + DatatypeConverter.printHexBinary(endorsement.getEndorser().toByteArray()));
-            logger.debug("plainText bytes in hex: " + DatatypeConverter.printHexBinary(plainText.toByteArray()));
+            logger.trace("plainText bytes in hex: " + DatatypeConverter.printHexBinary(plainText.toByteArray()));
 
             this.isVerified = crypto.verify(plainText.toByteArray(), sig.toByteArray(),
                     endorser.getIdBytes().toByteArray());

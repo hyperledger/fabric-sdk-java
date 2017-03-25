@@ -25,11 +25,9 @@ import io.netty.util.internal.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeDeploymentSpec;
-import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.sdk.TransactionRequest;
-import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.helper.SDKUtil;
 
@@ -37,11 +35,11 @@ import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createDeploymentSpec;
 
 
-public class InstallProposalBuilder extends ProposalBuilder {
+public class InstallProposalBuilder extends LCCCProposalBuilder {
 
 
     private final static Log logger = LogFactory.getLog(InstallProposalBuilder.class);
-    private static final ChaincodeID LIFECYCLE_CHAINCODE_ID = ChaincodeID.newBuilder().setName("lccc").build();
+
     private String chaincodePath;
 
 
@@ -50,7 +48,6 @@ public class InstallProposalBuilder extends ProposalBuilder {
     private String chaincodeVersion;
     private TransactionRequest.Type chaincodeLanguage;
     protected String action = "install";
-    protected String chainId = ""; // no specific chain.
 
 
     protected InstallProposalBuilder() {
@@ -88,7 +85,7 @@ public class InstallProposalBuilder extends ProposalBuilder {
     }
 
     @Override
-    public FabricProposal.Proposal build() throws ProposalException, CryptoException {
+    public FabricProposal.Proposal build() throws ProposalException {
 
         constructInstallProposal();
         return super.build();
@@ -176,10 +173,6 @@ public class InstallProposalBuilder extends ProposalBuilder {
         argList.add(depspec.toByteString());
         args(argList);
 
-        chaincodeID(LIFECYCLE_CHAINCODE_ID);
-        ccType(ccType);
-        chainID(chainId); //Installing chaincode is not targeted to a chain.
-
     }
 
 
@@ -196,7 +189,7 @@ public class InstallProposalBuilder extends ProposalBuilder {
 
 
         args(argList);
-        chaincodeID(LIFECYCLE_CHAINCODE_ID);
+
     }
 
     public void setChaincodeLanguage(TransactionRequest.Type chaincodeLanguage) {

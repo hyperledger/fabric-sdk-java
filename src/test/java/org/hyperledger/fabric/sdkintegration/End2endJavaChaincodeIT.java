@@ -22,16 +22,16 @@ import java.util.concurrent.TimeUnit;
 
 import org.hyperledger.fabric.sdk.Chain;
 import org.hyperledger.fabric.sdk.ChainCodeID;
+import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.InstallProposalRequest;
 import org.hyperledger.fabric.sdk.InstantiateProposalRequest;
-import org.hyperledger.fabric.sdk.InvokeProposalRequest;
 import org.hyperledger.fabric.sdk.Orderer;
 import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.ProposalResponse;
-import org.hyperledger.fabric.sdk.QueryProposalRequest;
+import org.hyperledger.fabric.sdk.QueryByChaincodeRequest;
 import org.hyperledger.fabric.sdk.TestConfigHelper;
-import org.hyperledger.fabric.sdk.EventHub;
+import org.hyperledger.fabric.sdk.TransactionProposalRequest;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -43,9 +43,9 @@ import org.junit.Test;
  */
 public class End2endJavaChaincodeIT {
 
-    static final String CHAIN_CODE_NAME = "example_cc.go";
+    static final String CHAIN_CODE_NAME = "example_cc_java";
     static final String CHAIN_CODE_PATH = "github.com/example_cc";
-    static final String CHAIN_CODE_VERSION = "1.0";
+    static final String CHAIN_CODE_VERSION = "1";
 
 
     static final String CHAIN_NAME = "testchainid";
@@ -99,8 +99,7 @@ public class End2endJavaChaincodeIT {
 
             Chain chain = client.getChain(CHAIN_NAME);
 
-
-            chain.setInvokeWaitTime(1000);
+            chain.setTransactionWaitTime(1000);
             chain.setDeployWaitTime(12000);
 
 
@@ -202,13 +201,13 @@ public class End2endJavaChaincodeIT {
 
                     out("Creating invoke proposal");
 
-                    InvokeProposalRequest invokeProposalRequest = client.newInvokeProposalRequest();
+                    TransactionProposalRequest transactionProposalRequest = client.newTransactionProposalRequest();
 
-                    invokeProposalRequest.setChaincodeID(chainCodeID);
-                    invokeProposalRequest.setFcn("invoke");
-                    invokeProposalRequest.setArgs(new String[]{"move", "Jane", "John", "200"});
+                    transactionProposalRequest.setChaincodeID(chainCodeID);
+                    transactionProposalRequest.setFcn("invoke");
+                    transactionProposalRequest.setArgs(new String[]{"move", "Jane", "John", "200"});
 
-                    Collection<ProposalResponse> invokePropResp = chain.sendInvokeProposal(invokeProposalRequest, peers);
+                    Collection<ProposalResponse> invokePropResp = chain.sendTransactionProposal(transactionProposalRequest, peers);
 
 
                     successful.clear();
@@ -269,16 +268,14 @@ public class End2endJavaChaincodeIT {
 
                     out("Now query chain code for the value of John.");
 
+                    // TransactionProposalRequest qr = TransactionProposalRequest.newInstance();
+                    QueryByChaincodeRequest queryByChaincodeRequest = client.newQueryProposalRequest();
 
-                    // InvokeProposalRequest qr = InvokeProposalRequest.newInstance();
-                    QueryProposalRequest queryProposalRequest = client.newQueryProposalRequest();
+                    queryByChaincodeRequest.setArgs(new String[]{"query", "John"});
+                    queryByChaincodeRequest.setFcn("invoke");
+                    queryByChaincodeRequest.setChaincodeID(chainCodeID);
 
-                    queryProposalRequest.setArgs(new String[]{"query", "John"});
-                    queryProposalRequest.setFcn("invoke");
-                    queryProposalRequest.setChaincodeID(chainCodeID);
-
-
-                    Collection<ProposalResponse> queryProposals = chain.sendQueryProposal(queryProposalRequest, peers);
+                    Collection<ProposalResponse> queryProposals = chain.queryByChaincode(queryByChaincodeRequest, peers);
 
                     for (ProposalResponse proposalResponse : queryProposals) {
                         if (!proposalResponse.isVerified() || proposalResponse.getStatus() != ProposalResponse.Status.SUCCESS) {

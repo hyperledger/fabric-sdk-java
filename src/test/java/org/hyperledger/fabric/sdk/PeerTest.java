@@ -78,31 +78,6 @@ public class PeerTest {
 	}
 
 
-	@Test
-	public void testSetChain() {
-
-		try {
-			Chain chain = hfclient.newChain("chain");
-			peer.setChain(chain);
-			Assert.assertTrue(chain == peer.getChain());
-
-		} catch (Exception e) {
-			Assert.fail("Unexpected Exception " + e.getMessage());
-		}
-	}
-
-	@Test
-	public void testSetNullChain() {
-
-		try {
-
-			peer.setChain(null);
-			Assert.fail("Expected null chain to throw exception.");
-
-		} catch (Exception e) {
-			Assert.assertTrue( e.getClass() == InvalidArgumentException.class);
-		}
-	}
 
 	@Test
 	public void testSendNullProposal() {
@@ -137,11 +112,6 @@ public class PeerTest {
 		peer.sendProposalAsync(null);
 	}
 
-	@Test(expected = PeerException.class)
-	public void testSendAsyncNullChain() throws Exception {
-		Peer peer = hfclient.newPeer("peer_" , "grpc://localhost:7051");
-		peer.sendProposalAsync(FabricProposal.SignedProposal.newBuilder().build());
-	}
 
 	@Test
 	public void testBadURL() {

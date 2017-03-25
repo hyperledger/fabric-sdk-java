@@ -49,6 +49,7 @@ public class Config {
     public static final String MAC_KEY_BYTE_COUNT = "org.hyperledger.fabric.sdk.crypto.mac_key_byte_count";
     public static final String CERTIFICATE_FORMAT = "org.hyperledger.fabric.sdk.crypto.certificate_format";
     public static final String SIGNATURE_ALGORITHM = "org.hyperledger.fabric.sdk.crypto.default_signature_algorithm";
+    public static final String MAX_LOG_STRING_LENGTH = "org.hyperledger.fabric.sdk.log.stringlengthmax";
 
     private static Config config;
     private final static Properties sdkProperties = new Properties();
@@ -86,6 +87,7 @@ public class Config {
 
             defaultProperty(PROPOSAL_WAIT_TIME, "12000");
             defaultProperty(GENESISBLOCK_WAIT_TIME, "5000");
+            defaultProperty(MAX_LOG_STRING_LENGTH, "64");
 
         }
 
@@ -226,6 +228,10 @@ public class Config {
 
     public String getSignatureAlgorithm() {
         return getProperty(SIGNATURE_ALGORITHM);
+    }
+
+    public int maxLogStringLength() {
+        return Integer.parseInt(getProperty(MAX_LOG_STRING_LENGTH));
     }
 
 }

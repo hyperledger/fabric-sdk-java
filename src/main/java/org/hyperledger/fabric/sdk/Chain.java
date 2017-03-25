@@ -69,8 +69,13 @@ import org.hyperledger.fabric.protos.peer.Configuration.AnchorPeers;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposal.SignedProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse.Response;
 import org.hyperledger.fabric.protos.peer.FabricTransaction.ProcessedTransaction;
 import org.hyperledger.fabric.protos.peer.PeerEvents.Event.EventCase;
+import org.hyperledger.fabric.protos.peer.Query;
+import org.hyperledger.fabric.protos.peer.Query.ChaincodeInfo;
+import org.hyperledger.fabric.protos.peer.Query.ChaincodeQueryResponse;
+import org.hyperledger.fabric.protos.peer.Query.ChannelQueryResponse;
 import org.hyperledger.fabric.sdk.BlockEvent.TransactionEvent;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.EventHubException;
@@ -86,6 +91,9 @@ import org.hyperledger.fabric.sdk.transaction.InstallProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.InstantiateProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.JoinPeerProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.ProposalBuilder;
+import org.hyperledger.fabric.sdk.transaction.QueryInstalledChaincodesBuilder;
+import org.hyperledger.fabric.sdk.transaction.QueryInstantiatedChaincodesBuilder;
+import org.hyperledger.fabric.sdk.transaction.QueryPeerChannelsBuilder;
 import org.hyperledger.fabric.sdk.transaction.TransactionBuilder;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 import org.hyperledger.fabric.sdk.transaction.UpgradeProposalBuilder;
@@ -110,6 +118,7 @@ import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createChannelHea
 public class Chain {
     private static final Log logger = LogFactory.getLog(Chain.class);
     private static final Config config = Config.getConfig();
+    static final String SYSTEM_CHAIN_NAME = "";
 
     // Name of the chain is only meaningful to the client
     private String name;
@@ -130,7 +139,7 @@ public class Chain {
     // Temporary variables to control how long to wait for deploy and invoke to complete before
     // emitting events.  This will be removed when the SDK is able to receive events from the
     private int deployWaitTime = 20;
-    private int invokeWaitTime = 5;
+    private int transactionWaitTime = 5;
 
     // contains the anchor peers parsed from the channel's configBlock
     private Set<Anchor> anchorPeers;
@@ -144,9 +153,10 @@ public class Chain {
     private final Collection<EventHub> eventHubs = new LinkedList<>();
     private final ExecutorService es = Executors.newCachedThreadPool();
     private Block genesisBlock;
+    private final boolean systemChain;
 
     Chain(String name, HFClient hfClient, Orderer orderer, ChainConfiguration chainConfiguration) throws InvalidArgumentException, TransactionException {
-        this(name, hfClient);
+        this(name, hfClient, false);
 
         try {
             Envelope envelope = Envelope.parseFrom(chainConfiguration.getChainConfigurationAsBytes());
@@ -179,13 +189,26 @@ public class Chain {
 
 
     /**
-     * isInitialized - Has the chain been initialized?
+     * For requests that are not targeted for a specific chain.
+     * User's can not directly create this chain.
      *
-     * @return boolean true if chain is initialized
+     * @param client
+     * @return
+     * @throws InvalidArgumentException
      */
+
+
+    static Chain newSystemChain(HFClient client) throws InvalidArgumentException {
+        return new Chain(null, client, true);
+    }
+
 
     public boolean isInitialized() {
         return initialized;
+    }
+
+    Chain(String name, HFClient client) throws InvalidArgumentException {
+        this(name, client, false);
     }
 
     /**
@@ -193,10 +216,19 @@ public class Chain {
      * @param client
      */
 
-    Chain(String name, HFClient client) throws InvalidArgumentException {
-        if (nullOrEmptyString(name)) {
-            throw new InvalidArgumentException("Chain name is invalid can not be null or empty.");
+    Chain(String name, HFClient client, final boolean systemChain) throws InvalidArgumentException {
+
+        this.systemChain = systemChain;
+
+        if (systemChain) {
+            name = SYSTEM_CHAIN_NAME;///It's special !
+            initialized = true;
+        } else {
+            if (nullOrEmptyString(name)) {
+                throw new InvalidArgumentException("Chain name is invalid can not be null or empty.");
+            }
         }
+
         if (null == client) {
             throw new InvalidArgumentException("Chain client is invalid can not be null.");
         }
@@ -257,7 +289,6 @@ public class Chain {
             throw new InvalidArgumentException("Peer added to chan has invalid url.", e);
         }
 
-        peer.setChain(this);
         this.peers.add(peer);
         return this;
     }
@@ -271,10 +302,9 @@ public class Chain {
 
             genesisBlock = getGenesisBlock(orderers.iterator().next());
 
-            peer.setChain(this);
+            final Chain systemChain = newSystemChain(client); //channel is not really created and this is targeted to system chain
 
-            TransactionContext transactionContext = getTransactionContext();
-            transactionContext.verify(false); // not targeted to a chain does not seem to be signed.
+            TransactionContext transactionContext = systemChain.getTransactionContext();
 
             FabricProposal.Proposal joinProposal = JoinPeerProposalBuilder.newBuilder()
                     .context(transactionContext)
@@ -416,22 +446,22 @@ public class Chain {
     }
 
     /**
-     * Get the invoke wait time in seconds
+     * Get the transaction wait time in seconds
      *
-     * @return invoke wait time
+     * @return transaction wait time
      */
-    public int getInvokeWaitTime() {
-        return this.invokeWaitTime;
+    public int getTransactionWaitTime() {
+        return this.transactionWaitTime;
     }
 
     /**
-     * Set the invoke wait time in seconds.
+     * Set the transaction wait time in seconds.
      *
      * @param waitTime Invoke wait time
      */
-    public void setInvokeWaitTime(int waitTime) {
-        logger.trace("setInvokeWaitTime is:" + waitTime);
-        this.invokeWaitTime = waitTime;
+    public void setTransactionWaitTime(int waitTime) {
+        logger.trace("setTransactionWaitTime is:" + waitTime);
+        transactionWaitTime = waitTime;
     }
 
 
@@ -653,6 +683,11 @@ public class Chain {
 
     Map<String, MSP> msps = new HashMap<>();
 
+    boolean isSystemChain() {
+        return systemChain;
+    }
+
+
     /**
      * MSPs
      */
@@ -736,11 +771,11 @@ public class Chain {
 
     /**
      * Anchor holds the info for the anchor peers as parsed from the configuration block
-     *
      */
     class Anchor {
         public String hostName;
         public int port;
+
         Anchor(String hostName, int port) throws InvalidArgumentException {
             this.hostName = hostName;
             this.port = port;
@@ -1050,6 +1085,20 @@ public class Chain {
 
     }
 
+
+    /**
+     * Send instantiate request to the channel. Chaincode is created and initialized.
+     *
+     * @param instantiateProposalRequest send instantiate chaincode proposal request.
+     * @return Collections of proposal responses
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+
+    public Collection<ProposalResponse> sendInstantiationProposal(InstantiateProposalRequest instantiateProposalRequest) throws InvalidArgumentException, ProposalException {
+        return sendInstantiationProposal(instantiateProposalRequest, peers);
+    }
+
     /**
      * Send instantiate request to the channel. Chaincode is created and initialized.
      *
@@ -1100,6 +1149,19 @@ public class Chain {
         return new TransactionContext(this, this.client.getUserContext(), cryptoSuite);
     }
 
+
+    /**
+     * Send install chaincode request proposal to the channel.
+     *
+     * @param installProposalRequest
+     * @return
+     * @throws Exception
+     */
+
+    public Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest) throws InvalidArgumentException, ProposalException {
+        return sendInstallProposal(installProposalRequest, peers);
+    }
+
     /**
      * Send install chaincode request proposal to the channel.
      *
@@ -1148,11 +1210,30 @@ public class Chain {
 
     }
 
+    /**
+     * Send Upgrade proposal proposal to upgrade chaincode to a new version.
+     *
+     * @param upgradeProposalRequest
+     * @return Collection of proposal responses.
+     * @throws ProposalException
+     * @throws InvalidArgumentException
+     */
+
     public Collection<ProposalResponse> sendUpgradeProposal(UpgradeProposalRequest upgradeProposalRequest) throws ProposalException, InvalidArgumentException {
 
         return sendUpgradeProposal(upgradeProposalRequest, peers);
 
     }
+
+    /**
+     * Send Upgrade proposal proposal to upgrade chaincode to a new version.
+     *
+     * @param upgradeProposalRequest
+     * @param peers                  the specific peers to send to.
+     * @return Collection of proposal responses.
+     * @throws ProposalException
+     * @throws InvalidArgumentException
+     */
 
     public Collection<ProposalResponse> sendUpgradeProposal(UpgradeProposalRequest upgradeProposalRequest, Collection<Peer> peers)
             throws InvalidArgumentException, ProposalException {
@@ -1181,8 +1262,8 @@ public class Chain {
             upgradeProposalBuilder.chaincodeVersion(upgradeProposalRequest.getChaincodeVersion());
             upgradeProposalBuilder.chaincodEndorsementPolicy(upgradeProposalRequest.getChaincodeEndorsementPolicy());
 
-            FabricProposal.Proposal updradeProposal = upgradeProposalBuilder.build();
-            SignedProposal signedProposal = getSignedProposal(updradeProposal);
+
+            SignedProposal signedProposal = getSignedProposal(upgradeProposalBuilder.build());
 
 
             return sendProposalToPeers(peers, signedProposal, transactionContext);
@@ -1265,14 +1346,14 @@ public class Chain {
             proposalResponse = proposalResponses.iterator().next();
 
             if (proposalResponse.getStatus().getStatus() != 200)
-                throw new PeerException(String.format("Unable to query block by hash %s %n.... for channel %s from peer %s \n    with message %s",
+                throw new PeerException(format("Unable to query block by hash %s %n.... for channel %s from peer %s \n    with message %s",
                         Hex.encodeHexString(blockHash),
                         name,
                         peer.getName(),
                         proposalResponse.getMessage()));
             responseBlock = new BlockInfo(Block.parseFrom(proposalResponse.getProposalResponse().getResponse().getPayload()));
         } catch (Exception e) {
-            String emsg = String.format("queryBlockByHash hash: %s %npeer %s channel %s %nerror: %s",
+            String emsg = format("queryBlockByHash hash: %s %npeer %s channel %s %nerror: %s",
                     Hex.encodeHexString(blockHash), peer.getName(), name, e.getMessage());
             logger.error(emsg, e);
             throw new ProposalException(emsg, e);
@@ -1326,14 +1407,14 @@ public class Chain {
             proposalResponse = proposalResponses.iterator().next();
 
             if (proposalResponse.getStatus().getStatus() != 200)
-                throw new PeerException(String.format("Unable to query block by number %d for channel %s from peer %s with message %s",
+                throw new PeerException(format("Unable to query block by number %d for channel %s from peer %s with message %s",
                         blockNumber,
                         name,
                         peer.getName(),
                         proposalResponse.getMessage()));
             responseBlock = new BlockInfo(Block.parseFrom(proposalResponse.getProposalResponse().getResponse().getPayload()));
         } catch (Exception e) {
-            String emsg = String.format("queryBlockByNumber blockNumber %d peer %s channel %s error %s",
+            String emsg = format("queryBlockByNumber blockNumber %d peer %s channel %s error %s",
                     blockNumber,
                     peer.getName(),
                     name,
@@ -1396,14 +1477,14 @@ public class Chain {
             proposalResponse = proposalResponses.iterator().next();
 
             if (proposalResponse.getStatus().getStatus() != 200)
-                throw new PeerException(String.format("Unable to query block by TxID %s%n    for channel %s from peer %s with message %s",
+                throw new PeerException(format("Unable to query block by TxID %s%n    for channel %s from peer %s with message %s",
                         txID,
                         name,
                         peer.getName(),
                         proposalResponse.getMessage()));
             responseBlock = new BlockInfo(Block.parseFrom(proposalResponse.getProposalResponse().getResponse().getPayload()));
         } catch (Exception e) {
-            String emsg = String.format("QueryBlockByTransactionID TxID %s%n peer %s channel %s error %s",
+            String emsg = format("QueryBlockByTransactionID TxID %s%n peer %s channel %s error %s",
                     txID,
                     peer.getName(),
                     name,
@@ -1457,14 +1538,14 @@ public class Chain {
             ProposalResponse proposalResponse = proposalResponses.iterator().next();
 
             if (proposalResponse.getStatus().getStatus() != 200) {
-                throw new PeerException(String.format("Unable to query block chain info for channel %s from peer %s with message %s",
+                throw new PeerException(format("Unable to query block chain info for channel %s from peer %s with message %s",
                         name,
                         peer.getName(),
                         proposalResponse.getMessage()));
             }
             response = new BlockchainInfo(Ledger.BlockchainInfo.parseFrom(proposalResponse.getProposalResponse().getResponse().getPayload()));
         } catch (Exception e) {
-            String emsg = String.format("queryBlockchainInfo peer %s channel %s error %s",
+            String emsg = format("queryBlockchainInfo peer %s channel %s error %s",
                     peer.getName(),
                     name,
                     e.getMessage());
@@ -1525,7 +1606,7 @@ public class Chain {
             ProposalResponse proposalResponse = proposalResponses.iterator().next();
 
             if (proposalResponse.getStatus().getStatus() != 200) {
-                throw new PeerException(String.format("Unable to query transaction info for ID %s%n for channel %s from peer %s with message %s",
+                throw new PeerException(format("Unable to query transaction info for ID %s%n for channel %s from peer %s with message %s",
                         txID,
                         name,
                         peer.getName(),
@@ -1533,7 +1614,7 @@ public class Chain {
             }
             transactionInfo = new TransactionInfo(txID, ProcessedTransaction.parseFrom(proposalResponse.getProposalResponse().getResponse().getPayload()));
         } catch (Exception e) {
-            String emsg = String.format("queryTransactionByID TxID %s%n peer %s channel %s error %s",
+            String emsg = format("queryTransactionByID TxID %s%n peer %s channel %s error %s",
                     txID,
                     peer.getName(),
                     name,
@@ -1545,29 +1626,256 @@ public class Chain {
         return transactionInfo;
     }
 
+    Set<String> queryChannels(Peer peer) throws InvalidArgumentException, ProposalException {
+
+
+        if (peer == null) {
+            throw new InvalidArgumentException("Must have peer to query.");
+        }
+
+        if (!isSystemChain()) {
+            throw new InvalidArgumentException("queryChannels should only be invoked on system chain.");
+        }
+
+        try {
+
+            TransactionContext context = getTransactionContext();
+
+            FabricProposal.Proposal q = QueryPeerChannelsBuilder.newBuilder().context(context).build();
+
+            SignedProposal qProposal = getSignedProposal(q);
+            Collection<ProposalResponse> proposalResponses = sendProposalToPeers(Collections.singletonList(peer), qProposal, context);
+
+            if (null == proposalResponses) {
+                throw new ProposalException(format("Peer %s channel query return with null for responses", peer.getName()));
+            }
+
+            if (proposalResponses.size() != 1) {
+
+                throw new ProposalException(format("Peer %s channel query expected one response but got back %d  responses ", peer.getName(), proposalResponses.size()));
+            }
+
+
+            ProposalResponse proposalResponse = proposalResponses.iterator().next();
+
+            FabricProposalResponse.ProposalResponse fabricResponse = proposalResponse.getProposalResponse();
+            if (null == fabricResponse) {
+                throw new ProposalException(format("Peer %s channel query return with empty fabric response", peer.getName()));
+
+            }
+
+            final Response fabricResponseResponse = fabricResponse.getResponse();
+
+            if (null == fabricResponseResponse) {//not likely but check it.
+                throw new ProposalException(format("Peer %s channel query return with empty fabricResponseResponse", peer.getName()));
+            }
+
+            if (200 != fabricResponseResponse.getStatus()) {
+                throw new ProposalException(format("Peer %s channel query expected 200, actual returned was: %d. "
+                        + fabricResponseResponse.getMessage(), peer.getName(), fabricResponseResponse.getStatus()));
+
+            }
+
+
+            ChannelQueryResponse qr = ChannelQueryResponse.parseFrom(fabricResponseResponse.getPayload());
+
+            Set<String> ret = new HashSet<>(qr.getChannelsCount());
+
+            for (Query.ChannelInfo x : qr.getChannelsList()) {
+                ret.add(x.getChannelId());
+
+            }
+            return ret;
+
+        } catch (ProposalException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ProposalException(format("Query for peer %s channels failed. " + e.getMessage(), name), e);
+
+        }
+
+    }
+
+    List<ChaincodeInfo> queryInstalledChaincodes(Peer peer) throws InvalidArgumentException, ProposalException {
+
+        if (peer == null) {
+            throw new InvalidArgumentException("Must have peer to query.");
+        }
+
+        if (!isSystemChain()) {
+            throw new InvalidArgumentException("queryInstalledChaincodes should only be invoked on system chain.");
+        }
+
+        try {
+
+            TransactionContext context = getTransactionContext();
+
+            FabricProposal.Proposal q = QueryInstalledChaincodesBuilder.newBuilder().context(context).build();
+
+            SignedProposal qProposal = getSignedProposal(q);
+            Collection<ProposalResponse> proposalResponses = sendProposalToPeers(Collections.singletonList(peer), qProposal, context);
+
+            if (null == proposalResponses) {
+                throw new ProposalException(format("Peer %s channel query return with null for responses", peer.getName()));
+            }
+
+            if (proposalResponses.size() != 1) {
+
+                throw new ProposalException(format("Peer %s channel query expected one response but got back %d  responses ", peer.getName(), proposalResponses.size()));
+            }
+
+
+            ProposalResponse proposalResponse = proposalResponses.iterator().next();
+
+            FabricProposalResponse.ProposalResponse fabricResponse = proposalResponse.getProposalResponse();
+            if (null == fabricResponse) {
+                throw new ProposalException(format("Peer %s channel query return with empty fabric response", peer.getName()));
+
+            }
+
+            final Response fabricResponseResponse = fabricResponse.getResponse();
+
+            if (null == fabricResponseResponse) {//not likely but check it.
+                throw new ProposalException(format("Peer %s channel query return with empty fabricResponseResponse", peer.getName()));
+            }
+
+            if (200 != fabricResponseResponse.getStatus()) {
+                throw new ProposalException(format("Peer %s channel query expected 200, actual returned was: %d. "
+                        + fabricResponseResponse.getMessage(), peer.getName(), fabricResponseResponse.getStatus()));
+
+            }
+
+            ChaincodeQueryResponse chaincodeQueryResponse = ChaincodeQueryResponse.parseFrom(fabricResponseResponse.getPayload());
+
+
+            return chaincodeQueryResponse.getChaincodesList();
+
+        } catch (ProposalException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ProposalException(format("Query for peer %s channels failed. " + e.getMessage(), name), e);
+
+        }
+
+
+    }
+
     /**
-     * Send a Invoke already instantiated chaincode proposal.
+     * Query peer for chaincode that has been instantiated
      *
-     * @param invokeProposalRequest
+     * @param peer The peer to query.
+     * @return A list of ChaincodeInfo @see {@link ChaincodeInfo}
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+
+    public List<ChaincodeInfo> queryInstantiatedChaincodes(Peer peer) throws InvalidArgumentException, ProposalException {
+
+        if (peer == null) {
+            throw new InvalidArgumentException("Must have peer to query.");
+        }
+
+        try {
+
+            TransactionContext context = getTransactionContext();
+
+            FabricProposal.Proposal q = QueryInstantiatedChaincodesBuilder.newBuilder().context(context).build();
+
+            SignedProposal qProposal = getSignedProposal(q);
+            Collection<ProposalResponse> proposalResponses = sendProposalToPeers(Collections.singletonList(peer), qProposal, context);
+
+            if (null == proposalResponses) {
+                throw new ProposalException(format("Peer %s channel query return with null for responses", peer.getName()));
+            }
+
+            if (proposalResponses.size() != 1) {
+
+                throw new ProposalException(format("Peer %s channel query expected one response but got back %d  responses ", peer.getName(), proposalResponses.size()));
+            }
+
+            ProposalResponse proposalResponse = proposalResponses.iterator().next();
+
+            FabricProposalResponse.ProposalResponse fabricResponse = proposalResponse.getProposalResponse();
+            if (null == fabricResponse) {
+                throw new ProposalException(format("Peer %s channel query return with empty fabric response", peer.getName()));
+
+            }
+
+            final Response fabricResponseResponse = fabricResponse.getResponse();
+
+            if (null == fabricResponseResponse) {//not likely but check it.
+                throw new ProposalException(format("Peer %s channel query return with empty fabricResponseResponse", peer.getName()));
+            }
+
+            if (200 != fabricResponseResponse.getStatus()) {
+                throw new ProposalException(format("Peer %s channel query expected 200, actual returned was: %d. "
+                        + fabricResponseResponse.getMessage(), peer.getName(), fabricResponseResponse.getStatus()));
+
+            }
+
+            ChaincodeQueryResponse chaincodeQueryResponse = ChaincodeQueryResponse.parseFrom(fabricResponseResponse.getPayload());
+
+            return chaincodeQueryResponse.getChaincodesList();
+
+        } catch (ProposalException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ProposalException(format("Query for peer %s channels failed. " + e.getMessage(), name), e);
+
+        }
+
+
+    }
+
+    /**
+     * Send a transaction  proposal.
+     *
+     * @param transactionProposalRequest The transaction proposal to be sent to all the peers.
+     * @return
+     * @throws Exception
+     */
+    public Collection<ProposalResponse> sendTransactionProposal(TransactionProposalRequest transactionProposalRequest) throws ProposalException, InvalidArgumentException {
+
+        return sendProposal(transactionProposalRequest, peers);
+    }
+
+
+    /**
+     * Send a transaction proposal to specific peers.
+     *
+     * @param transactionProposalRequest The transaction proposal to be sent to the peers.
      * @param peers
      * @return
      * @throws Exception
      */
-    public Collection<ProposalResponse> sendInvokeProposal(InvokeProposalRequest invokeProposalRequest, Collection<Peer> peers) throws ProposalException, InvalidArgumentException {
-        return sendProposal(invokeProposalRequest, peers);
+    public Collection<ProposalResponse> sendTransactionProposal(TransactionProposalRequest transactionProposalRequest, Collection<Peer> peers) throws ProposalException, InvalidArgumentException {
+
+        return sendProposal(transactionProposalRequest, peers);
     }
 
     /**
      * Send Query proposal
      *
-     * @param queryProposalRequest
+     * @param queryByChaincodeRequest
+     * @return Collection proposal responses.
+     * @throws Exception
+     */
+
+    public Collection<ProposalResponse> queryByChaincode(QueryByChaincodeRequest queryByChaincodeRequest) throws InvalidArgumentException, ProposalException {
+        return sendProposal(queryByChaincodeRequest, peers);
+    }
+
+    /**
+     * Send Query proposal
+     *
+     * @param queryByChaincodeRequest
      * @param peers
      * @return
      * @throws Exception
      */
 
-    public Collection<ProposalResponse> sendQueryProposal(QueryProposalRequest queryProposalRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
-        return sendProposal(queryProposalRequest, peers);
+    public Collection<ProposalResponse> queryByChaincode(QueryByChaincodeRequest queryByChaincodeRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
+        return sendProposal(queryByChaincodeRequest, peers);
     }
 
     private Collection<ProposalResponse> sendProposal(TransactionRequest proposalRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
@@ -1741,7 +2049,7 @@ public class Chain {
 
 
             CompletableFuture<TransactionEvent> sret = registerTxListener(proposalTransactionID);
-            logger.debug("sending transaction to orderer(s) with TxID " + proposalTransactionID);
+            logger.debug(format("Chain %s sending transaction to orderer(s) with TxID %s ", name, proposalTransactionID));
 
             boolean success = false;
 
@@ -1757,7 +2065,7 @@ public class Chain {
 
                     }
                 } catch (Exception e) {
-                    String emsg = format("Unsuccesful sendTransaction to orderer. Status %s", resp.getStatus());
+                    String emsg = format("Chain %s unsuccesful sendTransaction to orderer. Status %s", name, resp.getStatus());
                     logger.error(emsg);
 
                 }
@@ -1767,10 +2075,10 @@ public class Chain {
             }
 
             if (success) {
-                logger.debug(format("Successful sent to Orderer transaction id: %s", proposalTransactionID));
+                logger.debug(format("Chain %s successful sent to Orderer transaction id: %s", name, proposalTransactionID));
                 return sret;
             } else {
-                String emsg = format("Failed to place transaction %s on Orderer. Cause: UNSUCCESSFUL", proposalTransactionID);
+                String emsg = format("Chain %s failed to place transaction %s on Orderer. Cause: UNSUCCESSFUL", name, proposalTransactionID);
                 CompletableFuture<TransactionEvent> ret = new CompletableFuture<>();
                 ret.completeExceptionally(new Exception(emsg));
                 return ret;
@@ -2029,7 +2337,7 @@ public class Chain {
 
             for (TransactionEvent transactionEvent : blockEvent.getTransactionEvents()) {
 
-                logger.debug("Got event for transaction " + transactionEvent.getTransactionID());
+                logger.debug(format("Chain %s got event for transaction %s ", name, transactionEvent.getTransactionID()));
 
                 List<TL> txL = new ArrayList<>(txListeners.size() + 2);
                 synchronized (txListeners) {

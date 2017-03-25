@@ -26,7 +26,6 @@ SDK's `Enrollment` interface.
 
 * TLS Is supported but demo/test/sample code does not use it: JIRA FAB-2855
 * TCerts are not supported: JIRA FAB-1401 
-* Query Channels, instantiated chaincodes, and installed chaincodes : JIRA FAB-2754
 
 
 ## Valid builds of Fabric and Fabric-ca

@@ -85,7 +85,7 @@ class OrdererClient {
 
             @Override
             public void onCompleted() {
-                logger.debug("onCompleted");
+                logger.warn("onCompleted");
                 finishLatch.countDown();
             }
         };
@@ -162,7 +162,7 @@ class OrdererClient {
 
             @Override
             public void onCompleted() {
-                logger.debug("onCompleted");
+                logger.warn("onCompleted");
                 finishLatch.countDown();
             }
         };
@@ -173,7 +173,7 @@ class OrdererClient {
 
         try {
             boolean res = finishLatch.await(2, TimeUnit.MINUTES);
-            logger.debug("Done waiting for reply! Got:" + retList);
+            logger.trace("Done waiting for reply! Got:" + retList);
 
         } catch (InterruptedException e) {
             logger.error(e);

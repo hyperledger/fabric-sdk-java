@@ -14,23 +14,13 @@
 
 package org.hyperledger.fabric.sdk;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
-import org.hyperledger.fabric.protos.peer.Chaincode;
-import org.hyperledger.fabric.protos.peer.FabricProposal;
-import org.hyperledger.fabric.sdk.exception.CryptoException;
-import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.helper.Config;
-import org.hyperledger.fabric.sdk.transaction.ProposalBuilder;
-import org.hyperledger.fabric.sdk.transaction.TransactionContext;
-
-import com.google.protobuf.ByteString;
 
 /**
- * A base transaction request common for InstallProposalRequest, InvokeRequest, and QueryRequest.
+ * A base transaction request common for InstallProposalRequest,trRequest, and QueryRequest.
  */
 public class TransactionRequest {
 
@@ -67,7 +57,6 @@ public class TransactionRequest {
     /**
      * Some peer requests (e.g. queries to QSCC) require the field to be blank.
      * Subclasses should override this method as needed.
-     * @param proposalBuilder
      */
     public boolean noChainID() {
         return false;
@@ -76,6 +65,7 @@ public class TransactionRequest {
     /**
      * Some proposal responses from Fabric are not signed. We default to always verify a ProposalResponse.
      * Subclasses should override this method if you do not want the response signature to be verified
+     *
      * @return true if proposal response is to be checked for a valid signature
      */
     public boolean doVerify() {
@@ -116,16 +106,16 @@ public class TransactionRequest {
 
     public void setChaincodeID(ChainCodeID chaincodeID) {
 
-        if(chaincodeName != null ){
+        if (chaincodeName != null) {
 
             throw new IllegalArgumentException("Chaincode name has already been set.");
         }
-        if(chaincodeVersion != null ){
+        if (chaincodeVersion != null) {
 
             throw new IllegalArgumentException("Chaincode version has already been set.");
         }
 
-        if(chaincodePath != null ){
+        if (chaincodePath != null) {
 
             throw new IllegalArgumentException("Chaincode path has already been set.");
         }
@@ -174,6 +164,7 @@ public class TransactionRequest {
         this.args = args;
         return this;
     }
+
     public Certificate getUserCert() {
         return userCert;
     }
@@ -203,8 +194,8 @@ public class TransactionRequest {
 
     /**
      * sets the endorsementPolicy associated with the chaincode of this transaction
-     * @param policy a Policy object
      *
+     * @param policy a Policy object
      * @see ChaincodeEndorsementPolicy
      */
     public void setChaincodeEndorsementPolicy(ChaincodeEndorsementPolicy policy) {
@@ -213,8 +204,8 @@ public class TransactionRequest {
 
     /**
      * returns the Policy object associated with the chaincode of this transaction
-     * @return a Policy object
      *
+     * @return a Policy object
      * @see ChaincodeEndorsementPolicy
      */
     public ChaincodeEndorsementPolicy getChaincodeEndorsementPolicy() {

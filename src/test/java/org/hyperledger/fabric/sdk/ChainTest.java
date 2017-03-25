@@ -14,9 +14,12 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.io.File;
+
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class ChainTest {
@@ -67,7 +70,6 @@ public class ChainTest {
             final String CHAIN_NAME = "chain3";
             final Chain testchain = new Chain(CHAIN_NAME, hfclient);
             final Peer peer = hfclient.newPeer("peer_" , "grpc://localhost:7051");
-
 
             testchain.addPeer(peer);
 

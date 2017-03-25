@@ -100,17 +100,4 @@ public class ClientTest {
          }  
     }
 
-    @Test
-    public void testGetChain() {
-        Peer peer = null;
-        try {
-            Chain chain = hfclient.newChain(CHAIN_NAME);
-            peer = hfclient.newPeer("peer1" , "grpc://localhost:7051");
-            chain.addPeer(peer);
-        } catch (Exception e) {
-            Assert.fail("Unexpected Exception " + e.getMessage());
-        }
-
-        Assert.assertTrue("Test passed - ", peer.getChain().getName().equalsIgnoreCase(CHAIN_NAME));
-    }
 }

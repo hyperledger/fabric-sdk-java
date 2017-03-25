@@ -38,6 +38,7 @@ public class Orderer {
 
     /**
      * Get Orderer properties.
+     *
      * @return
      */
 
@@ -48,6 +49,7 @@ public class Orderer {
 
     /**
      * Return Orderer's name
+     *
      * @return orderer's name.
      */
     public String getName() {
@@ -111,6 +113,8 @@ public class Orderer {
 
     Ab.BroadcastResponse sendTransaction(Common.Envelope transaction) throws Exception {
 
+        logger.debug(String.format("Order.sendTransaction name: %s, url: %s", name, url));
+
         OrdererClient orderClient = new OrdererClient(new Endpoint(url, properties).getChannelBuilder());
         return orderClient.sendTransaction(transaction);
 
@@ -123,6 +127,8 @@ public class Orderer {
     }
 
     DeliverResponse[] sendDeliver(Common.Envelope transaction) throws TransactionException {
+
+        logger.debug(String.format("Order.sendDeliver name: %s, url: %s", name, url));
 
         OrdererClient orderClient = new OrdererClient(new Endpoint(url, properties).getChannelBuilder());
         return orderClient.sendDeliver(transaction);

@@ -191,9 +191,9 @@ public class CryptoPrimitives implements CryptoSuite {
         if (plainText == null || signature == null || pemCertificate == null)
             return false;
 
-        logger.debug("plaintext in hex: " + DatatypeConverter.printHexBinary(plainText));
-        logger.debug("signature in hex: " + DatatypeConverter.printHexBinary(signature));
-        logger.debug("PEM cert in hex: " + DatatypeConverter.printHexBinary(pemCertificate));
+        logger.trace("plaintext in hex: " + DatatypeConverter.printHexBinary(plainText));
+        logger.trace("signature in hex: " + DatatypeConverter.printHexBinary(signature));
+        logger.trace("PEM cert in hex: " + DatatypeConverter.printHexBinary(pemCertificate));
 
         try {
             BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(pemCertificate));
@@ -313,7 +313,7 @@ public class CryptoPrimitives implements CryptoSuite {
             throw new InvalidArgumentException("Certificate cannot be null.");
 
         try {
-            logger.debug("Adding cert to trust store. alias:  " + alias + "cert: " + caCert.toString());
+            logger.trace("Adding cert to trust store. alias:  " + alias + "cert: " + caCert.toString());
             getTrustStore().setCertificateEntry(alias, caCert);
         } catch (KeyStoreException e) {
             String emsg = "Unable to add CA certificate to trust store. Error: "+ e.getMessage();
@@ -347,7 +347,7 @@ public class CryptoPrimitives implements CryptoSuite {
             throw new CryptoException("List of CA certificates is empty. Nothing to load.");
         ArrayList<Certificate> certList = new ArrayList<>();
         for (byte[] certBytes : CACertificatesBytes) {
-            logger.debug("certificate to load:\n" + new String(certBytes));
+            logger.trace("certificate to load:\n" + new String(certBytes));
             certList.add(bytesToCertificate(certBytes));
         }
         loadCACertificates(certList);

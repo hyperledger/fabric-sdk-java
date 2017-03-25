@@ -82,8 +82,12 @@ public class HFCAClientEnrollIT {
                 user2.setEnrollment(client.enroll(user2.getName(), user2.getEnrollmentSecret()));
             }
 
+            sleepALittle();
+
             // get another enrollment
             Enrollment tmpEnroll = client.reenroll(user2);
+
+            sleepALittle();
 
             // revoke the tmp enrollment
             client.revoke(admin, tmpEnroll, 1);
@@ -109,15 +113,31 @@ public class HFCAClientEnrollIT {
                 user3.setEnrollmentSecret(client.register(rr, admin)); //Admin can register other users.
             }
 
+            sleepALittle();
+
             if (!user3.isEnrolled()) {
                 user3.setEnrollment(client.enroll(user3.getName(), user3.getEnrollmentSecret()));
             }
+
+            sleepALittle();
 
             client.revoke(admin, user3.getName(), 1);
         } catch (Exception e) {
             e.printStackTrace();
             fail("user enroll/revoke-all test failed with error : " + e.getMessage());
         }
+    }
+
+    // https://jira.hyperledger.org/browse/FAB-2955
+    private static void sleepALittle() {
+        // Seems to be an odd that calling back too quickly can once in a while generate an error on the fabric_ca
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+
     }
 
 }

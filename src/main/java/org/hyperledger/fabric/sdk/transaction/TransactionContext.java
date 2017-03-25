@@ -71,7 +71,9 @@ public class TransactionContext {
 
         this.user = user;
         this.chain = chain;
-        this.tcert = tcert;
+        //TODO clean up when public classes are interfaces.
+        this.verify = !"".equals(chain.getName());  //if name is not blank not system chain and need verify.
+
         //  this.txID = transactionID;
         this.cryptoPrimitives = cryptoPrimitives;
 

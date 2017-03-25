@@ -30,28 +30,33 @@ import org.hyperledger.fabric.sdk.exception.ProposalException;
 
 import static org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type.GOLANG;
 
-public class JoinPeerProposalBuilder extends ProposalBuilder {
-    private static final Log logger = LogFactory.getLog(ProposalBuilder.class);
+public class JoinPeerProposalBuilder extends CSCCProposalBuilder {
+    private static final Log logger = LogFactory.getLog(JoinPeerProposalBuilder.class);
 
-    private static final String CSCC_CHAIN_NAME = "cscc";
 
-    private static final Chaincode.ChaincodeID CHAINCODE_ID_CSCC =
-            Chaincode.ChaincodeID.newBuilder().setName(CSCC_CHAIN_NAME).build();
+    public JoinPeerProposalBuilder genesisBlock(Block genesisBlock) throws ProposalException {
 
-    private Block genesisBlock;
+        if (genesisBlock == null) {
+            ProposalException exp = new ProposalException("No genesis block for Join proposal.");
+            JoinPeerProposalBuilder.logger.error(exp.getMessage(), exp);
+            throw exp;
+        }
 
-    public JoinPeerProposalBuilder genesisBlock(Block genesisBlock) {
-        this.genesisBlock = genesisBlock;
+        List<ByteString> argList = new ArrayList<>();
+        argList.add(ByteString.copyFrom("JoinChain", StandardCharsets.UTF_8));
+        argList.add(genesisBlock.toByteString());
+        args(argList);
         return this;
-    }
-
-    @Override
-    public JoinPeerProposalBuilder context(TransactionContext context) {
-        return (JoinPeerProposalBuilder) super.context(context);
     }
 
     private JoinPeerProposalBuilder() {
 
+    }
+
+    @Override
+    public JoinPeerProposalBuilder context(TransactionContext context) {
+        super.context(context);
+        return  this;
     }
 
     public static JoinPeerProposalBuilder newBuilder() {
@@ -59,27 +64,5 @@ public class JoinPeerProposalBuilder extends ProposalBuilder {
     }
 
 
-    @Override
-    public FabricProposal.Proposal build() throws ProposalException, CryptoException {
-
-        if (genesisBlock == null) {
-            ProposalException exp = new ProposalException("No genesis block for Join proposal.");
-            logger.error(exp.getMessage(), exp);
-            throw exp;
-        }
-
-        ccType(GOLANG);
-        chaincodeID(CHAINCODE_ID_CSCC);
-
-        List<ByteString> argList = new ArrayList<>();
-        argList.add(ByteString.copyFrom("JoinChain", StandardCharsets.UTF_8));
-        argList.add(genesisBlock.toByteString());
-        args(argList);
-
-        chainID(""); //no specific chain -- system chain.
-
-        return super.build();
-
-    }
 }
 
