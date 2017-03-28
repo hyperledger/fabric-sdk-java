@@ -48,6 +48,7 @@ import java.security.interfaces.ECPrivateKey;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Optional;
@@ -63,7 +64,6 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.security.auth.x500.X500Principal;
 import javax.xml.bind.DatatypeConverter;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -98,6 +98,7 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.util.Arrays;
+import org.bouncycastle.util.encoders.Hex;
 import org.bouncycastle.util.io.pem.PemObject;
 
 import org.hyperledger.fabric.sdk.exception.CryptoException;
@@ -484,6 +485,24 @@ public class CryptoPrimitives implements CryptoSuite {
             return pair;
         } catch (Exception exp) {
             throw new CryptoException("Unable to generate key pair", exp);
+        }
+    }
+
+    public String encodePublicKey(PublicKey pk) {
+        return Hex.toHexString(pk.getEncoded());
+    }
+
+    public PublicKey decodePublicKey(String data) throws CryptoException {
+        try {
+            logger.debug("input encoded public key: " + data);
+            KeyFactory asymmetricKeyFactory = KeyFactory.getInstance(ASYMMETRIC_KEY_TYPE, SECURITY_PROVIDER);
+            X509EncodedKeySpec pubX509 = new X509EncodedKeySpec(Hex.decode(data));
+            return asymmetricKeyFactory.generatePublic(pubX509);
+        }
+        catch (Exception e) {
+            String emsg = "Failed to decode public key: " + data + ". error : " + e.getMessage();
+            logger.error(emsg);
+            throw new CryptoException(emsg, e);
         }
     }
 

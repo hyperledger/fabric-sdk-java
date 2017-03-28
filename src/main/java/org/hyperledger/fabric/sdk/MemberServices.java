@@ -20,6 +20,7 @@ import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric_ca.sdk.exception.RegistrationException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
+import org.hyperledger.fabric_ca.sdk.exception.RevocationException;
 
 public interface MemberServices {
 
@@ -50,6 +51,28 @@ public interface MemberServices {
      */
     Enrollment enroll(String userName, String secret) throws EnrollmentException, InvalidArgumentException;
 
+    /**
+     * Re-enroll the user and return a new Enrollment of the user
+     * @param user usr to be re-enroll
+     * @return enrollment details
+     */
+    Enrollment reenroll(User user) throws EnrollmentException, InvalidArgumentException;
+
+    /**
+     * Revoke one enrollment of user
+     * @param revoker admin user who has revoker attribute configured in CA-server
+     * @param enrollment the user enrollment to be revoked
+     * @param reason revoke reason, see RFC 5280
+     */
+    void revoke(User revoker, Enrollment enrollment, int reason) throws RevocationException, InvalidArgumentException;
+
+    /**
+     * Revoke all enrollment of user
+     * @param revoker amdin user who has revoker attribute configured in CA-server
+     * @param revokeeName name of user who to be revoked
+     * @param reason revoke reason, see RFC 5280
+     */
+    void revoke(User revoker, String revokeeName, int reason) throws RevocationException, InvalidArgumentException;
     /**
      * Get an array of transaction certificates (tcerts).
      * @param req A GetTCertBatchRequest
