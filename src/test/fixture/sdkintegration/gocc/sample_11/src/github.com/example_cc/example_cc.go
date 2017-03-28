@@ -16,10 +16,11 @@ limitations under the License.
 
 package main
 
-
 import (
 	"fmt"
 	"strconv"
+
+	sdk "sdkintegration-test/utils"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	pb "github.com/hyperledger/fabric/protos/peer"
@@ -29,18 +30,17 @@ import (
 type SimpleChaincode struct {
 }
 
-func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response  {
-        fmt.Println("########### example_cc Init ###########")
+func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
+	fmt.Println("########### example_cc Init ###########")
 	_, args := stub.GetFunctionAndParameters()
 	var A, B string    // Entities
 	var Aval, Bval int // Asset holdings
 	var err error
 
-	if len(args) ==0 {
+	if len(args) == 0 {
 		fmt.Println("###########  init JUST upgrading example_cc Invoke code ###########")
 		return shim.Success(nil)
 	}
-
 
 	if len(args) != 4 {
 		return shim.Error("Incorrect number of arguments. Expecting 4")
@@ -72,20 +72,19 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response  {
 
 	return shim.Success(nil)
 
-
 }
 
 func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface) pb.Response {
-		return shim.Error("Unknown supported call")
+	return shim.Error("Unknown supported call")
 }
 
 // Transaction makes payment of X units from A to B
 func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
-        fmt.Println("########### example_cc Invoke ###########")
+	fmt.Println("########### example_cc Invoke ###########")
 	function, args := stub.GetFunctionAndParameters()
-	
+
 	if function != "invoke" {
-                return shim.Error("Unknown function call")
+		return shim.Error("Unknown function call")
 	}
 
 	if len(args) < 2 {
@@ -148,7 +147,7 @@ func (t *SimpleChaincode) move(stub shim.ChaincodeStubInterface, args []string) 
 		return shim.Error("Invalid transaction amount, expecting a integer value")
 	}
 	//Double it!
-	X = X * 2
+	X, _ = sdk.DoubleValue(X)
 	Aval = Aval - X
 	Bval = Bval + X
 	fmt.Printf("Aval = %d, Bval = %d\n", Aval, Bval)
@@ -164,7 +163,7 @@ func (t *SimpleChaincode) move(stub shim.ChaincodeStubInterface, args []string) 
 		return shim.Error(err.Error())
 	}
 
-        return shim.Success(nil);
+	return shim.Success(nil)
 }
 
 // Deletes an entity from state
