@@ -19,11 +19,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -62,6 +64,8 @@ import org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse;
 import org.hyperledger.fabric.protos.orderer.Ab.SeekInfo;
 import org.hyperledger.fabric.protos.orderer.Ab.SeekPosition;
 import org.hyperledger.fabric.protos.orderer.Ab.SeekSpecified;
+import org.hyperledger.fabric.protos.peer.Configuration.AnchorPeer;
+import org.hyperledger.fabric.protos.peer.Configuration.AnchorPeers;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposal.SignedProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
@@ -127,6 +131,9 @@ public class Chain {
     // emitting events.  This will be removed when the SDK is able to receive events from the
     private int deployWaitTime = 20;
     private int invokeWaitTime = 5;
+
+    // contains the anchor peers parsed from the channel's configBlock
+    private Set<Anchor> anchorPeers;
 
     // The crypto primitives object
     private CryptoSuite cryptoSuite;
@@ -727,6 +734,18 @@ public class Chain {
 
     }
 
+    /**
+     * Anchor holds the info for the anchor peers as parsed from the configuration block
+     *
+     */
+    class Anchor {
+        public String hostName;
+        public int port;
+        Anchor(String hostName, int port) throws InvalidArgumentException {
+            this.hostName = hostName;
+            this.port = port;
+        }
+    }
 
     protected void parseConfigBlock() throws TransactionException {
 
@@ -734,16 +753,17 @@ public class Chain {
 
             final Block configBlock = getConfigurationBlock();
 
-            logger.trace(format("Got config block getting MSP data"));
+            logger.trace(format("Got config block getting MSP data and anchorPeers data"));
 
             Envelope envelope = Envelope.parseFrom(configBlock.getData().getData(0));
             Payload payload = Payload.parseFrom(envelope.getPayload());
             ConfigEnvelope configEnvelope = ConfigEnvelope.parseFrom(payload.getData());
             ConfigGroup channelGroup = configEnvelope.getConfig().getChannelGroup();
-            Map<String, MSP> newMSPS = traverseConfigGroups("", channelGroup, new HashMap<>(20));
+            Map<String, MSP> newMSPS = traverseConfigGroupsMSP("", channelGroup, new HashMap<>(20));
 
             msps = Collections.unmodifiableMap(newMSPS);
 
+            anchorPeers = Collections.unmodifiableSet(traverseConfigGroupsAnchors("", channelGroup, new HashSet<>()));
 
         } catch (TransactionException e) {
             logger.error(e.getMessage(), e);
@@ -755,7 +775,26 @@ public class Chain {
 
     }
 
-    private Map<String, MSP> traverseConfigGroups(String name, ConfigGroup configGroup, Map<String, MSP> msps) throws InvalidProtocolBufferException {
+    private Set<Anchor> traverseConfigGroupsAnchors(String name, ConfigGroup configGroup, Set<Anchor> anchorPeers) throws InvalidProtocolBufferException, InvalidArgumentException {
+        ConfigValue anchorsConfig = configGroup.getValuesMap().get("AnchorPeers");
+        if (anchorsConfig != null) {
+            AnchorPeers anchors = AnchorPeers.parseFrom(anchorsConfig.getValue());
+            for (AnchorPeer anchorPeer : anchors.getAnchorPeersList()) {
+                String hostName = anchorPeer.getHost();
+                int port = anchorPeer.getPort();
+                logger.debug(format("parsed from config block: anchor peer %s:%d", hostName, port));
+                anchorPeers.add(new Anchor(hostName, port));
+            }
+        }
+
+        for (Map.Entry<String, ConfigGroup> gm : configGroup.getGroupsMap().entrySet()) {
+            traverseConfigGroupsAnchors(gm.getKey(), gm.getValue(), anchorPeers);
+        }
+
+        return anchorPeers;
+    }
+
+    private Map<String, MSP> traverseConfigGroupsMSP(String name, ConfigGroup configGroup, Map<String, MSP> msps) throws InvalidProtocolBufferException {
 
         ConfigValue mspv = configGroup.getValuesMap().get("MSP");
         if (null != mspv) {
@@ -771,7 +810,7 @@ public class Chain {
         }
 
         for (Map.Entry<String, ConfigGroup> gm : configGroup.getGroupsMap().entrySet()) {
-            traverseConfigGroups(gm.getKey(), gm.getValue(), msps);
+            traverseConfigGroupsMSP(gm.getKey(), gm.getValue(), msps);
         }
 
         return msps;
