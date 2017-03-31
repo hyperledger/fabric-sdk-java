@@ -25,9 +25,9 @@ package msp;
 // (with its MSP identifier) to be used
 // to serialize it and deserialize it
 message SerializedIdentity {
-	// The identifier of the associated membership service provider
-    string Mspid = 1;
+    // The identifier of the associated membership service provider
+    string mspid = 1;
 
     // the Identity, serialized according to the rules of its MPS
-    bytes IdBytes = 2;
+    bytes id_bytes = 2;
 }
