@@ -15,7 +15,6 @@
 package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.Collection;
 import java.util.Hashtable;
@@ -121,7 +120,6 @@ public class End2endAndBackAgainIT {
 
         try {
 
-
             ////////////////////////////
             // Setup client
 
@@ -142,7 +140,6 @@ public class End2endAndBackAgainIT {
 
             final SampleStore sampleStore = new SampleStore(sampleStoreFile);
 
-
             //SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface
 
             ////////////////////////////
@@ -161,7 +158,6 @@ public class End2endAndBackAgainIT {
                 sampleOrg.addUser(user);//Remember user belongs to this Org
 
             }
-
 
             ////////////////////////////
             //Reconstruct and run the chains
@@ -182,12 +178,10 @@ public class End2endAndBackAgainIT {
 
     void runChain(HFClient client, Chain chain, SampleOrg sampleOrg, final int delta) {
 
-
         final String chainName = chain.getName();
         out("Running Chain %s with a delta %d", chainName, delta);
         chain.setTransactionWaitTime(testConfig.getInvokeWaitTime());
         chain.setDeployWaitTime(testConfig.getDeployWaitTime());
-
 
         try {
             client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME)); // select the user for all subsequent requests
@@ -204,14 +198,12 @@ public class End2endAndBackAgainIT {
         try {
             moveAmount(client, chain, chainCodeID, "25").thenApply(transactionEvent -> {
 
-
                 waitOnFabric();
 
                 queryChainCodeForExpectedValue(client, chain, "" + (325 + delta), chainCodeID);
 
                 //////////////////
                 // Start of upgrade first must install it.
-
 
                 ///////////////
                 ////
@@ -261,7 +253,6 @@ public class End2endAndBackAgainIT {
                     fail("Not enough endorsers for install :" + successful.size() + ".  " + first.getMessage());
                 }
 
-
                 //////////////////
                 // Upgrade chaincode to ***double*** our move results.
 
@@ -272,18 +263,16 @@ public class End2endAndBackAgainIT {
 
                 ChaincodeEndorsementPolicy chaincodeEndorsementPolicy;
                 try {
-                    chaincodeEndorsementPolicy = new ChaincodeEndorsementPolicy(new File(TEST_FIXTURES_PATH + "/sdkintegration/e2e-2Orgs/channel/members_from_org1_or_2.policy"));
-                } catch (IOException e) {
+                    chaincodeEndorsementPolicy = new ChaincodeEndorsementPolicy();
+                    chaincodeEndorsementPolicy.fromYamlFile(new File(TEST_FIXTURES_PATH + "/sdkintegration/chaincodeendorsementpolicy.yaml"));
+                } catch (Exception e) {
                     throw new CompletionException(e);
                 }
                 upgradeProposalRequest.setChaincodeEndorsementPolicy(chaincodeEndorsementPolicy);
 
-
                 out("Sending upgrade proposal");
 
-
                 Collection<ProposalResponse> responses2;
-
 
                 try {
                     responses2 = chain.sendUpgradeProposal(upgradeProposalRequest);
@@ -317,7 +306,6 @@ public class End2endAndBackAgainIT {
                 waitOnFabric(10000);
                 out("Chain code has been upgraded.");
 
-
                 //Check to see if peers have new chaincode and old chain code is gone.
                 try {
 
@@ -328,7 +316,6 @@ public class End2endAndBackAgainIT {
                                     peer.getName(), CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_PATH)));
                         }
 
-
                         //should be instantiated too..
 
                         if (!checkInstantiatedChaincode(chain, peer, CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_VERSION_11)) {
@@ -336,7 +323,6 @@ public class End2endAndBackAgainIT {
                             throw new CompletionException(new AssertionError(format("Peer %s is missing instantiated chaincode name:%s, path:%s, version: %s",
                                     peer.getName(), CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_PATH)));
                         }
-
 
                         if (checkInstantiatedChaincode(chain, peer, CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_VERSION)) {
 
@@ -441,12 +427,10 @@ public class End2endAndBackAgainIT {
         client.setUserContext(sampleOrg.getAdmin());
         Chain newChain = client.newChain(name);
 
-
         for (String orderName : sampleOrg.getOrdererNames()) {
             newChain.addOrderer(client.newOrderer(orderName, sampleOrg.getOrdererLocation(orderName),
                     testConfig.getOrdererProperties(orderName)));
         }
-
 
         for (String peerName : sampleOrg.getPeerNames()) {
             String peerLocation = sampleOrg.getPeerLocation(peerName);

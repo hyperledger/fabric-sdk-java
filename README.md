@@ -164,6 +164,7 @@ Policies are described in the [Fabric Endorsement Policies document](https://ger
 You create a policy using a Fabric tool ( an example is shown in [JIRA issue FAB-2376](https://jira.hyperledger.org/browse/FAB-2376?focusedCommentId=21121&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-21121))
 and give it to the SDK either as a file or a byte array. The SDK, in turn, will use the policy when it creates chaincode instantiation requests.
 
+
 To input a policy to the SDK, use the [ChaincodeEndorsementPolicy class](https://gerrit.hyperledger.org/r/gitweb?p=fabric-sdk-java.git;a=blob;f=src/main/java/org/hyperledger/fabric/sdk/ChaincodeEndorsementPolicy.java;h=b67b5514b1e26ffac71210a33d788b83ee7cf288;hb=HEAD).
 
 For testing purposes, there are 2 policy files in the _src/test/resources_ directory
@@ -172,6 +173,13 @@ For testing purposes, there are 2 policy files in the _src/test/resources_ direc
 
 and one file in th _src/test/fixture/sdkintegration/e2e-2Orgs/channel_ directory specifically for use in the end to end test scenario
   * _members_from_org1_or_2.policy_ ( which has policy **OR(peerOrg1.member, peerOrg2.member)** meaning  _1 signature from a member of either organizations peerOrg1, PeerOrg2 is required_)
+  
+ Alternatively you can also use ChaincodeEndorsementPolicy class by giving it a YAML file that has the policy defined in it.
+ See examples of this in the End2endIT testcases that use _src/test/fixture/sdkintegration/chaincodeendorsementpolicy.yaml_
+ The file chaincodeendorsementpolicy.yaml has comments that help understand how to create these policies. The first section 
+ lists all the signature identities you can use in the policy. Currently only ROLE types are supported.
+ The policy section is comprised of `n-of` and `signed-by` elements.  Then n-of (`1-of` `2-of`) require that many (`n`) in that
+ section to be true. The `signed-by` references an identity in the identities section.
   
 ### Chain creation artifacts
 Channel configuration files and orderer bootstrap files ( see directory _src/test/fixture/sdkintegration/e2e-2Orgs/channel_ ) are needed when creating a new channel.

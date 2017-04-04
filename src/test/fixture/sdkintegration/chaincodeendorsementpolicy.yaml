@@ -1,0 +1,16 @@
+---
+# A Shotgun policy
+identities:  # list roles to be used in the policy
+    user1: {"role": {"name": "member", "mspId": "Org1MSP"}} # role member in org with mspid Org1MSP
+    user2: {"role": {"name": "member", "mspId": "Org2MSP"}}
+    admin1: {"role": {"name": "admin", "mspId": "Org1MSP"}} # admin role.
+    admin2: {"role": {"name": "admin", "mspId": "Org2MSP"}}
+
+policy: # the policy  .. could have been flat but show grouping.
+    1-of: # signed by one of these groups  can be <n>-of  where <n> is any digit 2-of, 3-of etc..
+      - 1-of:
+        - signed-by: "user1" # a reference to one of the identities defined above.
+        - signed-by: "admin1"
+      - 1-of:
+        - signed-by: "user2"
+        - signed-by: "admin2"
