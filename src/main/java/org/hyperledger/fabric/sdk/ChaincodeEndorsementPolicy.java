@@ -27,10 +27,11 @@ import java.util.regex.Pattern;
 
 import io.netty.util.internal.StringUtil;
 import org.apache.commons.io.IOUtils;
-import org.hyperledger.fabric.protos.common.MspPrincipal.MSPPrincipal;
-import org.hyperledger.fabric.protos.common.MspPrincipal.MSPRole;
 import org.hyperledger.fabric.protos.common.Policies;
 import org.hyperledger.fabric.protos.common.Policies.SignaturePolicy;
+import org.hyperledger.fabric.protos.msp.MspPrincipal.MSPPrincipal;
+import org.hyperledger.fabric.protos.msp.MspPrincipal.MSPRole;
+
 import org.hyperledger.fabric.sdk.exception.ChaincodeEndorsementPolicyParseException;
 import org.yaml.snakeyaml.Yaml;
 
