@@ -108,7 +108,6 @@ public class End2endIT {
 
         try {
 
-
             ////////////////////////////
             // Setup client
 
@@ -164,7 +163,6 @@ public class End2endIT {
 
             }
 
-
             ////////////////////////////
             //Construct and run the chains
             SampleOrg sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
@@ -202,11 +200,9 @@ public class End2endIT {
             Collection<ProposalResponse> successful = new LinkedList<>();
             Collection<ProposalResponse> failed = new LinkedList<>();
 
-
             chainCodeID = ChainCodeID.newBuilder().setName(CHAIN_CODE_NAME)
                     .setVersion(CHAIN_CODE_VERSION)
                     .setPath(CHAIN_CODE_PATH).build();
-
 
             if (installChainCode) {
                 ////////////////////////////
@@ -214,7 +210,6 @@ public class End2endIT {
                 //
 
                 out("Creating install proposal");
-
 
                 InstallProposalRequest installProposalRequest = client.newInstallProposalRequest();
                 installProposalRequest.setChaincodeID(chainCodeID);
@@ -265,7 +260,8 @@ public class End2endIT {
               policy OR(Org1MSP.member, Org2MSP.member) meaning 1 signature from someone in either Org1 or Org2
               See README.md Chaincode endorsement policies section for more details.
             */
-            ChaincodeEndorsementPolicy chaincodeEndorsementPolicy = new ChaincodeEndorsementPolicy(new File(TEST_FIXTURES_PATH + "/sdkintegration/e2e-2Orgs/channel/members_from_org1_or_2.policy"));
+            ChaincodeEndorsementPolicy chaincodeEndorsementPolicy = new ChaincodeEndorsementPolicy();
+            chaincodeEndorsementPolicy.fromYamlFile(new File(TEST_FIXTURES_PATH + "/sdkintegration/chaincodeendorsementpolicy.yaml"));
             instantiateProposalRequest.setChaincodeEndorsementPolicy(chaincodeEndorsementPolicy);
 
             out("Sending instantiateProposalRequest to all peers with arguments: a and b set to 100 and %s respectively", "" + (200 + delta));
@@ -407,7 +403,6 @@ public class End2endIT {
 
                 return null;
             }).get(120, TimeUnit.SECONDS);
-
 
             // Channel queries
 
