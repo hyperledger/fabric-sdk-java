@@ -28,8 +28,10 @@ import javax.net.ssl.SSLException;
 
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.netty.GrpcSslContexts;
+import io.grpc.netty.NegotiationType;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslProvider;
 import io.netty.util.internal.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -60,6 +62,8 @@ class Endpoint {
 
         String pem = null;
         String cn = null;
+        String sslp = null;
+        String nt = null;
 
         Properties purl = parseGrpcUrl(url);
         String protocol = purl.getProperty("protocol");
@@ -93,13 +97,24 @@ class Endpoint {
                             cnCache.put(cnKey, cn);
                         }
 
-
                     }
                 } catch (Exception e) {
                     /// Mostly a development env. just log it.
                     logger.error("Error getting Subject CN from certificate. Try setting it specifically with hostnameOverride property. " + e.getMessage());
 
                 }
+
+                sslp = properties.getProperty("sslProvider");
+                if (sslp == null)
+                    throw new RuntimeException("Property of sslProvider expected");
+                if (!sslp.equals("openSSL") && !sslp.equals("JDK"))
+                    throw new RuntimeException("Property of sslProvider has to be either openSSL or JDK");
+
+                nt = properties.getProperty("negotiationType");
+                if (nt == null)
+                    throw new RuntimeException("Property of negotiationType expected");
+                if (!nt.equals("TLS") && !sslp.equals("plainText"))
+                    throw new RuntimeException("Property of negotiationType has to be either TLS or plainText");
             }
 
         }
@@ -115,10 +130,16 @@ class Endpoint {
             } else {
                 try {
 
+                    SslProvider sslprovider = sslp.equals("openSSL") ? SslProvider.OPENSSL : SslProvider.JDK;
+                    NegotiationType ntype = nt.equals("TLS") ? NegotiationType.TLS : NegotiationType.PLAINTEXT;
 
-                    SslContext sslContext = GrpcSslContexts.forClient().trustManager(new java.io.File(pem)).build();
+                    SslContext sslContext = GrpcSslContexts.forClient()
+                            .trustManager(new java.io.File(pem))
+                            .sslProvider(sslprovider)
+                            .build();
                     this.channelBuilder = NettyChannelBuilder.forAddress(addr, port)
-                            .sslContext(sslContext);
+                            .sslContext(sslContext)
+                            .negotiationType(ntype);
                     if (cn != null) {
                         channelBuilder.overrideAuthority(cn);
                     }

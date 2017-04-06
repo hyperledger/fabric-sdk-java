@@ -304,6 +304,8 @@ public class TestConfig {
             ret = new Properties();
             ret.setProperty("pemFile", cert);
             ret.setProperty("trustServerCertificate", "true"); //testing environment only NOT FOR PRODUCTION!
+            ret.setProperty("sslProvider", "openSSL");
+            ret.setProperty("negotiationType", "TLS");
         }
         return ret;
     }
@@ -319,6 +321,8 @@ public class TestConfig {
             ret = new Properties();
             ret.setProperty("pemFile", cf.getAbsolutePath());
             ret.setProperty("trustServerCertificate", "true"); //testing environment only NOT FOR PRODUCTION!
+            ret.setProperty("sslProvider", "openSSL");
+            ret.setProperty("negotiationType", "TLS");
         }
         return ret;
     }

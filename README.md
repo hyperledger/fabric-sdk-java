@@ -159,6 +159,21 @@ Fabric also provides the `cryptogen` tool to automatically generate all cryptogr
 
 The end to end test case artifacts are stored under in directory _src/test/fixture/sdkintegration/e2e-2Org/crypto-config_ .
 
+### TLS connection to Orderer and Peers
+
+We need certificate and key for each of the Orderer and Peers for TLS connection. You can generate your certificate and key files with openssl command as follows:
+
+ * Set up your own Certificate Authority (CA) for issuing certificates
+ * For each of orderers and peers:
+   * generate a private key: <code>openssl genrsa 512 > key.pem</code>.
+   * generate a certificate request (csr): <code>openssl req -new -days 365 -key key.pem -out csr.pem</code>, which will request your input for some information, where CN has to be the container's alias name (e.g. peer0, peer1, etc), all others can be left blank.
+   * sign the csr with the CA private key to generate a certificate: <code>openssl ca -days 365 -in csr.pem -keyfile {CA's privatekey} -out cert.pem</code>
+   * put the resulting cert.pem and key.pem together with the CA's certificate (as the name cacert.pem) in the directory where the docker container can access.
+
+The certificates and keys for the end-to-end test case are stored in the directory _src/test/fixture/sdkintegration/e2e-2Org/tls/_.
+
+Currently, the pom.xml is set to use netty-tcnative-boringssl for TLS connection to Orderer and Peers, however you can change the pom.xml (uncomment a few lines) to use an alternative TLS connection via ALPN.
+
 ### Chaincode endorsement policies
 Policies are described in the [Fabric Endorsement Policies document](https://gerrit.hyperledger.org/r/gitweb?p=fabric.git;a=blob;f=docs/endorsement-policies.md;h=1eecf359c12c3f7c1ddc63759a0b5f3141b07f13;hb=HEAD).
 You create a policy using a Fabric tool ( an example is shown in [JIRA issue FAB-2376](https://jira.hyperledger.org/browse/FAB-2376?focusedCommentId=21121&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-21121))
