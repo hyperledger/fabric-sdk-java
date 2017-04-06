@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,6 +17,7 @@ package org.hyperledger.fabric.sdk;
 import java.util.ArrayList;
 import java.util.Properties;
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
 import io.netty.util.internal.StringUtil;
@@ -38,7 +39,6 @@ import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
 public class EventHub {
     private static final Log logger = LogFactory.getLog(EventHub.class);
 
-
     private final String url;
     private final String name;
     private final Properties properties;
@@ -55,10 +55,9 @@ public class EventHub {
 
         Exception e = checkGrpcUrl(grpcURL);
         if (e != null) {
-            throw new InvalidArgumentException("Bad peer url.", e);
+            throw new InvalidArgumentException("Bad event hub url.", e);
 
         }
-
 
         if (StringUtil.isNullOrEmpty(name)) {
             throw new InvalidArgumentException("Invalid name for eventHub");
@@ -82,7 +81,6 @@ public class EventHub {
         return new EventHub(name, url, properties);
     }
 
-
     /**
      * Event hub name
      *
@@ -96,9 +94,8 @@ public class EventHub {
     /**
      * Event hub properties
      *
-     * @see HFClient#newEventHub(String, String, Properties)
-     *
      * @return Event hub properties
+     * @see HFClient#newEventHub(String, String, Properties)
      */
     public Properties getProperties() {
         return properties == null ? null : (Properties) properties.clone();
@@ -114,14 +111,20 @@ public class EventHub {
 
         events = EventsGrpc.newStub(channel);
 
-
         final ArrayList<Throwable> threw = new ArrayList<>();
-
 
         StreamObserver<PeerEvents.Event> eventStream = new StreamObserver<PeerEvents.Event>() {
             @Override
             public void onNext(PeerEvents.Event event) {
-                eventQue.addBEvent(event);  //add to chain queue
+
+                if (event.getEventCase() == PeerEvents.Event.EventCase.BLOCK) {
+                    try {
+                        eventQue.addBEvent(new BlockEvent(EventHub.this, event));  //add to chain queue
+                    } catch (InvalidProtocolBufferException e) {
+                        e.printStackTrace();
+                    }
+
+                }
 
             }
 
@@ -140,11 +143,8 @@ public class EventHub {
             }
         };
 
-
         sender = events.chat(eventStream);
         blockListen();
-
-        //
 
         if (!threw.isEmpty()) {
             Throwable t = threw.iterator().next();
@@ -161,14 +161,12 @@ public class EventHub {
 
     private void blockListen() {
 
-
         PeerEvents.Register register = PeerEvents.Register.newBuilder()
                 .addEvents(PeerEvents.Interest.newBuilder()
                         .setEventType(PeerEvents.EventType.BLOCK).build()).build();
 
         PeerEvents.Event blockEvent = PeerEvents.Event.newBuilder().setRegister(register).build();
         sender.onNext(blockEvent);
-
 
     }
 
@@ -190,7 +188,10 @@ public class EventHub {
         this.eventQue = eventQue;
     }
 
-
+    @Override
+    public String toString() {
+        return "EventHub:" + getName();
+    }
 }
 
 

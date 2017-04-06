@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,7 +31,6 @@ import org.hyperledger.fabric.protos.common.Policies;
 import org.hyperledger.fabric.protos.common.Policies.SignaturePolicy;
 import org.hyperledger.fabric.protos.msp.MspPrincipal.MSPPrincipal;
 import org.hyperledger.fabric.protos.msp.MspPrincipal.MSPRole;
-
 import org.hyperledger.fabric.sdk.exception.ChaincodeEndorsementPolicyParseException;
 import org.yaml.snakeyaml.Yaml;
 
@@ -98,7 +97,7 @@ public class ChaincodeEndorsementPolicy {
                     }
                     if (((List) vo).size() < matchNo) {
 
-                        throw new ChaincodeEndorsementPolicyParseException(format("%s expected to have at least %d to match found %d.", key, matchNo, ((List) vo).size()));
+                        throw new ChaincodeEndorsementPolicyParseException(format("%s expected to have at least %d items to match but only found %d.", key, matchNo, ((List) vo).size()));
                     }
 
                     SignaturePolicy.NOutOf.Builder spBuilder = SignaturePolicy.NOutOf.newBuilder()
@@ -111,7 +110,6 @@ public class ChaincodeEndorsementPolicy {
                     }
 
                     return SignaturePolicy.newBuilder().setNOutOf(spBuilder.build()).build();
-
 
                 } else {
 

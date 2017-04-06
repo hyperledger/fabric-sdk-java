@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -13,12 +13,10 @@
  */
 package org.hyperledger.fabric.sdk;
 
-import static java.nio.charset.StandardCharsets.*;
-import static org.junit.Assert.*;
-
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
 import org.hyperledger.fabric.protos.common.Common.Block;
 import org.hyperledger.fabric.protos.common.Common.BlockData;
 import org.hyperledger.fabric.protos.common.Common.BlockHeader;
@@ -28,22 +26,34 @@ import org.hyperledger.fabric.protos.common.Common.Envelope;
 import org.hyperledger.fabric.protos.common.Common.Header;
 import org.hyperledger.fabric.protos.common.Common.Payload;
 import org.hyperledger.fabric.protos.peer.FabricTransaction.TxValidationCode;
+import org.hyperledger.fabric.protos.peer.PeerEvents;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class BlockEventTest {
-    private static Block block, badBlock ;
+    private static Block block, badBlock;
     private static BlockHeader blockHeader;
     private static BlockData blockData;
     private static BlockMetadata blockMetadata;
+    private static EventHub eventHub;
+    private static PeerEvents.Event goodEventBlock;
+    private static PeerEvents.Event badEventBlock;
+
     /**
      * @throws java.lang.Exception
      */
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
+
+        eventHub = new EventHub("test", "grpc://lh:99", null);
+
         // build a block with 3 transactions, set transaction 1,3 as valid, transaction 2 as invalid
         BlockData.Builder blockDataBuilder = BlockData.newBuilder();
         Payload.Builder payloadBuilder = Payload.newBuilder();
@@ -99,7 +109,7 @@ public class BlockEventTest {
         blockMetadataBuilder.addMetadata(ByteString.copyFrom("signatures".getBytes(UTF_8)));   //BlockMetadataIndex.SIGNATURES_VALUE
         blockMetadataBuilder.addMetadata(ByteString.copyFrom("last_config".getBytes(UTF_8)));  //BlockMetadataIndex.LAST_CONFIG_VALUE,
         // mark 2nd transaction in block as invalid
-        byte[] txResultsMap = new byte[]{TxValidationCode.VALID_VALUE, (byte) TxValidationCode.INVALID_OTHER_REASON_VALUE, TxValidationCode.VALID_VALUE};
+        byte[] txResultsMap = new byte[] {TxValidationCode.VALID_VALUE, (byte) TxValidationCode.INVALID_OTHER_REASON_VALUE, TxValidationCode.VALID_VALUE};
         blockMetadataBuilder.addMetadata(ByteString.copyFrom(txResultsMap));              //BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE
         blockMetadataBuilder.addMetadata(ByteString.copyFrom("orderer".getBytes(UTF_8)));      //BlockMetadataIndex.ORDERER_VALUE
         blockMetadata = blockMetadataBuilder.build();
@@ -109,6 +119,8 @@ public class BlockEventTest {
         blockBuilder.setHeader(blockHeader);
         blockBuilder.setMetadata(blockMetadata);
         block = blockBuilder.build();
+
+        goodEventBlock = PeerEvents.Event.newBuilder().setBlock(blockBuilder).build();
 
         // block with bad header
         headerBuilder.clearChannelHeader();
@@ -122,37 +134,39 @@ public class BlockEventTest {
         blockDataBuilder.addData(envelopeBuilder.build().toByteString());
         blockBuilder.setData(blockDataBuilder.build());
         badBlock = blockBuilder.build();
+        badEventBlock = PeerEvents.Event.newBuilder().setBlock(badBlock).build();
     }
 
     /**
-     * Test method for {@link org.hyperledger.fabric.sdk.BlockEvent#BlockEvent(org.hyperledger.fabric.protos.common.Common.Block)}.
+     * Test method for {@link org.hyperledger.fabric.sdk.BlockEvent#BlockEvent(EventHub, PeerEvents.Event)}.
      */
     @Test
     public void testBlockEvent() {
         try {
-            BlockEvent be = new BlockEvent(block);
+            BlockEvent be = new BlockEvent(eventHub, goodEventBlock);
             assertEquals(be.getChannelID(), "TESTCHANNEL");
             assertArrayEquals(be.getBlock().toByteArray(), block.toByteArray());
             List<BlockEvent.TransactionEvent> txList = be.getTransactionEvents();
             assertEquals(txList.size(), 3);
             BlockEvent.TransactionEvent te = txList.get(1);
-            assertFalse(te.isValid()) ;
+            assertFalse(te.isValid());
             assertEquals(te.validationCode(), (byte) TxValidationCode.INVALID_OTHER_REASON_VALUE);
             te = txList.get(2);
             assertTrue(te.isValid());
         } catch (InvalidProtocolBufferException e) {
-            fail("did not parse Block correctly.Error: " + e.getMessage()) ;
+            fail("did not parse Block correctly.Error: " + e.getMessage());
         }
     }
 
     /**
-     * Test method for {@link org.hyperledger.fabric.sdk.BlockEvent#BlockEvent(org.hyperledger.fabric.protos.common.Common.Block)}.
+     * Test method for {@link org.hyperledger.fabric.sdk.BlockEvent#BlockEvent(EventHub, PeerEvents.Event)}.
      * With bad block inputted, BlockEvent ctor will throw an exception
+     *
      * @throws InvalidProtocolBufferException
      */
-    @Test(expected=InvalidProtocolBufferException.class)
+    @Test (expected = InvalidProtocolBufferException.class)
     public void testBlockEventBadBlock() throws InvalidProtocolBufferException {
-            BlockEvent be = new BlockEvent(badBlock);
+        BlockEvent be = new BlockEvent(eventHub, badEventBlock);
     }
 
 }

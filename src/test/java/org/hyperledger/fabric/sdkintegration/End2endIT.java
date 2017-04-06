@@ -73,9 +73,7 @@ public class End2endIT {
     private static final String FOO_CHAIN_NAME = "foo";
     private static final String BAR_CHAIN_NAME = "bar";
 
-
     String testTxID = null;  // save the CC invoke TxID and use in queries
-
 
     private final TestConfigHelper configHelper = new TestConfigHelper();
 
@@ -173,16 +171,13 @@ public class End2endIT {
             //runChain(client, constructChain(MYCHANNEL_CHAIN_NAME, client, "peerOrg2"), true, "peerOrg1", 0);
             out("That's all folks!");
 
-
         } catch (Exception e) {
             e.printStackTrace();
 
             fail(e.getMessage());
         }
 
-
     }
-
 
     void runChain(HFClient client, Chain chain, boolean installChainCode, SampleOrg sampleOrg, int delta) {
 
@@ -190,7 +185,7 @@ public class End2endIT {
 
             final String chainName = chain.getName();
             out("Running Chain %s", chainName);
-            chain.setTransactionWaitTime(testConfig.getInvokeWaitTime());
+            chain.setTransactionWaitTime(testConfig.getTransactioneWaitTime());
             chain.setDeployWaitTime(testConfig.getDeployWaitTime());
 
             Collection<Peer> channelPeers = chain.getPeers();
@@ -254,7 +249,7 @@ public class End2endIT {
             InstantiateProposalRequest instantiateProposalRequest = client.newInstantiationProposalRequest();
             instantiateProposalRequest.setChaincodeID(chainCodeID);
             instantiateProposalRequest.setFcn("init");
-            instantiateProposalRequest.setArgs(new String[]{"a", "500", "b", "" + (200 + delta)});
+            instantiateProposalRequest.setArgs(new String[] {"a", "500", "b", "" + (200 + delta)});
 
             /*
               policy OR(Org1MSP.member, Org2MSP.member) meaning 1 signature from someone in either Org1 or Org2
@@ -288,17 +283,10 @@ public class End2endIT {
             out("Sending instantiateTransaction to orderer with a and b set to 100 and %s respectively", "" + (200 + delta));
             chain.sendTransaction(successful, orderers).thenApply(transactionEvent -> {
 
+                waitOnFabric(0);
+
                 assertTrue(transactionEvent.isValid()); // must be valid to be here.
                 out("Finished instantiate transaction with transaction id %s", transactionEvent.getTransactionID());
-
-                // wait a few seconds for the peers to catch up with each other via the gossip network.
-                // We need the instantiate to be committed at all peers before we can do transaction on all peers
-                try {
-                    out("Wait %d milliseconds for peers to sync with each other", gossipWaitTime);
-                    TimeUnit.MILLISECONDS.sleep(gossipWaitTime);
-                } catch (InterruptedException e) {
-                    fail("should not have jumped out of sleep mode. No other threads should be running");
-                }
 
                 try {
                     successful.clear();
@@ -310,7 +298,7 @@ public class End2endIT {
                     TransactionProposalRequest transactionProposalRequest = client.newTransactionProposalRequest();
                     transactionProposalRequest.setChaincodeID(chainCodeID);
                     transactionProposalRequest.setFcn("invoke");
-                    transactionProposalRequest.setArgs(new String[]{"move", "a", "b", "100"});
+                    transactionProposalRequest.setArgs(new String[] {"move", "a", "b", "100"});
                     out("sending transactionProposal to all peers with arguments: move(a,b,100)");
 
                     Collection<ProposalResponse> transactionPropResp = chain.sendTransactionProposal(transactionProposalRequest, chain.getPeers());
@@ -335,7 +323,7 @@ public class End2endIT {
                     ////////////////////////////
                     // Send Transaction Transaction to orderer
                     out("Sending chain code transaction(move a,b,100) to orderer.");
-                    return chain.sendTransaction(successful, orderers).get(120, TimeUnit.SECONDS);
+                    return chain.sendTransaction(successful).get(testConfig.getTransactioneWaitTime(), TimeUnit.SECONDS);
 
                 } catch (Exception e) {
                     out("Caught an exception while invoking chaincode");
@@ -348,18 +336,11 @@ public class End2endIT {
             }).thenApply(transactionEvent -> {
                 try {
 
+                    waitOnFabric(0);
+
                     assertTrue(transactionEvent.isValid()); // must be valid to be here.
                     out("Finished transaction with transaction id %s", transactionEvent.getTransactionID());
                     testTxID = transactionEvent.getTransactionID(); // used in the channel queries later
-
-                    // wait a few seconds for the peers to catch up with each other via the gossip network.
-                    // Another way would be to wait on all the peers event hubs for the event containing the TxID
-                    try {
-                        out("Wait %d milliseconds for peers to sync with each other", gossipWaitTime);
-                        TimeUnit.MILLISECONDS.sleep(gossipWaitTime);
-                    } catch (InterruptedException e) {
-                        fail("should not have jumped out of sleep mode. No other threads should be running");
-                    }
 
                     ////////////////////////////
                     // Send Query Proposal to all peers
@@ -367,7 +348,7 @@ public class End2endIT {
                     String expect = "" + (300 + delta);
                     out("Now query chain code for the value of b.");
                     QueryByChaincodeRequest queryByChaincodeRequest = client.newQueryProposalRequest();
-                    queryByChaincodeRequest.setArgs(new String[]{"query", "b"});
+                    queryByChaincodeRequest.setArgs(new String[] {"query", "b"});
                     queryByChaincodeRequest.setFcn("invoke");
                     queryByChaincodeRequest.setChaincodeID(chainCodeID);
 
@@ -402,7 +383,7 @@ public class End2endIT {
                 fail(format("Test failed with %s exception %s", e.getClass().getName(), e.getMessage()));
 
                 return null;
-            }).get(120, TimeUnit.SECONDS);
+            }).get(testConfig.getTransactioneWaitTime(), TimeUnit.SECONDS);
 
             // Channel queries
 
@@ -465,7 +446,6 @@ public class End2endIT {
         }
     }
 
-
     private Chain constructChain(String name, HFClient client, SampleOrg sampleOrg) throws Exception {
         //////////////////////////// TODo Needs to be made out of bounds and here chain just retrieved
         //Construct the chain
@@ -518,7 +498,6 @@ public class End2endIT {
 
     }
 
-
     static void out(String format, Object... args) {
 
         System.err.flush();
@@ -528,6 +507,17 @@ public class End2endIT {
         System.err.flush();
         System.out.flush();
 
+    }
+
+    private void waitOnFabric(int additional) {
+        // wait a few seconds for the peers to catch up with each other via the gossip network.
+        // Another way would be to wait on all the peers event hubs for the event containing the transaction TxID
+//        try {
+//            out("Wait %d milliseconds for peers to sync with each other", gossipWaitTime + additional);
+//            TimeUnit.MILLISECONDS.sleep(gossipWaitTime + additional);
+//        } catch (InterruptedException e) {
+//            fail("should not have jumped out of sleep mode. No other threads should be running");
+//        }
     }
 
 }
