@@ -16,9 +16,12 @@ package org.hyperledger.fabric.sdk;
 
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.ManagedChannel;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import io.netty.util.internal.StringUtil;
 import org.apache.commons.logging.Log;
@@ -28,6 +31,7 @@ import org.hyperledger.fabric.protos.peer.PeerEvents;
 import org.hyperledger.fabric.sdk.exception.EventHubException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 
+import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
 
 /**
@@ -38,6 +42,7 @@ import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
 
 public class EventHub {
     private static final Log logger = LogFactory.getLog(EventHub.class);
+    private final ExecutorService executorService;
 
     private final String url;
     private final String name;
@@ -50,8 +55,50 @@ public class EventHub {
      * Event queue for all events from eventhubs in the chain
      */
     private Chain.ChainEventQue eventQue;
+    private long connectedTime = 0L; // 0 := never connected
 
-    EventHub(String name, String grpcURL, Properties properties) throws InvalidArgumentException {
+    /**
+     * Get disconnected time.
+     *
+     * @return Time in milli seconds disconnect occurred. Zero if never disconnected
+     */
+    public long getDisconnectedTime() {
+        return disconnectedTime;
+    }
+
+    private long disconnectedTime;
+
+    /**
+     * Is event hub connected.
+     *
+     * @return boolean if true event hub is connected.
+     */
+    public boolean isConnected() {
+        return connected;
+    }
+
+    /**
+     * Get last connect time.
+     *
+     * @return Time in milli seconds the event hub last connected. Zero if never connected.
+     */
+    public long getConnectedTime() {
+        return connectedTime;
+    }
+
+    /**
+     * Get last attempt time to connect the event hub.
+     *
+     * @return Last attempt time to connect the event hub in milli seconds. Zero when never attempted.
+     */
+
+    public long getLastConnectedAttempt() {
+        return lastConnectedAttempt;
+    }
+
+    private long lastConnectedAttempt;
+
+    EventHub(String name, String grpcURL, ExecutorService executorService, Properties properties) throws InvalidArgumentException {
 
         Exception e = checkGrpcUrl(grpcURL);
         if (e != null) {
@@ -65,6 +112,7 @@ public class EventHub {
 
         this.url = grpcURL;
         this.name = name;
+        this.executorService = executorService;
         this.properties = properties == null ? null : (Properties) properties.clone(); //keep our own copy.
     }
 
@@ -77,8 +125,8 @@ public class EventHub {
      * @return
      */
 
-    static EventHub createNewInstance(String name, String url, Properties properties) throws InvalidArgumentException {
-        return new EventHub(name, url, properties);
+    static EventHub createNewInstance(String name, String url, ExecutorService executorService, Properties properties) throws InvalidArgumentException {
+        return new EventHub(name, url, executorService, properties);
     }
 
     /**
@@ -101,11 +149,13 @@ public class EventHub {
         return properties == null ? null : (Properties) properties.clone();
     }
 
-    void connect() throws EventHubException {
+    synchronized boolean connect() throws EventHubException {
         if (connected) {
-            logger.warn("Event Hub already connected.");
-            return;
+            logger.warn(format("%s already connected.", toString()));
+            return true;
         }
+
+        lastConnectedAttempt = System.currentTimeMillis();
 
         channel = new Endpoint(url, properties).getChannelBuilder().build();
 
@@ -121,41 +171,84 @@ public class EventHub {
                     try {
                         eventQue.addBEvent(new BlockEvent(EventHub.this, event));  //add to chain queue
                     } catch (InvalidProtocolBufferException e) {
-                        e.printStackTrace();
+                        EventHubException eventHubException = new EventHubException(format("%s onNext error %s", this, e.getMessage()), e);
+                        logger.error(eventHubException.getMessage());
+                        threw.add(eventHubException);
                     }
-
                 }
-
             }
 
             @Override
             public void onError(Throwable t) {
 
-                logger.error("Error in stream: " + t.getMessage(), t);
+                final boolean isTerminated = channel.isTerminated();
+                final boolean isShutdown = channel.isShutdown();
+                logger.error(format("%s terminated is %b shutdown is %b has error %s ", EventHub.this.toString(), isTerminated, isShutdown,
+                        t.getMessage()), new EventHubException(t));
+
+                //              logger.error("Error in stream: " + t.getMessage(), new EventHubException(t));
+                if (t instanceof StatusRuntimeException) {
+                    StatusRuntimeException sre = (StatusRuntimeException) t;
+                    Status sreStatus = sre.getStatus();
+                    logger.error(format("StatusRuntimeException Status %s.  Description %s ", sreStatus + "", sreStatus.getDescription()));
+                    if (sre.getStatus().getCode() == Status.Code.INTERNAL) {
+
+                        connected = false;
+                        disconnectedTime = System.currentTimeMillis();
+                        try {
+                            if (!isShutdown) {
+                                channel.shutdownNow();
+                            }
+                            if (null != disconnectedHandler) {
+                                try {
+                                    disconnectedHandler.disconnected(EventHub.this);
+                                } catch (Exception e) {
+                                    eventQue.eventError(e);
+                                }
+                            }
+                        } catch (Exception e) {
+                            logger.warn("Failed shutdown");
+                        }
+                    }
+                }
                 threw.add(t);
-                eventQue.eventError(t);
+
             }
 
             @Override
             public void onCompleted() {
 
-                logger.info("Stream completed");
+                logger.info(format("Stream completed %s", EventHub.this.toString()));
+
             }
         };
 
         sender = events.chat(eventStream);
         blockListen();
 
+        logger.info(format("done with connect for %s", EventHub.this.toString()));
+
+// Not implemented!
+//        channel.notifyWhenStateChanged(ConnectivityState.CONNECTING, () -> {
+//            logger.info(format("CONNECTING %s", EventHub.this.toString()));
+//        });
+//
+//        channel.notifyWhenStateChanged(ConnectivityState.READY, () -> {
+//            logger.info(format("READY %s", EventHub.this.toString()));
+//        });
+
         if (!threw.isEmpty()) {
             Throwable t = threw.iterator().next();
 
             EventHubException evh = new EventHubException(t.getMessage(), t);
-            logger.error(String.format("EventHub %s Error in stream. error: " + t.getMessage(), url), evh);
+            logger.error(format("EventHub %s Error in stream. error: " + t.getMessage(), toString()), evh);
             throw evh;
 
         }
 
         connected = true;
+        connectedTime = System.currentTimeMillis();
+        return true;
 
     }
 
@@ -192,7 +285,73 @@ public class EventHub {
     public String toString() {
         return "EventHub:" + getName();
     }
+
+    /**
+     * Eventhub disconnection notification interface
+     */
+    public interface EventHubDisconnected {
+
+        /**
+         * Method to be called when a disconnect is detected.
+         *
+         * @param eventHub
+         */
+
+        void disconnected(EventHub eventHub) throws EventHubException;
+
+    }
+
+    /**
+     * Default reconnect event hub implementation.  Applications are free to replace
+     */
+
+    protected EventHubDisconnected disconnectedHandler = new EventHub.EventHubDisconnected() {
+        @Override
+        public synchronized void disconnected(final EventHub eventHub) throws EventHubException {
+            logger.info(format("Detected disconnect %s", eventHub.toString()));
+
+            if (eventHub.connectedTime == 0) { //means event hub never connected
+                logger.error(format("%s failed on first connect no retries", eventHub.toString()));
+
+                eventHub.setEventHubDisconnectedHandler(null); //don't try again
+
+                //event hub never connected.
+                throw new EventHubException(format("%s never connected.", eventHub.toString()));
+            }
+
+            executorService.execute(() -> {
+
+                try {
+                    Thread.sleep(3000);
+
+                    if (eventHub.connect()) {
+                        logger.info(format("Successful reconnect %s", eventHub.toString()));
+                    } else {
+                        logger.info(format("Failed reconnect %s", eventHub.toString()));
+                    }
+
+                } catch (Exception e) {
+
+                    logger.debug(format("Failed %s to reconnect.", toString()));
+
+                }
+
+            });
+
+        }
+    };
+
+    /**
+     * Set class to handle Event hub disconnects
+     *
+     * @param newEventHubDisconnectedHandler New handler to replace.  If set to null no retry will take place.
+     * @return the old handler.
+     */
+
+    public EventHubDisconnected setEventHubDisconnectedHandler(EventHubDisconnected newEventHubDisconnectedHandler) {
+        EventHubDisconnected ret = disconnectedHandler;
+        disconnectedHandler = newEventHubDisconnectedHandler;
+        return ret;
+    }
+
 }
-
-
-

@@ -155,7 +155,7 @@ class OrdererClient {
 
             @Override
             public void onError(Throwable t) {
-                logger.error("broadcase error " + t);
+                logger.error("broadcast error " + t);
                 throwableList.add(t);
                 finishLatch.countDown();
             }

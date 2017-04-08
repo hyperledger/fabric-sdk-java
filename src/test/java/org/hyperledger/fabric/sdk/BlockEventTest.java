@@ -52,7 +52,7 @@ public class BlockEventTest {
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
 
-        eventHub = new EventHub("test", "grpc://lh:99", null);
+        eventHub = new EventHub("test", "grpc://lh:99", null, null);
 
         // build a block with 3 transactions, set transaction 1,3 as valid, transaction 2 as invalid
         BlockData.Builder blockDataBuilder = BlockData.newBuilder();

@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,12 +14,13 @@
 
 package org.hyperledger.fabric.sdk;
 
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -49,10 +50,19 @@ public class HFClient {
         }
     }
 
+    private final ExecutorService executorService = Executors.newCachedThreadPool(r -> {
+        Thread t = Executors.defaultThreadFactory().newThread(r);
+        t.setDaemon(true);
+        return t;
+    });
+
+    ExecutorService getExecutorService() {
+        return executorService;
+    }
+
     private static final Log logger = LogFactory.getLog(HFClient.class);
 
     private final Map<String, Chain> chains = new HashMap<>();
-
 
     public User getUserContext() {
         return userContext;
@@ -163,7 +173,6 @@ public class HFClient {
         return Peer.createNewInstance(name, grpcURL, null);
     }
 
-
     /**
      * Get the member service associated this chain.
      *
@@ -177,13 +186,11 @@ public class HFClient {
      * Set the member service
      *
      * @param memberServices The MemberServices instance
-     * @throws CryptoException
      */
     public void setMemberServices(MemberServices memberServices) {
         this.memberServices = memberServices;
         this.memberServices.setCryptoSuite(this.cryptoSuite);
     }
-
 
     /**
      * getChain by name
@@ -214,7 +221,6 @@ public class HFClient {
     public InstantiateProposalRequest newInstantiationProposalRequest() {
         return new InstantiateProposalRequest();
     }
-
 
     public UpgradeProposalRequest newUpgradeProposalRequest() {
         return new UpgradeProposalRequest();
@@ -291,7 +297,7 @@ public class HFClient {
      *                   Supported properties
      *                   <ul>
      *                   <li>pemFile - File location for x509 pem certificate for SSL.</li>
-     *                   <li>trustServerCertificate - boolen(true/false) override CN to match pemFile certificate -- for development only.
+     *                   <li>trustServerCertificate - boolean(true/false) override CN to match pemFile certificate -- for development only.
      *                   If the pemFile has the target server's certificate (instead of a CA Root certificate),
      *                   instruct the TLS client to trust the CN value of the certificate in the pemFile,
      *                   useful in development to get past default server hostname verification during
@@ -310,9 +316,8 @@ public class HFClient {
      */
 
     public EventHub newEventHub(String name, String grpcURL, Properties properties) throws InvalidArgumentException {
-        return EventHub.createNewInstance(name, grpcURL, properties);
+        return EventHub.createNewInstance(name, grpcURL, executorService, properties);
     }
-
 
     /**
      * Create a new event hub
@@ -348,7 +353,7 @@ public class HFClient {
      *                   Supported properties
      *                   <ul>
      *                   <li>pemFile - File location for x509 pem certificate for SSL.</li>
-     *                   <li>trustServerCertificate - boolen(true/false) override CN to match pemFile certificate -- for development only.
+     *                   <li>trustServerCertificate - boolean(true/false) override CN to match pemFile certificate -- for development only.
      *                   If the pemFile has the target server's certificate (instead of a CA Root certificate),
      *                   instruct the TLS client to trust the CN value of the certificate in the pemFile,
      *                   useful in development to get past default server hostname verification during
@@ -430,8 +435,6 @@ public class HFClient {
             Chain systemChain = Chain.newSystemChain(this);
 
             return systemChain.queryInstalledChaincodes(peer);
-        } catch (InvalidArgumentException e) {
-            throw e;  //dont log
         } catch (ProposalException e) {
             logger.error(format("queryInstalledChaincodes for peer %s failed." + e.getMessage(), peer.getName()), e);
             throw e;
