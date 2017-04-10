@@ -24,7 +24,6 @@ SDK's `Enrollment` interface.
  
 ## Known limitations
 
-* TLS Is supported but demo/test/sample code does not use it: JIRA FAB-2855
 * TCerts are not supported: JIRA FAB-1401 
 
 

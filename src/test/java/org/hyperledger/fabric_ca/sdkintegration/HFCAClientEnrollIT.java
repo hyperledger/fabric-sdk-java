@@ -14,6 +14,7 @@ package org.hyperledger.fabric_ca.sdkintegration;
 
 import java.io.File;
 import java.net.MalformedURLException;
+import java.util.Properties;
 
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
@@ -40,9 +41,12 @@ public class HFCAClientEnrollIT {
     private static final String TEST_USER1_ORG = "Org1";
     private static final String TEST_USER1_AFFILIATION = "org1.department1";
     private static final String CA_LOCATION = "http://localhost:7054";
+    private static final String tlsbase = "src/test/fixture/sdkintegration/e2e-2Orgs/tls/";
+    private static final String INTEGRATIONTESTSTLS = "org.hyperledger.fabric.sdktest.integrationtests.tls";
     private SampleStore sampleStore;
     private HFCAClient client;
     SampleUser admin;
+    private boolean runningTLS = false;
 
     @Before
     public void setup() throws CryptoException, InvalidArgumentException, MalformedURLException, EnrollmentException {
@@ -54,9 +58,26 @@ public class HFCAClientEnrollIT {
         sampleStore = new SampleStore(sampleStoreFile);
         sampleStoreFile.deleteOnExit();
 
+        String ret = System.getProperty(INTEGRATIONTESTSTLS);
+        if (ret != null) {
+            runningTLS = true;
+        } else {
+            String envKey = INTEGRATIONTESTSTLS.toUpperCase().replaceAll("\\.", "_");
+            ret = System.getenv(envKey);
+            if (null != ret) runningTLS = true;
+        }
+
+        // TLS connection support
+        String location = CA_LOCATION;
+        Properties properties = null;
+        if (runningTLS) {
+            location = httpTLSify(location);
+            properties = getTLSproperties("peerOrg1");
+        }
+
         CryptoSuite cryptoSuite = CryptoSuite.Factory.getCryptoSuite();
         cryptoSuite.init();
-        client = new HFCAClient(CA_LOCATION, null);
+        client = new HFCAClient(location, properties);
         client.setCryptoSuite(cryptoSuite);
 
         //SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface
@@ -65,6 +86,23 @@ public class HFCAClientEnrollIT {
             admin.setEnrollment(client.enroll(admin.getName(), TEST_ADMIN_PW));
         }
 
+    }
+
+    private String httpTLSify(String location) {
+        location = location.trim();
+        return location.replaceFirst("^http://", "https://");
+    }
+
+    private Properties getTLSproperties(String orgName) {
+        String cert = tlsbase + "/cas/" + orgName + "/cert.pem";
+        File cf = new File(cert);
+        if (!cf.exists() || !cf.isFile()) {
+            throw new RuntimeException("TEST is missing cert file " + cf.getAbsolutePath());
+        }
+        Properties properties = new Properties();
+        properties.setProperty("pemFile", cf.getAbsolutePath());
+        properties.setProperty("allowAllHostNames", "true");//testing environment only NOT FOR PRODUCTION!
+        return properties;
     }
 
     @Test
@@ -100,9 +138,17 @@ public class HFCAClientEnrollIT {
     @Test
     public void testUserRevoke() {
         try {
+            // TLS connection support
+            String location = CA_LOCATION;
+            Properties properties = null;
+            if (runningTLS) {
+                location = httpTLSify(location);
+                properties = getTLSproperties("peerOrg2");
+            }
+
             CryptoSuite cryptoSuite = CryptoSuite.Factory.getCryptoSuite();
             cryptoSuite.init();
-            HFCAClient client = new HFCAClient(CA_LOCATION, null);
+            HFCAClient client = new HFCAClient(location, properties);
             client.setCryptoSuite(cryptoSuite);
 
 
