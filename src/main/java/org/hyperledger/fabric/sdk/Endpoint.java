@@ -56,6 +56,8 @@ class Endpoint {
 
     Endpoint(String url, Properties properties) {
 
+        logger.trace(String.format("Creating endpoint for url %s", url));
+
         String pem = null;
         String cn = null;
         String sslp = null;

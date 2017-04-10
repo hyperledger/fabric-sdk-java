@@ -273,7 +273,6 @@ public class SDKUtil {
         return data;
     }
 
-
     public static Properties parseGrpcUrl(String url) {
         if (StringUtil.isNullOrEmpty(url)) {
             throw new RuntimeException("URL cannot be null or empty");
@@ -288,8 +287,9 @@ public class SDKUtil {
             props.setProperty("port", m.group(3));
 
             String protocol = props.getProperty("protocol");
-            if (!"grpc".equals(protocol) && !"grpcs".equals(protocol))
+            if (!"grpc".equals(protocol) && !"grpcs".equals(protocol)) {
                 throw new RuntimeException(String.format("Invalid protocol expected grpc or grpcs and found %s.", protocol));
+            }
         } else {
             throw new RuntimeException("URL must be of the format protocol://host:port");
         }
@@ -319,13 +319,11 @@ public class SDKUtil {
         return url == null || url.isEmpty();
     }
 
-
     public static ByteString getNonce() {
         //TODO right now the server does not care need to figure out
         return ByteString.copyFromUtf8(generateUUID());
 
     }
-
 
     /**
      * Makes logging strings which can be long or with unprintable characters be logged and trimmed.
@@ -340,10 +338,9 @@ public class SDKUtil {
 
         String ret = string.replaceAll("[^\\p{Print}]", "?");
 
-        ret = ret.substring(0, Math.min(ret.length(), maxLogStringLength)) + (ret.length() >= maxLogStringLength ? "..." : "");
+        ret = ret.substring(0, Math.min(ret.length(), maxLogStringLength)) + (ret.length() > maxLogStringLength ? "..." : "");
 
         return ret;
-
 
     }
 

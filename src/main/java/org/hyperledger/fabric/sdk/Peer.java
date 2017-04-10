@@ -34,10 +34,12 @@ import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
  */
 public class Peer {
     private static final Log logger = LogFactory.getLog(Peer.class);
-    private final EndorserClient endorserClent;
+    private EndorserClient endorserClent;
     private final Properties properties;
     private final String name;
     private final String url;
+    private boolean shutdown = false;
+    private Chain chain;
 
     Peer(String name, String grpcURL, Properties properties) throws InvalidArgumentException {
 
@@ -47,7 +49,6 @@ public class Peer {
 
         }
 
-
         if (StringUtil.isNullOrEmpty(name)) {
             throw new InvalidArgumentException("Invalid name for peer");
         }
@@ -56,9 +57,7 @@ public class Peer {
         this.name = name;
         this.properties = properties == null ? null : (Properties) properties.clone(); //keep our own copy.
 
-
         this.endorserClent = new EndorserClient(new Endpoint(url, this.properties).getChannelBuilder());
-
 
     }
 
@@ -78,12 +77,34 @@ public class Peer {
         return properties == null ? null : (Properties) properties.clone();
     }
 
-
     /**
      * Set the chain the peer is on.
      *
      * @param chain
      */
+
+    void setChain(Chain chain) throws InvalidArgumentException {
+
+        if (null != this.chain) {
+            throw new InvalidArgumentException(format("Can not add peer %s to chain %s because it already belongs to chain %s.",
+                    name, chain.getName(), this.chain.getName()));
+        }
+
+        this.chain = chain;
+
+    }
+
+    /**
+     * The chain the peer is set on.
+     *
+     * @return
+     */
+
+    Chain getChain() {
+
+        return chain;
+
+    }
 
     /**
      * Get the URL of the peer.
@@ -103,12 +124,15 @@ public class Peer {
      */
     @Override
     public boolean equals(Object otherPeer) {
-        if (this == otherPeer)
+        if (this == otherPeer) {
             return true;
-        if (otherPeer == null)
+        }
+        if (otherPeer == null) {
             return false;
-        if (!(otherPeer instanceof Peer))
+        }
+        if (!(otherPeer instanceof Peer)) {
             return false;
+        }
         Peer p = (Peer) otherPeer;
         return Objects.equals(getName(), p.getName()) && Objects.equals(getUrl(), p.getUrl());
     }
@@ -117,7 +141,7 @@ public class Peer {
             throws PeerException, InvalidArgumentException {
         checkSendProposal(proposal);
 
-        logger.debug(format("peer.sendProposalAsync name:%s, url: %s", name, url ));
+        logger.debug(format("peer.sendProposalAsync name:%s, url: %s", name, url));
 
         return endorserClent.sendProposalAsync(proposal);
     }
@@ -126,12 +150,16 @@ public class Peer {
             throws PeerException, InvalidArgumentException {
         checkSendProposal(proposal);
 
-        logger.debug(format("peer.sendProposalAsync name: %s, url: %s", name, url ));
+        logger.debug(format("peer.sendProposalAsync name: %s, url: %s", name, url));
 
         return endorserClent.sendProposal(proposal);
     }
 
     private void checkSendProposal(FabricProposal.SignedProposal proposal) throws PeerException, InvalidArgumentException {
+
+        if (shutdown) {
+            throw new PeerException(format("Peer %s was shutdown.", name));
+        }
         if (proposal == null) {
             throw new PeerException("Proposal is null");
         }
@@ -142,11 +170,34 @@ public class Peer {
         }
     }
 
-
     static Peer createNewInstance(String name, String grpcURL, Properties properties) throws InvalidArgumentException {
 
         return new Peer(name, grpcURL, properties);
     }
 
+    synchronized void shutdown(boolean force) {
+        if (shutdown) {
+            return;
+        }
+        shutdown = true;
+        chain = null;
 
+        EndorserClient lendorserClent = endorserClent;
+
+        //allow resources to finalize
+
+        endorserClent = null;
+
+        if (lendorserClent == null) {
+            return;
+        }
+
+        lendorserClent.shutdown(force);
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        shutdown(true);
+        super.finalize();
+    }
 } // end Peer

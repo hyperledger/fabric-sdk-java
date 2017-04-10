@@ -56,6 +56,8 @@ public class EventHub {
      */
     private Chain.ChainEventQue eventQue;
     private long connectedTime = 0L; // 0 := never connected
+    private boolean shutdown = false;
+    private Chain chain;
 
     /**
      * Get disconnected time.
@@ -180,10 +182,14 @@ public class EventHub {
 
             @Override
             public void onError(Throwable t) {
+                if (shutdown) { //IF we're shutdown don't try anything more.
+                    return;
+                }
 
                 final boolean isTerminated = channel.isTerminated();
-                final boolean isShutdown = channel.isShutdown();
-                logger.error(format("%s terminated is %b shutdown is %b has error %s ", EventHub.this.toString(), isTerminated, isShutdown,
+                final boolean isChannelShutdown = channel.isShutdown();
+
+                logger.error(format("%s terminated is %b shutdown is %b has error %s ", EventHub.this.toString(), isTerminated, isChannelShutdown,
                         t.getMessage()), new EventHubException(t));
 
                 //              logger.error("Error in stream: " + t.getMessage(), new EventHubException(t));
@@ -196,7 +202,7 @@ public class EventHub {
                         connected = false;
                         disconnectedTime = System.currentTimeMillis();
                         try {
-                            if (!isShutdown) {
+                            if (!isChannelShutdown) {
                                 channel.shutdownNow();
                             }
                             if (null != disconnectedHandler) {
@@ -284,6 +290,27 @@ public class EventHub {
     @Override
     public String toString() {
         return "EventHub:" + getName();
+    }
+
+    public void shutdown() {
+        shutdown = true;
+        connected = false;
+        disconnectedHandler = null;
+        chain = null;
+        channel.shutdownNow();
+    }
+
+    void setChain(Chain chain) throws InvalidArgumentException {
+        if (chain == null) {
+            throw new InvalidArgumentException("setChain Chain can not be null");
+        }
+
+        if (null != this.chain) {
+            throw new InvalidArgumentException(format("Can not add event hub  %s to chain %s because it already belongs to chain %s.",
+                    name, chain.getName(), this.chain.getName()));
+        }
+
+        this.chain = chain;
     }
 
     /**

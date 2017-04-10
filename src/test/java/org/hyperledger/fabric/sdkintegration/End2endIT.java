@@ -164,11 +164,14 @@ public class End2endIT {
             ////////////////////////////
             //Construct and run the chains
             SampleOrg sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
-            runChain(client, constructChain(FOO_CHAIN_NAME, client, sampleOrg), true, sampleOrg, 0);
+            Chain fooChain = constructChain(FOO_CHAIN_NAME, client, sampleOrg);
+            runChain(client, fooChain, true, sampleOrg, 0);
+            fooChain.shutdown(true); // Force foo chain to shutdown clean up resources.
             out("\n");
+
             sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg2");
-            runChain(client, constructChain(BAR_CHAIN_NAME, client, sampleOrg), true, sampleOrg, 100); //run a newly constructed foo chain with different b value!
-            //runChain(client, constructChain(MYCHANNEL_CHAIN_NAME, client, "peerOrg2"), true, "peerOrg1", 0);
+            runChain(client, constructChain(BAR_CHAIN_NAME, client, sampleOrg), true, sampleOrg, 100); //run a newly constructed bar chain with different b value!
+            //let bar chain just shutdown so we have both scenarios.
             out("That's all folks!");
 
         } catch (Exception e) {

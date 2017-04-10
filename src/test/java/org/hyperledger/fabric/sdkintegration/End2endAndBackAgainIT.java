@@ -160,10 +160,15 @@ public class End2endAndBackAgainIT {
             ////////////////////////////
             //Reconstruct and run the chains
             SampleOrg sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
-            runChain(client, reconstructChain(FOO_CHAIN_NAME, client, sampleOrg), sampleOrg, 0);
+            Chain fooChain = reconstructChain(FOO_CHAIN_NAME, client, sampleOrg);
+            runChain(client, fooChain, sampleOrg, 0);
+            fooChain.shutdown(true); //clean up resources no longer needed.
             out("\n");
             sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg2");
-            runChain(client, reconstructChain(BAR_CHAIN_NAME, client, sampleOrg), sampleOrg, 100); //run a newly constructed foo chain with different b value!
+            Chain barChain = reconstructChain(BAR_CHAIN_NAME, client, sampleOrg);
+            runChain(client, barChain, sampleOrg, 100); //run a newly constructed foo chain with different b value!
+            barChain.shutdown(true);
+
             //runChain(client, constructChain(MYCHANNEL_CHAIN_NAME, client, "peerOrg2"), true, "peerOrg1", 0);
             out("That's all folks!");
 

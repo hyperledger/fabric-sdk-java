@@ -146,6 +146,7 @@ public class Chain {
     HFClient client;
     private boolean initialized = false;
     private int max_message_count = 50;
+    private boolean shutdown = false;
 
     /**
      * Get eventHubs on the chain
@@ -157,7 +158,7 @@ public class Chain {
     }
 
     private final Collection<EventHub> eventHubs = new LinkedList<>();
-    private final ExecutorService executorService;
+    private ExecutorService executorService;
     private Block genesisBlock;
     private final boolean systemChain;
 
@@ -226,7 +227,6 @@ public class Chain {
 
         this.systemChain = systemChain;
 
-
         if (systemChain) {
             name = SYSTEM_CHAIN_NAME;///It's special !
             initialized = true;
@@ -284,6 +284,10 @@ public class Chain {
      */
     public Chain addPeer(Peer peer) throws InvalidArgumentException {
 
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
+
         if (null == peer) {
             throw new InvalidArgumentException("Peer is invalid can not be null.");
         }
@@ -296,11 +300,25 @@ public class Chain {
             throw new InvalidArgumentException("Peer added to chan has invalid url.", e);
         }
 
-        this.peers.add(peer);
+        peer.setChain(this);
+
+        peers.add(peer);
+
         return this;
     }
 
     public Chain joinPeer(Peer peer) throws ProposalException {
+
+        if (shutdown) {
+            throw new ProposalException(format("Chain %s has been shutdown.", name));
+        }
+
+        Chain peerChain = peer.getChain();
+        if (null != peerChain) {
+            throw new ProposalException(format("Can not add peer %s to chain %s because it already belongs to chain %s.", peer.getName(), name, peerChain));
+
+        }
+
         if (genesisBlock == null && orderers.isEmpty()) {
             ProposalException e = new ProposalException("Chain missing genesis block and no orderers configured");
             logger.error(e.getMessage(), e);
@@ -355,6 +373,10 @@ public class Chain {
 
     public Chain addOrderer(Orderer orderer) throws InvalidArgumentException {
 
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
+
         if (null == orderer) {
             throw new InvalidArgumentException("Orderer is invalid can not be null.");
         }
@@ -378,6 +400,10 @@ public class Chain {
      */
 
     public Chain addEventHub(EventHub eventHub) throws InvalidArgumentException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
         if (null == eventHub) {
             throw new InvalidArgumentException("EventHub is invalid can not be null.");
         }
@@ -386,7 +412,7 @@ public class Chain {
         if (e != null) {
             throw new InvalidArgumentException("Peer added to chan has invalid url.", e);
         }
-
+        eventHub.setChain(this);
         eventHub.setEventQue(chainEventQue);
         eventHubs.add(eventHub);
         return this;
@@ -477,6 +503,11 @@ public class Chain {
      */
 
     public Chain initialize() throws InvalidArgumentException, TransactionException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
+
         if (peers.size() == 0) {
 
             throw new InvalidArgumentException("Chain needs at least one peer.");
@@ -1082,6 +1113,11 @@ public class Chain {
      */
 
     public Collection<ProposalResponse> sendInstantiationProposal(InstantiateProposalRequest instantiateProposalRequest) throws InvalidArgumentException, ProposalException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
+
         return sendInstantiationProposal(instantiateProposalRequest, peers);
     }
 
@@ -1096,6 +1132,9 @@ public class Chain {
 
     public Collection<ProposalResponse> sendInstantiationProposal(InstantiateProposalRequest instantiateProposalRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
 
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
         if (null == instantiateProposalRequest) {
             throw new InvalidArgumentException("sendDeploymentProposal deploymentProposalRequest is null");
         }
@@ -1143,6 +1182,10 @@ public class Chain {
      */
 
     public Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest) throws InvalidArgumentException, ProposalException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
         return sendInstallProposal(installProposalRequest, peers);
     }
 
@@ -1157,6 +1200,10 @@ public class Chain {
 
     public Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest, Collection<Peer> peers)
             throws ProposalException, InvalidArgumentException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
         if (null == installProposalRequest) {
             throw new InvalidArgumentException("sendInstallProposal deploymentProposalRequest is null");
         }
@@ -1219,6 +1266,10 @@ public class Chain {
 
     public Collection<ProposalResponse> sendUpgradeProposal(UpgradeProposalRequest upgradeProposalRequest, Collection<Peer> peers)
             throws InvalidArgumentException, ProposalException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
         if (null == upgradeProposalRequest) {
             throw new InvalidArgumentException("sendInstallProposal deploymentProposalRequest is null");
         }
@@ -1282,6 +1333,10 @@ public class Chain {
      * @throws ProposalException
      */
     public BlockInfo queryBlockByHash(byte[] blockHash) throws InvalidArgumentException, ProposalException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
         if (blockHash == null) {
             throw new InvalidArgumentException("blockHash parameter is null.");
         }
@@ -1300,6 +1355,10 @@ public class Chain {
      * @throws ProposalException
      */
     public BlockInfo queryBlockByHash(Peer peer, byte[] blockHash) throws InvalidArgumentException, ProposalException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
         if (peer == null) {
             throw new InvalidArgumentException("Must give a peer to send request to.");
         }
@@ -1350,6 +1409,10 @@ public class Chain {
      * @throws ProposalException
      */
     public BlockInfo queryBlockByNumber(long blockNumber) throws InvalidArgumentException, ProposalException {
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
+
         if (getPeers().isEmpty()) {
             throw new InvalidArgumentException("Channel " + name + " does not have peers associated with it.");
         }
@@ -1366,6 +1429,9 @@ public class Chain {
      * @throws ProposalException
      */
     public BlockInfo queryBlockByNumber(Peer peer, long blockNumber) throws InvalidArgumentException, ProposalException {
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
         if (peer == null) {
             throw new InvalidArgumentException("Must give a peer to send request to.");
         }
@@ -1415,6 +1481,10 @@ public class Chain {
      * @throws ProposalException
      */
     public BlockInfo queryBlockByTransactionID(String txID) throws InvalidArgumentException, ProposalException {
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
+
         if (txID == null) {
             throw new InvalidArgumentException("TxID parameter is null.");
         }
@@ -1434,6 +1504,10 @@ public class Chain {
      * @throws ProposalException
      */
     public BlockInfo queryBlockByTransactionID(Peer peer, String txID) throws InvalidArgumentException, ProposalException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
         if (peer == null) {
             throw new InvalidArgumentException("Must give a peer to send request to.");
         }
@@ -1485,6 +1559,10 @@ public class Chain {
      * @throws ProposalException
      */
     public BlockchainInfo queryBlockchainInfo() throws ProposalException, InvalidArgumentException {
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
+
         if (getPeers().isEmpty()) {
             throw new InvalidArgumentException("Channel " + name + " does not have peers associated with it.");
         }
@@ -1500,6 +1578,11 @@ public class Chain {
      * @throws ProposalException
      */
     public BlockchainInfo queryBlockchainInfo(Peer peer) throws ProposalException, InvalidArgumentException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
+
         if (peer == null) {
             throw new InvalidArgumentException("Must give a peer to send request to.");
         }
@@ -1546,6 +1629,11 @@ public class Chain {
      * @throws InvalidArgumentException
      */
     public TransactionInfo queryTransactionByID(String txID) throws ProposalException, InvalidArgumentException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
+
         if (txID == null) {
             throw new InvalidArgumentException("TxID parameter is null.");
         }
@@ -1565,6 +1653,11 @@ public class Chain {
      * @throws InvalidArgumentException
      */
     public TransactionInfo queryTransactionByID(Peer peer, String txID) throws ProposalException, InvalidArgumentException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
+
         if (peer == null) {
             throw new InvalidArgumentException("Must give a peer to send request to.");
         }
@@ -1745,6 +1838,10 @@ public class Chain {
 
     public List<ChaincodeInfo> queryInstantiatedChaincodes(Peer peer) throws InvalidArgumentException, ProposalException {
 
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
+
         if (peer == null) {
             throw new InvalidArgumentException("Must have peer to query.");
         }
@@ -1851,6 +1948,10 @@ public class Chain {
     }
 
     private Collection<ProposalResponse> sendProposal(TransactionRequest proposalRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
 
         if (null == proposalRequest) {
             throw new InvalidArgumentException("sendProposal queryProposalRequest is null");
@@ -1988,6 +2089,10 @@ public class Chain {
     public CompletableFuture<TransactionEvent> sendTransaction(Collection<ProposalResponse> proposalResponses, Collection<Orderer> orderers) {
         try {
 
+            if (shutdown) {
+                throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            }
+
             if (null == proposalResponses) {
 
                 throw new InvalidArgumentException("sendTransaction proposalResponses was null");
@@ -2093,7 +2198,11 @@ public class Chain {
      * @param listener
      * @return
      */
-    public String registerBlockListener(BlockListener listener) {
+    public String registerBlockListener(BlockListener listener) throws InvalidArgumentException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+        }
 
         return new BL(listener).getHandle();
 
@@ -2115,6 +2224,9 @@ public class Chain {
         }
 
         boolean addBEvent(BlockEvent event) {
+            if (shutdown) {
+                return false;
+            }
 
             //For now just support blocks --- other types are also reported as blocks.
 
@@ -2136,6 +2248,10 @@ public class Chain {
         }
 
         BlockEvent getNextEvent() throws EventHubException {
+            if (shutdown) {
+                throw new EventHubException(format("Chain %s has been shutdown", name));
+
+            }
             BlockEvent ret = null;
             if (eventException != null) {
                 throw new EventHubException(eventException);
@@ -2143,12 +2259,17 @@ public class Chain {
             try {
                 ret = events.take();
             } catch (InterruptedException e) {
-                logger.warn(e);
-                if (eventException != null) {
+                if (shutdown) {
+                    throw new EventHubException(eventException);
 
-                    EventHubException eve = new EventHubException(eventException);
-                    logger.error(eve.getMessage(), eve);
-                    throw eve;
+                } else {
+                    logger.warn(e);
+                    if (eventException != null) {
+
+                        EventHubException eve = new EventHubException(eventException);
+                        logger.error(eve.getMessage(), eve);
+                        throw eve;
+                    }
                 }
             }
 
@@ -2156,28 +2277,41 @@ public class Chain {
                 throw new EventHubException(eventException);
             }
 
+            if (shutdown) {
+
+                throw new EventHubException(format("Chain %s has been shutdown.", name));
+
+            }
+
             return ret;
         }
 
     }
 
-    private Runnable eventTask;
-    //  private Runnable cleanUpTask;
-
     /**
      * Runs processing events from event hubs.
      */
 
+    Thread eventQueueThread = null;
+
     private void startEventQue() {
 
-        eventTask = () -> {
+        if (eventQueueThread != null) {
+            return;
+        }
 
-            for (; ; ) {
+        executorService.execute(() -> {
+            eventQueueThread = Thread.currentThread();
+
+            while (!shutdown) {
                 final BlockEvent blockEvent;
                 try {
                     blockEvent = chainEventQue.getNextEvent();
                 } catch (EventHubException e) {
-                    logger.error(e);
+                    if (!shutdown) {
+                        logger.error(e);
+                    }
+
                     continue;
                 }
                 if (blockEvent == null) {
@@ -2186,7 +2320,7 @@ public class Chain {
 
                 try {
 
-                    String blockchainID = blockEvent.getChannelID();
+                    final String blockchainID = blockEvent.getChannelID();
 
                     if (!Objects.equals(name, blockchainID)) {
                         continue; // not targeted for this chain
@@ -2210,9 +2344,7 @@ public class Chain {
                     logger.debug(blockEvent.toString());
                 }
             }
-        };
-
-        new Thread(eventTask).start();
+        });
 
 //        Do our own time out. of tasks
 //        cleanUpTask = () -> {
@@ -2285,7 +2417,7 @@ public class Chain {
      * @return
      */
 
-    private String registerTransactionListenerProcessor() {
+    private String registerTransactionListenerProcessor() throws InvalidArgumentException {
 
         // Transaction listener is internal Block listener for transactions
 
@@ -2441,4 +2573,59 @@ public class Chain {
 
     }
 
+    /**
+     * Shutdown the chain with all resources released.
+     *
+     * @param force force immediate shutdown.
+     */
+
+    public synchronized void shutdown(boolean force) {
+
+        if (shutdown) {
+            return;
+        }
+
+        initialized = false;
+        shutdown = true;
+        anchorPeers = null;
+        executorService = null;
+
+        for (EventHub eh : getEventHubs()) {
+
+            try {
+                eh.shutdown();
+            } catch (Exception e) {
+                // Best effort.
+            }
+
+        }
+        eventHubs.clear();
+        for (Peer peer : getPeers()) {
+
+            try {
+                peer.shutdown(force);
+            } catch (Exception e) {
+                // Best effort.
+            }
+        }
+        peers.clear();
+
+        for (Orderer orderer : getOrderers()) {
+            orderer.shutdown(force);
+        }
+
+        orderers.clear();
+
+        if (eventQueueThread != null) {
+            eventQueueThread.interrupt();
+        }
+        eventQueueThread = null;
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        shutdown(true);
+        super.finalize();
+
+    }
 }

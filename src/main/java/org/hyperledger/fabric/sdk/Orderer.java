@@ -14,7 +14,6 @@
 
 package org.hyperledger.fabric.sdk;
 
-
 import java.util.Properties;
 
 import io.netty.util.internal.StringUtil;
@@ -26,6 +25,7 @@ import org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
 
+import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
 
 /**
@@ -34,7 +34,7 @@ import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
 public class Orderer {
     private static final Log logger = LogFactory.getLog(Orderer.class);
     private final Properties properties;
-
+    private boolean shutdown = false;
 
     /**
      * Get Orderer properties.
@@ -87,7 +87,12 @@ public class Orderer {
 
     void setChain(Chain chain) throws InvalidArgumentException {
         if (chain == null) {
-            throw new InvalidArgumentException("Chain can not be null");
+            throw new InvalidArgumentException("setChain Chain can not be null");
+        }
+
+        if (null != this.chain) {
+            throw new InvalidArgumentException(format("Can not add orderer  %s to chain %s because it already belongs to chain %s.",
+                    name, chain.getName(), this.chain.getName()));
         }
 
         this.chain = chain;
@@ -112,11 +117,16 @@ public class Orderer {
      */
 
     Ab.BroadcastResponse sendTransaction(Common.Envelope transaction) throws Exception {
+        if (shutdown) {
+            throw new TransactionException(format("Orderer %s was shutdown.", name));
+        }
 
-        logger.debug(String.format("Order.sendTransaction name: %s, url: %s", name, url));
+        logger.debug(format("Order.sendTransaction name: %s, url: %s", name, url));
 
         OrdererClient orderClient = new OrdererClient(new Endpoint(url, properties).getChannelBuilder());
-        return orderClient.sendTransaction(transaction);
+        Ab.BroadcastResponse resp = orderClient.sendTransaction(transaction);
+        orderClient.shutdown(true);
+        return resp;
 
     }
 
@@ -128,12 +138,31 @@ public class Orderer {
 
     DeliverResponse[] sendDeliver(Common.Envelope transaction) throws TransactionException {
 
-        logger.debug(String.format("Order.sendDeliver name: %s, url: %s", name, url));
+        if (shutdown) {
+            throw new TransactionException(format("Orderer %s was shutdown.", name));
+        }
+
+        logger.debug(format("Order.sendDeliver name: %s, url: %s", name, url));
 
         OrdererClient orderClient = new OrdererClient(new Endpoint(url, properties).getChannelBuilder());
-        return orderClient.sendDeliver(transaction);
+        DeliverResponse[] response = orderClient.sendDeliver(transaction);
+        orderClient.shutdown(true);
+        return response;
 
     }
 
+    synchronized void shutdown(boolean force) {
+        if (shutdown) {
+            return;
+        }
+        shutdown = true;
+        chain = null;
 
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
+        shutdown(true);
+    }
 } // end Orderer
