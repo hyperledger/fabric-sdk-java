@@ -12,7 +12,7 @@
  *  limitations under the License.
  */
 
-package org.hyperledger.fabric.sdk;
+package org.hyperledger.fabric_ca.sdk;
 
 import javax.json.Json;
 import javax.json.JsonObject;

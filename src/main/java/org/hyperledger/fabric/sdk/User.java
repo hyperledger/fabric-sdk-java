@@ -14,7 +14,7 @@
 
 package org.hyperledger.fabric.sdk;
 
-import java.util.ArrayList;
+import java.util.Set;
 
 /**
  * User - Is the interface needed to be implemented by embedding application of the SDK
@@ -32,7 +32,7 @@ public interface User {
      * The roles
      * @return
      */
-    ArrayList<String> getRoles();
+    Set<String> getRoles();
 
     /**
      * Users account

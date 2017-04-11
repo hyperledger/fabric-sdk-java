@@ -17,6 +17,7 @@ package org.hyperledger.fabric_ca.sdk;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Collection;
 
 import javax.json.Json;
 import javax.json.JsonObject;
@@ -24,7 +25,6 @@ import javax.json.JsonObjectBuilder;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonWriter;
 
-import org.hyperledger.fabric.sdk.Attribute;
 
 /**
  * A registration request is information required to register a user, peer, or other
@@ -43,73 +43,81 @@ public class RegistrationRequest {
     // Affiliation for a user
     private String affiliation;
     // Array of attribute names and values
-    private ArrayList<Attribute> attrs = new ArrayList<Attribute>();
-    
+    private Collection<Attribute> attrs;
+
     // Constructor
     public RegistrationRequest(String id, String affiliation) throws Exception {
-    	if (id == null) {
-    		throw new Exception("id may not be null");
-    	}
-    	if (affiliation == null) {
-    		throw new Exception("affiliation may not be null");
-    	}
-    	this.enrollmentID = id;
-    	this.affiliation = affiliation;
-    	this.type = "user";
+        if (id == null) {
+            throw new Exception("id may not be null");
+        }
+        if (affiliation == null) {
+            throw new Exception("affiliation may not be null");
+        }
+        this.enrollmentID = id;
+        this.affiliation = affiliation;
+        this.type = "user";
+        this.attrs = new ArrayList<Attribute>();
     }
-    
-	public String getEnrollmentID() {
-		return enrollmentID;
-	}
 
-	
-	public void setEnrollmentID(String enrollmentID) {
-		this.enrollmentID = enrollmentID;
-	}
-	
-	public String getSecret() {
-		return secret;
-	}
+    public String getEnrollmentID() {
+        return enrollmentID;
+    }
 
-	public void setSecret(String secret) {
-		this.secret = secret;
-	}
+    public void setEnrollmentID(String enrollmentID) {
+        this.enrollmentID = enrollmentID;
+    }
 
-	public int getMaxEnrollments() {
-		return maxEnrollments;
-	}
+    public String getSecret() {
+        return secret;
+    }
 
-	public void setMaxEnrollments(int maxEnrollments) {
-		this.maxEnrollments = maxEnrollments;
-	}
+    public void setSecret(String secret) {
+        this.secret = secret;
+    }
 
-	public String getType() {
-		return type;
-	}
-	
-	public void setType(String type) {
-		this.type = type;
-	}
-	
-	public String getAffiliation() {
-		return affiliation;
-	}
+    public int getMaxEnrollments() {
+        return maxEnrollments;
+    }
 
-	public void setAffiliation(String affiliation) {
-		this.affiliation = affiliation;
-	}
-	
-	// Convert the registration request to a JSON string
-	public String toJson() {
-	    StringWriter stringWriter = new StringWriter();
-	    JsonWriter jsonWriter = Json.createWriter(new PrintWriter(stringWriter));
-	    jsonWriter.writeObject(this.toJsonObject());
-	    jsonWriter.close();
-	    return stringWriter.toString();
-	}
+    public void setMaxEnrollments(int maxEnrollments) {
+        this.maxEnrollments = maxEnrollments;
+    }
 
-	// Convert the registration request to a JSON object
-	public JsonObject toJsonObject() {
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getAffiliation() {
+        return affiliation;
+    }
+
+    public void setAffiliation(String affiliation) {
+        this.affiliation = affiliation;
+    }
+
+    public Collection<Attribute> getAttrbutes() {
+        return attrs;
+    }
+
+    public void addAttribute(Attribute attr) {
+        this.attrs.add(attr);
+    }
+
+    // Convert the registration request to a JSON string
+    public String toJson() {
+        StringWriter stringWriter = new StringWriter();
+        JsonWriter jsonWriter = Json.createWriter(new PrintWriter(stringWriter));
+        jsonWriter.writeObject(this.toJsonObject());
+        jsonWriter.close();
+        return stringWriter.toString();
+    }
+
+    // Convert the registration request to a JSON object
+    public JsonObject toJsonObject() {
         JsonObjectBuilder ob = Json.createObjectBuilder();
         ob.add("id", this.enrollmentID);
         ob.add("type",  this.type);
@@ -118,13 +126,11 @@ public class RegistrationRequest {
         }
         ob.add("max_enrollments",  this.maxEnrollments);
         ob.add("affiliation",  this.affiliation);
-        ob.add("group",  this.affiliation);  // TODO: REMOVE THIS WHEN API IS CHANGED  (See https://jira.hyperledger.org/browse/FAB-2534)
         JsonArrayBuilder ab = Json.createArrayBuilder();
         for (Attribute attr: this.attrs) {
-        	ab.add(attr.toJsonObject());
+            ab.add(attr.toJsonObject());
         }
+        ob.add("attrs", ab.build());
         return ob.build();
-	}
-
-  
+    }
 }

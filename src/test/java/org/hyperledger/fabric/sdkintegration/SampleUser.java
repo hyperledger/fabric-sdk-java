@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import io.netty.util.internal.StringUtil;
 import org.bouncycastle.util.encoders.Hex;
@@ -34,7 +34,7 @@ public class SampleUser implements User, Serializable {
 
     //   private transient Chain chain;
     private String name;
-    private ArrayList<String> roles;
+    private Set<String> roles;
     private String account;
     private String affiliation;
     private String organization;
@@ -77,7 +77,7 @@ public class SampleUser implements User, Serializable {
      * @return {string[]} The roles.
      */
     @Override
-    public ArrayList<String> getRoles() {
+    public Set<String> getRoles() {
         return this.roles;
     }
 
@@ -86,7 +86,7 @@ public class SampleUser implements User, Serializable {
      *
      * @param roles {string[]} The roles.
      */
-    public void setRoles(ArrayList<String> roles) {
+    public void setRoles(Set<String> roles) {
 
         this.roles = roles;
         saveState();
