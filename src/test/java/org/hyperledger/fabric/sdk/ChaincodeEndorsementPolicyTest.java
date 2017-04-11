@@ -21,11 +21,11 @@ import java.net.URL;
 import java.util.List;
 
 import org.apache.commons.compress.utils.IOUtils;
+import org.hyperledger.fabric.protos.common.MspPrincipal;
+import org.hyperledger.fabric.protos.common.MspPrincipal.MSPPrincipal;
 import org.hyperledger.fabric.protos.common.Policies;
 import org.hyperledger.fabric.protos.common.Policies.SignaturePolicy.TypeCase;
 import org.hyperledger.fabric.protos.common.Policies.SignaturePolicyEnvelope;
-import org.hyperledger.fabric.protos.msp.MspPrincipal;
-import org.hyperledger.fabric.protos.msp.MspPrincipal.MSPPrincipal;
 import org.hyperledger.fabric.sdk.exception.ChaincodeEndorsementPolicyParseException;
 import org.junit.Test;
 

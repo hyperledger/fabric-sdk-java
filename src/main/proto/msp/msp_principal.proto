@@ -18,9 +18,10 @@ limitations under the License.
 syntax = "proto3";
 
 option go_package = "github.com/hyperledger/fabric/protos/msp";
-option java_package = "org.hyperledger.fabric.protos.msp";
+option java_package = "org.hyperledger.fabric.protos.common";
 
 package common;
+
 
 // msp_principal.proto contains proto messages defining the generalized
 // MSP notion of identity called an MSPPrincipal.  It is used as part of
@@ -49,14 +50,14 @@ package common;
 message MSPPrincipal {
 
     enum Classification {
-        ROLE = 0; // Represents the one of the dedicated MSP roles, the
+        ROLE = 0;  // Represents the one of the dedicated MSP roles, the
         // one of a member of MSP network, and the one of an
         // administrator of an MSP network
         ORGANIZATION_UNIT = 1; // Denotes a finer grained (affiliation-based)
         // groupping of entities, per MSP affiliation
         // E.g., this can well be represented by an MSP's
         // Organization unit
-        IDENTITY = 2; // Denotes a principal that consists of a single
+        IDENTITY  = 2;    // Denotes a principal that consists of a single
         // identity
     }
 
@@ -76,6 +77,7 @@ message MSPPrincipal {
     // identity, respectively.
     bytes principal = 2;
 }
+
 
 // OrganizationUnit governs the organization of the Principal
 // field of a policy principal when a specific organization unity members
@@ -106,7 +108,7 @@ message MSPRole {
 
     enum MSPRoleType {
         MEMBER = 0; // Represents an MSP Member
-        ADMIN = 1; // Represents an MSP Admin
+        ADMIN  = 1; // Represents an MSP Admin
     }
 
     // MSPRoleType defines which of the available, pre-defined MSP-roles
@@ -114,6 +116,7 @@ message MSPRole {
     MSPRoleType role = 2;
 
 }
+
 
 // TODO: Bring msp.SerializedIdentity from fabric/msp/identities.proto here. Reason below.
 // SerializedIdentity represents an serialized version of an identity;

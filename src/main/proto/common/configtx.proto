@@ -46,7 +46,7 @@ package common;
 //   2. All items in the write_set at a different version than, or not in, the read_set have been appropriately signed according to their mod_policy
 //   3. The new configuration satisfies the ConfigSchema
 message ConfigEnvelope {
-    Config config = 1;                    // A marshaled Config structure
+    Config config = 1;        // A marshaled Config structure
     Envelope last_update = 2; // The last CONFIG_UPDATE message which generated this current configuration
                               // Note that CONFIG_UPDATE has a Payload.Data of a Marshaled ConfigUpdate
 }

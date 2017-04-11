@@ -17,12 +17,12 @@ limitations under the License.
 syntax = "proto3";
 
 import "common/common.proto";
-import "peer/chaincodeevent.proto";
+import "peer/chaincode_event.proto";
 import "peer/transaction.proto";
 
-option go_package = "github.com/hyperledger/fabric/protos/peer";
 option java_package = "org.hyperledger.fabric.protos.peer";
 option java_outer_classname = "PeerEvents";
+option go_package = "github.com/hyperledger/fabric/protos/peer";
 
 package protos;
 

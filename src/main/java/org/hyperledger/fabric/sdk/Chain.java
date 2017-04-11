@@ -56,7 +56,7 @@ import org.hyperledger.fabric.protos.common.Configtx.ConfigGroup;
 import org.hyperledger.fabric.protos.common.Ledger;
 import org.hyperledger.fabric.protos.common.Policies.Policy;
 import org.hyperledger.fabric.protos.msp.Identities;
-import org.hyperledger.fabric.protos.msp.Mspconfig;
+import org.hyperledger.fabric.protos.msp.MspConfig;
 import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.orderer.Ab.BroadcastResponse;
 import org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse;
@@ -720,12 +720,12 @@ public class Chain {
 
     class MSP {
         final String orgName;
-        final Mspconfig.FabricMSPConfig fabricMSPConfig;
+        final MspConfig.FabricMSPConfig fabricMSPConfig;
         byte[][] adminCerts;
         byte[][] rootCerts;
         byte[][] intermediateCerts;
 
-        MSP(String orgName, Mspconfig.FabricMSPConfig fabricMSPConfig) {
+        MSP(String orgName, MspConfig.FabricMSPConfig fabricMSPConfig) {
             this.orgName = orgName;
             this.fabricMSPConfig = fabricMSPConfig;
         }
@@ -861,9 +861,9 @@ public class Chain {
         if (null != mspv) {
             if (!msps.containsKey(name)) {
 
-                Mspconfig.MSPConfig mspConfig = Mspconfig.MSPConfig.parseFrom(mspv.getValue());
+                MspConfig.MSPConfig mspConfig = MspConfig.MSPConfig.parseFrom(mspv.getValue());
 
-                Mspconfig.FabricMSPConfig fabricMSPConfig = Mspconfig.FabricMSPConfig.parseFrom(mspConfig.getConfig());
+                MspConfig.FabricMSPConfig fabricMSPConfig = MspConfig.FabricMSPConfig.parseFrom(mspConfig.getConfig());
 
                 msps.put(name, new MSP(name, fabricMSPConfig));
 
