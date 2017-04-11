@@ -531,7 +531,7 @@ public class Chain {
             startEventQue(); //Run the event for event messages from event hubs.
 
             for (EventHub eh : eventHubs) { //Connect all event hubs
-                eh.connect();
+                eh.connect(getTransactionContext());
             }
 
             registerTransactionListenerProcessor(); //Manage transactions.
@@ -2434,8 +2434,6 @@ public class Chain {
                         txL.addAll(list);
                     }
                 }
-
-                //  logger.debug("handling ");
 
                 for (TL l : txL) {
                     try {
