@@ -101,7 +101,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 public class HFCAClient implements MemberServices {
     private static final Log logger = LogFactory.getLog(HFCAClient.class);
-    private static final String HFCA_CONTEXT_ROOT = "/api/v1/cfssl/";
+    private static final String HFCA_CONTEXT_ROOT = "/";
     private static final String HFCA_ENROLL = HFCA_CONTEXT_ROOT + "enroll";
     private static final String HFCA_REGISTER = HFCA_CONTEXT_ROOT + "register";
     private static final String HFCA_REENROLL = HFCA_CONTEXT_ROOT + "reenroll";
