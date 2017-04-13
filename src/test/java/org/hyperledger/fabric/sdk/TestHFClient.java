@@ -14,14 +14,12 @@
 
 package org.hyperledger.fabric.sdk;
 
-
 import java.io.File;
 import java.security.PrivateKey;
 
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdkintegration.SampleStore;
 import org.hyperledger.fabric.sdkintegration.SampleUser;
-import org.hyperledger.fabric.sdk.security.CryptoSuite;
-import org.hyperledger.fabric_ca.sdk.HFCAClient;
 
 public class TestHFClient {
 
@@ -84,7 +82,7 @@ public class TestHFClient {
         hfclient.setUserContext(someTestUSER);
 
         hfclient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
-        hfclient.setMemberServices(new HFCAClient("http://Nowhere.com", null));
+
 
         new TestHFClient(tempFile, hfclient);
 

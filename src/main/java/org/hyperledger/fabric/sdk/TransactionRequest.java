@@ -25,7 +25,6 @@ import org.hyperledger.fabric.sdk.helper.Config;
 public class TransactionRequest {
 
     private final Config config = Config.getConfig();
-    private boolean noChainID = false;  // calls to QSCC leave the chainID field as a empty string.
 
     // The local path containing the chaincode to deploy in network mode.
     protected String chaincodePath;
@@ -45,8 +44,7 @@ public class TransactionRequest {
     protected ArrayList<String> args;
     // the arguments to pass to the chaincode invocation as byte arrays
     protected ArrayList<byte[]> argBytes;
-    // Optionally provide a user certificate which can be used by chaincode to perform access control
-    private Certificate userCert;
+
     // Chaincode language
     protected Type chaincodeLanguage = Type.GO_LANG;
     // The endorsementPolicy associated with this chaincode
@@ -165,13 +163,6 @@ public class TransactionRequest {
         return this;
     }
 
-    public Certificate getUserCert() {
-        return userCert;
-    }
-
-    public void setUserCert(Certificate userCert) {
-        this.userCert = userCert;
-    }
 
     //Mirror Fabric try not expose any of its classes
     public enum Type {

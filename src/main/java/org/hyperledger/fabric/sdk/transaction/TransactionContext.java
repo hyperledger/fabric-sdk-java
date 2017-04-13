@@ -31,7 +31,6 @@ import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.DERUTF8String;
 import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.sdk.Chain;
-import org.hyperledger.fabric.sdk.TCert;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.helper.Config;
@@ -61,7 +60,7 @@ public class TransactionContext {
     private final Chain chain;
 
     private final String txID;
-    private TCert tcert;
+
     private List<String> attrs;
     private long proposalWaitTime = config.getProposalWaitTime();
     private final Identities.SerializedIdentity identity;
@@ -185,15 +184,6 @@ public class TransactionContext {
         return this.chain.cryptoPrimitives.aes256GCMDecrypt(key, ct);
         */
     }
-
-//    private TCert getMyTCert() {
-//        if ( this.tcert != null) {
-//            logger.debug("TCert already cached.");
-//            return this.tcert;
-//        }
-//        logger.debug("No TCert cached. Retrieving one.");
-//        return this.user.getNextTCert(this.attrs);
-//    }
 
     Timestamp currentTimeStamp = null;
 

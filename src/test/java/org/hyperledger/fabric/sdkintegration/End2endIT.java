@@ -81,7 +81,7 @@ public class End2endIT {
 
     @Before
     public void checkConfig() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, MalformedURLException {
-
+        out("\n\n\nRUNNING: End2endIT.\n");
         configHelper.clearConfig();
         configHelper.customizeConfig();
 
@@ -139,7 +139,7 @@ public class End2endIT {
                 HFCAClient ca = sampleOrg.getCAClient();
                 final String orgName = sampleOrg.getName();
                 final String mspid = sampleOrg.getMSPID();
-                client.setMemberServices(ca);
+                ca.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
                 SampleUser admin = sampleStore.getMember(TEST_ADMIN_NAME, orgName);
                 if (!admin.isEnrolled()) {  //Preregistered admin only needs to be enrolled with Fabric caClient.
 

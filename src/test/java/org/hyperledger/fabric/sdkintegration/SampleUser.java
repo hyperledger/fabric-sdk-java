@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.security.PrivateKey;
 import java.util.List;
 import java.util.Set;
 
@@ -162,7 +163,9 @@ public class SampleUser implements User, Serializable {
 
 
     private String getAttrsKey(List<String> attrs) {
-        if (attrs == null || attrs.isEmpty()) return null;
+        if (attrs == null || attrs.isEmpty()) {
+            return null;
+        }
         return String.join(",", attrs);
     }
 
@@ -180,6 +183,37 @@ public class SampleUser implements User, Serializable {
             bos.close();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Make sure we're not dependent of HFCAEnrollment class.
+     */
+    class AfakeEnrollmentImplementation implements Enrollment{
+
+        private final String publicKey;
+        private final PrivateKey privateKey;
+        private final String certificate;
+
+        public AfakeEnrollmentImplementation(String publicKey, PrivateKey privateKey, String certificate ) {
+            this.publicKey = publicKey;
+            this.privateKey = privateKey;
+            this.certificate = certificate;
+        }
+
+        @Override
+        public PrivateKey getKey() {
+            return privateKey;
+        }
+
+        @Override
+        public String getCert() {
+            return certificate;
+        }
+
+        @Override
+        public String getPublicKey() {
+            return publicKey;
         }
     }
 
@@ -203,7 +237,7 @@ public class SampleUser implements User, Serializable {
                     this.affiliation = state.affiliation;
                     this.organization = state.organization;
                     this.enrollmentSecret = state.enrollmentSecret;
-                    this.enrollment = state.enrollment;
+                    this.enrollment = new AfakeEnrollmentImplementation(state.enrollment.getPublicKey(), state.enrollment.getKey(), state.enrollment.getCert());
                     this.mspID = state.mspID;
                     return this;
                 }

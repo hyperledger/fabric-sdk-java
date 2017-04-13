@@ -70,9 +70,6 @@ public class HFClient {
 
     private User userContext;
 
-    // The member services used for this chain
-    private MemberServices memberServices;
-
     private HFClient() {
 
     }
@@ -171,25 +168,6 @@ public class HFClient {
 
     public Peer newPeer(String name, String grpcURL) throws InvalidArgumentException {
         return Peer.createNewInstance(name, grpcURL, null);
-    }
-
-    /**
-     * Get the member service associated this chain.
-     *
-     * @return MemberServices associated with the chain, or undefined if not set.
-     */
-    public MemberServices getMemberServices() {
-        return this.memberServices;
-    }
-
-    /**
-     * Set the member service
-     *
-     * @param memberServices The MemberServices instance
-     */
-    public void setMemberServices(MemberServices memberServices) {
-        this.memberServices = memberServices;
-        this.memberServices.setCryptoSuite(this.cryptoSuite);
     }
 
     /**

@@ -14,13 +14,13 @@
 
 package org.hyperledger.fabric_ca.sdk;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
@@ -81,8 +81,6 @@ import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.hyperledger.fabric.sdk.Enrollment;
-import org.hyperledger.fabric.sdk.GetTCertBatchRequest;
-import org.hyperledger.fabric.sdk.MemberServices;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
@@ -101,7 +99,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 /**
  * HFCAClient Hyperledger Fabric Certificate Authority Client.
  */
-public class HFCAClient implements MemberServices {
+public class HFCAClient {
     private static final Log logger = LogFactory.getLog(HFCAClient.class);
     private static final String HFCA_CONTEXT_ROOT = "/";
     private static final String HFCA_ENROLL = HFCA_CONTEXT_ROOT + "enroll";
@@ -111,9 +109,8 @@ public class HFCAClient implements MemberServices {
     private static final int DEFAULT_SECURITY_LEVEL = 256;  //TODO make configurable //Right now by default FAB services is using
     private static final String DEFAULT_HASH_ALGORITHM = "SHA2";  //Right now by default FAB services is using SHA2
 
-
     private static final Set<Integer> VALID_KEY_SIZES =
-            Collections.unmodifiableSet(new HashSet<>(Arrays.asList(new Integer[]{256, 384})));
+            Collections.unmodifiableSet(new HashSet<>(Arrays.asList(new Integer[] {256, 384})));
 
     private final String url;
     private final boolean isSSL;
@@ -167,7 +164,6 @@ public class HFCAClient implements MemberServices {
 
         isSSL = "https".equals(proto);
 
-
         if (properties != null) {
             this.properties = (Properties) properties.clone(); //keep our own copy.
         } else {
@@ -176,12 +172,15 @@ public class HFCAClient implements MemberServices {
 
     }
 
-    @Override
     public void setCryptoSuite(CryptoSuite cryptoSuite) {
         this.cryptoPrimitives = (CryptoPrimitives) cryptoSuite;
+        try {
+            cryptoPrimitives.init();
+        } catch (Exception e) {
+            logger.error(e);
+        }
     }
 
-    @Override
     public CryptoSuite getCryptoSuite() {
         return this.cryptoPrimitives;
     }
@@ -192,7 +191,7 @@ public class HFCAClient implements MemberServices {
      * @param req       Registration request with the following fields: name, role
      * @param registrar The identity of the registrar (i.e. who is performing the registration)
      */
-    @Override
+
     public String register(RegistrationRequest req, User registrar) throws RegistrationException, InvalidArgumentException {
 
         setUpSSL();
@@ -204,7 +203,6 @@ public class HFCAClient implements MemberServices {
         if (registrar == null) {
             throw new InvalidArgumentException("Registrar should be a valid member");
         }
-
 
         try {
             String body = req.toJson();
@@ -231,14 +229,12 @@ public class HFCAClient implements MemberServices {
      * @param user Enrollment request with the following fields: name, enrollmentSecret
      * @return enrollment
      */
-    @Override
-    public Enrollment enroll(String user, String secret) throws EnrollmentException, InvalidArgumentException {
 
+    public Enrollment enroll(String user, String secret) throws EnrollmentException, InvalidArgumentException {
 
         logger.debug(format("enroll user %s", user));
 
         setUpSSL();
-
 
         if (StringUtil.isNullOrEmpty(user)) {
             throw new InvalidArgumentException("enrollment user is not set");
@@ -246,7 +242,6 @@ public class HFCAClient implements MemberServices {
         if (StringUtil.isNullOrEmpty(secret)) {
             throw new InvalidArgumentException("enrollment secret is not set");
         }
-
 
         logger.debug("[HFCAClient.enroll] Generating keys...");
 
@@ -263,7 +258,6 @@ public class HFCAClient implements MemberServices {
             JsonObject postObject = factory.build();
             StringWriter stringWriter = new StringWriter();
 
-
             JsonWriter jsonWriter = Json.createWriter(new PrintWriter(stringWriter));
 
             jsonWriter.writeObject(postObject);
@@ -272,9 +266,7 @@ public class HFCAClient implements MemberServices {
 
             String str = stringWriter.toString();
 
-
             logger.debug("[HFCAClient.enroll] Generating keys...done!");
-
 
             String responseBody = httpPost(url + HFCA_ENROLL, str,
                     new UsernamePasswordCredentials(user, secret));
@@ -298,7 +290,6 @@ public class HFCAClient implements MemberServices {
 
             return new HFCAEnrollment(signingKeyPair, cryptoPrimitives.encodePublicKey(signingKeyPair.getPublic()), signedPem);
 
-
         } catch (EnrollmentException ee) {
             logger.error(ee.getMessage(), ee);
             throw ee;
@@ -308,7 +299,6 @@ public class HFCAClient implements MemberServices {
             throw ee;
         }
 
-
     }
 
     /**
@@ -317,7 +307,7 @@ public class HFCAClient implements MemberServices {
      * @param user user to be re-enrolled
      * @return enrollment
      */
-    @Override
+
     public Enrollment reenroll(User user) throws EnrollmentException, InvalidArgumentException {
         logger.debug(format("re-enroll user %s", user.getName()));
 
@@ -364,13 +354,14 @@ public class HFCAClient implements MemberServices {
 
     /**
      * revoke one enrollment of user
-     * @param revoker admin user who has revoker attribute configured in CA-server
+     *
+     * @param revoker    admin user who has revoker attribute configured in CA-server
      * @param enrollment the user enrollment to be revoked
-     * @param reason revoke reason, see RFC 5280
+     * @param reason     revoke reason, see RFC 5280
      * @throws RevocationException
      * @throws InvalidArgumentException
      */
-    @Override
+
     public void revoke(User revoker, Enrollment enrollment, int reason) throws RevocationException, InvalidArgumentException {
 
         if (enrollment == null) {
@@ -397,7 +388,7 @@ public class HFCAClient implements MemberServices {
             // 2.5.29.35 : AuthorityKeyIdentifier
             byte[] var3 = new DerValue(certificate.getExtensionValue("2.5.29.35")).getOctetString();
             AuthorityKeyIdentifierExtension var4 = new AuthorityKeyIdentifierExtension(Boolean.FALSE, var3);
-            String aki = DatatypeConverter.printHexBinary(((KeyIdentifier)var4.get("key_id")).getIdentifier());
+            String aki = DatatypeConverter.printHexBinary(((KeyIdentifier) var4.get("key_id")).getIdentifier());
             factory.add("aki", aki);
 
             // add reason
@@ -426,13 +417,14 @@ public class HFCAClient implements MemberServices {
 
     /**
      * revoke one user (including his all enrollments)
+     *
      * @param revoker amdin user who has revoker attribute configured in CA-server
      * @param revokee user who is to be revoked
-     * @param reason revoke reason, see RFC 5280
+     * @param reason  revoke reason, see RFC 5280
      * @throws RevocationException
      * @throws InvalidArgumentException
      */
-    @Override
+
     public void revoke(User revoker, String revokee, int reason) throws RevocationException, InvalidArgumentException {
 
         logger.debug(format("revoke user %s", revokee));
@@ -484,18 +476,15 @@ public class HFCAClient implements MemberServices {
 
         provider.setCredentials(AuthScope.ANY, credentials);
 
-
         final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
         httpClientBuilder.setDefaultCredentialsProvider(provider);
         if (registry != null) {
-
 
             httpClientBuilder.setConnectionManager(new PoolingHttpClientConnectionManager(registry));
 
         }
 
         HttpClient client = httpClientBuilder.build();
-
 
         HttpPost httpPost = new HttpPost(url);
 
@@ -526,7 +515,6 @@ public class HFCAClient implements MemberServices {
             throw e;
         }
         logger.debug("Status: " + status);
-
 
         return responseBody;
     }
@@ -591,57 +579,6 @@ public class HFCAClient implements MemberServices {
         return cert + "." + b64.encodeToString(signature);
     }
 
-    /**
-     *
-     */
-    @Override
-    public void getTCertBatch(GetTCertBatchRequest req) {
-
-    	/*TODO implement getTCertBatch
-        let self = this;
-        cb = cb || nullCB;
-
-        let timestamp = sdk_util.GenerateTimestamp();
-
-        // create the proto
-        let tCertCreateSetReq = new _caProto.TCertCreateSetReq();
-        tCertCreateSetReq.setTs(timestamp);
-        tCertCreateSetReq.setId({id: req.name});
-        tCertCreateSetReq.setNum(req.num);
-        if (req.attrs) {
-            let attrs = [];
-            for (let i = 0; i < req.attrs.length; i++) {
-                attrs.push({attributeName:req.attrs[i]});
-            }
-            tCertCreateSetReq.setAttributes(attrs);
-        }
-
-        // serialize proto
-        let buf = tCertCreateSetReq.toBuffer();
-
-        // sign the transaction using enrollment key
-        let signKey = self.cryptoPrimitives.ecdsaKeyFromPrivate(req.enrollment.key, "hex");
-        let sig = self.cryptoPrimitives.ecdsaSign(signKey, buf);
-
-        tCertCreateSetReq.setSig(new _caProto.Signature(
-            {
-                type: _caProto.CryptoType.ECDSA,
-                r: new Buffer(sig.r.toString()),
-                s: new Buffer(sig.s.toString())
-            }
-        ));
-
-        // send the request
-        self.tcapClient.createCertificateSet(tCertCreateSetReq, function (err, resp) {
-            if (err) return cb(err);
-            // logger.debug('tCertCreateSetResp:\n', resp);
-            cb(null, self.processTCertBatch(req, resp));
-        });
-
-        */
-    }
-
-
     /*
      *  Convert a list of member type names to the role mask currently used by the peer
      */
@@ -666,13 +603,13 @@ public class HFCAClient implements MemberServices {
             }
         }
 
-        if (mask == 0) mask = 1;  // Client
+        if (mask == 0) {
+            mask = 1;  // Client
+        }
         return mask;
     }
 
-
     private Registry<ConnectionSocketFactory> registry = null;
-
 
     private void setUpSSL() throws InvalidArgumentException {
 
@@ -731,7 +668,7 @@ public class HFCAClient implements MemberServices {
                 }
             };
 
-            sslContext.init(null, new TrustManager[]{tm}, null);
+            sslContext.init(null, new TrustManager[] {tm}, null);
         }
 
         @Override

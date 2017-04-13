@@ -145,9 +145,8 @@ public class End2endAndBackAgainIT {
 
             for (SampleOrg sampleOrg : testSampleOrgs) {
 
-                HFCAClient ca = sampleOrg.getCAClient();
                 final String orgName = sampleOrg.getName();
-                client.setMemberServices(ca);
+
                 SampleUser admin = sampleStore.getMember(TEST_ADMIN_NAME, orgName);
                 sampleOrg.setAdmin(admin); // The admin of this org.
 
