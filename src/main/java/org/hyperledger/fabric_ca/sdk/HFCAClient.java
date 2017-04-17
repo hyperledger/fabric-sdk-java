@@ -43,6 +43,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import javax.json.Json;
+import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
@@ -226,11 +227,28 @@ public class HFCAClient {
     /**
      * Enroll the user with member service
      *
-     * @param user Enrollment request with the following fields: name, enrollmentSecret
+     * @param user   Identity name to enroll
+     * @param secret Secret returned via registration
      * @return enrollment
+     * @throws EnrollmentException
+     * @throws InvalidArgumentException
+     */
+    public Enrollment enroll(String user, String secret) throws EnrollmentException, InvalidArgumentException {
+        return enroll (user, secret, new EnrollmentRequest());
+    }
+
+    /**
+     * Enroll the user with member service
+     *
+     * @param user   Identity name to enroll
+     * @param secret Secret returned via registration
+     * @param req    Enrollment request with the following fields: hosts, profile, csr, label, keypair
+     * @return enrollment
+     * @throws EnrollmentException
+     * @throws InvalidArgumentException
      */
 
-    public Enrollment enroll(String user, String secret) throws EnrollmentException, InvalidArgumentException {
+    public Enrollment enroll(String user, String secret, EnrollmentRequest req) throws EnrollmentException, InvalidArgumentException {
 
         logger.debug(format("enroll user %s", user));
 
@@ -243,32 +261,24 @@ public class HFCAClient {
             throw new InvalidArgumentException("enrollment secret is not set");
         }
 
-        logger.debug("[HFCAClient.enroll] Generating keys...");
-
         try {
-            // generate ECDSA keys: signing and encryption keys
-            KeyPair signingKeyPair = cryptoPrimitives.keyGen();
-            logger.debug("[HFCAClient.enroll] Generating keys...done!");
-            //  KeyPair encryptionKeyPair = cryptoPrimitives.ecdsaKeyGen();
+            KeyPair keypair = req.getKeyPair();
+            if (keypair == null) {
+                logger.debug("[HFCAClient.enroll] Generating keys...");
 
-            PKCS10CertificationRequest csr = cryptoPrimitives.generateCertificationRequest(user, signingKeyPair);
+                // generate ECDSA keys: signing and encryption keys
+                keypair = cryptoPrimitives.keyGen();
+
+                logger.debug("[HFCAClient.enroll] Generating keys...done!");
+            }
+            PKCS10CertificationRequest csr = cryptoPrimitives.generateCertificationRequest(user, keypair);
             String pem = cryptoPrimitives.certificationRequestToPEM(csr);
-            JsonObjectBuilder factory = Json.createObjectBuilder();
-            factory.add("certificate_request", pem);
-            JsonObject postObject = factory.build();
-            StringWriter stringWriter = new StringWriter();
 
-            JsonWriter jsonWriter = Json.createWriter(new PrintWriter(stringWriter));
+            // build request body
+            req.setCSR(pem);
+            String body = req.toJson();
 
-            jsonWriter.writeObject(postObject);
-
-            jsonWriter.close();
-
-            String str = stringWriter.toString();
-
-            logger.debug("[HFCAClient.enroll] Generating keys...done!");
-
-            String responseBody = httpPost(url + HFCA_ENROLL, str,
+            String responseBody = httpPost(url + HFCA_ENROLL, body,
                     new UsernamePasswordCredentials(user, secret));
 
             logger.debug("response" + responseBody);
@@ -288,7 +298,14 @@ public class HFCAClient {
             String signedPem = new String(b64dec.decode(result.getString("Cert").getBytes(UTF_8)));
             logger.debug(format("[HFCAClient] enroll returned pem:[%s]", signedPem));
 
-            return new HFCAEnrollment(signingKeyPair, cryptoPrimitives.encodePublicKey(signingKeyPair.getPublic()), signedPem);
+            JsonArray messages = jsonst.getJsonArray("messages");
+            if (messages != null && !messages.isEmpty()) {
+                JsonObject jo = messages.getJsonObject(0);
+                String message = format("Enroll request response message [code %d]: %s", jo.getInt("code"), jo.getString("message"));
+                logger.info(message);
+            }
+
+            return new HFCAEnrollment(keypair, cryptoPrimitives.encodePublicKey(keypair.getPublic()), signedPem);
 
         } catch (EnrollmentException ee) {
             logger.error(ee.getMessage(), ee);
@@ -304,12 +321,35 @@ public class HFCAClient {
     /**
      * Re-Enroll the user with member service
      *
-     * @param user user to be re-enrolled
+     * @param user User to be re-enrolled
      * @return enrollment
+     * @throws EnrollmentException
+     * @throws InvalidArgumentException
+     */
+    public Enrollment reenroll(User user) throws EnrollmentException, InvalidArgumentException {
+        return reenroll (user, new EnrollmentRequest());
+    }
+
+    /**
+     * Re-Enroll the user with member service
+     *
+     * @param user User to be re-enrolled
+     * @param req  Enrollment request with the following fields: hosts, profile, csr, label
+     * @return enrollment
+     * @throws EnrollmentException
+     * @throws InvalidArgumentException
      */
 
-    public Enrollment reenroll(User user) throws EnrollmentException, InvalidArgumentException {
-        logger.debug(format("re-enroll user %s", user.getName()));
+    public Enrollment reenroll(User user, EnrollmentRequest req) throws EnrollmentException, InvalidArgumentException {
+
+        if (user == null) {
+            throw new InvalidArgumentException("reenrollment user is missing");
+        }
+        if (user.getEnrollment() == null) {
+            throw new InvalidArgumentException("reenrollment user is not a valid user object");
+        }
+
+    	logger.debug(format("re-enroll user %s", user.getName()));
 
         try {
             setUpSSL();
@@ -321,15 +361,8 @@ public class HFCAClient {
             String pem = cryptoPrimitives.certificationRequestToPEM(csr);
 
             // build request body
-            JsonObjectBuilder factory = Json.createObjectBuilder();
-            factory.add("certificate_request", pem);
-            JsonObject postObject = factory.build();
-
-            StringWriter stringWriter = new StringWriter();
-            JsonWriter jsonWriter = Json.createWriter(new PrintWriter(stringWriter));
-            jsonWriter.writeObject(postObject);
-            jsonWriter.close();
-            String body = stringWriter.toString();
+            req.setCSR(pem);
+            String body = req.toJson();
 
             // build authentication header
             String authHdr = getHTTPAuthCertificate(user.getEnrollment(), body);
@@ -380,27 +413,18 @@ public class HFCAClient {
             X509Certificate certificate = (X509Certificate) certFactory.generateCertificate(pem);
 
             // get its serial number
-            JsonObjectBuilder factory = Json.createObjectBuilder();
             String serial = DatatypeConverter.printHexBinary(certificate.getSerialNumber().toByteArray());
-            factory.add("serial", "0" + serial);
 
             // get its aki
             // 2.5.29.35 : AuthorityKeyIdentifier
             byte[] var3 = new DerValue(certificate.getExtensionValue("2.5.29.35")).getOctetString();
             AuthorityKeyIdentifierExtension var4 = new AuthorityKeyIdentifierExtension(Boolean.FALSE, var3);
             String aki = DatatypeConverter.printHexBinary(((KeyIdentifier) var4.get("key_id")).getIdentifier());
-            factory.add("aki", aki);
-
-            // add reason
-            factory.add("reason", reason);
 
             // build request body
-            JsonObject postObject = factory.build();
-            StringWriter stringWriter = new StringWriter();
-            JsonWriter jsonWriter = Json.createWriter(new PrintWriter(stringWriter));
-            jsonWriter.writeObject(postObject);
-            jsonWriter.close();
-            String body = stringWriter.toString();
+            RevocationRequest req = new RevocationRequest(null, serial, aki, reason);
+            String body = req.toJson();
+
             String authHdr = getHTTPAuthCertificate(revoker.getEnrollment(), body);
 
             // send revoke request
@@ -440,17 +464,10 @@ public class HFCAClient {
             setUpSSL();
 
             // build request body
-            JsonObjectBuilder factory = Json.createObjectBuilder();
-            factory.add("id", revokee);
-            factory.add("reason", reason);
-            JsonObject postObject = factory.build();
-            StringWriter stringWriter = new StringWriter();
-            JsonWriter jsonWriter = Json.createWriter(new PrintWriter(stringWriter));
-            jsonWriter.writeObject(postObject);
-            jsonWriter.close();
-            String body = stringWriter.toString();
+            RevocationRequest req = new RevocationRequest(revokee, null, null, reason);
+            String body = req.toJson();
 
-            // build auth hreader
+            // build auth header
             String authHdr = getHTTPAuthCertificate(revoker.getEnrollment(), body);
 
             // send revoke request
@@ -566,6 +583,12 @@ public class HFCAClient {
             EnrollmentException e = new EnrollmentException("Body of response did not contain result", new Exception());
             logger.error(e.getMessage());
             throw e;
+        }
+        JsonArray messages = jobj.getJsonArray("messages");
+        if (messages != null && !messages.isEmpty()) {
+            JsonObject jo = messages.getJsonObject(0);
+            String message = format("POST request response message [code %d]: %s", jo.getInt("code"), jo.getString("message"));
+            logger.info(message);
         }
         return result;
     }

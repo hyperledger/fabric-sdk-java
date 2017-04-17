@@ -23,6 +23,7 @@ import org.hyperledger.fabric.sdkintegration.SampleStore;
 import org.hyperledger.fabric.sdkintegration.SampleUser;
 import org.hyperledger.fabric_ca.sdk.Attribute;
 import org.hyperledger.fabric_ca.sdk.HFCAClient;
+import org.hyperledger.fabric_ca.sdk.EnrollmentRequest;
 import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
 import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException;
@@ -124,7 +125,10 @@ public class HFCAClientEnrollIT {
             sleepALittle();
 
             // get another enrollment
-            Enrollment tmpEnroll = client.reenroll(user2);
+            EnrollmentRequest req = new EnrollmentRequest("profile 1", "label 1", null);
+            req.addHost("example.ibm.com");
+            req.addHost("example2.ibm.com");
+            Enrollment tmpEnroll = client.reenroll(user2, req);
 
             sleepALittle();
 
@@ -165,7 +169,9 @@ public class HFCAClientEnrollIT {
             sleepALittle();
 
             if (!user3.isEnrolled()) {
-                user3.setEnrollment(client.enroll(user3.getName(), user3.getEnrollmentSecret()));
+                EnrollmentRequest req = new EnrollmentRequest("profile 2", "label 2", null);
+                req.addHost("example.ibm.com");
+                user3.setEnrollment(client.enroll(user3.getName(), user3.getEnrollmentSecret(), req));
             }
 
             sleepALittle();
