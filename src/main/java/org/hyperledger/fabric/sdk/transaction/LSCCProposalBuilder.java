@@ -20,13 +20,13 @@ import org.hyperledger.fabric.sdk.exception.ProposalException;
 import static org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type.GOLANG;
 
 
-public class LCCCProposalBuilder extends ProposalBuilder {
-    private static final String LCCC_CHAIN_NAME = "lccc";
-    private static final Chaincode.ChaincodeID CHAINCODE_ID_LCCC =
-            Chaincode.ChaincodeID.newBuilder().setName(LCCC_CHAIN_NAME).build();
+public class LSCCProposalBuilder extends ProposalBuilder {
+    private static final String LSCC_CHAIN_NAME = "lscc";
+    private static final Chaincode.ChaincodeID CHAINCODE_ID_LSCC =
+            Chaincode.ChaincodeID.newBuilder().setName(LSCC_CHAIN_NAME).build();
 
     @Override
-    public LCCCProposalBuilder context(TransactionContext context) {
+    public LSCCProposalBuilder context(TransactionContext context) {
         super.context(context);
         return this;
     }
@@ -35,7 +35,7 @@ public class LCCCProposalBuilder extends ProposalBuilder {
     public FabricProposal.Proposal build() throws ProposalException {
 
         ccType(GOLANG);
-        chaincodeID(CHAINCODE_ID_LCCC);
+        chaincodeID(CHAINCODE_ID_LSCC);
 
         return super.build();
 

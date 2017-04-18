@@ -3,28 +3,28 @@ Welcome to Java SDK for Hyperledger project. The SDK helps facilitate Java appli
  Hyperledger channels  (*often referred to as chains*) and user chaincode. The SDK also provides a means to execute
   user chaincode, query blocks
  and transactions on the chain, and monitor events on the chain.
- 
+
 THe SDK acts on behave of a particular User which is defined by the embedding application through the implementation
  of the SDK's `User` interface.
- 
-Note, the SDK does ***not*** provide a means of persistence 
+
+Note, the SDK does ***not*** provide a means of persistence
   for the application defined channels and user artifacts on the client. This is left for the embedding application to best manage.
-  
+
 The SDK also provides a client for Hyperledger's certificate authority.  The SDK is however not dependent on this
-particular implementation of a certificate authority.  Other Certificate authority's maybe use by implementing the 
+particular implementation of a certificate authority.  Other Certificate authority's maybe use by implementing the
 SDK's `Enrollment` interface.
- 
+
  This provides a summary of steps required to get you started with building and using the Java SDK.
  Please note that this is not the API documentation or a tutorial for the SDK, this will
   only help you familiarize to get started with the SDK if you are new in this domain.
 
- The 1.0 sdk is currently under development and the ***API is still subject to change****. It is likely any code depending 
+ The 1.0 sdk is currently under development and the ***API is still subject to change****. It is likely any code depending
  on this 1.0 version `preview` may need updating
  with subsequent updates of the SDK.
- 
+
 ## Known limitations
 
-* TCerts are not supported: JIRA FAB-1401 
+* TCerts are not supported: JIRA FAB-1401
 
 
 ## Valid builds of Fabric and Fabric-ca
@@ -39,20 +39,20 @@ You should use the following commit levels of the Hyperledger projects:
 
 | Project        | Commit level                               | Date                       |
 |:---------------|:------------------------------------------:|---------------------------:|
-| fabric         | 18ec851546e13b9d7d2c010d41f3670f404e2934   | Apr 13 06:01:03 2017 +0000 |
-| fabric-ca      | d67841e1e7139dd19e297558788d41bdf1b6809c   | Apr 11 19:47:13 2017 +0000 |
+| fabric         | 7f336b902e6c9a061f134a5c945233c87f101d2b   | Apr 18 07:57:32 2017 +0000 |
+| fabric-ca      | 28197b0f07d629d1bbf3ffc8ed8f12d9f4b9e202   | Apr 14 21:14:35 2017 +0000 |
 
  You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
 
  As SDK developement continues, this file will be updated with compatible Hyperledger Fabric and Fabric-ca commit levels.
 
  Once you have cloned `fabric` and `fabric-ca`, use the `git reset --hard commitlevel` to set your repositories to the correct commit.
- 
+
 ## Working with the Fabric Vagrant environment
  Do the following if you want to run the Fabric components ( peer, orderer, fabric-ca ) in Vagrant:
 
  * Follow the instructions <a href="https://github.com/hyperledger/fabric/blob/master/docs/dev-setup/devenv.md">here</a> to setup the development environment.
- 
+
  * Open the file `Vagrantfile` and verify that the following `config.vm.network` statements are set. If not, then add them:
 ```
   config.vm.network :forwarded_port, guest: 7050, host: 7050 # fabric orderer service
@@ -68,18 +68,17 @@ You should use the following commit levels of the Hyperledger projects:
   config.vm.network :forwarded_port, guest: 8054, host: 8054
   config.vm.network :forwarded_port, guest: 8056, host: 8056
   config.vm.network :forwarded_port, guest: 8058, host: 8058
- 
+
 ```
 
-Add to your Vagrant file a folder for referencing the sdkintegration folder 
+Add to your Vagrant file a folder for referencing the sdkintegration folder
 
-  
   config.vm.synced_folder "..", "/opt/gopath/src/github.com/hyperledger/fabric"</br>
-  
+
   ***config.vm.synced_folder "/home/user/fabric-sdk-java/src/test/fixture/sdkintegration", "/opt/gopath/src/github.com/hyperledger/fabric/sdkintegration"***</br>
-  
+
   config.vm.synced_folder ENV.fetch('LOCALDEVDIR', ".."), "#{LOCALDEV}"</br>
-  
+
  * Start the vagrant virtual machine
 ```
 vagrant up
@@ -91,7 +90,7 @@ vagrant up
    * run `make docker` to create the docker image for Fabric_ca
  * The fabric service creation may have created some files for testing that need to be removed.
    * _rm -rf /var/hyperledger/*_
-   
+
  * Start the needed fabric services in vagrant.  In the vagrant system:
    1. _cd $GOPATH/src/github.com/hyperledger/fabric/sdkintegration
    1. _docker-compose up -d --force-recreate_
@@ -128,8 +127,8 @@ You must be running a local peer and orderer to be able to run the unit tests.
 
 ### Running the integration tests
 You must be running local instances of Fabric-ca, Fabric peers and Fabric orderers to be able to run the integration tests. See above for running these services in Vagrant.
-Use this `maven` command to run the integration tests: 
- * _mvn failsafe:integration-test -DskipITs=false_ 
+Use this `maven` command to run the integration tests:
+ * _mvn failsafe:integration-test -DskipITs=false_
 
 ### End to end test scenario
 The _src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java_ integration test is an example of installing, instantiating, invoking and querying a chaincode.
@@ -187,14 +186,14 @@ For testing purposes, there are 2 policy files in the _src/test/resources_ direc
 
 and one file in th _src/test/fixture/sdkintegration/e2e-2Orgs/channel_ directory specifically for use in the end to end test scenario
   * _members_from_org1_or_2.policy_ ( which has policy **OR(peerOrg1.member, peerOrg2.member)** meaning  _1 signature from a member of either organizations peerOrg1, PeerOrg2 is required_)
-  
+
  Alternatively you can also use ChaincodeEndorsementPolicy class by giving it a YAML file that has the policy defined in it.
  See examples of this in the End2endIT testcases that use _src/test/fixture/sdkintegration/chaincodeendorsementpolicy.yaml_
- The file chaincodeendorsementpolicy.yaml has comments that help understand how to create these policies. The first section 
+ The file chaincodeendorsementpolicy.yaml has comments that help understand how to create these policies. The first section
  lists all the signature identities you can use in the policy. Currently only ROLE types are supported.
  The policy section is comprised of `n-of` and `signed-by` elements.  Then n-of (`1-of` `2-of`) require that many (`n`) in that
  section to be true. The `signed-by` references an identity in the identities section.
-  
+
 ### Chain creation artifacts
 Channel configuration files and orderer bootstrap files ( see directory _src/test/fixture/sdkintegration/e2e-2Orgs/channel_ ) are needed when creating a new channel.
 This is created with the Hyperledger Fabric `configtxgen` tool.
@@ -204,23 +203,23 @@ For End2endIT.java the commands are
  * build/bin/configtxgen -outputCreateChannelTx foo.tx -profile TwoOrgs -channelID foo
  * build/bin/configtxgen -outputCreateChannelTx bar.tx -profile TwoOrgs -channelID bar
  * build/bin/configtxgen -outputBlock twoorgs.orderer.block -profile TwoOrgs
- 
+
 with the configtxgen config file _src/test/fixture/sdkintegration/e2e-2Orgs/channel/configtx.yaml_
- 
- 
+
+
 If `build/bin/configtxgen` tool is not present  run `make configtxgen`
- 
+
 Before running the end to end test case:
  *  you may need to modify `configtx.yaml` to change all hostname and port definitions to match
 your server(s) hostname(s) and port(s).
- *  you **WILL** have to modify `configtx.yaml` to have the _MSPDir_ point to the correct path to the _crypto-config_ directories. 
+ *  you **WILL** have to modify `configtx.yaml` to have the _MSPDir_ point to the correct path to the _crypto-config_ directories.
    * `configtx.yaml` currently assumes that you are running in a Vagrant environment where the fabric, fabric-ca and fabric-sdk-java projects exist under the _/opt/gopath/src/github.com/hyperledger_ directory.
 
 ### GO Lang chaincode
-Go lang chaincode dependencies must be contained in vendor folder. 
+Go lang chaincode dependencies must be contained in vendor folder.
  For an explanation of this see [Vender folder explanation](https://blog.gopheracademy.com/advent-2015/vendor-folder/)
- 
- 
+
+
 #Basic Troubleshooting
 **identity or token do not match**
 
@@ -236,7 +235,7 @@ When running the unit tests, you will always need to clean the membership servic
 
 **java.security.InvalidKeyException: Illegal key size**
 
-If you get this error, this means your JDK does not capable of handling unlimited strength crypto algorithms. To fix this issue, You will need to download the JCE libraries for your version of JDK. Please follow the instructions <a href="http://stackoverflow.com/questions/6481627/java-security-illegal-key-size-or-default-parameters">here</a> to download and install the JCE for your version of the JDK. 
+If you get this error, this means your JDK does not capable of handling unlimited strength crypto algorithms. To fix this issue, You will need to download the JCE libraries for your version of JDK. Please follow the instructions <a href="http://stackoverflow.com/questions/6481627/java-security-illegal-key-size-or-default-parameters">here</a> to download and install the JCE for your version of the JDK.
 
 #Communicating with developers and fellow users.
  Sign into <a href="https://chat.hyperledger.org/">Hyperledger project's Rocket chat</a>
@@ -247,8 +246,8 @@ If you get this error, this means your JDK does not capable of handling unlimite
 #Reporting Issues
 If your issue is with building Fabric development environment please discuss this on rocket.chat's #fabric-dev-env channel.
 
-To report an issue please use: <a href="http://jira.hyperledger.org/">Hyperledger's JIRA</a>. 
-To login you will need a Linux Foundation ID (LFID) which you get at <a href="https://identity.linuxfoundation.org/">The Linux Foundation</a> 
+To report an issue please use: <a href="http://jira.hyperledger.org/">Hyperledger's JIRA</a>.
+To login you will need a Linux Foundation ID (LFID) which you get at <a href="https://identity.linuxfoundation.org/">The Linux Foundation</a>
 if you don't already have one.
 
 JIRA Fields should be:
@@ -263,5 +262,3 @@ JIRA Fields should be:
 </dl>
 
 Pleases provide as much information that you can with the issue you're experiencing: stack traces  logs.
-
-

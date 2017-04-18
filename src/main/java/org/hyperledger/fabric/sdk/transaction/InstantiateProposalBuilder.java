@@ -33,7 +33,7 @@ import org.hyperledger.fabric.sdk.exception.ProposalException;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createDeploymentSpec;
 
 
-public class InstantiateProposalBuilder extends LCCCProposalBuilder {
+public class InstantiateProposalBuilder extends LSCCProposalBuilder {
 
     private final static Log logger = LogFactory.getLog(InstantiateProposalBuilder.class);
 

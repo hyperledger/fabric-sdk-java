@@ -21,7 +21,7 @@ import java.util.List;
 
 import com.google.protobuf.ByteString;
 
-public class QueryInstantiatedChaincodesBuilder extends LCCCProposalBuilder {
+public class QueryInstantiatedChaincodesBuilder extends LSCCProposalBuilder {
 
 
     private QueryInstantiatedChaincodesBuilder() {

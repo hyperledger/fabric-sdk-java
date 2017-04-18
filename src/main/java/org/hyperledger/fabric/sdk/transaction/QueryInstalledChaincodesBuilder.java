@@ -23,7 +23,7 @@ import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class QueryInstalledChaincodesBuilder extends LCCCProposalBuilder {
+public class QueryInstalledChaincodesBuilder extends LSCCProposalBuilder {
     private static final Log logger = LogFactory.getLog(QueryInstalledChaincodesBuilder.class);
 
 

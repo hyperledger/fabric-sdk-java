@@ -35,7 +35,7 @@ import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createDeploymentSpec;
 
 
-public class InstallProposalBuilder extends LCCCProposalBuilder {
+public class InstallProposalBuilder extends LSCCProposalBuilder {
 
 
     private final static Log logger = LogFactory.getLog(InstallProposalBuilder.class);
