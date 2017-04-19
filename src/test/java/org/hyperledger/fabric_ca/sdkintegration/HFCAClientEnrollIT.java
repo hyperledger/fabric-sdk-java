@@ -12,8 +12,17 @@
 
 package org.hyperledger.fabric_ca.sdkintegration;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.net.MalformedURLException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.CertificateParsingException;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Properties;
 
 import org.hyperledger.fabric.sdk.Enrollment;
@@ -27,6 +36,7 @@ import org.hyperledger.fabric_ca.sdk.EnrollmentRequest;
 import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
 import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric_ca.sdk.helper.Config;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -126,9 +136,13 @@ public class HFCAClientEnrollIT {
 
             // get another enrollment
             EnrollmentRequest req = new EnrollmentRequest("profile 1", "label 1", null);
-            req.addHost("example.ibm.com");
+            req.addHost("example1.ibm.com");
             req.addHost("example2.ibm.com");
             Enrollment tmpEnroll = client.reenroll(user2, req);
+
+            // verify
+            String cert = tmpEnroll.getCert();
+            verifyOptions(cert, req);
 
             sleepALittle();
 
@@ -170,8 +184,12 @@ public class HFCAClientEnrollIT {
 
             if (!user3.isEnrolled()) {
                 EnrollmentRequest req = new EnrollmentRequest("profile 2", "label 2", null);
-                req.addHost("example.ibm.com");
+                req.addHost("example3.ibm.com");
                 user3.setEnrollment(client.enroll(user3.getName(), user3.getEnrollmentSecret(), req));
+
+                // verify
+                String cert = user3.getEnrollment().getCert();
+                verifyOptions(cert, req);
             }
 
             sleepALittle();
@@ -180,6 +198,37 @@ public class HFCAClientEnrollIT {
         } catch (Exception e) {
             e.printStackTrace();
             fail("user enroll/revoke-all test failed with error : " + e.getMessage());
+        }
+    }
+
+    private void verifyOptions(String cert, EnrollmentRequest req) throws CertificateParsingException, CertificateException {
+        try {
+            BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(cert.getBytes()));
+            CertificateFactory certFactory = CertificateFactory.getInstance(Config.getConfig().getCertificateFormat());
+            X509Certificate certificate = (X509Certificate) certFactory.generateCertificate(pem);
+
+            // check Subject Alternative Names
+            Collection<List<?>> altNames = certificate.getSubjectAlternativeNames();
+            if (altNames == null) {
+                if (req.getHosts() != null && !req.getHosts().isEmpty()) {
+                    fail("Host name is not included in certificate");
+                }
+                return;
+            }
+            ArrayList<String> subAltList = new ArrayList<String>();
+            for (List<?> item : altNames) {
+                int type = ((Integer)item.get(0)).intValue();
+                if (type == 2) subAltList.add((String)item.get(1));
+            }
+            if (!subAltList.equals((ArrayList<String>)req.getHosts()))
+                fail("Subject Alternative Names not matched the host names specified in enrollment request");
+
+        } catch (CertificateParsingException e) {
+            fail("Cannot parse certificate. Error is: " + e.getMessage());
+            throw e;
+        } catch (CertificateException e) {
+            fail("Cannot regenerate x509 certificate. Error is: " + e.getMessage());
+            throw e;
         }
     }
 
