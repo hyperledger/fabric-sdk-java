@@ -49,7 +49,7 @@ You should use the following commit levels of the Hyperledger projects:
  Once you have cloned `fabric` and `fabric-ca`, use the `git reset --hard commitlevel` to set your repositories to the correct commit.
 
 ## Working with the Fabric Vagrant environment
-Vagrant is NOT required if your OS has docker support and all the requirements needed to build directly in your
+Vagrant is NOT required if your OS has Docker support and all the requirements needed to build directly in your
 environment.  For non Vagrant envrionment, the steps would be the same as below minus those parts involving Vagrant.
  Do the following if you want to run the Fabric components ( peer, orderer, fabric-ca ) in Vagrant:
 
@@ -111,7 +111,7 @@ Alternatively, <code> mvn dependency:analyze-report </code> will produce a repor
 ## Using the SDK
 The SDK's test cases uses chaincode in the SDK's source tree: `/src/test/fixture`
 
-The sdk jar is in `target/fabric-sdk-java-1.0.0-SNAPSHOT.jar` and you will need the additional dependencies listed above.
+The SDK's JAR is in `target/fabric-sdk-java-1.0.0-SNAPSHOT.jar` and you will need the additional dependencies listed above.
 When the SDK is published to `Maven` you will be able to simply include it in a your application's `pom.xml`.
 
 ### Compiling
@@ -149,8 +149,8 @@ The test defines one Fabric orderer and two organizations (peerOrg1, peerOrg2), 
 
 #### Certificates and other cryptography artifacts
 
-Fabric requires that each organization have private keys and certificates for use in signing and verifying messages going to and from clients, peers and orderers.
-Each organization groups these artifacts in an **MSP** (Membership Service Provider) with a unique _MSPID_ .
+Fabric requires that each organization has private keys and certificates for use in signing and verifying messages going to and from clients, peers and orderers.
+Each organization groups these artifacts in an **MSP** (Membership Service Provider) with a corresponding unique _MSPID_ .
 
 Furthermore, each organization is assumed to generate these artifacts independently. The *fabric-ca* project is an example of such a certificate generation service.
 Fabric also provides the `cryptogen` tool to automatically generate all cryptographic artifacts needed for the end to end test.
@@ -168,7 +168,7 @@ The files used by the end to end are:
  * _src/test/fixture/sdkintegration/docker-compose.yaml_
 
 
-The end to end test case artifacts are stored under in directory _src/test/fixture/sdkintegration/e2e-2Org/channel_ .
+The end to end test case artifacts are stored under the directory _src/test/fixture/sdkintegration/e2e-2Org/channel_ .
 
 ### TLS connection to Orderer and Peers
 

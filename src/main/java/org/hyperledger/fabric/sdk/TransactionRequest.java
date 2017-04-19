@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,6 +16,7 @@ package org.hyperledger.fabric.sdk;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
 
 import org.hyperledger.fabric.sdk.helper.Config;
 
@@ -31,12 +32,10 @@ public class TransactionRequest {
     // The name identifier for the chaincode to deploy in development mode.
     protected String chaincodeName;
 
-
     // The version of the chainCode
     protected String chaincodeVersion;
     // The chaincode ID as provided by the 'submitted' event emitted by a TransactionContext
     private ChainCodeID chaincodeID;
-
 
     // The name of the function to invoke
     protected String fcn;
@@ -51,6 +50,18 @@ public class TransactionRequest {
     private ChaincodeEndorsementPolicy endorsementPolicy = null;
     // The timeout for a single proposal request to endorser in milliseconds
     protected long proposalWaitTime = config.getProposalWaitTime();
+
+    protected Map<String, byte[]> transientMap;
+
+    /**
+     * Transient data added to the proposal that is not added to the ledger.
+     *
+     * @return Map of strings to bytes that's added to the proposal
+     */
+
+    public Map<String, byte[]> getTransientMap() {
+        return transientMap;
+    }
 
     /**
      * Some peer requests (e.g. queries to QSCC) require the field to be blank.
@@ -162,7 +173,6 @@ public class TransactionRequest {
         this.args = args;
         return this;
     }
-
 
     //Mirror Fabric try not expose any of its classes
     public enum Type {

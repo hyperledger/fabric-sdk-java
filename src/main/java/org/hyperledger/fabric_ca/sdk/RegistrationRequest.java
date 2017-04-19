@@ -25,7 +25,6 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonWriter;
 
-
 /**
  * A registration request is information required to register a user, peer, or other
  * type of member.
@@ -109,7 +108,7 @@ public class RegistrationRequest {
         this.attrs.add(attr);
     }
 
-    void setCAName( String caName){
+    void setCAName(String caName) {
         this.caName = caName;
     }
 
@@ -125,19 +124,19 @@ public class RegistrationRequest {
     // Convert the registration request to a JSON object
     public JsonObject toJsonObject() {
         JsonObjectBuilder ob = Json.createObjectBuilder();
-        ob.add("id", this.enrollmentID);
-        ob.add("type",  this.type);
+        ob.add("id", enrollmentID);
+        ob.add("type", type);
         if (this.secret != null) {
-            ob.add("secret",  this.secret);
+            ob.add("secret", secret);
         }
-        ob.add("max_enrollments",  this.maxEnrollments);
-        ob.add("affiliation",  this.affiliation);
+        ob.add("max_enrollments", maxEnrollments);
+        ob.add("affiliation", affiliation);
         JsonArrayBuilder ab = Json.createArrayBuilder();
-        for (Attribute attr: this.attrs) {
+        for (Attribute attr : attrs) {
             ab.add(attr.toJsonObject());
         }
-        if(caName != null){
-            ob.add( HFCAClient.FABRIC_CA_REQPROP, caName);
+        if (caName != null) {
+            ob.add(HFCAClient.FABRIC_CA_REQPROP, caName);
         }
         ob.add("attrs", ab.build());
         return ob.build();

@@ -18,7 +18,9 @@ import java.io.File;
 import java.net.MalformedURLException;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -51,6 +53,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -269,6 +272,10 @@ public class End2endIT {
             instantiateProposalRequest.setChaincodeID(chainCodeID);
             instantiateProposalRequest.setFcn("init");
             instantiateProposalRequest.setArgs(new String[] {"a", "500", "b", "" + (200 + delta)});
+            Map<String, byte[]> tm = new HashMap<>();
+            tm.put("HyperLedgerFabric", "InstantiateProposalRequest:JavaSDK".getBytes(UTF_8));
+            tm.put("method", "InstantiateProposalRequest".getBytes(UTF_8));
+            instantiateProposalRequest.setTransientMap(tm);
 
             /*
               policy OR(Org1MSP.member, Org2MSP.member) meaning 1 signature from someone in either Org1 or Org2
@@ -322,6 +329,13 @@ public class End2endIT {
                     transactionProposalRequest.setChaincodeID(chainCodeID);
                     transactionProposalRequest.setFcn("invoke");
                     transactionProposalRequest.setArgs(new String[] {"move", "a", "b", "100"});
+
+                    Map<String, byte[]> tm2 = new HashMap<>();
+                    tm2.put("HyperLedgerFabric", "TransactionProposalRequest:JavaSDK".getBytes(UTF_8));
+                    tm2.put("method", "TransactionProposalRequest".getBytes(UTF_8));
+                    tm2.put("result", ":)".getBytes(UTF_8));  /// This should be returned see chaincode.
+                    transactionProposalRequest.setTransientMap(tm2);
+
                     out("sending transactionProposal to all peers with arguments: move(a,b,100)");
 
                     Collection<ProposalResponse> transactionPropResp = chain.sendTransactionProposal(transactionProposalRequest, chain.getPeers());
@@ -343,6 +357,13 @@ public class End2endIT {
                     }
                     out("Successfully received transaction proposal responses.");
 
+                    ProposalResponse resp = transactionPropResp.iterator().next();
+                    byte[] x = resp.getChainCodeActionResponsePayload();
+                    String resultAsString = null;
+                    if (x != null) {
+                        resultAsString = new String(x, "UTF-8");
+                    }
+                    assertEquals(":)", resultAsString);
                     ////////////////////////////
                     // Send Transaction Transaction to orderer
                     out("Sending chain code transaction(move a,b,100) to orderer.");
@@ -374,6 +395,11 @@ public class End2endIT {
                     queryByChaincodeRequest.setArgs(new String[] {"query", "b"});
                     queryByChaincodeRequest.setFcn("invoke");
                     queryByChaincodeRequest.setChaincodeID(chainCodeID);
+
+                    Map<String, byte[]> tm2 = new HashMap<>();
+                    tm2.put("HyperLedgerFabric", "QueryByChaincodeRequest:JavaSDK".getBytes(UTF_8));
+                    tm2.put("method", "QueryByChaincodeRequest".getBytes(UTF_8));
+                    queryByChaincodeRequest.setTransientMap(tm2);
 
                     Collection<ProposalResponse> queryProposals = chain.queryByChaincode(queryByChaincodeRequest, chain.getPeers());
                     for (ProposalResponse proposalResponse : queryProposals) {

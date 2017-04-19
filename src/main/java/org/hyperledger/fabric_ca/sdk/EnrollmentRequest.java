@@ -41,6 +41,7 @@ public class EnrollmentRequest {
     private String label;
     // Key pair for generating certification request
     private KeyPair keypair;
+    // The Certificate Authority's name
     private String caName;
 
     // Constructor
@@ -73,7 +74,7 @@ public class EnrollmentRequest {
         this.csr = csr;
     }
 
-    void setCAName( String caName){
+    void setCAName(String caName) {
         this.caName = caName;
     }
 
@@ -118,7 +119,7 @@ public class EnrollmentRequest {
         }
         if (!hosts.isEmpty()) {
             JsonArrayBuilder ab = Json.createArrayBuilder();
-            for (String host: hosts) {
+            for (String host : hosts) {
                 ab.add(host);
             }
             factory.add("hosts", ab.build());
@@ -127,8 +128,8 @@ public class EnrollmentRequest {
             factory.add("label", label);
         }
 
-        if(caName != null){
-            factory.add( HFCAClient.FABRIC_CA_REQPROP, caName);
+        if (caName != null) {
+            factory.add(HFCAClient.FABRIC_CA_REQPROP, caName);
         }
         factory.add("certificate_request", csr);
         return factory.build();

@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import com.google.protobuf.ByteString;
 import io.netty.util.internal.StringUtil;
@@ -28,17 +29,16 @@ import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
 import org.hyperledger.fabric.sdk.TransactionRequest;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createDeploymentSpec;
-
 
 public class InstantiateProposalBuilder extends LSCCProposalBuilder {
 
     private final static Log logger = LogFactory.getLog(InstantiateProposalBuilder.class);
 
     private String chaincodePath;
-
 
     private String chaincodeSource;
     private String chaincodeName;
@@ -49,6 +49,15 @@ public class InstantiateProposalBuilder extends LSCCProposalBuilder {
     private byte[] chaincodePolicy = null;
     protected String action = "deploy";
 
+    public void setTransientMap(Map<String, byte[]> transientMap) throws InvalidArgumentException {
+        if (null == transientMap) {
+
+            throw new InvalidArgumentException("Transient map may not be null");
+
+        }
+        this.transientMap = transientMap;
+    }
+
     protected InstantiateProposalBuilder() {
         super();
     }
@@ -56,9 +65,7 @@ public class InstantiateProposalBuilder extends LSCCProposalBuilder {
     public static InstantiateProposalBuilder newBuilder() {
         return new InstantiateProposalBuilder();
 
-
     }
-
 
     public InstantiateProposalBuilder chaincodePath(String chaincodePath) {
 
@@ -87,7 +94,6 @@ public class InstantiateProposalBuilder extends LSCCProposalBuilder {
         return this;
     }
 
-
     @Override
     public FabricProposal.Proposal build() throws ProposalException {
 
@@ -95,9 +101,7 @@ public class InstantiateProposalBuilder extends LSCCProposalBuilder {
         return super.build();
     }
 
-
     private void constructInstantiateProposal() throws ProposalException {
-
 
         try {
 
@@ -121,14 +125,12 @@ public class InstantiateProposalBuilder extends LSCCProposalBuilder {
             throw new IllegalArgumentException("[NetMode] Missing chaincodePath in Instantiate Request");
         }
 
-
         List<String> modlist = new LinkedList<>();
         modlist.add("init");
         modlist.addAll(argList);
 
         ChaincodeDeploymentSpec depspec = createDeploymentSpec(ccType,
                 chaincodeName, chaincodePath, chaincodeVersion, modlist, null);
-
 
         List<ByteString> argList = new ArrayList<>();
         argList.add(ByteString.copyFrom(action, StandardCharsets.UTF_8));
@@ -144,7 +146,6 @@ public class InstantiateProposalBuilder extends LSCCProposalBuilder {
 
     private void createDevModeTransaction() {
         logger.debug("newDevModeTransaction");
-
 
         ChaincodeDeploymentSpec depspec = createDeploymentSpec(Type.GOLANG,
                 chaincodeName, chaincodePath, chaincodeVersion, argList, null);

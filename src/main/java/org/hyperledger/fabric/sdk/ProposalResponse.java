@@ -44,9 +44,9 @@ public class ProposalResponse extends ChainCodeResponse {
      */
     public boolean verify(CryptoSuite crypto) {
 
-        if (isVerified()) // check if this proposalResponse was already verified
-            // by client code
+        if (isVerified()) { // check if this proposalResponse was already verified   by client code
             return isVerified();
+        }
 
         FabricProposalResponse.Endorsement endorsement = this.proposalResponse.getEndorsement();
         ByteString sig = endorsement.getSignature();
@@ -71,7 +71,7 @@ public class ProposalResponse extends ChainCodeResponse {
         return this.isVerified;
     } // verify
 
-    private  FabricProposal.Proposal proposal;
+    private FabricProposal.Proposal proposal;
 
     public FabricProposal.Proposal getProposal() {
         return proposal;
@@ -130,11 +130,32 @@ public class ProposalResponse extends ChainCodeResponse {
             Chaincode.ChaincodeDeploymentSpec chaincodeDeploymentSpec = Chaincode.ChaincodeDeploymentSpec
                     .parseFrom(deps.toByteArray());
             chaincodeID = chaincodeDeploymentSpec.getChaincodeSpec().getChaincodeId();
+
         } catch (InvalidProtocolBufferException e) {
             e.printStackTrace();
         }
 
         return new ChainCodeID(chaincodeID);
+    }
+
+    /**
+     * ChainCodeActionResponsePayload is the result of the executing chaincode.
+     *
+     * @return the result of the executing chaincode.
+     * @throws InvalidProtocolBufferException
+     */
+
+    public byte[] getChainCodeActionResponsePayload() throws InvalidProtocolBufferException {
+
+        FabricProposalResponse.ProposalResponsePayload proposalResponsePayload = FabricProposalResponse.ProposalResponsePayload.parseFrom(proposalResponse.getPayload());
+        ByteString extension = proposalResponsePayload.getExtension();
+        if (extension == null || extension.isEmpty()) {
+            return null;
+        }
+        FabricProposal.ChaincodeAction chaincodeAction = FabricProposal.ChaincodeAction.parseFrom(extension);
+        ByteString results = chaincodeAction.getResponse().getPayload();
+        return results.toByteArray();
+
     }
 
 }
