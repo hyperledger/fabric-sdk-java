@@ -48,7 +48,9 @@ public class HFCAClientEnrollIT {
     private static final String TEST_ADMIN_PW = "adminpw";
     private static final String TEST_ADMIN_ORG = "org0";
     private static final String TEST_USER2_NAME = "user2";
+    private static final String TEST_USER2_PW = "user2pw";
     private static final String TEST_USER3_NAME = "user3";
+    private static final String TEST_USER3_PW = "user3pw";
     private static final String TEST_USER1_NAME = "user1";
     private static final String TEST_USER1_ORG = "Org1";
     private static final String TEST_USER1_AFFILIATION = "org1.department1";
@@ -126,7 +128,10 @@ public class HFCAClientEnrollIT {
 
             if (!user2.isRegistered()) {  // users need to be registered AND enrolled
                 RegistrationRequest rr = new RegistrationRequest(user2.getName(), TEST_USER1_AFFILIATION);
+                rr.setSecret(TEST_USER2_PW);
                 user2.setEnrollmentSecret(client.register(rr, admin));
+                if (!user2.getEnrollmentSecret().equals(TEST_USER2_PW))
+                    fail("Secret returned from RegistrationRequest not match : " + user2.getEnrollmentSecret());
             }
             if (!user2.isEnrolled()) {
                 user2.setEnrollment(client.enroll(user2.getName(), user2.getEnrollmentSecret()));
@@ -175,9 +180,12 @@ public class HFCAClientEnrollIT {
 
             if (!user3.isRegistered()) {
                 RegistrationRequest rr = new RegistrationRequest(user3.getName(), TEST_USER1_AFFILIATION);
+                rr.setSecret(TEST_USER3_PW);
                 rr.addAttribute(new Attribute("user.role", "department lead"));
                 rr.addAttribute(new Attribute("hf.revoker", "true"));
                 user3.setEnrollmentSecret(client.register(rr, admin)); //Admin can register other users.
+                if (!user3.getEnrollmentSecret().equals(TEST_USER3_PW))
+                    fail("Secret returned from RegistrationRequest not match : " + user3.getEnrollmentSecret());
             }
 
             sleepALittle();
