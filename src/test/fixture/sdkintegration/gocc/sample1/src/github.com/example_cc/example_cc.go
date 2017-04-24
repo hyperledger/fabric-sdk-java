@@ -16,7 +16,6 @@ limitations under the License.
 
 package main
 
-
 import (
 	"fmt"
 	"strconv"
@@ -29,8 +28,9 @@ import (
 type SimpleChaincode struct {
 }
 
-func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response  {
-        fmt.Println("########### example_cc Init ###########")
+// Init initializes the chaincode state
+func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
+	fmt.Println("########### example_cc Init ###########")
 	_, args := stub.GetFunctionAndParameters()
 	var A, B string    // Entities
 	var Aval, Bval int // Asset holdings
@@ -64,22 +64,22 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response  {
 		return shim.Error(err.Error())
 	}
 
+	if transientMap, err := stub.GetTransient(); err == nil {
+		if transientData, ok := transientMap["result"]; ok {
+			return shim.Success(transientData)
+		}
+	}
 	return shim.Success(nil)
 
-
 }
 
-func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface) pb.Response {
-		return shim.Error("Unknown supported call")
-}
-
-// Transaction makes payment of X units from A to B
+// Invoke makes payment of X units from A to B
 func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
-        fmt.Println("########### example_cc Invoke ###########")
+	fmt.Println("########### example_cc Invoke ###########")
 	function, args := stub.GetFunctionAndParameters()
-	
+
 	if function != "invoke" {
-                return shim.Error("Unknown function call")
+		return shim.Error("Unknown function call")
 	}
 
 	if len(args) < 2 {
@@ -156,7 +156,12 @@ func (t *SimpleChaincode) move(stub shim.ChaincodeStubInterface, args []string) 
 		return shim.Error(err.Error())
 	}
 
-        return shim.Success(nil);
+	if transientMap, err := stub.GetTransient(); err == nil {
+		if transientData, ok := transientMap["result"]; ok {
+			return shim.Success(transientData)
+		}
+	}
+	return shim.Success(nil)
 }
 
 // Deletes an entity from state
