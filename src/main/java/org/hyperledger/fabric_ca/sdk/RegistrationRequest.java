@@ -20,9 +20,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import javax.json.Json;
+import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.json.JsonArrayBuilder;
 import javax.json.JsonWriter;
 
 
@@ -44,6 +44,8 @@ public class RegistrationRequest {
     private String affiliation;
     // Array of attribute names and values
     private Collection<Attribute> attrs;
+
+    private String caName;
 
     // Constructor
     public RegistrationRequest(String id, String affiliation) throws Exception {
@@ -107,6 +109,10 @@ public class RegistrationRequest {
         this.attrs.add(attr);
     }
 
+    void setCAName( String caName){
+        this.caName = caName;
+    }
+
     // Convert the registration request to a JSON string
     public String toJson() {
         StringWriter stringWriter = new StringWriter();
@@ -129,6 +135,9 @@ public class RegistrationRequest {
         JsonArrayBuilder ab = Json.createArrayBuilder();
         for (Attribute attr: this.attrs) {
             ab.add(attr.toJsonObject());
+        }
+        if(caName != null){
+            ob.add( HFCAClient.FABRIC_CA_REQPROP, caName);
         }
         ob.add("attrs", ab.build());
         return ob.build();

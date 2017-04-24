@@ -24,7 +24,6 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import io.netty.util.internal.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.peer.Query.ChaincodeInfo;
@@ -32,6 +31,7 @@ import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
+import org.hyperledger.fabric.sdk.helper.SDKUtil;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 import static java.lang.String.format;
@@ -110,18 +110,20 @@ public class HFClient {
     /**
      * Create a new chain
      *
-     * @param name               The chains name
-     * @param orderer            Order to create the chain with.
-     * @param chainConfiguration Chain configuration data.
+     * @param name                         The chains name
+     * @param orderer                      Order to create the chain with.
+     * @param chainConfiguration           Chain configuration data.
+     * @param chainConfigurationSignatures array of byte array's containing ConfigSignature's proto serialized.
+     *                                     See {@see Chain#getChainConfigurationSignature} on how to create
      * @return
      * @throws TransactionException
      * @throws InvalidArgumentException
      */
 
-    public Chain newChain(String name, Orderer orderer, ChainConfiguration chainConfiguration) throws TransactionException, InvalidArgumentException {
+    public Chain newChain(String name, Orderer orderer, ChainConfiguration chainConfiguration, byte[]... chainConfigurationSignatures) throws TransactionException, InvalidArgumentException {
 
         logger.trace("Creating chain :" + name);
-        Chain newChain = Chain.createNewInstance(name, this, orderer, chainConfiguration);
+        Chain newChain = Chain.createNewInstance(name, this, orderer, chainConfiguration, chainConfigurationSignatures);
         chains.put(name, newChain);
         return newChain;
     }
@@ -236,7 +238,7 @@ public class HFClient {
             throw new InvalidArgumentException("setUserContext is null");
         }
         final String userName = userContext.getName();
-        if (StringUtil.isNullOrEmpty(userName)) {
+        if (SDKUtil.isNullOrEmpty(userName)) {
             throw new InvalidArgumentException("setUserContext user's name is missing");
         }
 
@@ -245,23 +247,23 @@ public class HFClient {
             throw new InvalidArgumentException(format("setUserContext for user %s has no Enrollment set", userName));
         }
 
-        if (StringUtil.isNullOrEmpty(userContext.getMSPID())) {
+        if (SDKUtil.isNullOrEmpty(userContext.getMSPID())) {
             throw new InvalidArgumentException(format("setUserContext for user %s  has user's MSPID is missing", userName));
         }
 
-        if (StringUtil.isNullOrEmpty(userContext.getName())) {
+        if (SDKUtil.isNullOrEmpty(userContext.getName())) {
             throw new InvalidArgumentException("setUserContext user's name is missing");
         }
 
-        if (StringUtil.isNullOrEmpty(enrollment.getCert())) {
+        if (SDKUtil.isNullOrEmpty(enrollment.getCert())) {
             throw new InvalidArgumentException(format("setUserContext for user %s Enrollment missing user certificate.", userName));
         }
         if (null == enrollment.getKey()) {
             throw new InvalidArgumentException(format("setUserContext for user %s has Enrollment missing signing key", userName));
         }
-        if (StringUtil.isNullOrEmpty(enrollment.getPublicKey())) {
-            throw new InvalidArgumentException(format("setUserContext for user %s  Enrollment missing user public key.", userName));
-        }
+//        if (SDKUtil.isNullOrEmpty(enrollment.getPublicKey())) {
+//            throw new InvalidArgumentException(format("setUserContext for user %s  Enrollment missing user public key.", userName));
+//        }
 
         this.userContext = userContext;
     }
@@ -417,6 +419,22 @@ public class HFClient {
             logger.error(format("queryInstalledChaincodes for peer %s failed." + e.getMessage(), peer.getName()), e);
             throw e;
         }
+
+    }
+
+    /**
+     * Get signature for chain configuration
+     *
+     * @param chainConfiguration
+     * @param signer
+     * @return byte array with the signature
+     * @throws InvalidArgumentException
+     */
+
+    public byte[] getChainConfigurationSignature(ChainConfiguration chainConfiguration, User signer) throws InvalidArgumentException {
+
+        Chain systemChain = Chain.newSystemChain(this);
+        return systemChain.getChainConfigurationSignature(chainConfiguration, signer);
 
     }
 

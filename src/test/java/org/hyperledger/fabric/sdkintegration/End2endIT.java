@@ -16,6 +16,7 @@ package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
 import java.net.MalformedURLException;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Set;
@@ -89,7 +90,7 @@ public class End2endIT {
         //Set up hfca for each sample org
 
         for (SampleOrg sampleOrg : testSampleOrgs) {
-            sampleOrg.setCAClient(new HFCAClient(sampleOrg.getCALocation(), sampleOrg.getCAProperties()));
+            sampleOrg.setCAClient(HFCAClient.createNewInstance(sampleOrg.getCALocation(), sampleOrg.getCAProperties()));
         }
     }
 
@@ -142,11 +143,11 @@ public class End2endIT {
                 ca.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
                 SampleUser admin = sampleStore.getMember(TEST_ADMIN_NAME, orgName);
                 if (!admin.isEnrolled()) {  //Preregistered admin only needs to be enrolled with Fabric caClient.
-
                     admin.setEnrollment(ca.enroll(admin.getName(), "adminpw"));
                     admin.setMPSID(mspid);
-                    sampleOrg.setAdmin(admin); // The admin of this org.
                 }
+
+                sampleOrg.setAdmin(admin); // The admin of this org --
 
                 SampleUser user = sampleStore.getMember(TESTUSER_1_NAME, sampleOrg.getName());
                 if (!user.isRegistered()) {  // users need to be registered AND enrolled
@@ -157,8 +158,19 @@ public class End2endIT {
                     user.setEnrollment(ca.enroll(user.getName(), user.getEnrollmentSecret()));
                     user.setMPSID(mspid);
                 }
-                sampleOrg.addUser(user);//Remember user belongs to this Org
+                sampleOrg.addUser(user); //Remember user belongs to this Org
 
+                final String sampleOrgName = sampleOrg.getName();
+                final String sampleOrgDomainName = sampleOrg.getDomainName();
+
+                SampleUser peerOrgAdmin = sampleStore.getMember(sampleOrgName + "Admin", sampleOrgName, sampleOrg.getMSPID(),
+                        findFile_sk(Paths.get(testConfig.getTestChannlePath(), "crypto-config/peerOrganizations/",
+                                sampleOrgDomainName, format("/users/Admin@%s/keystore",sampleOrgDomainName )).toFile()),
+                        Paths.get(testConfig.getTestChannlePath(), "crypto-config/peerOrganizations/", sampleOrgDomainName,
+                                format("/users/Admin@%s/signcerts/Admin@%s-cert.pem", sampleOrgDomainName, sampleOrgDomainName)).toFile());
+
+                sampleOrg.setPeerAdmin(peerOrgAdmin); //A special user that can crate channels, join peers and install chain code
+                                                        // and jump tall blockchains in a single leap!
             }
 
             ////////////////////////////
@@ -188,7 +200,7 @@ public class End2endIT {
 
             final String chainName = chain.getName();
             out("Running Chain %s", chainName);
-            chain.setTransactionWaitTime(testConfig.getTransactioneWaitTime());
+            chain.setTransactionWaitTime(testConfig.getTransactionWaitTime());
             chain.setDeployWaitTime(testConfig.getDeployWaitTime());
 
             Collection<Peer> channelPeers = chain.getPeers();
@@ -207,6 +219,8 @@ public class End2endIT {
                 // Install Proposal Request
                 //
 
+                client.setUserContext(sampleOrg.getPeerAdmin());
+
                 out("Creating install proposal");
 
                 InstallProposalRequest installProposalRequest = client.newInstallProposalRequest();
@@ -222,7 +236,7 @@ public class End2endIT {
                 int numInstallProposal = 0;
                 //    Set<String> orgs = orgPeers.keySet();
                 //   for (SampleOrg org : testSampleOrgs) {
-                client.setUserContext(sampleOrg.getAdmin());
+
                 Set<Peer> peersFromOrg = sampleOrg.getPeers();
                 numInstallProposal = numInstallProposal + peersFromOrg.size();
                 responses = chain.sendInstallProposal(installProposalRequest, peersFromOrg);
@@ -243,6 +257,8 @@ public class End2endIT {
                     fail("Not enough endorsers for install :" + successful.size() + ".  " + first.getMessage());
                 }
             }
+
+            //   client.setUserContext(sampleOrg.getUser(TEST_ADMIN_NAME));
             //  final ChainCodeID chainCodeID = firstInstallProposalResponse.getChainCodeID();
             // Note install chain code does not require transaction no need to
             // send to Orderers
@@ -265,6 +281,8 @@ public class End2endIT {
             out("Sending instantiateProposalRequest to all peers with arguments: a and b set to 100 and %s respectively", "" + (200 + delta));
             successful.clear();
             failed.clear();
+
+            //         client.setUserContext(sampleOrg.getAdmin());
 
             responses = chain.sendInstantiationProposal(instantiateProposalRequest, chain.getPeers());
             for (ProposalResponse response : responses) {
@@ -294,7 +312,9 @@ public class End2endIT {
                 try {
                     successful.clear();
                     failed.clear();
-                    client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME)); // select the user for all subsequent requests
+
+                    // client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME));
+                    //       client.setUserContext(sampleOrg.getAdmin());
 
                     ///////////////
                     /// Send transaction proposal to all peers
@@ -326,7 +346,7 @@ public class End2endIT {
                     ////////////////////////////
                     // Send Transaction Transaction to orderer
                     out("Sending chain code transaction(move a,b,100) to orderer.");
-                    return chain.sendTransaction(successful).get(testConfig.getTransactioneWaitTime(), TimeUnit.SECONDS);
+                    return chain.sendTransaction(successful).get(testConfig.getTransactionWaitTime(), TimeUnit.SECONDS);
 
                 } catch (Exception e) {
                     out("Caught an exception while invoking chaincode");
@@ -386,7 +406,7 @@ public class End2endIT {
                 fail(format("Test failed with %s exception %s", e.getClass().getName(), e.getMessage()));
 
                 return null;
-            }).get(testConfig.getTransactioneWaitTime(), TimeUnit.SECONDS);
+            }).get(testConfig.getTransactionWaitTime(), TimeUnit.SECONDS);
 
             // Channel queries
 
@@ -427,18 +447,6 @@ public class End2endIT {
             TransactionInfo txInfo = chain.queryTransactionByID(queryPeer, testTxID);
             out("QueryTransactionByID returned TransactionInfo: txID " + txInfo.getTransactionID()
                     + "\n     validation code " + txInfo.getValidationCode().getNumber());
-            /*
-             * TODO printing out too many error messages right now
-            boolean shouldNotFail = true;
-            try {
-                txInfo = chain.queryTransactionByID("fake", peer);
-            } catch (Exception ee) {
-                shouldNotFail = false;
-            }
-            if (shouldNotFail) {
-                fail("Should have failed on queryTransactionByID using fake txID");
-            }
-            */
 
             out("Running for Chain %s done", chainName);
 
@@ -470,8 +478,11 @@ public class End2endIT {
 
         ChainConfiguration chainConfiguration = new ChainConfiguration(new File(TEST_FIXTURES_PATH + "/sdkintegration/e2e-2Orgs/channel/" + name + ".tx"));
 
-        client.setUserContext(sampleOrg.getAdmin());
-        Chain newChain = client.newChain(name, anOrderer, chainConfiguration);
+        //Only peer Admin org
+        client.setUserContext(sampleOrg.getPeerAdmin());
+
+        //Create chain that has only one signer that is this orgs peer admin. If chain creation policy needed more signature they would need to be added too.
+        Chain newChain = client.newChain(name, anOrderer, chainConfiguration,  client.getChainConfigurationSignature(chainConfiguration, sampleOrg.getPeerAdmin()));
 
         out("Created chain %s", name);
 
@@ -521,6 +532,18 @@ public class End2endIT {
 //        } catch (InterruptedException e) {
 //            fail("should not have jumped out of sleep mode. No other threads should be running");
 //        }
+    }
+
+    File findFile_sk(File directory) {
+
+        File[] matches = directory.listFiles((dir, name) -> name.endsWith("_sk"));
+
+        if (matches.length != 1) {
+            throw new RuntimeException(format("Expected in %s only 1 sk file but found %d", directory.getAbsoluteFile().getName(), matches.length));
+        }
+
+        return matches[0];
+
     }
 
 }

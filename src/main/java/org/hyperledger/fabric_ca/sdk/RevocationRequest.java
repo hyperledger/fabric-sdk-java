@@ -29,6 +29,7 @@ import static org.hyperledger.fabric.sdk.helper.SDKUtil.isNullOrEmpty;
  */
 class RevocationRequest {
 
+    private final String caName;
     // Enrollment ID whose certificates are to be revoked
     private String enrollmentID;
     // Serial number of certificate to be revoked
@@ -39,7 +40,7 @@ class RevocationRequest {
     private String reason;
 
     // Constructor
-    RevocationRequest(String id, String serial, String aki, String reason) throws Exception {
+    RevocationRequest(String caNmae, String id, String serial, String aki, String reason) throws Exception {
         if (isNullOrEmpty(id)) {
             if (isNullOrEmpty(serial) || isNullOrEmpty(aki)) {
                 throw new Exception("Enrollment ID is empty, thus both aki and serial must have non-empty values");
@@ -49,6 +50,7 @@ class RevocationRequest {
         this.serial = serial;
         this.aki = aki;
         this.reason = reason;
+        this.caName = caNmae;
     }
 
     String getUser() {
@@ -107,6 +109,11 @@ class RevocationRequest {
         if (null != reason) {
             factory.add("reason", reason);
         }
+
+        if(caName != null){
+            factory.add( HFCAClient.FABRIC_CA_REQPROP, caName);
+        }
+        factory.add("reason", reason);
         return factory.build();
     }
 }

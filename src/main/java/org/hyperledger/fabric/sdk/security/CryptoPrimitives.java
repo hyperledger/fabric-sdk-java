@@ -19,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
@@ -100,12 +101,11 @@ import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.encoders.Hex;
 import org.bouncycastle.util.io.pem.PemObject;
-
+import org.bouncycastle.util.io.pem.PemReader;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Config;
-
-import io.netty.util.internal.StringUtil;
+import org.hyperledger.fabric.sdk.helper.SDKUtil;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -157,8 +157,9 @@ public class CryptoPrimitives implements CryptoSuite {
     }
 
     public Certificate bytesToCertificate(byte[] certBytes) throws CryptoException {
-        if (certBytes == null || certBytes.length == 0)
+        if (certBytes == null || certBytes.length == 0) {
             throw new CryptoException("bytesToCertificate: input null or zero length");
+        }
 
         X509Certificate certificate;
         try {
@@ -188,8 +189,9 @@ public class CryptoPrimitives implements CryptoSuite {
     public boolean verify(byte[] plainText, byte[] signature, byte[] pemCertificate) throws CryptoException {
         boolean isVerified = false;
 
-        if (plainText == null || signature == null || pemCertificate == null)
+        if (plainText == null || signature == null || pemCertificate == null) {
             return false;
+        }
 
         logger.trace("plaintext in hex: " + DatatypeConverter.printHexBinary(plainText));
         logger.trace("signature in hex: " + DatatypeConverter.printHexBinary(signature));
@@ -255,8 +257,9 @@ public class CryptoPrimitives implements CryptoSuite {
      */
     public void setTrustStore(KeyStore keyStore) throws InvalidArgumentException {
 
-        if (keyStore == null)
+        if (keyStore == null) {
             throw new InvalidArgumentException("Need to specify a java.security.KeyStore input parameter");
+        }
 
         trustStore = keyStore;
     }
@@ -270,8 +273,9 @@ public class CryptoPrimitives implements CryptoSuite {
      * @see KeyStore
      */
     public KeyStore getTrustStore() throws CryptoException {
-        if (trustStore == null)
+        if (trustStore == null) {
             createTrustStore();
+        }
         return trustStore;
     }
 
@@ -284,8 +288,9 @@ public class CryptoPrimitives implements CryptoSuite {
      */
     public void addCACertificateToTrustStore(File caCertPem, String alias) throws CryptoException, InvalidArgumentException {
 
-        if (alias==null || alias.isEmpty())
+        if (alias==null || alias.isEmpty()) {
             throw new InvalidArgumentException("You must assign an alias to a certificate when adding to the trust store.");
+        }
 
         BufferedInputStream bis;
         try {
@@ -307,10 +312,12 @@ public class CryptoPrimitives implements CryptoSuite {
      */
     public void addCACertificateToTrustStore(Certificate caCert, String alias) throws InvalidArgumentException, CryptoException {
 
-        if (alias==null || alias.isEmpty())
+        if (alias==null || alias.isEmpty()) {
             throw new InvalidArgumentException("You must assign an alias to a certificate when adding to the trust store.");
-        if (caCert == null)
+        }
+        if (caCert == null) {
             throw new InvalidArgumentException("Certificate cannot be null.");
+        }
 
         try {
             logger.trace("Adding cert to trust store. alias:  " + alias + "cert: " + caCert.toString());
@@ -324,8 +331,9 @@ public class CryptoPrimitives implements CryptoSuite {
 
     @Override
     public void loadCACertificates(Collection<Certificate> CACertificates) throws CryptoException {
-        if (CACertificates == null || CACertificates.size() == 0)
+        if (CACertificates == null || CACertificates.size() == 0) {
             throw new CryptoException("Unable to load CA certificates. List is empty");
+        }
 
         try {
             for (Certificate cert : CACertificates) {
@@ -343,8 +351,9 @@ public class CryptoPrimitives implements CryptoSuite {
      */
     @Override
     public void loadCACertificatesAsBytes(Collection<byte[]> CACertificatesBytes) throws CryptoException {
-        if (CACertificatesBytes == null || CACertificatesBytes.size() == 0)
+        if (CACertificatesBytes == null || CACertificatesBytes.size() == 0) {
             throw new CryptoException("List of CA certificates is empty. Nothing to load.");
+        }
         ArrayList<Certificate> certList = new ArrayList<>();
         for (byte[] certBytes : CACertificatesBytes) {
             logger.trace("certificate to load:\n" + new String(certBytes));
@@ -382,8 +391,9 @@ public class CryptoPrimitives implements CryptoSuite {
      */
     public boolean validateCertificate(byte[] certPEM) {
 
-        if (certPEM == null)
+        if (certPEM == null) {
             return false;
+        }
 
         try {
             BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(certPEM));
@@ -400,13 +410,15 @@ public class CryptoPrimitives implements CryptoSuite {
     public boolean validateCertificate(Certificate cert) {
         boolean isValidated = false;
 
-        if (cert == null)
+        if (cert == null) {
             return isValidated;
+        }
 
         try {
             KeyStore keyStore = getTrustStore();
-            if (keyStore == null)
+            if (keyStore == null) {
                 throw new CryptoException("Crypto does not have a trust store. No certificate can be validated", null);
+            }
 
             PKIXParameters parms = new PKIXParameters(keyStore);
             parms.setRevocationEnabled(false);
@@ -458,7 +470,7 @@ public class CryptoPrimitives implements CryptoSuite {
     }
 
     public void setHashAlgorithm(String algorithm) throws InvalidArgumentException {
-        if (StringUtil.isNullOrEmpty(algorithm)
+        if (SDKUtil.isNullOrEmpty(algorithm)
                         || !(algorithm.equalsIgnoreCase("SHA2") || algorithm.equalsIgnoreCase("SHA3"))) {
             throw new InvalidArgumentException("Illegal Hash function family: "
                         + this.hashAlgorithm + " - must be either SHA2 or SHA3");
@@ -842,6 +854,20 @@ public class CryptoPrimitives implements CryptoSuite {
         properties.setProperty(Config.CERTIFICATE_FORMAT, CERTIFICATE_FORMAT);
         properties.setProperty(Config.SIGNATURE_ALGORITHM, DEFAULT_SIGNATURE_ALGORITHM);
         return properties ;
+    }
+
+    public byte[] certificateToDER(String certricatePEM){
+
+        final PemReader pemReader = new PemReader(new StringReader(certricatePEM));
+        try {
+            final PemObject pemObject = pemReader.readPemObject();
+            return pemObject.getContent();
+
+        } catch (IOException e) {
+           // best attempt
+        }
+        return  null;
+
     }
 
 }

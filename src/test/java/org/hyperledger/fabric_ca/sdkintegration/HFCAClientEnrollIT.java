@@ -46,13 +46,13 @@ public class HFCAClientEnrollIT {
     // public static class MemberServicesFabricCAImplTest {
     private static final String TEST_ADMIN_NAME = "admin";
     private static final String TEST_ADMIN_PW = "adminpw";
-    private static final String TEST_ADMIN_ORG = "org0";
+    private static final String TEST_ADMIN_ORG = "org1";
     private static final String TEST_USER2_NAME = "user2";
     private static final String TEST_USER2_PW = "user2pw";
     private static final String TEST_USER3_NAME = "user3";
     private static final String TEST_USER3_PW = "user3pw";
     private static final String TEST_USER1_NAME = "user1";
-    private static final String TEST_USER1_ORG = "Org1";
+    private static final String TEST_USER1_ORG = "Org2";
     private static final String TEST_USER1_AFFILIATION = "org1.department1";
     private static final String CA_LOCATION = "http://localhost:7054";
     private static final String tlsbase = "src/test/fixture/sdkintegration/e2e-2Orgs/tls/";
@@ -93,7 +93,7 @@ public class HFCAClientEnrollIT {
 
         CryptoSuite cryptoSuite = CryptoSuite.Factory.getCryptoSuite();
         cryptoSuite.init();
-        client = new HFCAClient(location, properties);
+        client = HFCAClient.createNewInstance(location, properties);
         client.setCryptoSuite(cryptoSuite);
 
         //SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface
@@ -177,7 +177,7 @@ public class HFCAClientEnrollIT {
 
             CryptoSuite cryptoSuite = CryptoSuite.Factory.getCryptoSuite();
             cryptoSuite.init();
-            HFCAClient client = new HFCAClient(location, properties);
+            HFCAClient client = HFCAClient.createNewInstance(location, properties);
             client.setCryptoSuite(cryptoSuite);
 
             SampleUser user3 = sampleStore.getMember(TEST_USER3_NAME, TEST_USER1_ORG);

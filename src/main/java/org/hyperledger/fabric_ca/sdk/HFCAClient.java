@@ -103,6 +103,8 @@ public class HFCAClient {
     private static final String HFCA_REGISTER = HFCA_CONTEXT_ROOT + "register";
     private static final String HFCA_REENROLL = HFCA_CONTEXT_ROOT + "reenroll";
     private static final String HFCA_REVOKE = HFCA_CONTEXT_ROOT + "revoke";
+
+    static final String FABRIC_CA_REQPROP = "caname";
     private static final int DEFAULT_SECURITY_LEVEL = 256;  //TODO make configurable //Right now by default FAB services is using
     private static final String DEFAULT_HASH_ALGORITHM = "SHA2";  //Right now by default FAB services is using SHA2
 
@@ -112,6 +114,7 @@ public class HFCAClient {
     private final String url;
     private final boolean isSSL;
     private final Properties properties;
+    private final String name;
 
     // TODO require use of CryptoPrimitives since we need the generateCertificateRequests methods
     // clean this up when we do have multiple implementations of CryptoSuite
@@ -127,13 +130,15 @@ public class HFCAClient {
      *                   Supported properties
      *                   <ul>
      *                   <li>pemFile - File location for x509 pem certificate for SSL.</li>
-     *                   <li>allowAllHostNames - boolean(true/false) override certificates CN Host matching -- for development only.</li>
+     *                   <li>allowAllHostNames - boolen(true/false) override certificates CN Host matching -- for development only.</li>
      *                   </ul>
      * @throws MalformedURLException
      */
-    public HFCAClient(String url, Properties properties) throws MalformedURLException {
+     HFCAClient(String name, String url, Properties properties) throws MalformedURLException {
         logger.debug(format("new HFCAClient %s", url));
         this.url = url;
+
+        this.name= name; //name maybe null
 
         URL purl = new URL(url);
         final String proto = purl.getProtocol();
@@ -167,6 +172,23 @@ public class HFCAClient {
         } else {
             this.properties = null;
         }
+
+    }
+
+    public static  HFCAClient createNewInstance(String url, Properties properties) throws MalformedURLException {
+
+         return new HFCAClient(null, url, properties);
+
+    }
+
+    public static  HFCAClient createNewInstance(String name, String url, Properties properties) throws MalformedURLException, InvalidArgumentException {
+
+         if(name == null || name.isEmpty()){
+
+             throw new InvalidArgumentException("name must not be null or an empty string.");
+         }
+
+        return new HFCAClient(name, url, properties);
 
     }
 
@@ -275,6 +297,10 @@ public class HFCAClient {
 
             // build request body
             req.setCSR(pem);
+
+            if(name != null && !name.isEmpty()){
+                req.setCAName(name);
+            }
             String body = req.toJson();
 
             String responseBody = httpPost(url + HFCA_ENROLL, body,
@@ -362,6 +388,9 @@ public class HFCAClient {
 
             // build request body
             req.setCSR(pem);
+            if( name != null && !name.isEmpty()){
+                req.setCAName(name);
+            }
             String body = req.toJson();
 
             // build authentication header
@@ -425,7 +454,7 @@ public class HFCAClient {
             String aki = DatatypeConverter.printHexBinary(AuthorityKeyIdentifier.getInstance(akiOc.getOctets()).getKeyIdentifier());
 
             // build request body
-            RevocationRequest req = new RevocationRequest(null, serial, aki, reason);
+            RevocationRequest req = new RevocationRequest(name, null, serial, aki, reason);
             String body = req.toJson();
 
             String authHdr = getHTTPAuthCertificate(revoker.getEnrollment(), body);
@@ -468,7 +497,7 @@ public class HFCAClient {
             setUpSSL();
 
             // build request body
-            RevocationRequest req = new RevocationRequest(revokee, null, null, reason);
+            RevocationRequest req = new RevocationRequest(name, revokee, null, null, reason);
             String body = req.toJson();
 
             // build auth header

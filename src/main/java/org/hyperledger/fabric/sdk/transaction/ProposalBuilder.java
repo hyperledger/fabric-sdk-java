@@ -22,7 +22,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.common.Common.HeaderType;
-import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInput;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInvocationSpec;
@@ -37,7 +36,7 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.helper.SDKUtil.logString;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createChannelHeader;
-
+import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getSignatureHeaderAsByteString;
 
 public class ProposalBuilder {
 
@@ -121,20 +120,6 @@ public class ProposalBuilder {
         Common.ChannelHeader chainHeader = createChannelHeader(HeaderType.ENDORSER_TRANSACTION,
                 context.getTxID(), chainID, context.getEpoch(), chaincodeHeaderExtension);
 
-        if (isDebugLevel) {
-            Identities.SerializedIdentity identity = context.getIdentity();
-
-            logger.debug(format("SignatureHeader: MSPID: %s, creator: %s, nonce: %s",
-                    logString(new String(identity.getMspidBytes().toByteArray(), UTF_8)),
-                    logString(new String(identity.getIdBytes().toByteArray(), UTF_8)),
-                    logString(new String(context.getNonce().toByteArray(), UTF_8)))
-            );
-        }
-
-        Common.SignatureHeader sigHeader = Common.SignatureHeader.newBuilder()
-                .setCreator(context.getIdentity().toByteString())
-                .setNonce(context.getNonce()).build();
-
         ChaincodeInvocationSpec chaincodeInvocationSpec = createChaincodeInvocationSpec(
                 chaincodeID,
                 ccType);
@@ -144,7 +129,7 @@ public class ProposalBuilder {
                 .build();
 
         Common.Header header = Common.Header.newBuilder()
-                .setSignatureHeader(sigHeader.toByteString())
+                .setSignatureHeader(getSignatureHeaderAsByteString(context))
                 .setChannelHeader(chainHeader.toByteString())
                 .build();
 

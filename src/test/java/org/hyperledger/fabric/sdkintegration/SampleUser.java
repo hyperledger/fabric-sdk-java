@@ -189,7 +189,7 @@ public class SampleUser implements User, Serializable {
     /**
      * Make sure we're not dependent of HFCAEnrollment class.
      */
-    class AfakeEnrollmentImplementation implements Enrollment{
+    public static class AfakeEnrollmentImplementation implements Enrollment{
 
         private final String publicKey;
         private final PrivateKey privateKey;
@@ -237,11 +237,11 @@ public class SampleUser implements User, Serializable {
                     this.affiliation = state.affiliation;
                     this.organization = state.organization;
                     this.enrollmentSecret = state.enrollmentSecret;
-                    this.enrollment = new AfakeEnrollmentImplementation(state.enrollment.getPublicKey(), state.enrollment.getKey(), state.enrollment.getCert());
+                    this.enrollment = state.enrollment;
                     this.mspID = state.mspID;
                     return this;
                 }
-            } catch (IOException | ClassNotFoundException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(String.format("Could not restore state of member %s", this.name), e);
             }
         }

@@ -51,6 +51,7 @@ import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.encoders.Hex;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.commons.codec.binary.Hex.encodeHexString;
 
 public class SDKUtil {
     private static final Log logger = LogFactory.getLog(SDKUtil.class);
@@ -359,6 +360,31 @@ public class SDKUtil {
         ret = ret.substring(0, Math.min(ret.length(), maxLogStringLength)) + (ret.length() > maxLogStringLength ? "..." : "");
 
         return ret;
+
+    }
+
+
+    public static String toHexString(ByteString byteString){
+        assert (byteString != null);
+        if(byteString == null)
+        {
+            return null;
+        }
+
+       return encodeHexString( byteString.toByteArray());
+
+
+    }
+
+    public static String toHexString(byte[] bytes){
+        assert (bytes != null);
+        if(bytes == null)
+        {
+            return null;
+        }
+
+        return encodeHexString( bytes);
+
 
     }
 

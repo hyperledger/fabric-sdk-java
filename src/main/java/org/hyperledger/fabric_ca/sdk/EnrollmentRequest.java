@@ -21,9 +21,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import javax.json.Json;
+import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.json.JsonArrayBuilder;
 import javax.json.JsonWriter;
 
 /**
@@ -41,6 +41,7 @@ public class EnrollmentRequest {
     private String label;
     // Key pair for generating certification request
     private KeyPair keypair;
+    private String caName;
 
     // Constructor
     public EnrollmentRequest() {
@@ -70,6 +71,10 @@ public class EnrollmentRequest {
 
     void setCSR(String csr) {
         this.csr = csr;
+    }
+
+    void setCAName( String caName){
+        this.caName = caName;
     }
 
     public String getProfile() {
@@ -120,6 +125,10 @@ public class EnrollmentRequest {
         }
         if (label != null) {
             factory.add("label", label);
+        }
+
+        if(caName != null){
+            factory.add( HFCAClient.FABRIC_CA_REQPROP, caName);
         }
         factory.add("certificate_request", csr);
         return factory.build();

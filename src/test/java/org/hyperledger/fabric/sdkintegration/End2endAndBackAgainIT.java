@@ -101,7 +101,7 @@ public class End2endAndBackAgainIT {
 
         for (SampleOrg sampleOrg : testSampleOrgs) {
             String caURL = sampleOrg.getCALocation();
-            sampleOrg.setCAClient(new HFCAClient(caURL, null));
+            sampleOrg.setCAClient(HFCAClient.createNewInstance(caURL, null));
         }
     }
 
@@ -152,8 +152,9 @@ public class End2endAndBackAgainIT {
 
                 // No need to enroll or register all done in End2endIt !
                 SampleUser user = sampleStore.getMember(TESTUSER_1_NAME, orgName);
-                sampleOrg.addUser(user);//Remember user belongs to this Org
+                sampleOrg.addUser(user);  //Remember user belongs to this Org
 
+                sampleOrg.setPeerAdmin( sampleStore.getMember(orgName + "Admin", orgName));
             }
 
             ////////////////////////////
@@ -182,10 +183,10 @@ public class End2endAndBackAgainIT {
         try {
 
             out("Running Chain %s with a delta %d", chainName, delta);
-            chain.setTransactionWaitTime(testConfig.getTransactioneWaitTime());
+            chain.setTransactionWaitTime(testConfig.getTransactionWaitTime());
             chain.setDeployWaitTime(testConfig.getDeployWaitTime());
 
-            client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME)); // select the user for all subsequent requests
+        //    client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME)); // select the user for all subsequent requests
 
             ////////////////////////////
             // Send Query Proposal to all peers see if it's what we expect from end of End2endIT
@@ -217,7 +218,7 @@ public class End2endAndBackAgainIT {
                     ////////////////////////////
                     // only a client from the same org as the peer can issue an install request
                     int numInstallProposal = 0;
-                    client.setUserContext(sampleOrg.getAdmin());
+             //       client.setUserContext(sampleOrg.getAdmin());
 
                     Collection<ProposalResponse> responses;
                     final Collection<ProposalResponse> successful = new LinkedList<>();
@@ -283,7 +284,7 @@ public class End2endAndBackAgainIT {
                                 + successful.size() + ".  " + first.getMessage());
                     }
 
-                    return chain.sendTransaction(successful).get(testConfig.getTransactioneWaitTime(), TimeUnit.SECONDS);
+                    return chain.sendTransaction(successful).get(testConfig.getTransactionWaitTime(), TimeUnit.SECONDS);
 
                 } catch (CompletionException e) {
                     throw e;
@@ -325,7 +326,7 @@ public class End2endAndBackAgainIT {
                     queryChainCodeForExpectedValue(client, chain, "" + (325 + delta), chainCodeID);
 
                     //Now lets run the new chaincode which should *double* the results we asked to move.
-                    return moveAmount(client, chain, chainCodeID_11, "50").get(testConfig.getTransactioneWaitTime(), TimeUnit.SECONDS); // really move 100
+                    return moveAmount(client, chain, chainCodeID_11, "50").get(testConfig.getTransactionWaitTime(), TimeUnit.SECONDS); // really move 100
                 } catch (CompletionException e) {
                     throw e;
                 } catch (Exception e) {
@@ -352,7 +353,7 @@ public class End2endAndBackAgainIT {
                 fail(format("Test failed with %s exception %s", e.getClass().getName(), e.getMessage()));
 
                 return null;
-            }).get(testConfig.getTransactioneWaitTime(), TimeUnit.SECONDS);
+            }).get(testConfig.getTransactionWaitTime(), TimeUnit.SECONDS);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -408,7 +409,7 @@ public class End2endAndBackAgainIT {
 
     private Chain reconstructChain(String name, HFClient client, SampleOrg sampleOrg) throws Exception {
 
-        client.setUserContext(sampleOrg.getAdmin());
+        client.setUserContext(sampleOrg.getPeerAdmin());
         Chain newChain = client.newChain(name);
 
         for (String orderName : sampleOrg.getOrdererNames()) {
