@@ -165,9 +165,10 @@ We need certificate and key for each of the Orderer and Peers for TLS connection
  * For each of orderers and peers:
    * generate a private key: <code>openssl genrsa 512 > key.pem</code>.
    * generate a certificate request (csr): <code>openssl req -new -days 365 -key key.pem -out csr.pem</code>, which will request your input for some information, where CN has to be the container's alias name (e.g. peer0, peer1, etc), all others can be left blank.
-   * sign the csr with the CA private key to generate a certificate: <code>openssl ca -days 365 -in csr.pem -keyfile {CA's privatekey} -out cert.pem</code>
+   * sign the csr with the CA private key to generate a certificate: <code>openssl ca -days 365 -in csr.pem -keyfile {CA's privatekey} -notext -out cert.pem</code>
    * put the resulting cert.pem and key.pem together with the CA's certificate (as the name cacert.pem) in the directory where the docker container can access.
 
+The option -notext in the last openssl command in the above is important. Without the option, the resulting cert.pemmay not work for some Java implementation (e.g. IBM JDK).
 The certificates and keys for the end-to-end test case are stored in the directory _src/test/fixture/sdkintegration/e2e-2Org/tls/_.
 
 Currently, the pom.xml is set to use netty-tcnative-boringssl for TLS connection to Orderer and Peers, however you can change the pom.xml (uncomment a few lines) to use an alternative TLS connection via ALPN.

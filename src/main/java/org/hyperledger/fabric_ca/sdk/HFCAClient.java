@@ -18,9 +18,7 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
@@ -45,9 +43,7 @@ import java.util.Set;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
-import javax.json.JsonWriter;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
@@ -80,6 +76,9 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
+import org.bouncycastle.asn1.ASN1OctetString;
+import org.bouncycastle.asn1.x509.AuthorityKeyIdentifier;
+import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.User;
@@ -90,9 +89,6 @@ import org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric_ca.sdk.exception.RegistrationException;
 import org.hyperledger.fabric_ca.sdk.exception.RevocationException;
 import org.hyperledger.fabric_ca.sdk.helper.Config;
-import sun.security.util.DerValue;
-import sun.security.x509.AuthorityKeyIdentifierExtension;
-import sun.security.x509.KeyIdentifier;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -417,9 +413,9 @@ public class HFCAClient {
 
             // get its aki
             // 2.5.29.35 : AuthorityKeyIdentifier
-            byte[] var3 = new DerValue(certificate.getExtensionValue("2.5.29.35")).getOctetString();
-            AuthorityKeyIdentifierExtension var4 = new AuthorityKeyIdentifierExtension(Boolean.FALSE, var3);
-            String aki = DatatypeConverter.printHexBinary(((KeyIdentifier) var4.get("key_id")).getIdentifier());
+            byte[] extensionValue = certificate.getExtensionValue(Extension.authorityKeyIdentifier.getId());
+            ASN1OctetString akiOc = ASN1OctetString.getInstance(extensionValue);
+            String aki = DatatypeConverter.printHexBinary(AuthorityKeyIdentifier.getInstance(akiOc.getOctets()).getKeyIdentifier());
 
             // build request body
             RevocationRequest req = new RevocationRequest(null, serial, aki, reason);

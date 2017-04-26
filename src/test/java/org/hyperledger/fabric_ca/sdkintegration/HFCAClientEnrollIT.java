@@ -151,8 +151,11 @@ public class HFCAClientEnrollIT {
 
             sleepALittle();
 
-            // revoke the tmp enrollment
+            // revoke one enrollment of this user
             client.revoke(admin, tmpEnroll, 1);
+
+            // trying to reenroll should be ok (revocation above is only for a particular enrollment of this user)
+            client.reenroll(user2);
         } catch (Exception e) {
             e.printStackTrace();
             fail("user reenroll/revoke test failed with error : " + e.getMessage());
@@ -202,7 +205,16 @@ public class HFCAClientEnrollIT {
 
             sleepALittle();
 
+            // revoke all enrollment of this user
             client.revoke(admin, user3.getName(), 1);
+
+            try {
+                // trying to reenroll the revoked user should fail
+                client.reenroll(user3);
+                fail("test failed: revoked user should not be able to reenroll");
+            } catch (EnrollmentException e) {
+                // this should be ok
+            }
         } catch (Exception e) {
             e.printStackTrace();
             fail("user enroll/revoke-all test failed with error : " + e.getMessage());
