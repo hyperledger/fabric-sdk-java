@@ -31,8 +31,8 @@ import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdkintegration.SampleStore;
 import org.hyperledger.fabric.sdkintegration.SampleUser;
 import org.hyperledger.fabric_ca.sdk.Attribute;
-import org.hyperledger.fabric_ca.sdk.HFCAClient;
 import org.hyperledger.fabric_ca.sdk.EnrollmentRequest;
+import org.hyperledger.fabric_ca.sdk.HFCAClient;
 import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
 import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException;
@@ -78,7 +78,9 @@ public class HFCAClientEnrollIT {
         } else {
             String envKey = INTEGRATIONTESTSTLS.toUpperCase().replaceAll("\\.", "_");
             ret = System.getenv(envKey);
-            if (null != ret) runningTLS = true;
+            if (null != ret) {
+                runningTLS = true;
+            }
         }
 
         // TLS connection support
@@ -123,15 +125,15 @@ public class HFCAClientEnrollIT {
     public void testReenrollAndRevoke() {
         try {
 
-
             SampleUser user2 = sampleStore.getMember(TEST_USER2_NAME, TEST_ADMIN_ORG);
 
             if (!user2.isRegistered()) {  // users need to be registered AND enrolled
                 RegistrationRequest rr = new RegistrationRequest(user2.getName(), TEST_USER1_AFFILIATION);
                 rr.setSecret(TEST_USER2_PW);
                 user2.setEnrollmentSecret(client.register(rr, admin));
-                if (!user2.getEnrollmentSecret().equals(TEST_USER2_PW))
+                if (!user2.getEnrollmentSecret().equals(TEST_USER2_PW)) {
                     fail("Secret returned from RegistrationRequest not match : " + user2.getEnrollmentSecret());
+                }
             }
             if (!user2.isEnrolled()) {
                 user2.setEnrollment(client.enroll(user2.getName(), user2.getEnrollmentSecret()));
@@ -152,7 +154,7 @@ public class HFCAClientEnrollIT {
             sleepALittle();
 
             // revoke one enrollment of this user
-            client.revoke(admin, tmpEnroll, 1);
+            client.revoke(admin, tmpEnroll, "remove use2r");
 
             // trying to reenroll should be ok (revocation above is only for a particular enrollment of this user)
             client.reenroll(user2);
@@ -178,7 +180,6 @@ public class HFCAClientEnrollIT {
             HFCAClient client = new HFCAClient(location, properties);
             client.setCryptoSuite(cryptoSuite);
 
-
             SampleUser user3 = sampleStore.getMember(TEST_USER3_NAME, TEST_USER1_ORG);
 
             if (!user3.isRegistered()) {
@@ -187,8 +188,9 @@ public class HFCAClientEnrollIT {
                 rr.addAttribute(new Attribute("user.role", "department lead"));
                 rr.addAttribute(new Attribute("hf.revoker", "true"));
                 user3.setEnrollmentSecret(client.register(rr, admin)); //Admin can register other users.
-                if (!user3.getEnrollmentSecret().equals(TEST_USER3_PW))
+                if (!user3.getEnrollmentSecret().equals(TEST_USER3_PW)) {
                     fail("Secret returned from RegistrationRequest not match : " + user3.getEnrollmentSecret());
+                }
             }
 
             sleepALittle();
@@ -206,7 +208,7 @@ public class HFCAClientEnrollIT {
             sleepALittle();
 
             // revoke all enrollment of this user
-            client.revoke(admin, user3.getName(), 1);
+            client.revoke(admin, user3.getName(), "revoke user 3");
 
             try {
                 // trying to reenroll the revoked user should fail
@@ -221,7 +223,7 @@ public class HFCAClientEnrollIT {
         }
     }
 
-    private void verifyOptions(String cert, EnrollmentRequest req) throws CertificateParsingException, CertificateException {
+    private void verifyOptions(String cert, EnrollmentRequest req) throws CertificateException {
         try {
             BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(cert.getBytes()));
             CertificateFactory certFactory = CertificateFactory.getInstance(Config.getConfig().getCertificateFormat());
@@ -237,11 +239,14 @@ public class HFCAClientEnrollIT {
             }
             ArrayList<String> subAltList = new ArrayList<String>();
             for (List<?> item : altNames) {
-                int type = ((Integer)item.get(0)).intValue();
-                if (type == 2) subAltList.add((String)item.get(1));
+                int type = ((Integer) item.get(0)).intValue();
+                if (type == 2) {
+                    subAltList.add((String) item.get(1));
+                }
             }
-            if (!subAltList.equals((ArrayList<String>)req.getHosts()))
+            if (!subAltList.equals((ArrayList<String>) req.getHosts())) {
                 fail("Subject Alternative Names not matched the host names specified in enrollment request");
+            }
 
         } catch (CertificateParsingException e) {
             fail("Cannot parse certificate. Error is: " + e.getMessage());
@@ -260,7 +265,6 @@ public class HFCAClientEnrollIT {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
 
     }
 

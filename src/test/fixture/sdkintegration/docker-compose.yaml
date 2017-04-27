@@ -35,7 +35,7 @@ services:
     container_name: orderer0
     image: hyperledger/fabric-orderer
     environment:
-      - GRPC_TRACE=all=true,  
+      - GRPC_TRACE=all=true,
       - GRPC_VERBOSITY=debug
       - ORDERER_GENERAL_LOGLEVEL=debug
       - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
@@ -206,14 +206,14 @@ services:
     depends_on:
       - orderer0
       - peer2
-
-  couchdb:
-    container_name: couchdb
-    image: couchdb
-    ports:
-      - 5984:5984
-    environment:
-      COUCHDB_USER: admin
-      COUCHDB_PASSWORD: password
-      DB_URL: http://localhost:5984/member_db
+#
+#  couchdb:
+#    container_name: couchdb
+#    image: couchdb
+#    ports:
+#      - 5984:5984
+#    environment:
+#      COUCHDB_USER: admin
+#      COUCHDB_PASSWORD: password
+#      DB_URL: http://localhost:5984/member_db
 

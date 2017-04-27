@@ -315,9 +315,27 @@ public class SDKUtil {
         }
     }
 
+    /**
+     * @deprecated
+     * @param url
+     * @return
+     */
     public static boolean nullOrEmptyString(String url) {
         return url == null || url.isEmpty();
     }
+
+    /**
+     * Check if string is null or empty
+     * @param url
+     * @return
+     */
+
+    public static boolean isNullOrEmpty(String url) {
+        return url == null || url.isEmpty();
+    }
+
+
+
 
     public static ByteString getNonce() {
         //TODO right now the server does not care need to figure out

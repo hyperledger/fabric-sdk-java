@@ -107,7 +107,7 @@ public class HFCAClient {
     private static final String DEFAULT_HASH_ALGORITHM = "SHA2";  //Right now by default FAB services is using SHA2
 
     private static final Set<Integer> VALID_KEY_SIZES =
-            Collections.unmodifiableSet(new HashSet<>(Arrays.asList(new Integer[] {256, 384})));
+            Collections.unmodifiableSet(new HashSet<>(Arrays.asList(256, 384)));
 
     private final String url;
     private final boolean isSSL;
@@ -127,11 +127,12 @@ public class HFCAClient {
      *                   Supported properties
      *                   <ul>
      *                   <li>pemFile - File location for x509 pem certificate for SSL.</li>
-     *                   <li>allowAllHostNames - boolen(true/false) override certificates CN Host matching -- for development only.</li>
+     *                   <li>allowAllHostNames - boolean(true/false) override certificates CN Host matching -- for development only.</li>
      *                   </ul>
      * @throws MalformedURLException
      */
     public HFCAClient(String url, Properties properties) throws MalformedURLException {
+        logger.debug(format("new HFCAClient %s", url));
         this.url = url;
 
         URL purl = new URL(url);
@@ -191,8 +192,6 @@ public class HFCAClient {
 
     public String register(RegistrationRequest req, User registrar) throws RegistrationException, InvalidArgumentException {
 
-        setUpSSL();
-
         if (StringUtil.isNullOrEmpty(req.getEnrollmentID())) {
             throw new InvalidArgumentException("EntrollmentID cannot be null or empty");
         }
@@ -200,6 +199,9 @@ public class HFCAClient {
         if (registrar == null) {
             throw new InvalidArgumentException("Registrar should be a valid member");
         }
+        logger.debug(format("register  url: %s, registrar: %s", url, registrar.getName()));
+
+        setUpSSL();
 
         try {
             String body = req.toJson();
@@ -209,12 +211,13 @@ public class HFCAClient {
             if (secret == null) {
                 throw new Exception("secret was not found in response");
             }
+            logger.debug(format("register  url: %s, registrar: %s done.", url, registrar));
             return secret;
         } catch (Exception e) {
 
-            logger.error(e.getMessage(), e);
-
-            throw new RegistrationException("Error while registering the user. " + e.getMessage(), e);
+            RegistrationException registrationException = new RegistrationException(format("Error while registering the user %s url: %s  %s ", registrar, url, e.getMessage()), e);
+            logger.error(registrar);
+            throw registrationException;
 
         }
 
@@ -230,7 +233,7 @@ public class HFCAClient {
      * @throws InvalidArgumentException
      */
     public Enrollment enroll(String user, String secret) throws EnrollmentException, InvalidArgumentException {
-        return enroll (user, secret, new EnrollmentRequest());
+        return enroll(user, secret, new EnrollmentRequest());
     }
 
     /**
@@ -246,9 +249,7 @@ public class HFCAClient {
 
     public Enrollment enroll(String user, String secret, EnrollmentRequest req) throws EnrollmentException, InvalidArgumentException {
 
-        logger.debug(format("enroll user %s", user));
-
-        setUpSSL();
+        logger.debug(format("url:%s enroll user: %s", url, user));
 
         if (StringUtil.isNullOrEmpty(user)) {
             throw new InvalidArgumentException("enrollment user is not set");
@@ -256,6 +257,8 @@ public class HFCAClient {
         if (StringUtil.isNullOrEmpty(secret)) {
             throw new InvalidArgumentException("enrollment secret is not set");
         }
+
+        setUpSSL();
 
         try {
             KeyPair keypair = req.getKeyPair();
@@ -277,7 +280,7 @@ public class HFCAClient {
             String responseBody = httpPost(url + HFCA_ENROLL, body,
                     new UsernamePasswordCredentials(user, secret));
 
-            logger.debug("response" + responseBody);
+            logger.debug("response:" + responseBody);
 
             JsonReader reader = Json.createReader(new StringReader(responseBody));
             JsonObject jsonst = (JsonObject) reader.read();
@@ -300,14 +303,15 @@ public class HFCAClient {
                 String message = format("Enroll request response message [code %d]: %s", jo.getInt("code"), jo.getString("message"));
                 logger.info(message);
             }
+            logger.debug("Enrollment done.");
 
             return new HFCAEnrollment(keypair, cryptoPrimitives.encodePublicKey(keypair.getPublic()), signedPem);
 
         } catch (EnrollmentException ee) {
-            logger.error(ee.getMessage(), ee);
+            logger.error(format("url:%s, user:%s  error:%s", url, user, ee.getMessage()), ee);
             throw ee;
         } catch (Exception e) {
-            EnrollmentException ee = new EnrollmentException(format("Failed to enroll user %s ", user), e);
+            EnrollmentException ee = new EnrollmentException(format("Url:%s, Failed to enroll user %s ", url, user), e);
             logger.error(e.getMessage(), e);
             throw ee;
         }
@@ -323,7 +327,7 @@ public class HFCAClient {
      * @throws InvalidArgumentException
      */
     public Enrollment reenroll(User user) throws EnrollmentException, InvalidArgumentException {
-        return reenroll (user, new EnrollmentRequest());
+        return reenroll(user, new EnrollmentRequest());
     }
 
     /**
@@ -345,7 +349,7 @@ public class HFCAClient {
             throw new InvalidArgumentException("reenrollment user is not a valid user object");
         }
 
-    	logger.debug(format("re-enroll user %s", user.getName()));
+        logger.debug(format("re-enroll user: %s, url: %s", user.getName(), url));
 
         try {
             setUpSSL();
@@ -369,6 +373,7 @@ public class HFCAClient {
             String signedPem = new String(b64dec.decode(result.getString("Cert").getBytes(UTF_8)));
             logger.debug(format("[HFCAClient] re-enroll returned pem:[%s]", signedPem));
 
+            logger.debug(format("reenroll user %s done.", user.getName()));
             return new HFCAEnrollment(keypair, user.getEnrollment().getPublicKey(), signedPem);
 
         } catch (EnrollmentException ee) {
@@ -391,7 +396,7 @@ public class HFCAClient {
      * @throws InvalidArgumentException
      */
 
-    public void revoke(User revoker, Enrollment enrollment, int reason) throws RevocationException, InvalidArgumentException {
+    public void revoke(User revoker, Enrollment enrollment, String reason) throws RevocationException, InvalidArgumentException {
 
         if (enrollment == null) {
             throw new InvalidArgumentException("revokee enrollment is not set");
@@ -399,6 +404,8 @@ public class HFCAClient {
         if (revoker == null) {
             throw new InvalidArgumentException("revoker is not set");
         }
+
+        logger.debug(format("revoke revoker: %s, reason: %s, url: %s", revoker.getName(), reason, url));
 
         try {
             setUpSSL();
@@ -425,6 +432,7 @@ public class HFCAClient {
 
             // send revoke request
             httpPost(url + HFCA_REVOKE, body, authHdr);
+            logger.debug("revoke done");
         } catch (CertificateException e) {
             logger.error("Cannot validate certificate. Error is: " + e.getMessage());
             throw new RevocationException("Error while revoking cert. " + e.getMessage(), e);
@@ -438,16 +446,16 @@ public class HFCAClient {
     /**
      * revoke one user (including his all enrollments)
      *
-     * @param revoker amdin user who has revoker attribute configured in CA-server
+     * @param revoker admin user who has revoker attribute configured in CA-server
      * @param revokee user who is to be revoked
      * @param reason  revoke reason, see RFC 5280
      * @throws RevocationException
      * @throws InvalidArgumentException
      */
 
-    public void revoke(User revoker, String revokee, int reason) throws RevocationException, InvalidArgumentException {
+    public void revoke(User revoker, String revokee, String reason) throws RevocationException, InvalidArgumentException {
 
-        logger.debug(format("revoke user %s", revokee));
+        logger.debug(format("revoke revoker: %s, revokee: %s, reason: %s", revoker, revokee, reason));
 
         if (StringUtil.isNullOrEmpty(revokee)) {
             throw new InvalidArgumentException("revokee user is not set");
@@ -468,6 +476,7 @@ public class HFCAClient {
 
             // send revoke request
             httpPost(url + HFCA_REVOKE, body, authHdr);
+            logger.debug(format("revoke revokee: %s done.", revokee));
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
             throw new RevocationException("Error while revoking the user. " + e.getMessage(), e);
@@ -485,6 +494,7 @@ public class HFCAClient {
      */
 
     private String httpPost(String url, String body, UsernamePasswordCredentials credentials) throws Exception {
+        logger.debug(format("httpPost %s, body:%s", url, body));
         CredentialsProvider provider = new BasicCredentialsProvider();
 
         provider.setCredentials(AuthScope.ANY, credentials);
@@ -519,15 +529,18 @@ public class HFCAClient {
         int status = response.getStatusLine().getStatusCode();
 
         HttpEntity entity = response.getEntity();
+        logger.trace(format("httpPost %s  sending...", url));
         String responseBody = entity != null ? EntityUtils.toString(entity) : null;
+        logger.trace(format("httpPost %s  responseBody %s", url, responseBody));
 
         if (status >= 400) {
 
-            Exception e = new Exception(format("POST request to %s failed with status code: %d. Response: %s", url, status, responseBody));
+            Exception e = new Exception(format("POST request to %s  with request body: %s, " +
+                    "failed with status code: %d. Response: %s", url, body, status, responseBody));
             logger.error(e.getMessage());
             throw e;
         }
-        logger.debug("Status: " + status);
+        logger.debug(format("httpPost Status: %d returning: %s ", status, responseBody));
 
         return responseBody;
     }
@@ -535,6 +548,7 @@ public class HFCAClient {
     private JsonObject httpPost(String url, String body, String authHTTPCert) throws Exception {
 
         HttpPost httpPost = new HttpPost(url);
+        logger.debug(format("httpPost %s, body:%s, authHTTPCert: %s", url, body, authHTTPCert));
 
         final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
         if (registry != null) {
@@ -550,16 +564,19 @@ public class HFCAClient {
         int status = response.getStatusLine().getStatusCode();
 
         HttpEntity entity = response.getEntity();
+        logger.trace(format("response status %d, HttpEntity %s ", status, "" + entity));
         String responseBody = entity != null ? EntityUtils.toString(entity) : null;
+        logger.trace(format("responseBody: %s ", responseBody));
 
         if (status >= 400) {
-            Exception e = new Exception(format("POST request to %s failed with status code: %d. Response: %s", url, status, responseBody));
+            Exception e = new Exception(format("POST request to %s failed request body %s with status code: %d. Response: %s",
+                    url, body, status, responseBody));
             logger.error(e.getMessage());
             throw e;
         }
         if (responseBody == null) {
 
-            Exception e = new Exception(format("POST request to %s failed with null response body returned.", url));
+            Exception e = new Exception(format("POST request to %s failed request body %s with null response body returned.", url, body));
             logger.error(e.getMessage());
             throw e;
 
@@ -570,22 +587,28 @@ public class HFCAClient {
         JsonObject jobj = (JsonObject) reader.read();
         boolean success = jobj.getBoolean("success");
         if (!success) {
-            EnrollmentException e = new EnrollmentException("Body of response did not contain success", new Exception());
+            EnrollmentException e = new EnrollmentException(
+                    format("POST request to %s failed request body %s Body of response did not contain success", url, body)
+                    , new Exception());
             logger.error(e.getMessage());
             throw e;
         }
         JsonObject result = jobj.getJsonObject("result");
         if (result == null) {
-            EnrollmentException e = new EnrollmentException("Body of response did not contain result", new Exception());
+            EnrollmentException e = new EnrollmentException(format("POST request to %s failed request body %s " +
+                    "Body of response did not contain result", url, body), new Exception());
             logger.error(e.getMessage());
             throw e;
         }
         JsonArray messages = jobj.getJsonArray("messages");
         if (messages != null && !messages.isEmpty()) {
             JsonObject jo = messages.getJsonObject(0);
-            String message = format("POST request response message [code %d]: %s", jo.getInt("code"), jo.getString("message"));
+            String message = format("POST request to %s failed request body %s response message [code %d]: %s",
+                    url, body, jo.getInt("code"), jo.getString("message"));
             logger.info(message);
         }
+
+        logger.debug(format("httpPost %s, body:%s result: %s", url, body, "" + result));
         return result;
     }
 
