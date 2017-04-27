@@ -120,7 +120,7 @@ public class End2endJavaChaincodeIT {
             installProposalRequest.setChaincodeVersion(CHAIN_CODE_VERSION);
 
 
-            Collection<ProposalResponse> responses = chain.sendInstallProposal(installProposalRequest, peers);
+            Collection<ProposalResponse> responses = client.sendInstallProposal(installProposalRequest, peers);
 
 
             Collection<ProposalResponse> successful = new LinkedList<>();

@@ -1274,28 +1274,12 @@ public class Chain {
      * Send install chaincode request proposal to the channel.
      *
      * @param installProposalRequest
-     * @return
-     * @throws Exception
-     */
-
-    public Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest) throws InvalidArgumentException, ProposalException {
-
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
-        }
-        return sendInstallProposal(installProposalRequest, peers);
-    }
-
-    /**
-     * Send install chaincode request proposal to the channel.
-     *
-     * @param installProposalRequest
      * @param peers
      * @return
      * @throws Exception
      */
 
-    public Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest, Collection<Peer> peers)
+    Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest, Collection<Peer> peers)
             throws ProposalException, InvalidArgumentException {
 
         if (shutdown) {
