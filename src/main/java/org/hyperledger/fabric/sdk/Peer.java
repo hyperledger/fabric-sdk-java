@@ -34,7 +34,7 @@ import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
  */
 public class Peer {
     private static final Log logger = LogFactory.getLog(Peer.class);
-    private EndorserClient endorserClent;
+    private volatile EndorserClient endorserClent;
     private final Properties properties;
     private final String name;
     private final String url;
@@ -56,8 +56,6 @@ public class Peer {
         this.url = grpcURL;
         this.name = name;
         this.properties = properties == null ? null : (Properties) properties.clone(); //keep our own copy.
-
-        this.endorserClent = new EndorserClient(new Endpoint(url, this.properties).getChannelBuilder());
 
     }
 
@@ -143,7 +141,21 @@ public class Peer {
 
         logger.debug(format("peer.sendProposalAsync name:%s, url: %s", name, url));
 
-        return endorserClent.sendProposalAsync(proposal);
+        EndorserClient localEndorserClient = endorserClent; //work off thread local copy.
+
+        if (null == localEndorserClient || !localEndorserClient.isChannelActive()) {
+            endorserClent = localEndorserClient = new EndorserClient(new Endpoint(url, properties).getChannelBuilder());
+        }
+
+        try {
+            return localEndorserClient.sendProposalAsync(proposal);
+        } catch (PeerException e) { //Any error start with a clean connection.
+            endorserClent = null;
+            throw e;
+        } catch (Throwable t) {
+            endorserClent = null;
+            throw t;
+        }
     }
 
     FabricProposalResponse.ProposalResponse sendProposal(FabricProposal.SignedProposal proposal)
@@ -152,7 +164,21 @@ public class Peer {
 
         logger.debug(format("peer.sendProposalAsync name: %s, url: %s", name, url));
 
-        return endorserClent.sendProposal(proposal);
+        EndorserClient localEndorserClient = endorserClent; //work off thread local copy.
+
+        if (null == localEndorserClient || !localEndorserClient.isChannelActive()) {
+            endorserClent = localEndorserClient = new EndorserClient(new Endpoint(url, properties).getChannelBuilder());
+        }
+
+        try {
+            return localEndorserClient.sendProposal(proposal);
+        } catch (PeerException e) { //Any error start with a clean connection.
+            endorserClent = null;
+            throw e;
+        } catch (Throwable t) {
+            endorserClent = null;
+            throw t;
+        }
     }
 
     private void checkSendProposal(FabricProposal.SignedProposal proposal) throws PeerException, InvalidArgumentException {

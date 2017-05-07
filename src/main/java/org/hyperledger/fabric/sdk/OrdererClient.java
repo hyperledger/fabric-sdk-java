@@ -217,4 +217,9 @@ class OrdererClient {
 
         return retList.toArray(new DeliverResponse[retList.size()]);
     }
+
+    boolean isChannelActive(){
+        ManagedChannel lchannel = channel;
+        return lchannel != null && !lchannel.isShutdown() && ! lchannel.isTerminated();
+    }
 }
