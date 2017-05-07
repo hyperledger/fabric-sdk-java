@@ -267,9 +267,6 @@ public class HFClient {
         if (null == enrollment.getKey()) {
             throw new InvalidArgumentException(format("setUserContext for user %s has Enrollment missing signing key", userName));
         }
-//        if (SDKUtil.isNullOrEmpty(enrollment.getPublicKey())) {
-//            throw new InvalidArgumentException(format("setUserContext for user %s  Enrollment missing user public key.", userName));
-//        }
 
         this.userContext = userContext;
     }

@@ -33,10 +33,4 @@ public interface Enrollment {
      */
     public String getCert();
 
-    /**
-     * The users public key.
-     * @return
-     */
-    public String getPublicKey();
-
 }
