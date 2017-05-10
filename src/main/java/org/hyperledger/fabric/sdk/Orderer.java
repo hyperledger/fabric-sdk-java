@@ -84,7 +84,6 @@ public class Orderer {
         return url;
     }
 
-
     void setChain(Chain chain) throws InvalidArgumentException {
         if (chain == null) {
             throw new InvalidArgumentException("setChain Chain can not be null");
@@ -109,7 +108,6 @@ public class Orderer {
         return this.chain;
     }
 
-
     /**
      * Send transaction to Order
      *
@@ -123,18 +121,34 @@ public class Orderer {
 
         logger.debug(format("Order.sendTransaction name: %s, url: %s", name, url));
 
-        OrdererClient orderClient = new OrdererClient(new Endpoint(url, properties).getChannelBuilder());
-        Ab.BroadcastResponse resp = orderClient.sendTransaction(transaction);
-        orderClient.shutdown(true);
-        return resp;
+
+        OrdererClient localOrdererClient = ordererClient;
+
+        if (localOrdererClient == null || !localOrdererClient.isChannelActive()) {
+            localOrdererClient = ordererClient = new OrdererClient(new Endpoint(url, properties).getChannelBuilder());
+        }
+
+        try {
+            Ab.BroadcastResponse resp = localOrdererClient.sendTransaction(transaction);
+
+            return resp;
+        } catch (TransactionException e) { //For any error lets start with a fresh connection.
+            ordererClient = null;
+            throw e;
+        } catch (Throwable t) {
+            ordererClient = null;
+            throw t;
+
+        }
 
     }
-
 
     static Orderer createNewInstance(String name, String url, Properties properties) throws InvalidArgumentException {
         return new Orderer(name, url, properties);
 
     }
+
+    private volatile OrdererClient ordererClient = null;
 
     DeliverResponse[] sendDeliver(Common.Envelope transaction) throws TransactionException {
 
@@ -142,12 +156,25 @@ public class Orderer {
             throw new TransactionException(format("Orderer %s was shutdown.", name));
         }
 
-        logger.debug(format("Order.sendDeliver name: %s, url: %s", name, url));
+        OrdererClient localOrdererClient = ordererClient;
 
-        OrdererClient orderClient = new OrdererClient(new Endpoint(url, properties).getChannelBuilder());
-        DeliverResponse[] response = orderClient.sendDeliver(transaction);
-        orderClient.shutdown(true);
-        return response;
+        logger.debug(format("Order.sendDeliver name: %s, url: %s", name, url));
+        if (localOrdererClient == null || !localOrdererClient.isChannelActive()) {
+            ordererClient =localOrdererClient = new OrdererClient(new Endpoint(url, properties).getChannelBuilder());
+        }
+
+        try {
+            DeliverResponse[] response = localOrdererClient.sendDeliver(transaction);
+
+            return response;
+        } catch (TransactionException e) { //For any error lets start with a fresh connection.
+            ordererClient = null;
+            throw e;
+        } catch (Throwable t) {
+            ordererClient = null;
+            throw t;
+
+        }
 
     }
 
@@ -155,6 +182,13 @@ public class Orderer {
         if (shutdown) {
             return;
         }
+        if (ordererClient != null) {
+            OrdererClient torderClientDeliver = ordererClient;
+            ordererClient = null;
+            torderClientDeliver.shutdown(force);
+
+        }
+
         shutdown = true;
         chain = null;
 

@@ -101,6 +101,11 @@ public class EndorserClient {
         }
     }
 
+    boolean isChannelActive(){
+        ManagedChannel lchannel = channel;
+        return lchannel != null && !lchannel.isShutdown() && ! lchannel.isTerminated();
+    }
+
     @Override
     public void finalize() {
         shutdown(true);
