@@ -23,11 +23,11 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Properties;
 
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
+import org.hyperledger.fabric.sdk.testutils.TestConfig;
 import org.hyperledger.fabric.sdkintegration.SampleStore;
 import org.hyperledger.fabric.sdkintegration.SampleUser;
 import org.hyperledger.fabric_ca.sdk.Attribute;
@@ -51,16 +51,14 @@ public class HFCAClientEnrollIT {
     private static final String TEST_USER2_PW = "user2pw";
     private static final String TEST_USER3_NAME = "user3";
     private static final String TEST_USER3_PW = "user3pw";
-    private static final String TEST_USER1_NAME = "user1";
     private static final String TEST_USER1_ORG = "Org2";
     private static final String TEST_USER1_AFFILIATION = "org1.department1";
-    private static final String CA_LOCATION = "http://localhost:7054";
-    private static final String tlsbase = "src/test/fixture/sdkintegration/e2e-2Orgs/tls/";
-    private static final String INTEGRATIONTESTSTLS = "org.hyperledger.fabric.sdktest.integrationtests.tls";
+    private static final String TEST_WITH_INTEGRATION_ORG= "peerOrg1";
     private SampleStore sampleStore;
     private HFCAClient client;
     SampleUser admin;
-    private boolean runningTLS = false;
+
+    private static TestConfig testConfig = TestConfig.getConfig();
 
     @Before
     public void setup() throws CryptoException, InvalidArgumentException, org.hyperledger.fabric.sdk.exception.InvalidArgumentException, MalformedURLException, EnrollmentException {
@@ -72,28 +70,11 @@ public class HFCAClientEnrollIT {
         sampleStore = new SampleStore(sampleStoreFile);
         sampleStoreFile.deleteOnExit();
 
-        String ret = System.getProperty(INTEGRATIONTESTSTLS);
-        if (ret != null) {
-            runningTLS = true;
-        } else {
-            String envKey = INTEGRATIONTESTSTLS.toUpperCase().replaceAll("\\.", "_");
-            ret = System.getenv(envKey);
-            if (null != ret) {
-                runningTLS = true;
-            }
-        }
-
-        // TLS connection support
-        String location = CA_LOCATION;
-        Properties properties = null;
-        if (runningTLS) {
-            location = httpTLSify(location);
-            properties = getTLSproperties("peerOrg1");
-        }
 
         CryptoSuite cryptoSuite = CryptoSuite.Factory.getCryptoSuite();
         cryptoSuite.init();
-        client = HFCAClient.createNewInstance(location, properties);
+        client = HFCAClient.createNewInstance(testConfig.getIntegrationTestsSampleOrg(TEST_WITH_INTEGRATION_ORG).getCALocation(),
+                testConfig.getIntegrationTestsSampleOrg(TEST_WITH_INTEGRATION_ORG).getCAProperties());
         client.setCryptoSuite(cryptoSuite);
 
         //SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface
@@ -102,23 +83,6 @@ public class HFCAClientEnrollIT {
             admin.setEnrollment(client.enroll(admin.getName(), TEST_ADMIN_PW));
         }
 
-    }
-
-    private String httpTLSify(String location) {
-        location = location.trim();
-        return location.replaceFirst("^http://", "https://");
-    }
-
-    private Properties getTLSproperties(String orgName) {
-        String cert = tlsbase + "/cas/" + orgName + "/cert.pem";
-        File cf = new File(cert);
-        if (!cf.exists() || !cf.isFile()) {
-            throw new RuntimeException("TEST is missing cert file " + cf.getAbsolutePath());
-        }
-        Properties properties = new Properties();
-        properties.setProperty("pemFile", cf.getAbsolutePath());
-        properties.setProperty("allowAllHostNames", "true");//testing environment only NOT FOR PRODUCTION!
-        return properties;
     }
 
     @Test
@@ -167,18 +131,6 @@ public class HFCAClientEnrollIT {
     @Test
     public void testUserRevoke() {
         try {
-            // TLS connection support
-            String location = CA_LOCATION;
-            Properties properties = null;
-            if (runningTLS) {
-                location = httpTLSify(location);
-                properties = getTLSproperties("peerOrg2");
-            }
-
-            CryptoSuite cryptoSuite = CryptoSuite.Factory.getCryptoSuite();
-            cryptoSuite.init();
-            HFCAClient client = HFCAClient.createNewInstance(location, properties);
-            client.setCryptoSuite(cryptoSuite);
 
             SampleUser user3 = sampleStore.getMember(TEST_USER3_NAME, TEST_USER1_ORG);
 
@@ -237,14 +189,14 @@ public class HFCAClientEnrollIT {
                 }
                 return;
             }
-            ArrayList<String> subAltList = new ArrayList<String>();
+            ArrayList<String> subAltList = new ArrayList<>();
             for (List<?> item : altNames) {
                 int type = ((Integer) item.get(0)).intValue();
                 if (type == 2) {
                     subAltList.add((String) item.get(1));
                 }
             }
-            if (!subAltList.equals((ArrayList<String>) req.getHosts())) {
+            if (!subAltList.equals(req.getHosts())) {
                 fail("Subject Alternative Names not matched the host names specified in enrollment request");
             }
 
@@ -257,14 +209,13 @@ public class HFCAClientEnrollIT {
         }
     }
 
-    // https://jira.hyperledger.org/browse/FAB-2955
     private static void sleepALittle() {
         // Seems to be an odd that calling back too quickly can once in a while generate an error on the fabric_ca
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            Thread.sleep(5000);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
 
     }
 
