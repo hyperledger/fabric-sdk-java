@@ -23,11 +23,13 @@ import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -203,7 +205,7 @@ public class HFCAClient {
     }
 
     public CryptoSuite getCryptoSuite() {
-        return this.cryptoPrimitives;
+        return cryptoPrimitives;
     }
 
     /**
@@ -284,7 +286,11 @@ public class HFCAClient {
         setUpSSL();
 
         try {
+            String pem = req.getCsr();
             KeyPair keypair = req.getKeyPair();
+            if (null != pem && keypair == null) {
+                throw new InvalidArgumentException("If certificate signing request is supplied the key pair needs to be supplied too.");
+            }
             if (keypair == null) {
                 logger.debug("[HFCAClient.enroll] Generating keys...");
 
@@ -293,11 +299,12 @@ public class HFCAClient {
 
                 logger.debug("[HFCAClient.enroll] Generating keys...done!");
             }
-            PKCS10CertificationRequest csr = cryptoPrimitives.generateCertificationRequest(user, keypair);
-            String pem = cryptoPrimitives.certificationRequestToPEM(csr);
 
-            // build request body
-            req.setCSR(pem);
+            if (pem == null) {
+                PKCS10CertificationRequest csr = cryptoPrimitives.generateCertificationRequest(user, keypair);
+                pem = cryptoPrimitives.certificationRequestToPEM(csr);
+                req.setCSR(pem);
+            }
 
             if (name != null && !name.isEmpty()) {
                 req.setCAName(name);
@@ -332,7 +339,7 @@ public class HFCAClient {
             }
             logger.debug("Enrollment done.");
 
-            return new HFCAEnrollment(keypair, cryptoPrimitives.encodePublicKey(keypair.getPublic()), signedPem);
+            return new HFCAEnrollment(keypair, signedPem);
 
         } catch (EnrollmentException ee) {
             logger.error(format("url:%s, user:%s  error:%s", url, user, ee.getMessage()), ee);
@@ -381,7 +388,10 @@ public class HFCAClient {
         try {
             setUpSSL();
 
-            KeyPair keypair = new KeyPair(cryptoPrimitives.decodePublicKey(user.getEnrollment().getPublicKey()), user.getEnrollment().getKey());
+            PublicKey publicKey = cryptoPrimitives.bytesToCertificate(user.getEnrollment().getCert()
+                    .getBytes(StandardCharsets.UTF_8)).getPublicKey();
+
+            KeyPair keypair = new KeyPair(publicKey, user.getEnrollment().getKey());
 
             // generate CSR
             PKCS10CertificationRequest csr = cryptoPrimitives.generateCertificationRequest(user.getName(), keypair);
@@ -404,7 +414,7 @@ public class HFCAClient {
             logger.debug(format("[HFCAClient] re-enroll returned pem:[%s]", signedPem));
 
             logger.debug(format("reenroll user %s done.", user.getName()));
-            return new HFCAEnrollment(keypair, user.getEnrollment().getPublicKey(), signedPem);
+            return new HFCAEnrollment(keypair, signedPem);
 
         } catch (EnrollmentException ee) {
             logger.error(ee.getMessage(), ee);

@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.security.PrivateKey;
 import java.util.List;
 import java.util.Set;
 
@@ -186,36 +185,6 @@ public class SampleUser implements User, Serializable {
         }
     }
 
-    /**
-     * Make sure we're not dependent of HFCAEnrollment class.
-     */
-    public static class AfakeEnrollmentImplementation implements Enrollment{
-
-        private final String publicKey;
-        private final PrivateKey privateKey;
-        private final String certificate;
-
-        public AfakeEnrollmentImplementation(String publicKey, PrivateKey privateKey, String certificate ) {
-            this.publicKey = publicKey;
-            this.privateKey = privateKey;
-            this.certificate = certificate;
-        }
-
-        @Override
-        public PrivateKey getKey() {
-            return privateKey;
-        }
-
-        @Override
-        public String getCert() {
-            return certificate;
-        }
-
-        @Override
-        public String getPublicKey() {
-            return publicKey;
-        }
-    }
 
     /**
      * Restore the state of this user from the key value store (if found).  If not found, do nothing.

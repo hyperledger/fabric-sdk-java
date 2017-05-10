@@ -44,6 +44,15 @@ public class EnrollmentRequest {
     // The Certificate Authority's name
     private String caName;
 
+    /**
+     * The certificate signing request if it's not supplied it will be generated.
+     * @param csr
+     */
+
+    public void setCsr(String csr) {
+        this.csr = csr;
+    }
+
     // Constructor
     public EnrollmentRequest() {
         this.csr = null;
@@ -53,7 +62,17 @@ public class EnrollmentRequest {
         this.keypair = null;
     }
 
-    // Constructor
+    String getCsr() {
+        return csr;
+    }
+
+    /**
+     * EnrollmentRequest All the fields are optional
+     *
+     * @param profile
+     * @param label
+     * @param keypair  Keypair used to sign or create the certificate if needed.
+     */
     public EnrollmentRequest(String profile, String label, KeyPair keypair) {
         this.csr = null;
         this.hosts = new ArrayList<String>();
@@ -66,6 +85,15 @@ public class EnrollmentRequest {
         return keypair;
     }
 
+    /**
+     * The keypair used to create the certificate request if it's not supplied.
+     * @param keypair
+     */
+
+    /**
+     * The Key pair to create the signing certificate if not supplied it will be generated.
+     * @param keypair
+     */
     public void setKeyPair(KeyPair keypair) {
         this.keypair = keypair;
     }

@@ -212,10 +212,6 @@ public class SampleStore {
             return certificate;
         }
 
-        @Override
-        public String getPublicKey() {
-            return "";
-        }
     }
 
 }
