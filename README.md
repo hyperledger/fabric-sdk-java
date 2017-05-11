@@ -114,6 +114,32 @@ The SDK's test cases uses chaincode in the SDK's source tree: `/src/test/fixture
 The SDK's JAR is in `target/fabric-sdk-java-1.0.0-SNAPSHOT.jar` and you will need the additional dependencies listed above.
 When the SDK is published to `Maven` you will be able to simply include it in a your application's `pom.xml`.
 
+Add below code in your `pom.xml` to download fabric-sdk-java-1.0.0-SNAPSHOT
+
+```xml
+
+     <repositories>
+        <repository>
+            <id>nexus-snapshot</id>
+            <url>https://nexus.hyperledger.org/content/repositories/snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+     </repositories>
+
+     <dependencies>
+     <dependency>
+            <groupId>org.hyperledger.fabric-sdk-java</groupId>
+            <artifactId>fabric-sdk-java</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+         </dependency>
+     </dependencies>
+```
+
 ### Compiling
 To build this project, the following dependencies must be met
  * JDK 1.8 or above
