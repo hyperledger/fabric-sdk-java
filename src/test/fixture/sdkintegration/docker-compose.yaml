@@ -2,7 +2,7 @@ version: '2'
 
 services:
   ca0:
-    image: hyperledger/fabric-ca
+    image: hyperledger/fabric-ca${IMAGE_TAG_FABRIC_CA}
     environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
     ports:
@@ -13,7 +13,7 @@ services:
     container_name: ca_peerOrg1
 
   ca1:
-    image: hyperledger/fabric-ca
+    image: hyperledger/fabric-ca${IMAGE_TAG_FABRIC_CA}
     environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
     ports:
@@ -26,7 +26,7 @@ services:
 
   orderer.example.com:
     container_name: orderer.example.com
-    image: hyperledger/fabric-orderer
+    image: hyperledger/fabric-orderer${IMAGE_TAG_FABRIC}
     environment:
       - ORDERER_GENERAL_LOGLEVEL=debug
       - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
@@ -130,3 +130,7 @@ services:
     depends_on:
        - orderer.example.com
        - peer0.org2.example.com
+
+  ccenv:
+    image: hyperledger/fabric-ccenv${IMAGE_TAG_FABRIC}
+
