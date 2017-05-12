@@ -29,6 +29,7 @@ import org.hyperledger.fabric.protos.peer.Query.ChaincodeInfo;
 import org.hyperledger.fabric.sdk.BlockEvent;
 import org.hyperledger.fabric.sdk.Chain;
 import org.hyperledger.fabric.sdk.ChainCodeID;
+import org.hyperledger.fabric.sdk.ChainCodeResponse.Status;
 import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
 import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
@@ -154,7 +155,7 @@ public class End2endAndBackAgainIT {
                 SampleUser user = sampleStore.getMember(TESTUSER_1_NAME, orgName);
                 sampleOrg.addUser(user);  //Remember user belongs to this Org
 
-                sampleOrg.setPeerAdmin( sampleStore.getMember(orgName + "Admin", orgName));
+                sampleOrg.setPeerAdmin(sampleStore.getMember(orgName + "Admin", orgName));
             }
 
             ////////////////////////////
@@ -186,8 +187,6 @@ public class End2endAndBackAgainIT {
             chain.setTransactionWaitTime(testConfig.getTransactionWaitTime());
             chain.setDeployWaitTime(testConfig.getDeployWaitTime());
 
-        //    client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME)); // select the user for all subsequent requests
-
             ////////////////////////////
             // Send Query Proposal to all peers see if it's what we expect from end of End2endIT
             //
@@ -218,7 +217,6 @@ public class End2endAndBackAgainIT {
                     ////////////////////////////
                     // only a client from the same org as the peer can issue an install request
                     int numInstallProposal = 0;
-             //       client.setUserContext(sampleOrg.getAdmin());
 
                     Collection<ProposalResponse> responses;
                     final Collection<ProposalResponse> successful = new LinkedList<>();
@@ -229,7 +227,7 @@ public class End2endAndBackAgainIT {
                     responses = client.sendInstallProposal(installProposalRequest, peersFromOrg);
 
                     for (ProposalResponse response : responses) {
-                        if (response.getStatus() == ProposalResponse.Status.SUCCESS) {
+                        if (response.getStatus() == Status.SUCCESS) {
                             out("Successful install proposal response Txid: %s from peer %s", response.getTransactionID(), response.getPeer().getName());
                             successful.add(response);
                         } else {
@@ -269,7 +267,7 @@ public class End2endAndBackAgainIT {
                     successful.clear();
                     failed.clear();
                     for (ProposalResponse response : responses2) {
-                        if (response.getStatus() == ProposalResponse.Status.SUCCESS) {
+                        if (response.getStatus() == Status.SUCCESS) {
                             out("Successful upgrade proposal response Txid: %s from peer %s", response.getTransactionID(), response.getPeer().getName());
                             successful.add(response);
                         } else {
@@ -321,6 +319,8 @@ public class End2endAndBackAgainIT {
                         }
 
                     }
+
+                    client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME));
 
                     ///Check if we still get the same value on the ledger
                     out("delta is %s", delta);
@@ -378,7 +378,7 @@ public class End2endAndBackAgainIT {
 
             Collection<ProposalResponse> invokePropResp = chain.sendTransactionProposal(transactionProposalRequest, chain.getPeers());
             for (ProposalResponse response : invokePropResp) {
-                if (response.getStatus() == ProposalResponse.Status.SUCCESS) {
+                if (response.getStatus() == Status.SUCCESS) {
                     out("Successful transaction proposal response Txid: %s from peer %s", response.getTransactionID(), response.getPeer().getName());
                     successful.add(response);
                 } else {
@@ -478,7 +478,7 @@ public class End2endAndBackAgainIT {
         }
 
         for (ProposalResponse proposalResponse : queryProposals) {
-            if (!proposalResponse.isVerified() || proposalResponse.getStatus() != ProposalResponse.Status.SUCCESS) {
+            if (!proposalResponse.isVerified() || proposalResponse.getStatus() != Status.SUCCESS) {
                 fail("Failed query proposal from peer " + proposalResponse.getPeer().getName() + " status: " + proposalResponse.getStatus() +
                         ". Messages: " + proposalResponse.getMessage()
                         + ". Was verified : " + proposalResponse.isVerified());

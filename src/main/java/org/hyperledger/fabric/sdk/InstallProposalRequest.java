@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,18 +15,57 @@
 package org.hyperledger.fabric.sdk;
 
 import java.io.File;
+import java.io.InputStream;
+
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 
 /**
- * Deploy request.
+ * InstallProposalRequest.
  */
 public class InstallProposalRequest extends TransactionRequest {
 
-    File chaincodeSourceLocation = null;
+    private File chaincodeSourceLocation = null;
+    private InputStream chainCodeInputStream = null;
+
+    public InputStream getChainCodeInputStream() {
+        return chainCodeInputStream;
+    }
+
+    /**
+     * Chaincode input stream containing the actual chaincode. Only format supported is a tar zip compressed input of the source.
+     *
+     * @param chainCodeInputStream
+     * @throws InvalidArgumentException
+     */
+
+    public void setChainCodeInputStream(InputStream chainCodeInputStream) throws InvalidArgumentException {
+        if (chainCodeInputStream == null) {
+            throw new InvalidArgumentException("Chaincode input stream may not be null.");
+        }
+        if (chaincodeSourceLocation != null) {
+            throw new InvalidArgumentException("Error setting chaincode input stream. Chaincode source location already set. Only one or the other maybe set.");
+        }
+        this.chainCodeInputStream = chainCodeInputStream;
+    }
 
     public File getChaincodeSourceLocation() {
         return chaincodeSourceLocation;
     }
-    public void setChaincodeSourceLocation(File chaincodeSourceLocation) {
+
+    /**
+     * The location of the chaincode.
+     * @param chaincodeSourceLocation
+     * @throws InvalidArgumentException
+     */
+    public void setChaincodeSourceLocation(File chaincodeSourceLocation) throws InvalidArgumentException {
+        if (chaincodeSourceLocation == null) {
+            throw new InvalidArgumentException("Chaincode source location may not be null.");
+        }
+        if (chainCodeInputStream != null) {
+            throw new InvalidArgumentException("Error setting chaincode location. Chaincode input stream already set. Only one or the other maybe set.");
+        }
+
         this.chaincodeSourceLocation = chaincodeSourceLocation;
     }
+
 }

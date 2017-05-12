@@ -1339,6 +1339,7 @@ public class Chain {
             installProposalbuilder.chaincodePath(installProposalRequest.getChaincodePath());
             installProposalbuilder.chaincodeVersion(installProposalRequest.getChaincodeVersion());
             installProposalbuilder.setChaincodeSource(installProposalRequest.getChaincodeSourceLocation());
+            installProposalbuilder.setChainCodeInputStream(installProposalRequest.getChainCodeInputStream());
 
             FabricProposal.Proposal deploymentProposal = installProposalbuilder.build();
             SignedProposal signedProposal = getSignedProposal(deploymentProposal);

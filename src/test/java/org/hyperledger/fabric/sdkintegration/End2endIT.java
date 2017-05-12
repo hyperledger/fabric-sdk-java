@@ -177,12 +177,12 @@ public class End2endIT {
 
                 SampleUser peerOrgAdmin = sampleStore.getMember(sampleOrgName + "Admin", sampleOrgName, sampleOrg.getMSPID(),
                         findFile_sk(Paths.get(testConfig.getTestChannlePath(), "crypto-config/peerOrganizations/",
-                                sampleOrgDomainName, format("/users/Admin@%s/msp/keystore",sampleOrgDomainName )).toFile()),
+                                sampleOrgDomainName, format("/users/Admin@%s/msp/keystore", sampleOrgDomainName)).toFile()),
                         Paths.get(testConfig.getTestChannlePath(), "crypto-config/peerOrganizations/", sampleOrgDomainName,
                                 format("/users/Admin@%s/msp/signcerts/Admin@%s-cert.pem", sampleOrgDomainName, sampleOrgDomainName)).toFile());
 
                 sampleOrg.setPeerAdmin(peerOrgAdmin); //A special user that can crate channels, join peers and install chain code
-                                                        // and jump tall blockchains in a single leap!
+                // and jump tall blockchains in a single leap!
             }
 
             ////////////////////////////
@@ -241,8 +241,21 @@ public class End2endIT {
 
                 InstallProposalRequest installProposalRequest = client.newInstallProposalRequest();
                 installProposalRequest.setChaincodeID(chainCodeID);
-                ////For GO language and serving just a single user, chaincodeSource is mostly likely the users GOPATH
-                installProposalRequest.setChaincodeSourceLocation(new File(TEST_FIXTURES_PATH + "/sdkintegration/gocc/sample1"));
+
+                if (FOO_CHAIN_NAME.equals(chain.getName())) {
+                    // on foo chain install from directory.
+
+                    ////For GO language and serving just a single user, chaincodeSource is mostly likely the users GOPATH
+                    installProposalRequest.setChaincodeSourceLocation(new File(TEST_FIXTURES_PATH + "/sdkintegration/gocc/sample1"));
+                } else {
+                    // On bar chain install from an input stream.
+
+                    installProposalRequest.setChainCodeInputStream(Util.generateTarGzInputStream(
+                            (Paths.get(TEST_FIXTURES_PATH, "/sdkintegration/gocc/sample1", "src", CHAIN_CODE_PATH).toFile()),
+                            Paths.get("src", CHAIN_CODE_PATH).toString()));
+
+                }
+
                 installProposalRequest.setChaincodeVersion(CHAIN_CODE_VERSION);
 
                 out("Sending install proposal");
@@ -274,11 +287,6 @@ public class End2endIT {
                 }
             }
 
-            //   client.setUserContext(sampleOrg.getUser(TEST_ADMIN_NAME));
-            //  final ChainCodeID chainCodeID = firstInstallProposalResponse.getChainCodeID();
-            // Note install chain code does not require transaction no need to
-            // send to Orderers
-
             ///////////////
             //// Instantiate chain code.
             InstantiateProposalRequest instantiateProposalRequest = client.newInstantiationProposalRequest();
@@ -302,8 +310,6 @@ public class End2endIT {
             out("Sending instantiateProposalRequest to all peers with arguments: a and b set to 100 and %s respectively", "" + (200 + delta));
             successful.clear();
             failed.clear();
-
-            //         client.setUserContext(sampleOrg.getAdmin());
 
             responses = chain.sendInstantiationProposal(instantiateProposalRequest, chain.getPeers());
             for (ProposalResponse response : responses) {
@@ -334,8 +340,7 @@ public class End2endIT {
                     successful.clear();
                     failed.clear();
 
-                    // client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME));
-                    //       client.setUserContext(sampleOrg.getAdmin());
+                    client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME));
 
                     ///////////////
                     /// Send transaction proposal to all peers
@@ -521,10 +526,8 @@ public class End2endIT {
         //Only peer Admin org
         client.setUserContext(sampleOrg.getPeerAdmin());
 
-
-
         //Create chain that has only one signer that is this orgs peer admin. If chain creation policy needed more signature they would need to be added too.
-        Chain newChain = client.newChain(name, anOrderer, chainConfiguration,  client.getChainConfigurationSignature(chainConfiguration, sampleOrg.getPeerAdmin()));
+        Chain newChain = client.newChain(name, anOrderer, chainConfiguration, client.getChainConfigurationSignature(chainConfiguration, sampleOrg.getPeerAdmin()));
 
         out("Created chain %s", name);
 
@@ -588,7 +591,7 @@ public class End2endIT {
 
         File[] matches = directory.listFiles((dir, name) -> name.endsWith("_sk"));
 
-        if(null == matches){
+        if (null == matches) {
             throw new RuntimeException(format("Matches returned null does %s directory exist?", directory.getAbsoluteFile().getName()));
         }
 
@@ -601,8 +604,8 @@ public class End2endIT {
     }
 
     private static final Map<String, String> txExpected;
-    static
-    {
+
+    static {
         txExpected = new HashMap<String, String>();
         txExpected.put("readset1", "Missing readset for chain bar block 1");
         txExpected.put("writeset1", "Missing writeset for chain bar block 1");
@@ -751,7 +754,7 @@ public class End2endIT {
                 }
 
             }
-            if(!txExpected.isEmpty()){
+            if (!txExpected.isEmpty()) {
                 fail(txExpected.get(0));
             }
         } catch (InvalidProtocolBufferRuntimeException e) {
