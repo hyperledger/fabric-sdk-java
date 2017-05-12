@@ -349,9 +349,9 @@ public class HFClient {
      *                   useful in development to get past default server hostname verification during
      *                   TLS handshake, when the server host name does not match the certificate.
      *                   </li>
-     *                   <li>hostnameOverride - Specify the certificates CN -- for development only.
      *                   <li>sslProvider - Specify the SSL provider, openSSL or JDK.</li>
      *                   <li>negotiationType - Specify the type of negotiation, TLS or plainText.</li>
+     *                   <li>hostnameOverride - Specify the certificates CN -- for development only.
      *                   If the pemFile does not represent the server certificate, use this property to specify the URI authority
      *                   (a.k.a hostname) expected in the target server's certificate. This is required to get past default server
      *                   hostname verifications during TLS handshake.

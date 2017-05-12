@@ -154,16 +154,16 @@
 
         <!--&lt;!&ndash; https://mvnrepository.com/artifact/org.mortbay.jetty.alpn/jetty-alpn-agent &ndash;&gt;-->
         <!--<dependency>-->
-            <!--<groupId>org.mortbay.jetty.alpn</groupId>-->
-            <!--<artifactId>jetty-alpn-agent</artifactId>-->
-            <!--<version>2.0.1</version>-->
+        <!--<groupId>org.mortbay.jetty.alpn</groupId>-->
+        <!--<artifactId>jetty-alpn-agent</artifactId>-->
+        <!--<version>2.0.1</version>-->
         <!--</dependency>-->
 
         <!-- https://mvnrepository.com/artifact/org.mortbay.jetty.alpn/alpn-boot -->
         <!--<dependency>-->
-            <!--<groupId>org.mortbay.jetty.alpn</groupId>-->
-            <!--<artifactId>alpn-boot</artifactId>-->
-            <!--<version>${alpn-boot-version}</version>-->
+        <!--<groupId>org.mortbay.jetty.alpn</groupId>-->
+        <!--<artifactId>alpn-boot</artifactId>-->
+        <!--<version>${alpn-boot-version}</version>-->
         <!--</dependency>-->
 
 
@@ -218,7 +218,7 @@
                     </includes>
                     <skipITs>${skipITs}</skipITs>
                     <!--<argLine>-->
-                        <!-- -Xbootclasspath/p:${settings.localRepository}/org/mortbay/jetty/alpn/alpn-boot/${alpn-boot-version}/alpn-boot-${alpn-boot-version}.jar-->
+                    <!-- -Xbootclasspath/p:${settings.localRepository}/org/mortbay/jetty/alpn/alpn-boot/${alpn-boot-version}/alpn-boot-${alpn-boot-version}.jar-->
                     <!--</argLine>-->
                 </configuration>
                 <executions>
@@ -269,7 +269,14 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>2.10.4</version>
-                <configuration/>
+                <configuration>
+                    <excludePackageNames>
+                        org.hyperledger.fabric_ca.sdk.helper:org.hyperledger.fabric.protos.*:org.hyperledger.fabric.sdk.helper:org.hyperledger.fabric.sdk.transaction:org.hyperledger.fabric.sdk.security
+                    </excludePackageNames>
+                    <show>public</show>
+                    <doctitle>Hyperledger Fabric Java SDK</doctitle>
+                    <nohelp>true</nohelp>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -367,7 +374,11 @@
                         <artifactId>maven-javadoc-plugin</artifactId>
                         <version>2.10.4</version>
                         <configuration>
-                            <show>private</show>
+                            <excludePackageNames>
+                                org.hyperledger.fabric_ca.sdk.helper:org.hyperledger.fabric.protos.*:org.hyperledger.fabric.sdk.helper:org.hyperledger.fabric.sdk.transaction:org.hyperledger.fabric.sdk.security
+                            </excludePackageNames>
+                            <show>public</show>
+                            <doctitle>Hyperledger Fabric Java SDK</doctitle>
                             <nohelp>true</nohelp>
                         </configuration>
                         <executions>

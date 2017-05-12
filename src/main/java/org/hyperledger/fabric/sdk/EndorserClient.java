@@ -30,7 +30,7 @@ import org.hyperledger.fabric.sdk.exception.PeerException;
 /**
  * Sample client code that makes gRPC calls to the server.
  */
-public class EndorserClient {
+class EndorserClient {
     private static final Log logger = LogFactory.getLog(EndorserClient.class);
 
     private ManagedChannel channel;

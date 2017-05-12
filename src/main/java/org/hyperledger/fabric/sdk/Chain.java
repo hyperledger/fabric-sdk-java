@@ -407,7 +407,7 @@ public class Chain {
             SignedProposal signedProposal = getSignedProposal(joinProposal);
             logger.debug("Got signed proposal.");
 
-            Collection<ProposalResponse> resp = sendProposalToPeers(new ArrayList<>(Arrays.asList(new Peer[] {peer})),
+            Collection<ProposalResponse> resp = sendProposalToPeers(new ArrayList<>(Arrays.asList(peer)),
                     signedProposal, transactionContext);
 
             ProposalResponse pro = resp.iterator().next();
@@ -570,9 +570,7 @@ public class Chain {
      *
      * @return
      * @throws InvalidArgumentException
-     * @throws EventHubException
      * @throws TransactionException
-     * @throws CryptoException
      */
 
     public Chain initialize() throws InvalidArgumentException, TransactionException {
@@ -1248,8 +1246,9 @@ public class Chain {
      *
      * @param instantiateProposalRequest
      * @param peers
+     * @throws IllegalArgumentException
+     * @throws ProposalException
      * @return
-     * @throws Exception
      */
 
     public Collection<ProposalResponse> sendInstantiationProposal(InstantiateProposalRequest instantiateProposalRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
@@ -1306,7 +1305,8 @@ public class Chain {
      * @param installProposalRequest
      * @param peers
      * @return
-     * @throws Exception
+     * @throws ProposalException
+     * @throws InvalidArgumentException
      */
 
     Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest, Collection<Peer> peers)
@@ -1666,7 +1666,7 @@ public class Chain {
      * The request is sent to a random peer in the channel
      *
      * @return a {@link BlockchainInfo} object containing the chain info requested
-     * @throws InvalidProtocolBufferException
+     * @throws InvalidArgumentException
      * @throws ProposalException
      */
     public BlockchainInfo queryBlockchainInfo() throws ProposalException, InvalidArgumentException {
@@ -1685,7 +1685,7 @@ public class Chain {
      *
      * @param peer The peer to send the request to
      * @return a {@link BlockchainInfo} object containing the chain info requested
-     * @throws InvalidProtocolBufferException
+     * @throws InvalidArgumentException
      * @throws ProposalException
      */
     public BlockchainInfo queryBlockchainInfo(Peer peer) throws ProposalException, InvalidArgumentException {
@@ -2013,7 +2013,8 @@ public class Chain {
      *
      * @param transactionProposalRequest The transaction proposal to be sent to all the peers.
      * @return
-     * @throws Exception
+     * @throws InvalidArgumentException
+     * @throws ProposalException
      */
     public Collection<ProposalResponse> sendTransactionProposal(TransactionProposalRequest transactionProposalRequest) throws ProposalException, InvalidArgumentException {
 
@@ -2026,7 +2027,8 @@ public class Chain {
      * @param transactionProposalRequest The transaction proposal to be sent to the peers.
      * @param peers
      * @return
-     * @throws Exception
+     * @throws InvalidArgumentException
+     * @throws ProposalException
      */
     public Collection<ProposalResponse> sendTransactionProposal(TransactionProposalRequest transactionProposalRequest, Collection<Peer> peers) throws ProposalException, InvalidArgumentException {
 
@@ -2038,7 +2040,8 @@ public class Chain {
      *
      * @param queryByChaincodeRequest
      * @return Collection proposal responses.
-     * @throws Exception
+     * @throws InvalidArgumentException
+     * @throws ProposalException
      */
 
     public Collection<ProposalResponse> queryByChaincode(QueryByChaincodeRequest queryByChaincodeRequest) throws InvalidArgumentException, ProposalException {
@@ -2051,7 +2054,9 @@ public class Chain {
      * @param queryByChaincodeRequest
      * @param peers
      * @return
-     * @throws Exception
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     *
      */
 
     public Collection<ProposalResponse> queryByChaincode(QueryByChaincodeRequest queryByChaincodeRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
@@ -2199,7 +2204,6 @@ public class Chain {
      * @param proposalResponses
      * @param orderers
      * @return
-     * @throws TransactionException
      */
 
     public CompletableFuture<TransactionEvent> sendTransaction(Collection<ProposalResponse> proposalResponses, Collection<Orderer> orderers) {

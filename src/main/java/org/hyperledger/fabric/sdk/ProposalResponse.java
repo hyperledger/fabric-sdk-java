@@ -106,7 +106,7 @@ public class ProposalResponse extends ChainCodeResponse {
 
     private Peer peer = null;
 
-    public void setPeer(Peer peer) {
+    void setPeer(Peer peer) {
         this.peer = peer;
     }
 
