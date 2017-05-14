@@ -16,4 +16,4 @@ cd $WD/src/test/fixture/sdkintegration
 cd $WD
 sleep 30
 docker ps -a
-mvn clean install -DskipITs=false -Dmaven.test.failure.ignore=false
+mvn clean install -DskipITs=false -Dmaven.test.failure.ignore=false javadoc:javadoc

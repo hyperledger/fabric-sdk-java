@@ -115,7 +115,7 @@ public class HFClient {
      * @param orderer                      Order to create the chain with.
      * @param chainConfiguration           Chain configuration data.
      * @param chainConfigurationSignatures array of byte array's containing ConfigSignature's proto serialized.
-     *                                     See {@see Chain#getChainConfigurationSignature} on how to create
+     *                                     See {@link Chain#getChainConfigurationSignature} on how to create
      * @return
      * @throws TransactionException
      * @throws InvalidArgumentException
@@ -147,7 +147,7 @@ public class HFClient {
      *                   <li>hostnameOverride - Specify the certificates CN -- for development only.
      *                   <li>sslProvider - Specify the SSL provider, openSSL or JDK.</li>
      *                   <li>negotiationType - Specify the type of negotiation, TLS or plainText.</li>
-     *                   If the pemFile does not represent the server certificate, use this property to specify the URI authority
+     *                   <li>If the pemFile does not represent the server certificate, use this property to specify the URI authority
      *                   (a.k.a hostname) expected in the target server's certificate. This is required to get past default server
      *                   hostname verifications during TLS handshake.
      *                   </li>
@@ -291,7 +291,7 @@ public class HFClient {
      *                   <li>hostnameOverride - Specify the certificates CN -- for development only.
      *                   <li>sslProvider - Specify the SSL provider, openSSL or JDK.</li>
      *                   <li>negotiationType - Specify the type of negotiation, TLS or plainText.</li>
-     *                   If the pemFile does not represent the server certificate, use this property to specify the URI authority
+     *                   <li>If the pemFile does not represent the server certificate, use this property to specify the URI authority
      *                   (a.k.a hostname) expected in the target server's certificate. This is required to get past default server
      *                   hostname verifications during TLS handshake.
      *                   </li>
@@ -459,7 +459,8 @@ public class HFClient {
      * @param installProposalRequest
      * @param peers                  Collection of peers to install on.
      * @return
-     * @throws Exception
+     * @throws InvalidArgumentException
+     * @throws ProposalException
      */
 
     public Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest, Collection<Peer> peers)
