@@ -64,6 +64,7 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.BlockInfo.EnvelopeType.TRANSACTION_ENVELOPE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -377,12 +378,26 @@ public class End2endIT {
                     out("Successfully received transaction proposal responses.");
 
                     ProposalResponse resp = transactionPropResp.iterator().next();
-                    byte[] x = resp.getChainCodeActionResponsePayload();
+                    byte[] x = resp.getChainCodeActionResponsePayload(); // This is the data returned by the chaincode.
                     String resultAsString = null;
                     if (x != null) {
                         resultAsString = new String(x, "UTF-8");
                     }
                     assertEquals(":)", resultAsString);
+
+                    assertEquals(200, resp.getChainCodeActionResponseStatus()); //Chaincode's status.
+
+                    TxReadWriteSetInfo readWriteSetInfo = resp.getChainCodeActionResponseReadWriteSetInfo();
+                    //See blockwaler below how to transverse this
+                    assertNotNull(readWriteSetInfo);
+                    assertTrue(readWriteSetInfo.getNsRwsetCount() > 0);
+
+                    ChainCodeID cid = resp.getChainCodeID();
+                    assertNotNull(cid);
+                    assertEquals(CHAIN_CODE_PATH, cid.getPath());
+                    assertEquals(CHAIN_CODE_NAME, cid.getName());
+                    assertEquals(CHAIN_CODE_VERSION, cid.getVersion());
+
                     ////////////////////////////
                     // Send Transaction Transaction to orderer
                     out("Sending chain code transaction(move a,b,100) to orderer.");
