@@ -32,10 +32,10 @@ public class TransactionRequest {
     // The name identifier for the chaincode to deploy in development mode.
     protected String chaincodeName;
 
-    // The version of the chainCode
+    // The version of the chaincode
     protected String chaincodeVersion;
     // The chaincode ID as provided by the 'submitted' event emitted by a TransactionContext
-    private ChainCodeID chaincodeID;
+    private ChaincodeID chaincodeID;
 
     // The name of the function to invoke
     protected String fcn;
@@ -67,7 +67,7 @@ public class TransactionRequest {
      * Some peer requests (e.g. queries to QSCC) require the field to be blank.
      * Subclasses should override this method as needed.
      */
-    public boolean noChainID() {
+    public boolean noChannelID() {
         return false;
     }
 
@@ -109,11 +109,11 @@ public class TransactionRequest {
         return chaincodeVersion;
     }
 
-    public ChainCodeID getChaincodeID() {
+    public ChaincodeID getChaincodeID() {
         return chaincodeID;
     }
 
-    public void setChaincodeID(ChainCodeID chaincodeID) {
+    public void setChaincodeID(ChaincodeID chaincodeID) {
 
         if (chaincodeName != null) {
 
@@ -185,7 +185,7 @@ public class TransactionRequest {
     }
 
     /**
-     * The chain code language type: default type Type.GO_LANG
+     * The chaincode language type: default type Type.GO_LANG
      *
      * @param chaincodeLanguage . Type.Java Type.GO_LANG
      */

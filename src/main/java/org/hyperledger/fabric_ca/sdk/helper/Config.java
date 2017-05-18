@@ -41,7 +41,7 @@ public class Config {
     public static final String HASH_ALGORITHM = "org.hyperledger.fabric.sdk.hash_algorithm";
     public static final String CACERTS = "org.hyperledger.fabric.sdk.cacerts";
     public static final String PROPOSAL_WAIT_TIME = "org.hyperledger.fabric.sdk.proposal.wait.time";
-    public static final String GENESISBLOCK_WAIT_TIME = "org.hyperledger.fabric.sdk.chain.genesisblock_wait_time";
+
     public static final String ASYMMETRIC_KEY_TYPE = "org.hyperledger.fabric.sdk.crypto.asymmetric_key_type";
     public static final String KEY_AGREEMENT_ALGORITHM = "org.hyperledger.fabric.sdk.crypto.key_agreement_algorithm";
     public static final String SYMMETRIC_KEY_TYPE = "org.hyperledger.fabric.sdk.crypto.symmetric_key_type";
@@ -88,7 +88,7 @@ public class Config {
             defaultProperty(CACERTS, "/genesisblock/peercacert.pem");
 
             defaultProperty(PROPOSAL_WAIT_TIME, "12000");
-            defaultProperty(GENESISBLOCK_WAIT_TIME, "5000");
+
             defaultProperty(MAX_LOG_STRING_LENGTH, "64");
 
             defaultProperty(LOGGERLEVEL, null);
@@ -234,9 +234,6 @@ public class Config {
      * getGenesisBlockWaiTime time to wait for genesis block
      * @return
      */
-    public long getGenesisBlockWaitTime() {
-        return Long.parseLong(getProperty(GENESISBLOCK_WAIT_TIME));
-    }
 
     public String getAsymmetricKeyType() {
         return getProperty(ASYMMETRIC_KEY_TYPE);

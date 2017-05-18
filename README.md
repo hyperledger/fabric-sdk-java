@@ -1,8 +1,8 @@
 # Java SDK for Hyperledger Fabric 1.0
 Welcome to Java SDK for Hyperledger project. The SDK helps facilitate Java applications to manage the lifecycle of
- Hyperledger channels  (*often referred to as chains*) and user chaincode. The SDK also provides a means to execute
+ Hyperledger channels  and user chaincode. The SDK also provides a means to execute
   user chaincode, query blocks
- and transactions on the chain, and monitor events on the chain.
+ and transactions on the channel, and monitor events on the channel.
 
 THe SDK acts on behave of a particular User which is defined by the embedding application through the implementation
  of the SDK's `User` interface.
@@ -187,7 +187,7 @@ Use this `maven` command to run the integration tests:
 
 ### End to end test scenario
 The _src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java_ integration test is an example of installing, instantiating, invoking and querying a chaincode.
-It constructs the Hyperledger channel, deploys the `GO` chain code, invokes the chaincode to do a transfer amount operation and queries the resulting blockchain world state.
+It constructs the Hyperledger channel, deploys the `GO` chaincode, invokes the chaincode to do a transfer amount operation and queries the resulting blockchain world state.
 
 This test is a reworked version of the Fabric [e2e_cli example](https://github.com/hyperledger/fabric/tree/master/examples/e2e_cli) to demonstrate the features of the SDK.
 To better understand blockchain and Fabric concepts, we recommend you install and run the _e2e_cli_ example.
@@ -256,7 +256,7 @@ and one file in th _src/test/fixture/sdkintegration/e2e-2Orgs/channel_ directory
  The policy section is comprised of `n-of` and `signed-by` elements.  Then n-of (`1-of` `2-of`) require that many (`n`) in that
  section to be true. The `signed-by` references an identity in the identities section.
 
-### Chain creation artifacts
+### Channel creation artifacts
 Channel configuration files and orderer bootstrap files ( see directory _src/test/fixture/sdkintegration/e2e-2Orgs/channel_ ) are needed when creating a new channel.
 This is created with the Hyperledger Fabric `configtxgen` tool.
 

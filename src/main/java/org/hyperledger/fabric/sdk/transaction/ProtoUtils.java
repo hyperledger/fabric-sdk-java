@@ -51,17 +51,17 @@ public class ProtoUtils {
      *
      * @param type
      * @param txID
-     * @param chainID
+     * @param channelID
      * @param epoch
      * @param timeStamp
      * @param chaincodeHeaderExtension
      * @return
      */
-    public static ChannelHeader createChannelHeader(HeaderType type, String txID, String chainID, long epoch, Timestamp timeStamp, ChaincodeHeaderExtension chaincodeHeaderExtension) {
+    public static ChannelHeader createChannelHeader(HeaderType type, String txID, String channelID, long epoch, Timestamp timeStamp, ChaincodeHeaderExtension chaincodeHeaderExtension) {
 
         if (isDebugLevel) {
             logger.debug(format("ChannelHeader: type: %s, version: 1, Txid: %s, channelId: %s, epoch %d",
-                    type.name(), txID, chainID, epoch));
+                    type.name(), txID, channelID, epoch));
 
         }
 
@@ -69,7 +69,7 @@ public class ProtoUtils {
                 .setType(type.getNumber())
                 .setVersion(1)
                 .setTxId(txID)
-                .setChannelId(chainID)
+                .setChannelId(channelID)
                 .setTimestamp(timeStamp)
                 .setEpoch(epoch);
         if (null != chaincodeHeaderExtension) {
@@ -81,10 +81,10 @@ public class ProtoUtils {
     }
 
     public static ChaincodeDeploymentSpec createDeploymentSpec(Type ccType, String name, String chaincodePath,
-                                                               String chainCodeVersion, List<String> args,
+                                                               String chaincodeVersion, List<String> args,
                                                                byte[] codePackage) {
 
-        ChaincodeID.Builder chaincodeIDBuilder = ChaincodeID.newBuilder().setName(name).setVersion(chainCodeVersion);
+        ChaincodeID.Builder chaincodeIDBuilder = ChaincodeID.newBuilder().setName(name).setVersion(chaincodeVersion);
         if (chaincodePath != null) {
             chaincodeIDBuilder = chaincodeIDBuilder.setPath(chaincodePath);
         }
@@ -146,7 +146,7 @@ public class ProtoUtils {
 
     }
 
-    public static ChaincodeSpec createChainCodeSpec(String name, ChaincodeSpec.Type ccType, Object... args) {
+    public static ChaincodeSpec createChaincodeSpec(String name, ChaincodeSpec.Type ccType, Object... args) {
 
         ChaincodeID chaincodeID = ChaincodeID.newBuilder().setName(name).build();
 

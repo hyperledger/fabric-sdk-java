@@ -38,13 +38,13 @@ import static org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse.TypeCase.
 class OrdererClient {
     boolean shutdown = false;
     private static final Log logger = LogFactory.getLog(OrdererClient.class);
-    private ManagedChannel channel;
+    private ManagedChannel managedChannel;
 
     /**
-     * Construct client for accessing Orderer server using the existing channel.
+     * Construct client for accessing Orderer server using the existing managedChannel.
      */
     OrdererClient(ManagedChannelBuilder<?> channelBuilder) {
-        channel = channelBuilder.build();
+        managedChannel = channelBuilder.build();
     }
 
     synchronized void shutdown(boolean force) {
@@ -53,8 +53,8 @@ class OrdererClient {
             return;
         }
         shutdown = true;
-        ManagedChannel lchannel = channel;
-        channel = null;
+        ManagedChannel lchannel = managedChannel;
+        managedChannel = null;
         if (lchannel == null) {
             return;
         }
@@ -86,8 +86,8 @@ class OrdererClient {
         }
 
         final CountDownLatch finishLatch = new CountDownLatch(1);
-        AtomicBroadcastGrpc.AtomicBroadcastStub broadcast = AtomicBroadcastGrpc.newStub(channel);
-        AtomicBroadcastGrpc.AtomicBroadcastBlockingStub bsc = AtomicBroadcastGrpc.newBlockingStub(channel);
+        AtomicBroadcastGrpc.AtomicBroadcastStub broadcast = AtomicBroadcastGrpc.newStub(managedChannel);
+        AtomicBroadcastGrpc.AtomicBroadcastBlockingStub bsc = AtomicBroadcastGrpc.newBlockingStub(managedChannel);
         bsc.withDeadlineAfter(2, TimeUnit.MINUTES);
 
         final Ab.BroadcastResponse[] ret = new Ab.BroadcastResponse[1];
@@ -150,8 +150,8 @@ class OrdererClient {
         }
 
         final CountDownLatch finishLatch = new CountDownLatch(1);
-        AtomicBroadcastGrpc.AtomicBroadcastStub broadcast = AtomicBroadcastGrpc.newStub(channel);
-        AtomicBroadcastGrpc.AtomicBroadcastBlockingStub bsc = AtomicBroadcastGrpc.newBlockingStub(channel);
+        AtomicBroadcastGrpc.AtomicBroadcastStub broadcast = AtomicBroadcastGrpc.newStub(managedChannel);
+        AtomicBroadcastGrpc.AtomicBroadcastBlockingStub bsc = AtomicBroadcastGrpc.newBlockingStub(managedChannel);
         bsc.withDeadlineAfter(2, TimeUnit.MINUTES);
 
         // final DeliverResponse[] ret = new DeliverResponse[1];
@@ -227,7 +227,7 @@ class OrdererClient {
     }
 
     boolean isChannelActive(){
-        ManagedChannel lchannel = channel;
+        ManagedChannel lchannel = managedChannel;
         return lchannel != null && !lchannel.isShutdown() && ! lchannel.isTerminated();
     }
 }

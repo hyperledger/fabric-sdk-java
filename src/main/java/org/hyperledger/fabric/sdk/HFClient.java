@@ -63,7 +63,7 @@ public class HFClient {
 
     private static final Log logger = LogFactory.getLog(HFClient.class);
 
-    private final Map<String, Chain> chains = new HashMap<>();
+    private final Map<String, Channel> channels = new HashMap<>();
 
     public User getUserContext() {
         return userContext;
@@ -94,39 +94,39 @@ public class HFClient {
     }
 
     /**
-     * newChain - already configured chain.
+     * newChannel - already configured channel.
      *
      * @param name
      * @return
      * @throws InvalidArgumentException
      */
 
-    public Chain newChain(String name) throws InvalidArgumentException {
-        logger.trace("Creating chain :" + name);
-        Chain newChain = Chain.createNewInstance(name, this);
-        chains.put(name, newChain);
-        return newChain;
+    public Channel newChannel(String name) throws InvalidArgumentException {
+        logger.trace("Creating channel :" + name);
+        Channel newChannel = Channel.createNewInstance(name, this);
+        channels.put(name, newChannel);
+        return newChannel;
     }
 
     /**
-     * Create a new chain
+     * Create a new channel
      *
-     * @param name                         The chains name
-     * @param orderer                      Order to create the chain with.
-     * @param chainConfiguration           Chain configuration data.
-     * @param chainConfigurationSignatures array of byte array's containing ConfigSignature's proto serialized.
-     *                                     See {@link Chain#getChainConfigurationSignature} on how to create
+     * @param name                         The channels name
+     * @param orderer                      Order to create the channel with.
+     * @param channelConfiguration           Channel configuration data.
+     * @param channelConfigurationSignatures array of byte array's containing ConfigSignature's proto serialized.
+     *                                     See {@link Channel#getChannelConfigurationSignature} on how to create
      * @return
      * @throws TransactionException
      * @throws InvalidArgumentException
      */
 
-    public Chain newChain(String name, Orderer orderer, ChainConfiguration chainConfiguration, byte[]... chainConfigurationSignatures) throws TransactionException, InvalidArgumentException {
+    public Channel newChannel(String name, Orderer orderer, ChannelConfiguration channelConfiguration, byte[]... channelConfigurationSignatures) throws TransactionException, InvalidArgumentException {
 
-        logger.trace("Creating chain :" + name);
-        Chain newChain = Chain.createNewInstance(name, this, orderer, chainConfiguration, chainConfigurationSignatures);
-        chains.put(name, newChain);
-        return newChain;
+        logger.trace("Creating channel :" + name);
+        Channel newChannel = Channel.createNewInstance(name, this, orderer, channelConfiguration, channelConfigurationSignatures);
+        channels.put(name, newChannel);
+        return newChannel;
     }
 
     /**
@@ -179,14 +179,14 @@ public class HFClient {
     }
 
     /**
-     * getChain by name
+     * getChannel by name
      *
      * @param name
      * @return
      */
 
-    public Chain getChain(String name) {
-        return chains.get(name);
+    public Channel getChannel(String name) {
+        return channels.get(name);
     }
 
     /**
@@ -389,12 +389,12 @@ public class HFClient {
 
         }
 
-        //Run this on a system chain.
+        //Run this on a system channel.
 
         try {
-            Chain systemChain = Chain.newSystemChain(this);
+            Channel systemChannel = Channel.newSystemChannel(this);
 
-            return systemChain.queryChannels(peer);
+            return systemChannel.queryChannels(peer);
         } catch (InvalidArgumentException e) {
             throw e;  //dont log
         } catch (ProposalException e) {
@@ -425,11 +425,11 @@ public class HFClient {
         }
 
         try {
-            //Run this on a system chain.
+            //Run this on a system channel.
 
-            Chain systemChain = Chain.newSystemChain(this);
+            Channel systemChannel = Channel.newSystemChannel(this);
 
-            return systemChain.queryInstalledChaincodes(peer);
+            return systemChannel.queryInstalledChaincodes(peer);
         } catch (ProposalException e) {
             logger.error(format("queryInstalledChaincodes for peer %s failed." + e.getMessage(), peer.getName()), e);
             throw e;
@@ -438,18 +438,18 @@ public class HFClient {
     }
 
     /**
-     * Get signature for chain configuration
+     * Get signature for channel configuration
      *
-     * @param chainConfiguration
+     * @param channelConfiguration
      * @param signer
      * @return byte array with the signature
      * @throws InvalidArgumentException
      */
 
-    public byte[] getChainConfigurationSignature(ChainConfiguration chainConfiguration, User signer) throws InvalidArgumentException {
+    public byte[] getChannelConfigurationSignature(ChannelConfiguration channelConfiguration, User signer) throws InvalidArgumentException {
 
-        Chain systemChain = Chain.newSystemChain(this);
-        return systemChain.getChainConfigurationSignature(chainConfiguration, signer);
+        Channel systemChannel = Channel.newSystemChannel(this);
+        return systemChannel.getChannelConfigurationSignature(channelConfiguration, signer);
 
     }
 
@@ -466,9 +466,9 @@ public class HFClient {
     public Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest, Collection<Peer> peers)
             throws ProposalException, InvalidArgumentException {
 
-        Chain systemChain = Chain.newSystemChain(this);
+        Channel systemChannel = Channel.newSystemChannel(this);
 
-        return systemChain.sendInstallProposal(installProposalRequest, peers);
+        return systemChannel.sendInstallProposal(installProposalRequest, peers);
 
     }
 

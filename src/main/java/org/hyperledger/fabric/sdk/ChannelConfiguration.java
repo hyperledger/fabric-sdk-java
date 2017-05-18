@@ -22,52 +22,52 @@ import java.io.InputStream;
 import org.apache.commons.io.IOUtils;
 
 /**
- * A wrapper for the Hyperledger Chain configuration
+ * A wrapper for the Hyperledger Channel configuration
  */
-public class ChainConfiguration {
+public class ChannelConfiguration {
     private byte[] configBytes = null;
 
     /**
-     * The null constructor for the ChainConfiguration wrapper. You will
-     * need to use the {@link #setChainConfiguration(byte[])} method to
-     * populate the chain configuration
+     * The null constructor for the ChannelConfiguration wrapper. You will
+     * need to use the {@link #setChannelConfiguration(byte[])} method to
+     * populate the channel configuration
      */
-    public ChainConfiguration() {
+    public ChannelConfiguration() {
     }
 
     /**
-     * constructs a ChainConfiguration object with the actual configuration gotten from the file system
+     * constructs a ChannelConfiguration object with the actual configuration gotten from the file system
      *
-     * @param configFile The file containing the chain configuration.
+     * @param configFile The file containing the channel configuration.
      * @throws IOException
      */
-    public ChainConfiguration(File configFile) throws IOException {
+    public ChannelConfiguration(File configFile) throws IOException {
         InputStream is = new FileInputStream(configFile);
         configBytes = IOUtils.toByteArray(is);
     }
 
     /**
-     * constructs a ChainConfiguration object
+     * constructs a ChannelConfiguration object
      *
-     * @param configAsBytes the byte array containing the serialized chain configuration
+     * @param configAsBytes the byte array containing the serialized channel configuration
      */
-    public ChainConfiguration(byte[] configAsBytes) {
+    public ChannelConfiguration(byte[] configAsBytes) {
         this.configBytes = configAsBytes;
     }
 
     /**
-     * sets the ChainConfiguration from a byte array
+     * sets the ChannelConfiguration from a byte array
      *
-     * @param chainConfigurationAsBytes the byte array containing the serialized chain configuration
+     * @param channelConfigurationAsBytes the byte array containing the serialized channel configuration
      */
-    public void setChainConfiguration(byte[] chainConfigurationAsBytes) {
-        this.configBytes = chainConfigurationAsBytes;
+    public void setChannelConfiguration(byte[] channelConfigurationAsBytes) {
+        this.configBytes = channelConfigurationAsBytes;
     }
 
     /**
-     * @return the chain configuration serialized per protobuf and ready for inclusion into chain configuration
+     * @return the channel configuration serialized per protobuf and ready for inclusion into channel configuration
      */
-    public byte[] getChainConfigurationAsBytes() {
+    public byte[] getChannelConfigurationAsBytes() {
         return this.configBytes;
     }
 }

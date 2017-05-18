@@ -14,10 +14,11 @@
 
 package org.hyperledger.fabric.sdk.exception;
 
-public class ChainCodeException extends BaseException {
+public class ChaincodeException extends BaseException {
 
 	private static final long serialVersionUID = 1L;
-	public ChainCodeException(String message, Exception parent) {
-		super(message, parent);		
+
+	public ChaincodeException(String message, Exception parent) {
+		super(message, parent);
 	}
 }

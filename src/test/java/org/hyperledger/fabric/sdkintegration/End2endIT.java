@@ -32,10 +32,10 @@ import org.hyperledger.fabric.protos.ledger.rwset.kvrwset.KvRwset;
 import org.hyperledger.fabric.sdk.BlockEvent;
 import org.hyperledger.fabric.sdk.BlockInfo;
 import org.hyperledger.fabric.sdk.BlockchainInfo;
-import org.hyperledger.fabric.sdk.Chain;
-import org.hyperledger.fabric.sdk.ChainCodeID;
-import org.hyperledger.fabric.sdk.ChainConfiguration;
 import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
+import org.hyperledger.fabric.sdk.ChaincodeID;
+import org.hyperledger.fabric.sdk.Channel;
+import org.hyperledger.fabric.sdk.ChannelConfiguration;
 import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.InstallProposalRequest;
@@ -84,8 +84,8 @@ public class End2endIT {
     private static final String CHAIN_CODE_PATH = "github.com/example_cc";
     private static final String CHAIN_CODE_VERSION = "1";
 
-    private static final String FOO_CHAIN_NAME = "foo";
-    private static final String BAR_CHAIN_NAME = "bar";
+    private static final String FOO_CHANNEL_NAME = "foo";
+    private static final String BAR_CHANNEL_NAME = "bar";
 
     String testTxID = null;  // save the CC invoke TxID and use in queries
 
@@ -182,25 +182,25 @@ public class End2endIT {
                         Paths.get(testConfig.getTestChannlePath(), "crypto-config/peerOrganizations/", sampleOrgDomainName,
                                 format("/users/Admin@%s/msp/signcerts/Admin@%s-cert.pem", sampleOrgDomainName, sampleOrgDomainName)).toFile());
 
-                sampleOrg.setPeerAdmin(peerOrgAdmin); //A special user that can crate channels, join peers and install chain code
-                // and jump tall blockchains in a single leap!
+                sampleOrg.setPeerAdmin(peerOrgAdmin); //A special user that can create channels, join peers and install chaincode
+
             }
 
             ////////////////////////////
-            //Construct and run the chains
+            //Construct and run the channels
             SampleOrg sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
-            Chain fooChain = constructChain(FOO_CHAIN_NAME, client, sampleOrg);
-            runChain(client, fooChain, true, sampleOrg, 0);
-            fooChain.shutdown(true); // Force foo chain to shutdown clean up resources.
+            Channel fooChannel = constructChannel(FOO_CHANNEL_NAME, client, sampleOrg);
+            runChannel(client, fooChannel, true, sampleOrg, 0);
+            fooChannel.shutdown(true); // Force foo channel to shutdown clean up resources.
             out("\n");
 
             sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg2");
-            Chain barChain = constructChain(BAR_CHAIN_NAME, client, sampleOrg);
-            runChain(client, barChain, true, sampleOrg, 100); //run a newly constructed bar chain with different b value!
-            //let bar chain just shutdown so we have both scenarios.
+            Channel barChannel = constructChannel(BAR_CHANNEL_NAME, client, sampleOrg);
+            runChannel(client, barChannel, true, sampleOrg, 100); //run a newly constructed bar channel with different b value!
+            //let bar channel just shutdown so we have both scenarios.
 
-            out("\nTraverse the blocks for chain %s ", barChain.getName());
-            blockWalker(barChain);
+            out("\nTraverse the blocks for chain %s ", barChannel.getName());
+            blockWalker(barChannel);
             out("That's all folks!");
 
         } catch (Exception e) {
@@ -211,27 +211,27 @@ public class End2endIT {
 
     }
 
-    void runChain(HFClient client, Chain chain, boolean installChainCode, SampleOrg sampleOrg, int delta) {
+    void runChannel(HFClient client, Channel channel, boolean installChaincode, SampleOrg sampleOrg, int delta) {
 
         try {
 
-            final String chainName = chain.getName();
-            out("Running Chain %s", chainName);
-            chain.setTransactionWaitTime(testConfig.getTransactionWaitTime());
-            chain.setDeployWaitTime(testConfig.getDeployWaitTime());
+            final String channelName = channel.getName();
+            out("Running channel %s", channelName);
+            channel.setTransactionWaitTime(testConfig.getTransactionWaitTime());
+            channel.setDeployWaitTime(testConfig.getDeployWaitTime());
 
-            Collection<Peer> channelPeers = chain.getPeers();
-            Collection<Orderer> orderers = chain.getOrderers();
-            final ChainCodeID chainCodeID;
+            Collection<Peer> channelPeers = channel.getPeers();
+            Collection<Orderer> orderers = channel.getOrderers();
+            final ChaincodeID chaincodeID;
             Collection<ProposalResponse> responses;
             Collection<ProposalResponse> successful = new LinkedList<>();
             Collection<ProposalResponse> failed = new LinkedList<>();
 
-            chainCodeID = ChainCodeID.newBuilder().setName(CHAIN_CODE_NAME)
+            chaincodeID = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
                     .setVersion(CHAIN_CODE_VERSION)
                     .setPath(CHAIN_CODE_PATH).build();
 
-            if (installChainCode) {
+            if (installChaincode) {
                 ////////////////////////////
                 // Install Proposal Request
                 //
@@ -241,9 +241,9 @@ public class End2endIT {
                 out("Creating install proposal");
 
                 InstallProposalRequest installProposalRequest = client.newInstallProposalRequest();
-                installProposalRequest.setChaincodeID(chainCodeID);
+                installProposalRequest.setChaincodeID(chaincodeID);
 
-                if (FOO_CHAIN_NAME.equals(chain.getName())) {
+                if (FOO_CHANNEL_NAME.equals(channel.getName())) {
                     // on foo chain install from directory.
 
                     ////For GO language and serving just a single user, chaincodeSource is mostly likely the users GOPATH
@@ -251,7 +251,7 @@ public class End2endIT {
                 } else {
                     // On bar chain install from an input stream.
 
-                    installProposalRequest.setChainCodeInputStream(Util.generateTarGzInputStream(
+                    installProposalRequest.setChaincodeInputStream(Util.generateTarGzInputStream(
                             (Paths.get(TEST_FIXTURES_PATH, "/sdkintegration/gocc/sample1", "src", CHAIN_CODE_PATH).toFile()),
                             Paths.get("src", CHAIN_CODE_PATH).toString()));
 
@@ -288,11 +288,16 @@ public class End2endIT {
                 }
             }
 
+            //   client.setUserContext(sampleOrg.getUser(TEST_ADMIN_NAME));
+            //  final ChaincodeID chaincodeID = firstInstallProposalResponse.getChaincodeID();
+            // Note installing chaincode does not require transaction no need to
+            // send to Orderers
+
             ///////////////
-            //// Instantiate chain code.
+            //// Instantiate chaincode.
             InstantiateProposalRequest instantiateProposalRequest = client.newInstantiationProposalRequest();
             instantiateProposalRequest.setProposalWaitTime(60000);
-            instantiateProposalRequest.setChaincodeID(chainCodeID);
+            instantiateProposalRequest.setChaincodeID(chaincodeID);
             instantiateProposalRequest.setFcn("init");
             instantiateProposalRequest.setArgs(new String[] {"a", "500", "b", "" + (200 + delta)});
             Map<String, byte[]> tm = new HashMap<>();
@@ -312,7 +317,7 @@ public class End2endIT {
             successful.clear();
             failed.clear();
 
-            responses = chain.sendInstantiationProposal(instantiateProposalRequest, chain.getPeers());
+            responses = channel.sendInstantiationProposal(instantiateProposalRequest, channel.getPeers());
             for (ProposalResponse response : responses) {
                 if (response.isVerified() && response.getStatus() == ProposalResponse.Status.SUCCESS) {
                     successful.add(response);
@@ -330,7 +335,7 @@ public class End2endIT {
             ///////////////
             /// Send instantiate transaction to orderer
             out("Sending instantiateTransaction to orderer with a and b set to 100 and %s respectively", "" + (200 + delta));
-            chain.sendTransaction(successful, orderers).thenApply(transactionEvent -> {
+            channel.sendTransaction(successful, orderers).thenApply(transactionEvent -> {
 
                 waitOnFabric(0);
 
@@ -346,7 +351,7 @@ public class End2endIT {
                     ///////////////
                     /// Send transaction proposal to all peers
                     TransactionProposalRequest transactionProposalRequest = client.newTransactionProposalRequest();
-                    transactionProposalRequest.setChaincodeID(chainCodeID);
+                    transactionProposalRequest.setChaincodeID(chaincodeID);
                     transactionProposalRequest.setFcn("invoke");
                     transactionProposalRequest.setArgs(new String[] {"move", "a", "b", "100"});
 
@@ -358,7 +363,7 @@ public class End2endIT {
 
                     out("sending transactionProposal to all peers with arguments: move(a,b,100)");
 
-                    Collection<ProposalResponse> transactionPropResp = chain.sendTransactionProposal(transactionProposalRequest, chain.getPeers());
+                    Collection<ProposalResponse> transactionPropResp = channel.sendTransactionProposal(transactionProposalRequest, channel.getPeers());
                     for (ProposalResponse response : transactionPropResp) {
                         if (response.getStatus() == ProposalResponse.Status.SUCCESS) {
                             out("Successful transaction proposal response Txid: %s from peer %s", response.getTransactionID(), response.getPeer().getName());
@@ -378,21 +383,21 @@ public class End2endIT {
                     out("Successfully received transaction proposal responses.");
 
                     ProposalResponse resp = transactionPropResp.iterator().next();
-                    byte[] x = resp.getChainCodeActionResponsePayload(); // This is the data returned by the chaincode.
+                    byte[] x = resp.getChaincodeActionResponsePayload(); // This is the data returned by the chaincode.
                     String resultAsString = null;
                     if (x != null) {
                         resultAsString = new String(x, "UTF-8");
                     }
                     assertEquals(":)", resultAsString);
 
-                    assertEquals(200, resp.getChainCodeActionResponseStatus()); //Chaincode's status.
+                    assertEquals(200, resp.getChaincodeActionResponseStatus()); //Chaincode's status.
 
-                    TxReadWriteSetInfo readWriteSetInfo = resp.getChainCodeActionResponseReadWriteSetInfo();
-                    //See blockwaler below how to transverse this
+                    TxReadWriteSetInfo readWriteSetInfo = resp.getChaincodeActionResponseReadWriteSetInfo();
+                    //See blockwalker below how to transverse this
                     assertNotNull(readWriteSetInfo);
                     assertTrue(readWriteSetInfo.getNsRwsetCount() > 0);
 
-                    ChainCodeID cid = resp.getChainCodeID();
+                    ChaincodeID cid = resp.getChaincodeID();
                     assertNotNull(cid);
                     assertEquals(CHAIN_CODE_PATH, cid.getPath());
                     assertEquals(CHAIN_CODE_NAME, cid.getName());
@@ -400,8 +405,8 @@ public class End2endIT {
 
                     ////////////////////////////
                     // Send Transaction Transaction to orderer
-                    out("Sending chain code transaction(move a,b,100) to orderer.");
-                    return chain.sendTransaction(successful).get(testConfig.getTransactionWaitTime(), TimeUnit.SECONDS);
+                    out("Sending chaincode transaction(move a,b,100) to orderer.");
+                    return channel.sendTransaction(successful).get(testConfig.getTransactionWaitTime(), TimeUnit.SECONDS);
 
                 } catch (Exception e) {
                     out("Caught an exception while invoking chaincode");
@@ -424,18 +429,18 @@ public class End2endIT {
                     // Send Query Proposal to all peers
                     //
                     String expect = "" + (300 + delta);
-                    out("Now query chain code for the value of b.");
+                    out("Now query chaincode for the value of b.");
                     QueryByChaincodeRequest queryByChaincodeRequest = client.newQueryProposalRequest();
                     queryByChaincodeRequest.setArgs(new String[] {"query", "b"});
                     queryByChaincodeRequest.setFcn("invoke");
-                    queryByChaincodeRequest.setChaincodeID(chainCodeID);
+                    queryByChaincodeRequest.setChaincodeID(chaincodeID);
 
                     Map<String, byte[]> tm2 = new HashMap<>();
                     tm2.put("HyperLedgerFabric", "QueryByChaincodeRequest:JavaSDK".getBytes(UTF_8));
                     tm2.put("method", "QueryByChaincodeRequest".getBytes(UTF_8));
                     queryByChaincodeRequest.setTransientMap(tm2);
 
-                    Collection<ProposalResponse> queryProposals = chain.queryByChaincode(queryByChaincodeRequest, chain.getPeers());
+                    Collection<ProposalResponse> queryProposals = channel.queryByChaincode(queryByChaincodeRequest, channel.getPeers());
                     for (ProposalResponse proposalResponse : queryProposals) {
                         if (!proposalResponse.isVerified() || proposalResponse.getStatus() != ProposalResponse.Status.SUCCESS) {
                             fail("Failed query proposal from peer " + proposalResponse.getPeer().getName() + " status: " + proposalResponse.getStatus() +
@@ -476,16 +481,16 @@ public class End2endIT {
             Peer queryPeer = peerSet.iterator().next();
             out("Using peer %s for channel queries", queryPeer.getName());
 
-            BlockchainInfo channelInfo = chain.queryBlockchainInfo(queryPeer);
-            out("Channel info for : " + chainName);
+            BlockchainInfo channelInfo = channel.queryBlockchainInfo(queryPeer);
+            out("Channel info for : " + channelName);
             out("Channel height: " + channelInfo.getHeight());
             String chainCurrentHash = Hex.encodeHexString(channelInfo.getCurrentBlockHash());
             String chainPreviousHash = Hex.encodeHexString(channelInfo.getPreviousBlockHash());
-            out("Channel current block hash: " + chainCurrentHash);
-            out("Channel previous block hash: " + chainPreviousHash);
+            out("Chain current block hash: " + chainCurrentHash);
+            out("Chainl previous block hash: " + chainPreviousHash);
 
             // Query by block number. Should return latest block, i.e. block number 2
-            BlockInfo returnedBlock = chain.queryBlockByNumber(queryPeer, channelInfo.getHeight() - 1);
+            BlockInfo returnedBlock = channel.queryBlockByNumber(queryPeer, channelInfo.getHeight() - 1);
             String previousHash = Hex.encodeHexString(returnedBlock.getPreviousHash());
             out("queryBlockByNumber returned correct block with blockNumber " + returnedBlock.getBlockNumber()
                     + " \n previous_hash " + previousHash);
@@ -494,35 +499,35 @@ public class End2endIT {
 
             // Query by block hash. Using latest block's previous hash so should return block number 1
             byte[] hashQuery = returnedBlock.getPreviousHash();
-            returnedBlock = chain.queryBlockByHash(queryPeer, hashQuery);
+            returnedBlock = channel.queryBlockByHash(queryPeer, hashQuery);
             out("queryBlockByHash returned block with blockNumber " + returnedBlock.getBlockNumber());
             assertEquals(channelInfo.getHeight() - 2, returnedBlock.getBlockNumber());
 
             // Query block by TxID. Since it's the last TxID, should be block 2
-            returnedBlock = chain.queryBlockByTransactionID(queryPeer, testTxID);
+            returnedBlock = channel.queryBlockByTransactionID(queryPeer, testTxID);
             out("queryBlockByTxID returned block with blockNumber " + returnedBlock.getBlockNumber());
             assertEquals(channelInfo.getHeight() - 1, returnedBlock.getBlockNumber());
 
             // query transaction by ID
-            TransactionInfo txInfo = chain.queryTransactionByID(queryPeer, testTxID);
+            TransactionInfo txInfo = channel.queryTransactionByID(queryPeer, testTxID);
             out("QueryTransactionByID returned TransactionInfo: txID " + txInfo.getTransactionID()
                     + "\n     validation code " + txInfo.getValidationCode().getNumber());
 
-            out("Running for Chain %s done", chainName);
+            out("Running for Channel %s done", channelName);
 
         } catch (Exception e) {
-            out("Caught an exception running chain %s", chain.getName());
+            out("Caught an exception running channel %s", channel.getName());
             e.printStackTrace();
             fail("Test failed with error : " + e.getMessage());
         }
     }
 
-    private Chain constructChain(String name, HFClient client, SampleOrg sampleOrg) throws Exception {
-        //////////////////////////// TODo Needs to be made out of bounds and here chain just retrieved
-        //Construct the chain
+    private Channel constructChannel(String name, HFClient client, SampleOrg sampleOrg) throws Exception {
+        ////////////////////////////
+        //Construct the channel
         //
 
-        out("Constructing chain %s", name);
+        out("Constructing channel %s", name);
 
         Collection<Orderer> orderers = new LinkedList<>();
 
@@ -531,20 +536,20 @@ public class End2endIT {
                     testConfig.getOrdererProperties(orderName)));
         }
 
-        //Just pick the first orderer in the list to create the chain.
+        //Just pick the first orderer in the list to create the channel.
 
         Orderer anOrderer = orderers.iterator().next();
         orderers.remove(anOrderer);
 
-        ChainConfiguration chainConfiguration = new ChainConfiguration(new File(TEST_FIXTURES_PATH + "/sdkintegration/e2e-2Orgs/channel/" + name + ".tx"));
+        ChannelConfiguration channelConfiguration = new ChannelConfiguration(new File(TEST_FIXTURES_PATH + "/sdkintegration/e2e-2Orgs/channel/" + name + ".tx"));
 
         //Only peer Admin org
         client.setUserContext(sampleOrg.getPeerAdmin());
 
-        //Create chain that has only one signer that is this orgs peer admin. If chain creation policy needed more signature they would need to be added too.
-        Chain newChain = client.newChain(name, anOrderer, chainConfiguration, client.getChainConfigurationSignature(chainConfiguration, sampleOrg.getPeerAdmin()));
+        //Create channel that has only one signer that is this orgs peer admin. If channel creation policy needed more signature they would need to be added too.
+        Channel newChannel = client.newChannel(name, anOrderer, channelConfiguration, client.getChannelConfigurationSignature(channelConfiguration, sampleOrg.getPeerAdmin()));
 
-        out("Created chain %s", name);
+        out("Created channel %s", name);
 
         for (String peerName : sampleOrg.getPeerNames()) {
             String peerLocation = sampleOrg.getPeerLocation(peerName);
@@ -557,26 +562,26 @@ public class End2endIT {
             peerProperties.put("grpc.ManagedChannelBuilderOption.maxInboundMessageSize", 9000000);
 
             Peer peer = client.newPeer(peerName, peerLocation, peerProperties);
-            newChain.joinPeer(peer);
-            out("Peer %s joined chain %s", peerName, name);
+            newChannel.joinPeer(peer);
+            out("Peer %s joined channel %s", peerName, name);
             sampleOrg.addPeer(peer);
         }
 
         for (Orderer orderer : orderers) { //add remaining orderers if any.
-            newChain.addOrderer(orderer);
+            newChannel.addOrderer(orderer);
         }
 
         for (String eventHubName : sampleOrg.getEventHubNames()) {
             EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
                     testConfig.getEventHubProperties(eventHubName));
-            newChain.addEventHub(eventHub);
+            newChannel.addEventHub(eventHub);
         }
 
-        newChain.initialize();
+        newChannel.initialize();
 
-        out("Finished initialization chain %s", name);
+        out("Finished initialization channel %s", name);
 
-        return newChain;
+        return newChannel;
 
     }
 
@@ -622,17 +627,17 @@ public class End2endIT {
 
     static {
         txExpected = new HashMap<String, String>();
-        txExpected.put("readset1", "Missing readset for chain bar block 1");
-        txExpected.put("writeset1", "Missing writeset for chain bar block 1");
+        txExpected.put("readset1", "Missing readset for channel bar block 1");
+        txExpected.put("writeset1", "Missing writeset for channel bar block 1");
     }
 
-    void blockWalker(Chain chain) throws InvalidProtocolBufferException, InvalidArgumentException, ProposalException, UnsupportedEncodingException {
+    void blockWalker(Channel channel) throws InvalidProtocolBufferException, InvalidArgumentException, ProposalException, UnsupportedEncodingException {
 
         try {
-            BlockchainInfo channelInfo = chain.queryBlockchainInfo();
+            BlockchainInfo channelInfo = channel.queryBlockchainInfo();
 
             for (long current = channelInfo.getHeight() - 1; current > -1; --current) {
-                BlockInfo returnedBlock = chain.queryBlockByNumber(current);
+                BlockInfo returnedBlock = channel.queryBlockByNumber(current);
                 final long blockNumber = returnedBlock.getBlockNumber();
 
                 out("current block number %d has data hash: %s", blockNumber, Hex.encodeHexString(returnedBlock.getDataHash()));
@@ -679,7 +684,7 @@ public class End2endIT {
                                 out("Endorser %d signature: %s", n, Hex.encodeHexString(endorserInfo.getSignature()));
                                 out("Endorser %d endorser: %s", n, new String(endorserInfo.getEndorser(), "UTF-8"));
                             }
-                            out("   Transaction action %d has %d chain code input arguments", j, transactionActionInfo.getChaincodeInputArgsCount());
+                            out("   Transaction action %d has %d chaincode input arguments", j, transactionActionInfo.getChaincodeInputArgsCount());
                             for (int z = 0; z < transactionActionInfo.getChaincodeInputArgsCount(); ++z) {
 
                                 out("     Transaction action %d has chaincode input argument %d is: %s", j, z,

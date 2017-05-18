@@ -114,18 +114,18 @@ import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getCurrentFabric
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getSignatureHeaderAsByteString;
 
 /**
- * The class representing a chain/channel with which the client SDK interacts.
+ * The class representing a channel with which the client SDK interacts.
  */
-public class Chain {
-    private static final Log logger = LogFactory.getLog(Chain.class);
+public class Channel {
+    private static final Log logger = LogFactory.getLog(Channel.class);
     private final static boolean isDebugLevel = logger.isDebugEnabled();
     private static final Config config = Config.getConfig();
-    static final String SYSTEM_CHAIN_NAME = "";
+    static final String SYSTEM_CHANNEL_NAME = "";
 
-    // Name of the chain is only meaningful to the client
+    // Name of the channel is only meaningful to the client
     private String name;
 
-    // The peers on this chain to which the client can connect
+    // The peers on this channel to which the client can connect
     private final Collection<Peer> peers = new Vector<>();
 
     // Security enabled flag
@@ -154,7 +154,7 @@ public class Chain {
     private boolean shutdown = false;
 
     /**
-     * Get eventHubs on the chain
+     * Get eventHubs on the channel
      *
      * @return
      */
@@ -165,25 +165,25 @@ public class Chain {
     private final Collection<EventHub> eventHubs = new LinkedList<>();
     private ExecutorService executorService;
     private Block genesisBlock;
-    private final boolean systemChain;
+    private final boolean systemChannel;
 
-    ExecutorService getChainExecutorService() {
+    ExecutorService getChannelExecutorService() {
         return executorService;
     }
 
-    Chain(String name, HFClient hfClient, Orderer orderer, ChainConfiguration chainConfiguration, byte[][] signers) throws InvalidArgumentException, TransactionException {
+    Channel(String name, HFClient hfClient, Orderer orderer, ChannelConfiguration channelConfiguration, byte[][] signers) throws InvalidArgumentException, TransactionException {
         this(name, hfClient, false);
 
-        logger.debug(format("Creating new chain %s on the Fabric", name));
+        logger.debug(format("Creating new channel %s on the Fabric", name));
 
         try {
-            Envelope ccEnvelope = Envelope.parseFrom(chainConfiguration.getChainConfigurationAsBytes());
+            Envelope ccEnvelope = Envelope.parseFrom(channelConfiguration.getChannelConfigurationAsBytes());
 
             final Payload ccPayload = Payload.parseFrom(ccEnvelope.getPayload());
             final ChannelHeader ccChannelHeader = ChannelHeader.parseFrom(ccPayload.getHeader().getChannelHeader());
 
             if (ccChannelHeader.getType() != HeaderType.CONFIG_UPDATE.getNumber()) {
-                throw new InvalidArgumentException(format("Creating chain; %s expected config block type %s, but got: %s",
+                throw new InvalidArgumentException(format("Creating channel; %s expected config block type %s, but got: %s",
                         name,
                         HeaderType.CONFIG_UPDATE.name(),
                         HeaderType.forNumber(ccChannelHeader.getType())));
@@ -191,7 +191,7 @@ public class Chain {
 
             if (!name.equals(ccChannelHeader.getChannelId())) {
 
-                throw new InvalidArgumentException(format("Expected config block for chain: %s, but got: %s", name,
+                throw new InvalidArgumentException(format("Expected config block for channel: %s, but got: %s", name,
                         ccChannelHeader.getChannelId()));
             }
 
@@ -237,22 +237,22 @@ public class Chain {
 
             BroadcastResponse trxResult = orderer.sendTransaction(payloadEnv);
             if (200 != trxResult.getStatusValue()) {
-                throw new TransactionException(format("New chain %s error. StatusValue %d. Status %s", name,
+                throw new TransactionException(format("New channel %s error. StatusValue %d. Status %s", name,
                         trxResult.getStatusValue(), "" + trxResult.getStatus()));
             }
 
             getGenesisBlock(orderer);
             if (genesisBlock == null) {
-                throw new TransactionException(format("New chain %s error. Genesis bock returned null", name));
+                throw new TransactionException(format("New channel %s error. Genesis bock returned null", name));
             }
             addOrderer(orderer);
-            logger.debug(format("Created new chain %s on the Fabric done.", name));
+            logger.debug(format("Created new channel %s on the Fabric done.", name));
         } catch (TransactionException e) {
 
-            logger.error(format("Chain %s error: %s", name, e.getMessage()), e);
+            logger.error(format("Channel %s error: %s", name, e.getMessage()), e);
             throw e;
         } catch (Exception e) {
-            String msg = format("Chain %s error: %s", name, e.getMessage());
+            String msg = format("Channel %s error: %s", name, e.getMessage());
 
             logger.error(msg, e);
             throw new TransactionException(msg, e);
@@ -265,23 +265,23 @@ public class Chain {
     }
 
     /**
-     * For requests that are not targeted for a specific chain.
-     * User's can not directly create this chain.
+     * For requests that are not targeted for a specific channel.
+     * User's can not directly create this channel.
      *
      * @param client
      * @return
      * @throws InvalidArgumentException
      */
 
-    static Chain newSystemChain(HFClient client) throws InvalidArgumentException {
-        return new Chain(null, client, true);
+    static Channel newSystemChannel(HFClient client) throws InvalidArgumentException {
+        return new Channel(null, client, true);
     }
 
     public boolean isInitialized() {
         return initialized;
     }
 
-    Chain(String name, HFClient client) throws InvalidArgumentException {
+    Channel(String name, HFClient client) throws InvalidArgumentException {
         this(name, client, false);
     }
 
@@ -290,21 +290,21 @@ public class Chain {
      * @param client
      */
 
-    Chain(String name, HFClient client, final boolean systemChain) throws InvalidArgumentException {
+    Channel(String name, HFClient client, final boolean systemChannel) throws InvalidArgumentException {
 
-        this.systemChain = systemChain;
+        this.systemChannel = systemChannel;
 
-        if (systemChain) {
-            name = SYSTEM_CHAIN_NAME;///It's special !
+        if (systemChannel) {
+            name = SYSTEM_CHANNEL_NAME;///It's special !
             initialized = true;
         } else {
             if (SDKUtil.isNullOrEmpty(name)) {
-                throw new InvalidArgumentException("Chain name is invalid can not be null or empty.");
+                throw new InvalidArgumentException("Channel name is invalid can not be null or empty.");
             }
         }
 
         if (null == client) {
-            throw new InvalidArgumentException("Chain client is invalid can not be null.");
+            throw new InvalidArgumentException("Channel client is invalid can not be null.");
         }
         this.name = name;
         this.client = client;
@@ -313,12 +313,12 @@ public class Chain {
         cryptoSuite = client.getCryptoSuite();
 
         if (null == cryptoSuite) {
-            throw new InvalidArgumentException(format("CryptoPrimitives value in chain %s can not be null", name));
+            throw new InvalidArgumentException(format("CryptoPrimitives value in channel %s can not be null", name));
         }
 
         User user = client.getUserContext();
         if (null == user) {
-            throw new InvalidArgumentException(format("User context in chain %s can not be null", name));
+            throw new InvalidArgumentException(format("User context in channel %s can not be null", name));
         }
 
         //enrollment = user.getEnrollment();
@@ -326,37 +326,37 @@ public class Chain {
         if (null == client.getUserContext().getEnrollment()) {
             throw new InvalidArgumentException(format("User context %s is not enrolled.", name));
         }
-        logger.debug(format("Creating chain: %s, client context %s", isSystemChain() ? "SYSTEM_CHAIN" : name, client.getUserContext().getName()));
+        logger.debug(format("Creating channel: %s, client context %s", isSystemChannel() ? "SYSTEM_CHANNEL" : name, client.getUserContext().getName()));
 
     }
 
     /**
-     * Get the chain name
+     * Get the channel name
      *
-     * @return The name of the chain
+     * @return The name of the channel
      */
     public String getName() {
         return this.name;
     }
 
     /**
-     * Add a peer to the chain
+     * Add a peer to the channel
      *
      * @param peer The Peer to add.
-     * @return Chain The current chain added.
+     * @return Channel The current channel added.
      * @throws InvalidArgumentException
      */
-    public Chain addPeer(Peer peer) throws InvalidArgumentException {
+    public Channel addPeer(Peer peer) throws InvalidArgumentException {
 
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
 
         if (null == peer) {
             throw new InvalidArgumentException("Peer is invalid can not be null.");
         }
         if (SDKUtil.isNullOrEmpty(peer.getName())) {
-            throw new InvalidArgumentException("Peer added to chain has no name.");
+            throw new InvalidArgumentException("Peer added to channel has no name.");
         }
 
         Exception e = checkGrpcUrl(peer.getUrl());
@@ -364,39 +364,39 @@ public class Chain {
             throw new InvalidArgumentException("Peer added to chan has invalid url.", e);
         }
 
-        peer.setChain(this);
+        peer.setChannel(this);
 
         peers.add(peer);
 
         return this;
     }
 
-    public Chain joinPeer(Peer peer) throws ProposalException {
+    public Channel joinPeer(Peer peer) throws ProposalException {
 
-        logger.debug(format("Chain %s joining peer %s, url: %s", name, peer.getName(), peer.getUrl()));
+        logger.debug(format("Channel %s joining peer %s, url: %s", name, peer.getName(), peer.getUrl()));
 
         if (shutdown) {
-            throw new ProposalException(format("Chain %s has been shutdown.", name));
+            throw new ProposalException(format("Channel %s has been shutdown.", name));
         }
 
-        Chain peerChain = peer.getChain();
-        if (null != peerChain) {
-            throw new ProposalException(format("Can not add peer %s to chain %s because it already belongs to chain %s.", peer.getName(), name, peerChain));
+        Channel peerChannel = peer.getChannel();
+        if (null != peerChannel) {
+            throw new ProposalException(format("Can not add peer %s to channel %s because it already belongs to channel %s.", peer.getName(), name, peerChannel));
 
         }
 
         if (genesisBlock == null && orderers.isEmpty()) {
-            ProposalException e = new ProposalException("Chain missing genesis block and no orderers configured");
+            ProposalException e = new ProposalException("Channel missing genesis block and no orderers configured");
             logger.error(e.getMessage(), e);
         }
         try {
 
             genesisBlock = getGenesisBlock(orderers.iterator().next());
-            logger.debug(format("Chain %s got genesis block", name));
+            logger.debug(format("Channel %s got genesis block", name));
 
-            final Chain systemChain = newSystemChain(client); //channel is not really created and this is targeted to system chain
+            final Channel systemChannel = newSystemChannel(client); //channel is not really created and this is targeted to system channel
 
-            TransactionContext transactionContext = systemChain.getTransactionContext();
+            TransactionContext transactionContext = systemChannel.getTransactionContext();
 
             FabricProposal.Proposal joinProposal = JoinPeerProposalBuilder.newBuilder()
                     .context(transactionContext)
@@ -413,11 +413,11 @@ public class Chain {
             ProposalResponse pro = resp.iterator().next();
 
             if (pro.getStatus() == ProposalResponse.Status.SUCCESS) {
-                logger.info(format("Peer %s joined into chain %s", peer.getName(), name));
+                logger.info(format("Peer %s joined into channel %s", peer.getName(), name));
                 addPeer(peer);
 
             } else {
-                throw new ProposalException(format("Join peer to chain %s failed.  Status %s, details: %s",
+                throw new ProposalException(format("Join peer to channel %s failed.  Status %s, details: %s",
                         name, pro.getStatus().toString(), pro.getMessage()));
 
             }
@@ -433,17 +433,17 @@ public class Chain {
     }
 
     /**
-     * addOrderer - Add an Orderer to the chain
+     * addOrderer - Add an Orderer to the channel
      *
      * @param orderer
      * @return
      * @throws InvalidArgumentException
      */
 
-    public Chain addOrderer(Orderer orderer) throws InvalidArgumentException {
+    public Channel addOrderer(Orderer orderer) throws InvalidArgumentException {
 
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
 
         if (null == orderer) {
@@ -455,25 +455,25 @@ public class Chain {
             throw new InvalidArgumentException("Peer added to chan has invalid url.", e);
         }
 
-        logger.debug(format("Chain %s adding orderer%s, url: %s", name, orderer.getName(), orderer.getUrl()));
+        logger.debug(format("Channel %s adding orderer%s, url: %s", name, orderer.getName(), orderer.getUrl()));
 
-        orderer.setChain(this);
+        orderer.setChannel(this);
         this.orderers.add(orderer);
         return this;
     }
 
     /**
-     * Add eventhub to chain.
+     * Add eventhub to channel.
      *
      * @param eventHub
      * @return
      * @throws InvalidArgumentException
      */
 
-    public Chain addEventHub(EventHub eventHub) throws InvalidArgumentException {
+    public Channel addEventHub(EventHub eventHub) throws InvalidArgumentException {
 
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
         if (null == eventHub) {
             throw new InvalidArgumentException("EventHub is invalid can not be null.");
@@ -484,16 +484,16 @@ public class Chain {
             throw new InvalidArgumentException("Peer added to chan has invalid url.", e);
         }
 
-        logger.debug(format("Chain %s adding event hub %s, url: %s", name, eventHub.getName(), eventHub.getUrl()));
-        eventHub.setChain(this);
-        eventHub.setEventQue(chainEventQue);
+        logger.debug(format("Channel %s adding event hub %s, url: %s", name, eventHub.getName(), eventHub.getUrl()));
+        eventHub.setChannel(this);
+        eventHub.setEventQue(channelEventQue);
         eventHubs.add(eventHub);
         return this;
 
     }
 
     /**
-     * Get the peers for this chain.
+     * Get the peers for this channel.
      */
     public Collection<Peer> getPeers() {
         return Collections.unmodifiableCollection(this.peers);
@@ -566,42 +566,42 @@ public class Chain {
     }
 
     /**
-     * Initialize the Chain.  Starts the channel. event hubs will connect.
+     * Initialize the Channel.  Starts the channel. event hubs will connect.
      *
      * @return
      * @throws InvalidArgumentException
      * @throws TransactionException
      */
 
-    public Chain initialize() throws InvalidArgumentException, TransactionException {
+    public Channel initialize() throws InvalidArgumentException, TransactionException {
 
-        logger.debug(format("Chain %s initialize shutdown %b", name, shutdown));
+        logger.debug(format("Channel %s initialize shutdown %b", name, shutdown));
 
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
 
         if (peers.size() == 0) {
 
-            throw new InvalidArgumentException("Chain needs at least one peer.");
+            throw new InvalidArgumentException("Channel needs at least one peer.");
 
         }
         if (SDKUtil.isNullOrEmpty(name)) {
 
-            throw new InvalidArgumentException("Can not initialize Chain without a valid name.");
+            throw new InvalidArgumentException("Can not initialize Channel without a valid name.");
 
         }
         if (client == null) {
-            throw new InvalidArgumentException("Can not initialize chain without a client object.");
+            throw new InvalidArgumentException("Can not initialize channel without a client object.");
         }
 
         if (this.client.getUserContext() == null) {
 
-            throw new InvalidArgumentException("Can not initialize the chain without a valid user context");
+            throw new InvalidArgumentException("Can not initialize the channel without a valid user context");
         }
 
         try {
-            parseConfigBlock();// Parse config block for this chain to get it's information.
+            parseConfigBlock();// Parse config block for this channel to get it's information.
 
             loadCACertificates();  // put all MSP certs into cryptoSuite
 
@@ -615,11 +615,11 @@ public class Chain {
             logger.debug(format("%d eventhubs initialized", getEventHubs().size()));
 
             registerTransactionListenerProcessor(); //Manage transactions.
-            logger.debug(format("Chain %s registerTransactionListenerProcessor completed", name));
+            logger.debug(format("Channel %s registerTransactionListenerProcessor completed", name));
 
             this.initialized = true;
 
-            logger.debug(format("Chain %s initialized", name));
+            logger.debug(format("Channel %s initialized", name));
 
             return this;
         } catch (TransactionException e) {
@@ -642,7 +642,7 @@ public class Chain {
      * @throws CryptoException
      */
     private void loadCACertificates() throws InvalidArgumentException, CryptoException {
-        logger.debug(format("Chain %s loadCACertificates", name));
+        logger.debug(format("Channel %s loadCACertificates", name));
         if (cryptoSuite == null) {
             throw new InvalidArgumentException("Unable to load CA certificates. Channel " + name + " does not have a CryptoSuite.");
         }
@@ -663,13 +663,13 @@ public class Chain {
             }
             // not adding admin certs. Admin certs should be signed by the CA
         }
-        logger.debug(format("Chain %s loadCACertificates completed ", name));
+        logger.debug(format("Channel %s loadCACertificates completed ", name));
     }
 
     private Block getGenesisBlock(Orderer order) throws TransactionException {
         try {
             if (genesisBlock != null) {
-                logger.debug(format("Chain %s getGenesisBlock already present", name));
+                logger.debug(format("Channel %s getGenesisBlock already present", name));
 
             } else {
 
@@ -739,12 +739,12 @@ public class Chain {
                     } else {
 
                         DeliverResponse status = deliver[0];
-                        logger.debug(format("Chain %s getGenesisBlock deliver status: %d", name, status.getStatusValue()));
+                        logger.debug(format("Channel %s getGenesisBlock deliver status: %d", name, status.getStatusValue()));
                         if (status.getStatusValue() == 404) {
-                            logger.warn(format("Bad deliver expected status 200  got  %d, Chain %s", status.getStatusValue(), name));
+                            logger.warn(format("Bad deliver expected status 200  got  %d, Channel %s", status.getStatusValue(), name));
                             // keep trying...
                         } else if (status.getStatusValue() != 200) {
-                            throw new TransactionException(format("Bad deliver expected status 200  got  %d, Chain %s", status.getStatusValue(), name));
+                            throw new TransactionException(format("Bad deliver expected status 200  got  %d, Channel %s", status.getStatusValue(), name));
 
                         } else {
 
@@ -766,7 +766,7 @@ public class Chain {
                         long duration = now - start;
 
                         if (duration > config.getGenesisBlockWaitTime()) {
-                            throw new TransactionException(format("Getting genesis block time exceeded %s seconds for chain %s", Long.toString(TimeUnit.MILLISECONDS.toSeconds(duration)), name));
+                            throw new TransactionException(format("Getting genesis block time exceeded %s seconds for channel %s", Long.toString(TimeUnit.MILLISECONDS.toSeconds(duration)), name));
                         }
                         try {
                             Thread.sleep(200);//try again
@@ -793,14 +793,14 @@ public class Chain {
 
         }
 
-        logger.debug(format("Chain %s getGenesisBlock done.", name));
+        logger.debug(format("Channel %s getGenesisBlock done.", name));
         return genesisBlock;
     }
 
     Map<String, MSP> msps = new HashMap<>();
 
-    boolean isSystemChain() {
-        return systemChain;
+    boolean isSystemChannel() {
+        return systemChannel;
     }
 
     /**
@@ -903,7 +903,7 @@ public class Chain {
 
             final Block configBlock = getConfigurationBlock();
 
-            logger.debug(format("Chain %s Got config block getting MSP data and anchorPeers data", name));
+            logger.debug(format("Channel %s Got config block getting MSP data and anchorPeers data", name));
 
             Envelope envelope = Envelope.parseFrom(configBlock.getData().getData(0));
             Payload payload = Payload.parseFrom(envelope.getPayload());
@@ -968,11 +968,11 @@ public class Chain {
 
     private Block getConfigurationBlock() throws TransactionException {
 
-        logger.debug(format("getConfigurationBlock for chain %s", name));
+        logger.debug(format("getConfigurationBlock for channel %s", name));
 
         try {
             if (orderers.isEmpty()) {
-                throw new TransactionException(format("No orderers for chain %s", name));
+                throw new TransactionException(format("No orderers for channel %s", name));
             }
             Orderer orderer = orderers.iterator().next();
 
@@ -990,7 +990,7 @@ public class Chain {
 
             Block configBlock = getBlockByNumber(lastConfigIndex);
 
-            //Little extra parsing but make sure this really is a config block for this chain.
+            //Little extra parsing but make sure this really is a config block for this channel.
             Envelope envelopeRet = Envelope.parseFrom(configBlock.getData().getData(0));
             Payload payload = Payload.parseFrom(envelopeRet.getPayload());
             ChannelHeader channelHeader = ChannelHeader.parseFrom(payload.getHeader().getChannelHeader());
@@ -1004,9 +1004,9 @@ public class Chain {
                         channelHeader.getChannelId(), name));
             }
 
-            logger.trace(format("Chain %s getConfigurationBlock retraceturned %s", name, "" + configBlock));
+            logger.trace(format("Channel %s getConfigurationBlock retraceturned %s", name, "" + configBlock));
             if (!logger.isTraceEnabled()) {
-                logger.debug(format("Chain %s getConfigurationBlock returned", name));
+                logger.debug(format("Channel %s getConfigurationBlock returned", name));
             }
 
             return configBlock;
@@ -1023,11 +1023,11 @@ public class Chain {
 
     private Block getBlockByNumber(final long number) throws TransactionException {
 
-        logger.trace(format("getConfigurationBlock for chain %s", name));
+        logger.trace(format("getConfigurationBlock for channel %s", name));
 
         try {
             if (orderers.isEmpty()) {
-                throw new TransactionException(format("No orderers for chain %s", name));
+                throw new TransactionException(format("No orderers for channel %s", name));
             }
             Orderer orderer = orderers.iterator().next();
 
@@ -1079,7 +1079,7 @@ public class Chain {
 
                 DeliverResponse status = deliver[0];
                 if (status.getStatusValue() != 200) {
-                    throw new TransactionException(format("Bad newest block expected status 200  got  %d, Chain %s", status.getStatusValue(), name));
+                    throw new TransactionException(format("Bad newest block expected status 200  got  %d, Channel %s", status.getStatusValue(), name));
                 } else {
                     if (deliver.length < 2) {
                         throw new TransactionException(format("newest block for channel %s fetch bad deliver missing genesis block only got %d:", name, deliver.length));
@@ -1119,7 +1119,7 @@ public class Chain {
 
     private Block getLatestBlock(Orderer orderer) throws CryptoException, TransactionException {
 
-        logger.debug(format("getConfigurationBlock for chain %s", name));
+        logger.debug(format("getConfigurationBlock for channel %s", name));
 
         SeekPosition seekPosition = SeekPosition.newBuilder()
                 .setNewest(Ab.SeekNewest.getDefaultInstance())
@@ -1164,9 +1164,9 @@ public class Chain {
         } else {
 
             DeliverResponse status = deliver[0];
-            logger.debug(format("Chain %s getLatestBlock returned status %s", name, status.getStatusValue()));
+            logger.debug(format("Channel %s getLatestBlock returned status %s", name, status.getStatusValue()));
             if (status.getStatusValue() != 200) {
-                throw new TransactionException(format("Bad newest block expected status 200  got  %d, Chain %s", status.getStatusValue(), name));
+                throw new TransactionException(format("Bad newest block expected status 200  got  %d, Channel %s", status.getStatusValue(), name));
             } else {
                 if (deliver.length < 2) {
                     throw new TransactionException(format("newest block for channel %s fetch bad deliver missing genesis block only got %d:", name, deliver.length));
@@ -1211,15 +1211,15 @@ public class Chain {
      * createNewInstance
      *
      * @param name
-     * @return A new chain
+     * @return A new channel
      */
-    static Chain createNewInstance(String name, HFClient clientContext) throws InvalidArgumentException {
-        return new Chain(name, clientContext);
+    static Channel createNewInstance(String name, HFClient clientContext) throws InvalidArgumentException {
+        return new Channel(name, clientContext);
     }
 
-    static Chain createNewInstance(String name, HFClient hfClient, Orderer orderer, ChainConfiguration chainConfiguration, byte[]... signers) throws InvalidArgumentException, TransactionException {
+    static Channel createNewInstance(String name, HFClient hfClient, Orderer orderer, ChannelConfiguration channelConfiguration, byte[]... signers) throws InvalidArgumentException, TransactionException {
 
-        return new Chain(name, hfClient, orderer, chainConfiguration, signers);
+        return new Channel(name, hfClient, orderer, channelConfiguration, signers);
 
     }
 
@@ -1235,7 +1235,7 @@ public class Chain {
     public Collection<ProposalResponse> sendInstantiationProposal(InstantiateProposalRequest instantiateProposalRequest) throws InvalidArgumentException, ProposalException {
 
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
 
         return sendInstantiationProposal(instantiateProposalRequest, peers);
@@ -1254,7 +1254,7 @@ public class Chain {
     public Collection<ProposalResponse> sendInstantiationProposal(InstantiateProposalRequest instantiateProposalRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
 
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
         if (null == instantiateProposalRequest) {
             throw new InvalidArgumentException("sendDeploymentProposal deploymentProposalRequest is null");
@@ -1266,7 +1266,7 @@ public class Chain {
             throw new InvalidArgumentException("sendDeploymentProposal peers to send to is empty.");
         }
         if (!isInitialized()) {
-            throw new InvalidArgumentException("sendDeploymentProposal on chain not initialized.");
+            throw new InvalidArgumentException("sendDeploymentProposal on channel not initialized.");
         }
 
         try {
@@ -1313,7 +1313,7 @@ public class Chain {
             throws ProposalException, InvalidArgumentException {
 
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
         if (null == installProposalRequest) {
             throw new InvalidArgumentException("sendInstallProposal deploymentProposalRequest is null");
@@ -1325,12 +1325,12 @@ public class Chain {
             throw new InvalidArgumentException("sendInstallProposal peers to send to is empty.");
         }
         if (!isInitialized()) {
-            throw new ProposalException("sendInstallProposal on chain not initialized.");
+            throw new ProposalException("sendInstallProposal on channel not initialized.");
         }
 
         try {
             TransactionContext transactionContext = getTransactionContext();
-            transactionContext.verify(false);  // Install will have no signing cause it's not really targeted to a chain.
+            transactionContext.verify(false);  // Install will have no signing cause it's not really targeted to a channel.
             transactionContext.setProposalWaitTime(installProposalRequest.getProposalWaitTime());
             InstallProposalBuilder installProposalbuilder = InstallProposalBuilder.newBuilder();
             installProposalbuilder.context(transactionContext);
@@ -1339,7 +1339,7 @@ public class Chain {
             installProposalbuilder.chaincodePath(installProposalRequest.getChaincodePath());
             installProposalbuilder.chaincodeVersion(installProposalRequest.getChaincodeVersion());
             installProposalbuilder.setChaincodeSource(installProposalRequest.getChaincodeSourceLocation());
-            installProposalbuilder.setChainCodeInputStream(installProposalRequest.getChainCodeInputStream());
+            installProposalbuilder.setChaincodeInputStream(installProposalRequest.getChaincodeInputStream());
 
             FabricProposal.Proposal deploymentProposal = installProposalbuilder.build();
             SignedProposal signedProposal = getSignedProposal(deploymentProposal);
@@ -1380,7 +1380,7 @@ public class Chain {
             throws InvalidArgumentException, ProposalException {
 
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
         if (null == upgradeProposalRequest) {
             throw new InvalidArgumentException("sendInstallProposal deploymentProposalRequest is null");
@@ -1392,12 +1392,12 @@ public class Chain {
             throw new InvalidArgumentException("sendInstallProposal peers to send to is empty.");
         }
         if (!isInitialized()) {
-            throw new InvalidArgumentException("sendInstallProposal on chain not initialized.");
+            throw new InvalidArgumentException("sendInstallProposal on channel not initialized.");
         }
 
         try {
             TransactionContext transactionContext = getTransactionContext();
-            //transactionContext.verify(false);  // Install will have no signing cause it's not really targeted to a chain.
+            //transactionContext.verify(false);  // Install will have no signing cause it's not really targeted to a channel.
             transactionContext.setProposalWaitTime(upgradeProposalRequest.getProposalWaitTime());
             UpgradeProposalBuilder upgradeProposalBuilder = UpgradeProposalBuilder.newBuilder();
             upgradeProposalBuilder.context(transactionContext);
@@ -1447,7 +1447,7 @@ public class Chain {
     public BlockInfo queryBlockByHash(byte[] blockHash) throws InvalidArgumentException, ProposalException {
 
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
         if (blockHash == null) {
             throw new InvalidArgumentException("blockHash parameter is null.");
@@ -1469,7 +1469,7 @@ public class Chain {
     public BlockInfo queryBlockByHash(Peer peer, byte[] blockHash) throws InvalidArgumentException, ProposalException {
 
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
         if (peer == null) {
             throw new InvalidArgumentException("Must give a peer to send request to.");
@@ -1522,7 +1522,7 @@ public class Chain {
      */
     public BlockInfo queryBlockByNumber(long blockNumber) throws InvalidArgumentException, ProposalException {
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
 
         if (getPeers().isEmpty()) {
@@ -1542,7 +1542,7 @@ public class Chain {
      */
     public BlockInfo queryBlockByNumber(Peer peer, long blockNumber) throws InvalidArgumentException, ProposalException {
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
         if (peer == null) {
             throw new InvalidArgumentException("Must give a peer to send request to.");
@@ -1594,7 +1594,7 @@ public class Chain {
      */
     public BlockInfo queryBlockByTransactionID(String txID) throws InvalidArgumentException, ProposalException {
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
 
         if (txID == null) {
@@ -1618,7 +1618,7 @@ public class Chain {
     public BlockInfo queryBlockByTransactionID(Peer peer, String txID) throws InvalidArgumentException, ProposalException {
 
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
         if (peer == null) {
             throw new InvalidArgumentException("Must give a peer to send request to.");
@@ -1672,7 +1672,7 @@ public class Chain {
      */
     public BlockchainInfo queryBlockchainInfo() throws ProposalException, InvalidArgumentException {
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
 
         if (getPeers().isEmpty()) {
@@ -1692,7 +1692,7 @@ public class Chain {
     public BlockchainInfo queryBlockchainInfo(Peer peer) throws ProposalException, InvalidArgumentException {
 
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
 
         if (peer == null) {
@@ -1713,7 +1713,7 @@ public class Chain {
             ProposalResponse proposalResponse = proposalResponses.iterator().next();
 
             if (proposalResponse.getStatus().getStatus() != 200) {
-                throw new PeerException(format("Unable to query block chain info for channel %s from peer %s with message %s",
+                throw new PeerException(format("Unable to query block channel info for channel %s from peer %s with message %s",
                         name,
                         peer.getName(),
                         proposalResponse.getMessage()));
@@ -1743,7 +1743,7 @@ public class Chain {
     public TransactionInfo queryTransactionByID(String txID) throws ProposalException, InvalidArgumentException {
 
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
 
         if (txID == null) {
@@ -1767,7 +1767,7 @@ public class Chain {
     public TransactionInfo queryTransactionByID(Peer peer, String txID) throws ProposalException, InvalidArgumentException {
 
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
 
         if (peer == null) {
@@ -1817,8 +1817,8 @@ public class Chain {
             throw new InvalidArgumentException("Must have peer to query.");
         }
 
-        if (!isSystemChain()) {
-            throw new InvalidArgumentException("queryChannels should only be invoked on system chain.");
+        if (!isSystemChannel()) {
+            throw new InvalidArgumentException("queryChannels should only be invoked on system channel.");
         }
 
         try {
@@ -1884,8 +1884,8 @@ public class Chain {
             throw new InvalidArgumentException("Must have peer to query.");
         }
 
-        if (!isSystemChain()) {
-            throw new InvalidArgumentException("queryInstalledChaincodes should only be invoked on system chain.");
+        if (!isSystemChannel()) {
+            throw new InvalidArgumentException("queryInstalledChaincodes should only be invoked on system channel.");
         }
 
         try {
@@ -1951,7 +1951,7 @@ public class Chain {
     public List<ChaincodeInfo> queryInstantiatedChaincodes(Peer peer) throws InvalidArgumentException, ProposalException {
 
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
 
         if (peer == null) {
@@ -2067,7 +2067,7 @@ public class Chain {
     private Collection<ProposalResponse> sendProposal(TransactionRequest proposalRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
 
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
 
         if (null == proposalRequest) {
@@ -2080,11 +2080,11 @@ public class Chain {
             throw new InvalidArgumentException("sendProposal peers to send to is empty.");
         }
         if (!isInitialized()) {
-            throw new ProposalException("sendProposal on chain not initialized.");
+            throw new ProposalException("sendProposal on channel not initialized.");
         }
 
         if (this.client.getUserContext() == null) {
-            throw new ProposalException("sendProposal on chain not initialized.");
+            throw new ProposalException("sendProposal on channel not initialized.");
         }
 
         try {
@@ -2124,7 +2124,7 @@ public class Chain {
         }
         List<Pair> peerFuturePairs = new ArrayList<>();
         for (Peer peer : peers) {
-            logger.debug(format("Chain %s send proposal to peer %s at url %s",
+            logger.debug(format("Channel %s send proposal to peer %s at url %s",
                     name, peer.getName(), peer.getUrl()));
             peerFuturePairs.add(new Pair(peer, peer.sendProposalAsync(signedProposal)));
         }
@@ -2139,7 +2139,7 @@ public class Chain {
                 fabricResponse = peerFuturePair.future.get(transactionContext.getProposalWaitTime(), TimeUnit.MILLISECONDS);
                 message = fabricResponse.getResponse().getMessage();
                 status = fabricResponse.getResponse().getStatus();
-                logger.debug(format("Chain %s got back from peer %s status: %d, message: %s",
+                logger.debug(format("Channel %s got back from peer %s status: %d, message: %s",
                         name, peerFuturePair.peer.getName(), status, message));
             } catch (InterruptedException e) {
                 message = "Sending proposal to " + peerFuturePair.peer.getName() + " failed because of interruption";
@@ -2169,7 +2169,7 @@ public class Chain {
             }
 
             ProposalResponse proposalResponse = new ProposalResponse(transactionContext.getTxID(),
-                    transactionContext.getChainID(), status, message);
+                    transactionContext.getChannelID(), status, message);
             proposalResponse.setProposalResponse(fabricResponse);
             proposalResponse.setProposal(signedProposal);
             proposalResponse.setPeer(peerFuturePair.peer);
@@ -2188,7 +2188,7 @@ public class Chain {
     // transactions order
 
     /**
-     * Send transaction to one of the orderers on the chain
+     * Send transaction to one of the orderers on the channels
      *
      * @param proposalResponses
      * @return
@@ -2211,7 +2211,7 @@ public class Chain {
         try {
 
             if (shutdown) {
-                throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+                throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
             }
 
             if (null == proposalResponses) {
@@ -2226,7 +2226,7 @@ public class Chain {
                 throw new InvalidArgumentException("sendTransaction Orderers to send to is empty.");
             }
             if (!isInitialized()) {
-                throw new TransactionException("sendTransaction on chain not initialized.");
+                throw new TransactionException("sendTransaction on channel not initialized.");
             }
 
             List<FabricProposalResponse.Endorsement> ed = new LinkedList<>();
@@ -2254,7 +2254,7 @@ public class Chain {
             Envelope transactionEnvelope = createTransactionEnvelop(transactionPayload);
 
             CompletableFuture<TransactionEvent> sret = registerTxListener(proposalTransactionID);
-            logger.debug(format("Chain %s sending transaction to orderer(s) with TxID %s ", name, proposalTransactionID));
+            logger.debug(format("Channel %s sending transaction to orderer(s) with TxID %s ", name, proposalTransactionID));
 
             boolean success = false;
 
@@ -2270,20 +2270,20 @@ public class Chain {
 
                     }
                 } catch (Exception e) {
-                    String emsg = format("Chain %s unsuccessful sendTransaction to orderer. Status %s", name, resp.getStatus());
+                    String emsg = format("Channel %s unsuccessful sendTransaction to orderer. Status %s", name, resp.getStatus());
                     logger.error(emsg);
 
                 }
 
-                //TransactionResponse tresp = new TransactionResponse(transactionContext.getTxID(), transactionContext.getChainID(), resp.getStatusValue(), resp.getStatus().name());
+                //TransactionResponse tresp = new TransactionResponse(transactionContext.getTxID(), transactionContext.getChannelID(), resp.getStatusValue(), resp.getStatus().name());
 
             }
 
             if (success) {
-                logger.debug(format("Chain %s successful sent to Orderer transaction id: %s", name, proposalTransactionID));
+                logger.debug(format("Channel %s successful sent to Orderer transaction id: %s", name, proposalTransactionID));
                 return sret;
             } else {
-                String emsg = format("Chain %s failed to place transaction %s on Orderer. Cause: UNSUCCESSFUL", name, proposalTransactionID);
+                String emsg = format("Channel %s failed to place transaction %s on Orderer. Cause: UNSUCCESSFUL", name, proposalTransactionID);
                 CompletableFuture<TransactionEvent> ret = new CompletableFuture<>();
                 ret.completeExceptionally(new Exception(emsg));
                 return ret;
@@ -2311,11 +2311,11 @@ public class Chain {
         return ceb.build();
     }
 
-    byte[] getChainConfigurationSignature(ChainConfiguration chainConfiguration, User signer) throws InvalidArgumentException {
+    byte[] getChannelConfigurationSignature(ChannelConfiguration channelConfiguration, User signer) throws InvalidArgumentException {
 
         try {
 
-            Envelope ccEnvelope = Envelope.parseFrom(chainConfiguration.getChainConfigurationAsBytes());
+            Envelope ccEnvelope = Envelope.parseFrom(channelConfiguration.getChannelConfigurationAsBytes());
 
             final Payload ccPayload = Payload.parseFrom(ccEnvelope.getPayload());
 
@@ -2343,7 +2343,7 @@ public class Chain {
         }
 
     }
-    ////////////////  Chain Block monitoring //////////////////////////////////
+    ////////////////  Channel Block monitoring //////////////////////////////////
 
     /**
      * registerBlockListener - Register a block listener.
@@ -2354,7 +2354,7 @@ public class Chain {
     public String registerBlockListener(BlockListener listener) throws InvalidArgumentException {
 
         if (shutdown) {
-            throw new InvalidArgumentException(format("Chain %s has been shutdown.", name));
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
 
         return new BL(listener).getHandle();
@@ -2365,9 +2365,9 @@ public class Chain {
      * A queue each eventing hub will write events to.
      */
 
-    private final ChainEventQue chainEventQue = new ChainEventQue();
+    private final ChannelEventQue channelEventQue = new ChannelEventQue();
 
-    class ChainEventQue {
+    class ChannelEventQue {
 
         private final BlockingQueue<BlockEvent> events = new LinkedBlockingQueue<>(); //Thread safe
         private Throwable eventException;
@@ -2402,7 +2402,7 @@ public class Chain {
 
         BlockEvent getNextEvent() throws EventHubException {
             if (shutdown) {
-                throw new EventHubException(format("Chain %s has been shutdown", name));
+                throw new EventHubException(format("Channel %s has been shutdown", name));
 
             }
             BlockEvent ret = null;
@@ -2432,7 +2432,7 @@ public class Chain {
 
             if (shutdown) {
 
-                throw new EventHubException(format("Chain %s has been shutdown.", name));
+                throw new EventHubException(format("Channel %s has been shutdown.", name));
 
             }
 
@@ -2459,7 +2459,7 @@ public class Chain {
             while (!shutdown) {
                 final BlockEvent blockEvent;
                 try {
-                    blockEvent = chainEventQue.getNextEvent();
+                    blockEvent = channelEventQue.getNextEvent();
                 } catch (EventHubException e) {
                     if (!shutdown) {
                         logger.error(e);
@@ -2476,7 +2476,7 @@ public class Chain {
                     final String blockchainID = blockEvent.getChannelId();
 
                     if (!Objects.equals(name, blockchainID)) {
-                        continue; // not targeted for this chain
+                        continue; // not targeted for this channel
                     }
 
                     final ArrayList<BL> blcopy = new ArrayList<>(blockListeners.size() + 3);
@@ -2488,7 +2488,7 @@ public class Chain {
                         try {
                             executorService.execute(() -> l.listener.received(blockEvent));
                         } catch (Throwable e) { //Don't let one register stop rest.
-                            logger.error("Error trying to call block listener on chain " + blockEvent.getChannelId(), e);
+                            logger.error("Error trying to call block listener on channel " + blockEvent.getChannelId(), e);
                         }
                     }
                 } catch (Exception e) {
@@ -2551,7 +2551,7 @@ public class Chain {
         BL(BlockListener listener) {
 
             handle = SDKUtil.generateUUID();
-            logger.debug(format("Chain %s blockListener %s starting", name, handle));
+            logger.debug(format("Channel %s blockListener %s starting", name, handle));
 
             this.listener = listener;
             synchronized (blockListeners) {
@@ -2572,7 +2572,7 @@ public class Chain {
      */
 
     private String registerTransactionListenerProcessor() throws InvalidArgumentException {
-        logger.debug(format("Chain %s registerTransactionListenerProcessor starting", name));
+        logger.debug(format("Channel %s registerTransactionListenerProcessor starting", name));
 
         // Transaction listener is internal Block listener for transactions
 
@@ -2584,7 +2584,7 @@ public class Chain {
 
             for (TransactionEvent transactionEvent : blockEvent.getTransactionEvents()) {
 
-                logger.debug(format("Chain %s got event for transaction %s ", name, transactionEvent.getTransactionID()));
+                logger.debug(format("Channel %s got event for transaction %s ", name, transactionEvent.getTransactionID()));
 
                 List<TL> txL = new ArrayList<>(txListeners.size() + 2);
                 synchronized (txListeners) {
@@ -2596,7 +2596,7 @@ public class Chain {
 
                 for (TL l : txL) {
                     try {
-                        // only if we get events from each eventhub on the chain fire the transactions event.
+                        // only if we get events from each eventhub on the channel fire the transactions event.
                         //   if (getEventHubs().containsAll(l.eventReceived(transactionEvent.getEventHub()))) {
                         if (getEventHubs().size() == l.eventReceived(transactionEvent.getEventHub()).size()) {
                             l.fire(transactionEvent);
@@ -2622,7 +2622,7 @@ public class Chain {
 
         Set<EventHub> eventReceived(EventHub eventHub) {
 
-            logger.debug(format("Chain %s seen transaction event %s for eventHub %s", name, txID, eventHub.toString()));
+            logger.debug(format("Channel %s seen transaction event %s for eventHub %s", name, txID, eventHub.toString()));
             seenEventHubs.add(eventHub);
             return seenEventHubs;
         }
@@ -2727,7 +2727,7 @@ public class Chain {
     }
 
     /**
-     * Shutdown the chain with all resources released.
+     * Shutdown the channel with all resources released.
      *
      * @param force force immediate shutdown.
      */

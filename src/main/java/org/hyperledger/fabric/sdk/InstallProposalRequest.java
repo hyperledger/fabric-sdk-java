@@ -25,27 +25,27 @@ import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 public class InstallProposalRequest extends TransactionRequest {
 
     private File chaincodeSourceLocation = null;
-    private InputStream chainCodeInputStream = null;
+    private InputStream chaincodeInputStream = null;
 
-    public InputStream getChainCodeInputStream() {
-        return chainCodeInputStream;
+    public InputStream getChaincodeInputStream() {
+        return chaincodeInputStream;
     }
 
     /**
      * Chaincode input stream containing the actual chaincode. Only format supported is a tar zip compressed input of the source.
      *
-     * @param chainCodeInputStream
+     * @param chaincodeInputStream
      * @throws InvalidArgumentException
      */
 
-    public void setChainCodeInputStream(InputStream chainCodeInputStream) throws InvalidArgumentException {
-        if (chainCodeInputStream == null) {
+    public void setChaincodeInputStream(InputStream chaincodeInputStream) throws InvalidArgumentException {
+        if (chaincodeInputStream == null) {
             throw new InvalidArgumentException("Chaincode input stream may not be null.");
         }
         if (chaincodeSourceLocation != null) {
             throw new InvalidArgumentException("Error setting chaincode input stream. Chaincode source location already set. Only one or the other maybe set.");
         }
-        this.chainCodeInputStream = chainCodeInputStream;
+        this.chaincodeInputStream = chaincodeInputStream;
     }
 
     public File getChaincodeSourceLocation() {
@@ -61,7 +61,7 @@ public class InstallProposalRequest extends TransactionRequest {
         if (chaincodeSourceLocation == null) {
             throw new InvalidArgumentException("Chaincode source location may not be null.");
         }
-        if (chainCodeInputStream != null) {
+        if (chaincodeInputStream != null) {
             throw new InvalidArgumentException("Error setting chaincode location. Chaincode input stream already set. Only one or the other maybe set.");
         }
 

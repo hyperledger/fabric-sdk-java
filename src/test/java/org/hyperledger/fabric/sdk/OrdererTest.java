@@ -14,19 +14,16 @@
 
 package org.hyperledger.fabric.sdk;
 
-
-
 import java.io.File;
-import java.io.IOException;
 
 import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Test;
 import org.junit.Ignore;
+import org.junit.Test;
 public class OrdererTest {
-        private static final String CHAIN_NAME = "chain1";
+        private static final String CHANNEL_NAME = "channel1";
         static HFClient hfclient = null;
         static Orderer orderer = null;
         static File tempFile;
@@ -44,14 +41,14 @@ public class OrdererTest {
                         Assert.fail("Unexpected Exception " + e.getMessage());
                 }
         }
-        
+
         @Test
-        public void testSetChain() {
+        public void testSetChannel() {
 
                 try {
-                        Chain chain = hfclient.newChain("chain");
-                        orderer.setChain(chain);
-                        Assert.assertTrue(chain == orderer.getChain());
+                        Channel channel = hfclient.newChannel("channel");
+                        orderer.setChannel(channel);
+                        Assert.assertTrue(channel == orderer.getChannel());
 
                 } catch (Exception e) {
                         Assert.fail("Unexpected Exception " + e.getMessage());
@@ -59,18 +56,19 @@ public class OrdererTest {
         }
 
         @Test
-        public void testSetNullChain() {
+        public void testSetNullChannel() {
 
                 try {
 
-                        orderer.setChain(null);
-                        Assert.fail("Expected null chain to throw exception.");
+                        orderer.setChannel(null);
+                        Assert.fail("Expected null channel to throw exception.");
 
                 } catch (Exception e) {
                         Assert.assertTrue( e.getClass() == InvalidArgumentException.class);
                 }
         }
-        @Test 
+
+        @Test
         public void testBadAddress() {
                 try {
                         orderer= hfclient.newOrderer("badorderer", "xxxxxx");
@@ -89,15 +87,15 @@ public class OrdererTest {
                 }
         }
         @Ignore
-        public void testGetChain() {
+        public void testGetChannel() {
                 try {
-                        Chain chain = hfclient.newChain("chain");
+                        Channel channel = hfclient.newChannel("channel");
                         orderer = hfclient.newOrderer("odererName", "grpc://localhost:5151");
-                        chain.addOrderer(orderer);
+                        channel.addOrderer(orderer);
                  } catch (Exception e) {
                         Assert.fail("Unexpected Exception " + e.getMessage());
                 }
-                        Assert.assertTrue("Test passed - ", orderer.getChain().getName().equalsIgnoreCase("chain"));
+                Assert.assertTrue("Test passed - ", orderer.getChannel().getName().equalsIgnoreCase("channel"));
         }
         @Test(expected=AssertionError.class)
         public void testBroadcast() {
@@ -111,7 +109,7 @@ public class OrdererTest {
                         Assert.fail("Transaction should not be null.");
                 } catch (Exception e) {
                         e.printStackTrace();
-                        Assert.fail("Expected null chain to throw exception.");
+                        Assert.fail("Expected null channel to throw exception.");
                 }
         }
         @Override
@@ -123,5 +121,5 @@ public class OrdererTest {
 
                 }
         }
-        
+
 }

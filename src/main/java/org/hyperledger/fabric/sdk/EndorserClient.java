@@ -33,7 +33,7 @@ import org.hyperledger.fabric.sdk.exception.PeerException;
 class EndorserClient {
     private static final Log logger = LogFactory.getLog(EndorserClient.class);
 
-    private ManagedChannel channel;
+    private ManagedChannel managedChannel;
     private EndorserGrpc.EndorserBlockingStub blockingStub;
     private EndorserGrpc.EndorserFutureStub futureStub;
     private boolean shutdown = false;
@@ -44,9 +44,9 @@ class EndorserClient {
      * @param channelBuilder The ChannelBuilder to build the endorser client
      */
     public EndorserClient(ManagedChannelBuilder<?> channelBuilder) {
-        channel = channelBuilder.build();
-        blockingStub = EndorserGrpc.newBlockingStub(channel);
-        futureStub = EndorserGrpc.newFutureStub(channel);
+        managedChannel = channelBuilder.build();
+        blockingStub = EndorserGrpc.newBlockingStub(managedChannel);
+        futureStub = EndorserGrpc.newFutureStub(managedChannel);
     }
 
     synchronized void shutdown(boolean force) {
@@ -54,9 +54,9 @@ class EndorserClient {
             return;
         }
         shutdown = true;
-        ManagedChannel lchannel = channel;
+        ManagedChannel lchannel = managedChannel;
         // let all referenced resource finalize
-        channel = null;
+        managedChannel = null;
         blockingStub = null;
         futureStub = null;
 
@@ -102,7 +102,7 @@ class EndorserClient {
     }
 
     boolean isChannelActive(){
-        ManagedChannel lchannel = channel;
+        ManagedChannel lchannel = managedChannel;
         return lchannel != null && !lchannel.isShutdown() && ! lchannel.isTerminated();
     }
 

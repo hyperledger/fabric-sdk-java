@@ -21,7 +21,7 @@ import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
-public class ProposalResponse extends ChainCodeResponse {
+public class ProposalResponse extends ChaincodeResponse {
 
     private static final Log logger = LogFactory.getLog(ProposalResponse.class);
     Config config = Config.getConfig();
@@ -33,10 +33,10 @@ public class ProposalResponse extends ChainCodeResponse {
     private FabricProposal.Proposal proposal;
     private FabricProposalResponse.ProposalResponse proposalResponse;
     private Peer peer = null;
-    private ChainCodeID chaincodeID = null;
+    private ChaincodeID chaincodeID = null;
 
-    ProposalResponse(String transactionID, String chainCodeID, int status, String message) {
-        super(transactionID, chainCodeID, status, message);
+    ProposalResponse(String transactionID, String chaincodeID, int status, String message) {
+        super(transactionID, chaincodeID, status, message);
 
     }
 
@@ -158,11 +158,11 @@ public class ProposalResponse extends ChainCodeResponse {
 
     /**
      * Chaincode ID that was executed.
-     * @return See {@link ChainCodeID}
+     * @return See {@link ChaincodeID}
      * @throws InvalidArgumentException
      */
 
-    public ChainCodeID getChainCodeID() throws InvalidArgumentException {
+    public ChaincodeID getChaincodeID() throws InvalidArgumentException {
 
         try {
 
@@ -171,7 +171,7 @@ public class ProposalResponse extends ChainCodeResponse {
                 Header header = Header.parseFrom(proposal.getHeader());
                 Common.ChannelHeader channelHeader = Common.ChannelHeader.parseFrom(header.getChannelHeader());
                 ChaincodeHeaderExtension chaincodeHeaderExtension = ChaincodeHeaderExtension.parseFrom(channelHeader.getExtension());
-                chaincodeID = new ChainCodeID(chaincodeHeaderExtension.getChaincodeId());
+                chaincodeID = new ChaincodeID(chaincodeHeaderExtension.getChaincodeId());
             }
             return chaincodeID;
 
@@ -182,13 +182,13 @@ public class ProposalResponse extends ChainCodeResponse {
     }
 
     /**
-     * ChainCodeActionResponsePayload is the result of the executing chaincode.
+     * ChaincodeActionResponsePayload is the result of the executing chaincode.
      *
      * @return the result of the executing chaincode.
      * @throws InvalidProtocolBufferException
      */
 
-    public byte[] getChainCodeActionResponsePayload() throws InvalidProtocolBufferException, InvalidArgumentException {
+    public byte[] getChaincodeActionResponsePayload() throws InvalidProtocolBufferException, InvalidArgumentException {
 
         try {
 
@@ -206,13 +206,13 @@ public class ProposalResponse extends ChainCodeResponse {
     }
 
     /**
-     * getChainCodeActionResponseStatus returns the what chaincode executions set as the return status.
+     * getChaincodeActionResponseStatus returns the what chaincode executions set as the return status.
      *
      * @return status code.
      * @throws InvalidArgumentException
      */
 
-    public int getChainCodeActionResponseStatus() throws InvalidArgumentException {
+    public int getChaincodeActionResponseStatus() throws InvalidArgumentException {
 
         try {
 
@@ -228,12 +228,12 @@ public class ProposalResponse extends ChainCodeResponse {
     }
 
     /**
-     * getChainCodeActionResponseReadWriteSetInfo get this proposals read write set.
+     * getChaincodeActionResponseReadWriteSetInfo get this proposals read write set.
      * @return The read write set. See {@link TxReadWriteSetInfo}
      * @throws InvalidArgumentException
      */
 
-    public TxReadWriteSetInfo getChainCodeActionResponseReadWriteSetInfo() throws InvalidArgumentException {
+    public TxReadWriteSetInfo getChaincodeActionResponseReadWriteSetInfo() throws InvalidArgumentException {
 
         try {
 

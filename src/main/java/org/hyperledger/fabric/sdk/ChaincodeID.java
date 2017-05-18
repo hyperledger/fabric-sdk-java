@@ -14,52 +14,47 @@
 
 package org.hyperledger.fabric.sdk;
 
-
-import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID;
-
 /**
- * ChainCodeID identifies chaincode.
+ * ChaincodeID identifies chaincode.
  */
-public class ChainCodeID {
+public class ChaincodeID {
 
-    private final ChaincodeID fabricChainCodeID;
+    private final org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID fabricChaincodeID;
 
-    private ChainCodeID() {
+    private ChaincodeID() {
 
-        fabricChainCodeID = null;
+        fabricChaincodeID = null;
 
     }
 
-
-    public ChaincodeID getFabricChainCodeID() {
-        return fabricChainCodeID;
+    public org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID getFabricChaincodeID() {
+        return fabricChaincodeID;
     }
 
-
-    ChainCodeID(ChaincodeID chaincodeID) {
-        this.fabricChainCodeID = chaincodeID;
+    ChaincodeID(org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID chaincodeID) {
+        this.fabricChaincodeID = chaincodeID;
     }
 
     public String getName() {
-        return fabricChainCodeID.getName();
+        return fabricChaincodeID.getName();
     }
 
     public String getPath() {
-        return fabricChainCodeID.getPath();
+        return fabricChaincodeID.getPath();
 
     }
 
     public String getVersion() {
-        return fabricChainCodeID.getVersion();
+        return fabricChaincodeID.getVersion();
 
     }
 
     /**
-     * Build a new ChainCodeID
+     * Build a new ChaincodeID
      */
 
     public static class Builder {
-        private final ChaincodeID.Builder protoBuilder = ChaincodeID.newBuilder();
+        private final org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID.Builder protoBuilder = org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID.newBuilder();
 
         private Builder() {
         }
@@ -75,7 +70,7 @@ public class ChainCodeID {
         }
 
         /**
-         * Set the version of the ChainCode
+         * Set the version of the Chaincode
          *
          * @param version of the chaincode
          * @return Builder
@@ -99,8 +94,8 @@ public class ChainCodeID {
             return this;
         }
 
-        public ChainCodeID build() {
-            return new ChainCodeID(this.protoBuilder.build());
+        public ChaincodeID build() {
+            return new ChaincodeID(this.protoBuilder.build());
         }
     }
 

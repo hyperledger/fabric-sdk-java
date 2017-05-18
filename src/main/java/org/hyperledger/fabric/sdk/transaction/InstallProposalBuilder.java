@@ -46,7 +46,7 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
     private String chaincodeVersion;
     private TransactionRequest.Type chaincodeLanguage;
     protected String action = "install";
-    private InputStream chainCodeInputStream;
+    private InputStream chaincodeInputStream;
 
     protected InstallProposalBuilder() {
         super();
@@ -109,11 +109,11 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
         if (SDKUtil.isNullOrEmpty(chaincodePath)) {
             throw new IllegalArgumentException("Missing chaincodePath in InstallRequest");
         }
-        if (null == chaincodeSource && chainCodeInputStream == null) {
+        if (null == chaincodeSource && chaincodeInputStream == null) {
             throw new IllegalArgumentException("Missing chaincode source or chaincode inputstream in InstallRequest");
         }
 
-        if (null != chaincodeSource && chainCodeInputStream != null) {
+        if (null != chaincodeSource && chaincodeInputStream != null) {
             throw new IllegalArgumentException("Both chaincode source and chaincode inputstream in InstallRequest were set. Specify on or the other.");
         }
 
@@ -164,13 +164,13 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
             logger.info(format("Installing '%s'  %s chaincode from directory: '%s' with source location: '%s'. chaincodePath:'%s'",
                     chaincodeID, dplang, projectSourceDir.getAbsolutePath(), targetPathPrefix, chaincodePath));
 
-            // generate chain code source tar
+            // generate chaincode source tar
             data = SDKUtil.generateTarGz(projectSourceDir, targetPathPrefix);
 
         } else {
             logger.info(format("Installing '%s'  %s chaincode chaincodePath:'%s' from input stream",
                     chaincodeID, dplang, chaincodePath));
-            data = IOUtils.toByteArray(chainCodeInputStream);
+            data = IOUtils.toByteArray(chaincodeInputStream);
         }
 
         final ChaincodeDeploymentSpec depspec = createDeploymentSpec(
@@ -206,8 +206,8 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
         this.chaincodeVersion = chaincodeVersion;
     }
 
-    public void setChainCodeInputStream(InputStream chainCodeInputStream) {
-        this.chainCodeInputStream = chainCodeInputStream;
+    public void setChaincodeInputStream(InputStream chaincodeInputStream) {
+        this.chaincodeInputStream = chaincodeInputStream;
 
     }
 }

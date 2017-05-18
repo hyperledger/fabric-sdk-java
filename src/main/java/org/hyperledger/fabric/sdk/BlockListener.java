@@ -19,7 +19,7 @@ package org.hyperledger.fabric.sdk;
  */
 public interface BlockListener {
     /**
-     * Receive a block event from  the Chain
+     * Receive a block event from  the Channel
      *
      * @param blockEvent The block being received.
      */

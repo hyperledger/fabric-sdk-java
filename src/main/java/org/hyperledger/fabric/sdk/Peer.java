@@ -39,7 +39,7 @@ public class Peer {
     private final String name;
     private final String url;
     private boolean shutdown = false;
-    private Chain chain;
+    private Channel channel;
 
     Peer(String name, String grpcURL, Properties properties) throws InvalidArgumentException {
 
@@ -76,31 +76,31 @@ public class Peer {
     }
 
     /**
-     * Set the chain the peer is on.
+     * Set the channel the peer is on.
      *
-     * @param chain
+     * @param channel
      */
 
-    void setChain(Chain chain) throws InvalidArgumentException {
+    void setChannel(Channel channel) throws InvalidArgumentException {
 
-        if (null != this.chain) {
-            throw new InvalidArgumentException(format("Can not add peer %s to chain %s because it already belongs to chain %s.",
-                    name, chain.getName(), this.chain.getName()));
+        if (null != this.channel) {
+            throw new InvalidArgumentException(format("Can not add peer %s to channel %s because it already belongs to channel %s.",
+                    name, channel.getName(), this.channel.getName()));
         }
 
-        this.chain = chain;
+        this.channel = channel;
 
     }
 
     /**
-     * The chain the peer is set on.
+     * The channel the peer is set on.
      *
      * @return
      */
 
-    Chain getChain() {
+    Channel getChannel() {
 
-        return chain;
+        return channel;
 
     }
 
@@ -206,7 +206,7 @@ public class Peer {
             return;
         }
         shutdown = true;
-        chain = null;
+        channel = null;
 
         EndorserClient lendorserClent = endorserClent;
 

@@ -84,28 +84,28 @@ public class Orderer {
         return url;
     }
 
-    void setChain(Chain chain) throws InvalidArgumentException {
-        if (chain == null) {
-            throw new InvalidArgumentException("setChain Chain can not be null");
+    void setChannel(Channel channel) throws InvalidArgumentException {
+        if (channel == null) {
+            throw new InvalidArgumentException("setChannel Channel can not be null");
         }
 
-        if (null != this.chain) {
-            throw new InvalidArgumentException(format("Can not add orderer  %s to chain %s because it already belongs to chain %s.",
-                    name, chain.getName(), this.chain.getName()));
+        if (null != this.channel) {
+            throw new InvalidArgumentException(format("Can not add orderer  %s to channel %s because it already belongs to channel %s.",
+                    name, channel.getName(), this.channel.getName()));
         }
 
-        this.chain = chain;
+        this.channel = channel;
     }
 
-    private Chain chain;
+    private Channel channel;
 
     /**
-     * Get the chain of which this orderer is a member.
+     * Get the channel of which this orderer is a member.
      *
-     * @return {Chain} The chain of which this orderer is a member.
+     * @return {Channel} The channel of which this orderer is a member.
      */
-    Chain getChain() {
-        return this.chain;
+    Channel getChannel() {
+        return this.channel;
     }
 
     /**
@@ -190,7 +190,7 @@ public class Orderer {
         }
 
         shutdown = true;
-        chain = null;
+        channel = null;
 
     }
 

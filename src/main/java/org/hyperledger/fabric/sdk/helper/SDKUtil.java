@@ -60,10 +60,10 @@ public class SDKUtil {
     private static final int maxLogStringLength = confg.maxLogStringLength();
 
     /**
-     * Generate parameter hash for the given chain code path,func and args
+     * Generate parameter hash for the given chaincode path,func and args
      *
-     * @param path Chain code path
-     * @param func Chain code function name
+     * @param path Chaincode path
+     * @param func Chaincode function name
      * @param args List of arguments
      * @return hash of path, func and args
      */
@@ -81,10 +81,10 @@ public class SDKUtil {
     }
 
     /**
-     * Generate hash of a chain code directory
+     * Generate hash of a chaincode directory
      *
      * @param rootDir      Root directory
-     * @param chaincodeDir Chain code directory
+     * @param chaincodeDir Channel code directory
      * @param hash         Previous hash (if any)
      * @return hash of the directory
      * @throws IOException

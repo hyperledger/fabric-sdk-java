@@ -31,8 +31,6 @@ import org.hyperledger.fabric.sdk.User;
 public class SampleUser implements User, Serializable {
     private static final long serialVersionUID = 8077132186383604355L;
 
-
-    //   private transient Chain chain;
     private String name;
     private Set<String> roles;
     private String account;

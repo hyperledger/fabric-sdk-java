@@ -14,16 +14,13 @@
 
 package org.hyperledger.fabric.sdk;
 
-import java.io.File;
-
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
-public class ChainTest {
-    private static final String CHAIN_NAME = "chain1";
+public class ChannelTest {
+    private static final String CHANNEL_NAME = "channel1";
     static HFClient hfclient = null;
 
 
@@ -43,17 +40,17 @@ public class ChainTest {
     }
 
     @Test
-    public void testChainCreation() {
+    public void testChannelCreation() {
 
         try {
 
-            final String CHAIN_NAME = "chain3";
-            Chain testchain = new Chain(CHAIN_NAME, hfclient);
-            Assert.assertEquals(CHAIN_NAME, testchain.getName());
-            Assert.assertEquals(testchain.client, hfclient);
-            Assert.assertEquals(testchain.getOrderers().size(), 0);
-            Assert.assertEquals(testchain.getPeers().size(), 0);
-            Assert.assertEquals(testchain.isInitialized(), false);
+            final String CHANNEL_NAME = "channel3";
+            Channel testchannel = new Channel(CHANNEL_NAME, hfclient);
+            Assert.assertEquals(CHANNEL_NAME, testchannel.getName());
+            Assert.assertEquals(testchannel.client, hfclient);
+            Assert.assertEquals(testchannel.getOrderers().size(), 0);
+            Assert.assertEquals(testchannel.getPeers().size(), 0);
+            Assert.assertEquals(testchannel.isInitialized(), false);
 
 
         } catch (InvalidArgumentException e) {
@@ -63,18 +60,18 @@ public class ChainTest {
     }
 
     @Test
-    public void testChainAddPeer() {
+    public void testChannelAddPeer() {
 
         try {
 
-            final String CHAIN_NAME = "chain3";
-            final Chain testchain = new Chain(CHAIN_NAME, hfclient);
+            final String CHANNEL_NAME = "channel3";
+            final Channel testchannel = new Channel(CHANNEL_NAME, hfclient);
             final Peer peer = hfclient.newPeer("peer_" , "grpc://localhost:7051");
 
-            testchain.addPeer(peer);
+            testchannel.addPeer(peer);
 
-            Assert.assertEquals(testchain.getPeers().size(), 1);
-            Assert.assertEquals(testchain.getPeers().iterator().next(), peer);
+            Assert.assertEquals(testchannel.getPeers().size(), 1);
+            Assert.assertEquals(testchannel.getPeers().iterator().next(), peer);
 
 
         } catch (InvalidArgumentException e) {
@@ -84,19 +81,18 @@ public class ChainTest {
     }
 
     @Test
-    public void testChainAddOrder() {
+    public void testChannelAddOrder() {
 
         try {
 
-            final String CHAIN_NAME = "chain3";
-            final Chain testchain = new Chain(CHAIN_NAME, hfclient);
+            final String CHANNEL_NAME = "channel3";
+            final Channel testChannel = new Channel(CHANNEL_NAME, hfclient);
             final Orderer orderer = hfclient.newOrderer("testorder", "grpc://localhost:7051");
 
+            testChannel.addOrderer(orderer);
 
-            testchain.addOrderer(orderer);
-
-            Assert.assertEquals(testchain.getOrderers().size(), 1);
-            Assert.assertEquals(testchain.getOrderers().iterator().next(), orderer);
+            Assert.assertEquals(testChannel.getOrderers().size(), 1);
+            Assert.assertEquals(testChannel.getOrderers().iterator().next(), orderer);
 
 
         } catch (InvalidArgumentException e) {
@@ -106,77 +102,75 @@ public class ChainTest {
     }
 
     @Test
-    public void testChainAddNullPeer() {
-        Chain testchain = null;
+    public void testChannelAddNullPeer() {
+        Channel testChannel = null;
 
         try {
 
-            final String CHAIN_NAME = "chain3";
-            testchain = new Chain(CHAIN_NAME, hfclient);
+            final String CHANNEL_NAME = "channel3";
+            testChannel = new Channel(CHANNEL_NAME, hfclient);
 
-
-            testchain.addPeer(null);
+            testChannel.addPeer(null);
 
             Assert.fail("Expected set null peer to throw exception.");
 
 
         } catch (InvalidArgumentException e) {
-            Assert.assertEquals(testchain.getPeers().size(), 0);
+            Assert.assertEquals(testChannel.getPeers().size(), 0);
             Assert.assertTrue(e.getClass() == InvalidArgumentException.class);
         }
 
     }
 
     @Test
-    public void testChainAddNoNamePeer() {
-        Chain testchain = null;
+    public void testChannelAddNoNamePeer() {
+        Channel testChannel = null;
 
         try {
 
-            final String CHAIN_NAME = "chain3";
-            testchain = new Chain(CHAIN_NAME, hfclient);
+            final String CHANNEL_NAME = "channel3";
+            testChannel = new Channel(CHANNEL_NAME, hfclient);
             final Peer peer = hfclient.newPeer(null , "grpc://localhost:7051");
 
-            testchain.addPeer(peer);
+            testChannel.addPeer(peer);
             Assert.fail("Expected no named peer to throw exception.");
 
 
         } catch (Exception e) {
-            Assert.assertEquals(testchain.getPeers().size(), 0);
+            Assert.assertEquals(testChannel.getPeers().size(), 0);
             Assert.assertTrue(e.getClass() == InvalidArgumentException.class);
         }
 
     }
 
     @Test
-    public void testChainAddNullOrder() {
-        Chain testchain = null;
+    public void testChannelAddNullOrder() {
+        Channel testChannel = null;
 
         try {
 
-            final String CHAIN_NAME = "chain3";
-            testchain = new Chain(CHAIN_NAME, hfclient);
+            final String CHANNEL_NAME = "channel3";
+            testChannel = new Channel(CHANNEL_NAME, hfclient);
 
-
-            testchain.addOrderer(null);
+            testChannel.addOrderer(null);
 
             Assert.fail("Expected set null order to throw exception.");
 
         } catch (InvalidArgumentException e) {
-            Assert.assertEquals(testchain.getOrderers().size(), 0);
+            Assert.assertEquals(testChannel.getOrderers().size(), 0);
             Assert.assertTrue(e.getClass() == InvalidArgumentException.class);
         }
 
     }
 
     @Test
-    public void testChainInitialize() { //test may not be doable once initialize is done
+    public void testChannelInitialize() { //test may not be doable once initialize is done
 
         try {
 
-            class MockChain extends Chain{
+            class MockChannel extends Channel {
 
-                MockChain(String name, HFClient client) throws InvalidArgumentException {
+                MockChannel(String name, HFClient client) throws InvalidArgumentException {
                     super(name, client);
                 }
 
@@ -186,15 +180,14 @@ public class ChainTest {
                 }
             }
 
-            final String CHAIN_NAME = "chain3";
-            final Chain testchain = new MockChain(CHAIN_NAME, hfclient);
+            final String CHANNEL_NAME = "channel3";
+            final Channel testChannel = new MockChannel(CHANNEL_NAME, hfclient);
             final Peer peer = hfclient.newPeer("peer_" , "grpc://localhost:7051");
 
-
-            testchain.addPeer(peer);
-            Assert.assertEquals(testchain.isInitialized(), false);
-            testchain.initialize();
-            Assert.assertEquals(testchain.isInitialized(), true);
+            testChannel.addPeer(peer);
+            Assert.assertEquals(testChannel.isInitialized(), false);
+            testChannel.initialize();
+            Assert.assertEquals(testChannel.isInitialized(), true);
 
 
         } catch (Exception e) {
@@ -204,22 +197,22 @@ public class ChainTest {
     }
 
     @Test
-    public void testChainInitializeNoPeer() {
-        Chain testchain = null;
+    public void testChannelInitializeNoPeer() {
+        Channel testChannel = null;
 
         try {
 
-            final String CHAIN_NAME = "chain3";
-            testchain = new Chain(CHAIN_NAME, hfclient);
+            final String CHANNEL_NAME = "channel3";
+            testChannel = new Channel(CHANNEL_NAME, hfclient);
 
-            Assert.assertEquals(testchain.isInitialized(), false);
-            testchain.initialize();
+            Assert.assertEquals(testChannel.isInitialized(), false);
+            testChannel.initialize();
             Assert.fail("Expected initialize to throw exception with no peers.");
 
         } catch (Exception e) {
 
             Assert.assertTrue(e.getClass() == InvalidArgumentException.class);
-            Assert.assertEquals(testchain.isInitialized(), false);
+            Assert.assertEquals(testChannel.isInitialized(), false);
         }
 
     }

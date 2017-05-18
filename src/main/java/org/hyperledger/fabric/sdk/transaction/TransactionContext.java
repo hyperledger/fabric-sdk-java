@@ -28,7 +28,7 @@ import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.DERUTF8String;
 import org.hyperledger.fabric.protos.msp.Identities;
-import org.hyperledger.fabric.sdk.Chain;
+import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.helper.Config;
@@ -53,7 +53,7 @@ public class TransactionContext {
 
     private final CryptoSuite cryptoPrimitives;
     private final User user;
-    private final Chain chain;
+    private final Channel channel;
 
     private final String txID;
 
@@ -61,12 +61,12 @@ public class TransactionContext {
     private long proposalWaitTime = config.getProposalWaitTime();
     private final Identities.SerializedIdentity identity;
 
-    public TransactionContext(Chain chain, User user, CryptoSuite cryptoPrimitives) {
+    public TransactionContext(Channel channel, User user, CryptoSuite cryptoPrimitives) {
 
         this.user = user;
-        this.chain = chain;
+        this.channel = channel;
         //TODO clean up when public classes are interfaces.
-        this.verify = !"".equals(chain.getName());  //if name is not blank not system chain and need verify.
+        this.verify = !"".equals(channel.getName());  //if name is not blank not system channel and need verify.
 
         //  this.txID = transactionID;
         this.cryptoPrimitives = cryptoPrimitives;
@@ -104,12 +104,12 @@ public class TransactionContext {
     }
 
     /**
-     * Get the chain with which this transaction context is associated.
+     * Get the channel with which this transaction context is associated.
      *
-     * @return The chain
+     * @return The channel
      */
-    public Chain getChain() {
-        return this.chain;
+    public Channel getChannel() {
+        return this.channel;
     }
 
     /**
@@ -164,13 +164,13 @@ public class TransactionContext {
     private void decryptResult(Buffer ct) {
         /* TODO implement decryptResult function
         let key = new Buffer(
-            this.chain.cryptoPrimitives.hmacAESTruncated(
+            this.channel.cryptoPrimitives.hmacAESTruncated(
                 this.user.getEnrollment().queryStateKey,
                 [CONFIDENTIALITY_1_2_STATE_KD_C6].concat(this.nonce))
         );
 
         logger.debug("Decrypt Result [%s]", ct.toString("hex"));
-        return this.chain.cryptoPrimitives.aes256GCMDecrypt(key, ct);
+        return this.channel.cryptoPrimitives.aes256GCMDecrypt(key, ct);
         */
     }
 
@@ -241,11 +241,11 @@ public class TransactionContext {
     }
 
     public boolean isDevMode() {
-        return chain.isDevMode();
+        return channel.isDevMode();
     }
 
-    public String getChainID() {
-        return getChain().getName();
+    public String getChannelID() {
+        return getChannel().getName();
     }
 
     public String getTxID() {

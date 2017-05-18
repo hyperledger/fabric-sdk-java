@@ -38,7 +38,7 @@ public class CSCCProposalBuilder extends ProposalBuilder {
         ccType(GOLANG);
         chaincodeID(CHAINCODE_ID_CSCC);
 
-        if (!"".equals(context.getChain().getName())) { //if not "" this is not the system channel
+        if (!"".equals(context.getChannel().getName())) { //if not "" this is not the system channel
             //TODO use isSystem when public classes are interfaces.
             throw new ProposalException("cscc chaincode not called on system channel.");
 

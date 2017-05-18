@@ -134,7 +134,7 @@ public class InstantiateProposalBuilder extends LSCCProposalBuilder {
 
         List<ByteString> argList = new ArrayList<>();
         argList.add(ByteString.copyFrom(action, StandardCharsets.UTF_8));
-        argList.add(ByteString.copyFrom(context.getChainID(), StandardCharsets.UTF_8));
+        argList.add(ByteString.copyFrom(context.getChannelID(), StandardCharsets.UTF_8));
         argList.add(depspec.toByteString());
         if (chaincodePolicy != null) {
             argList.add(ByteString.copyFrom(chaincodePolicy));
