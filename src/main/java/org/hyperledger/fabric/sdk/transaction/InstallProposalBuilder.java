@@ -15,7 +15,6 @@
 package org.hyperledger.fabric.sdk.transaction;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
@@ -173,10 +172,6 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
                     chaincodeID, dplang, chaincodePath));
             data = IOUtils.toByteArray(chainCodeInputStream);
         }
-
-        FileOutputStream fos = new FileOutputStream("/tmp/mydata.tgz");
-        fos.write(data);
-        fos.close();
 
         final ChaincodeDeploymentSpec depspec = createDeploymentSpec(
                 ccType, this.chaincodeName, this.chaincodePath, this.chaincodeVersion, null, data);
