@@ -15,6 +15,7 @@
 package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.nio.file.Paths;
@@ -52,6 +53,7 @@ import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
+import org.hyperledger.fabric.sdk.helper.ChainUtils;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
 import org.hyperledger.fabric_ca.sdk.HFCAClient;
@@ -631,7 +633,7 @@ public class End2endIT {
         txExpected.put("writeset1", "Missing writeset for channel bar block 1");
     }
 
-    void blockWalker(Channel channel) throws InvalidProtocolBufferException, InvalidArgumentException, ProposalException, UnsupportedEncodingException {
+    void blockWalker(Channel channel) throws InvalidProtocolBufferException, InvalidArgumentException, ProposalException, UnsupportedEncodingException, IOException {
 
         try {
             BlockchainInfo channelInfo = channel.queryBlockchainInfo();
@@ -642,6 +644,7 @@ public class End2endIT {
 
                 out("current block number %d has data hash: %s", blockNumber, Hex.encodeHexString(returnedBlock.getDataHash()));
                 out("current block number %d has previous hash id: %s", blockNumber, Hex.encodeHexString(returnedBlock.getPreviousHash()));
+                out("current block number %d has calculated block hash is %s", blockNumber, Hex.encodeHexString(ChainUtils.calculateBlockHash(blockNumber, returnedBlock.getPreviousHash(), returnedBlock.getDataHash())));
 
                 final int envelopCount = returnedBlock.getEnvelopCount();
                 assertEquals(1, envelopCount);
