@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.hyperledger.fabric.sdk.helper.SDKUtil;
+import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdkintegration.SampleOrg;
 
 /**
@@ -178,7 +178,7 @@ public class TestConfig {
 
     private String grpcTLSify(String location) {
         location = location.trim();
-        Exception e = SDKUtil.checkGrpcUrl(location);
+        Exception e = Utils.checkGrpcUrl(location);
         if (e != null) {
             throw new RuntimeException(String.format("Bad TEST parameters for grpc url %s", location), e);
         }

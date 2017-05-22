@@ -86,7 +86,7 @@ import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
 import org.hyperledger.fabric.sdk.helper.Config;
-import org.hyperledger.fabric.sdk.helper.SDKUtil;
+import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.transaction.InstallProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.InstantiateProposalBuilder;
@@ -107,8 +107,8 @@ import static org.hyperledger.fabric.protos.common.Common.Status;
 import static org.hyperledger.fabric.protos.common.Configtx.ConfigValue;
 import static org.hyperledger.fabric.protos.common.Policies.SignaturePolicy;
 import static org.hyperledger.fabric.protos.common.Policies.SignaturePolicyEnvelope;
-import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
-import static org.hyperledger.fabric.sdk.helper.SDKUtil.toHexString;
+import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
+import static org.hyperledger.fabric.sdk.helper.Utils.toHexString;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createChannelHeader;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getCurrentFabricTimestamp;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getSignatureHeaderAsByteString;
@@ -298,7 +298,7 @@ public class Channel {
             name = SYSTEM_CHANNEL_NAME;///It's special !
             initialized = true;
         } else {
-            if (SDKUtil.isNullOrEmpty(name)) {
+            if (Utils.isNullOrEmpty(name)) {
                 throw new InvalidArgumentException("Channel name is invalid can not be null or empty.");
             }
         }
@@ -355,7 +355,7 @@ public class Channel {
         if (null == peer) {
             throw new InvalidArgumentException("Peer is invalid can not be null.");
         }
-        if (SDKUtil.isNullOrEmpty(peer.getName())) {
+        if (Utils.isNullOrEmpty(peer.getName())) {
             throw new InvalidArgumentException("Peer added to channel has no name.");
         }
 
@@ -586,7 +586,7 @@ public class Channel {
             throw new InvalidArgumentException("Channel needs at least one peer.");
 
         }
-        if (SDKUtil.isNullOrEmpty(name)) {
+        if (Utils.isNullOrEmpty(name)) {
 
             throw new InvalidArgumentException("Can not initialize Channel without a valid name.");
 
@@ -710,7 +710,7 @@ public class Channel {
 
                     SignatureHeader deliverSignatureHeader = SignatureHeader.newBuilder()
                             .setCreator(identity.toByteString())
-                            .setNonce(ByteString.copyFrom(SDKUtil.generateNonce()))
+                            .setNonce(ByteString.copyFrom(Utils.generateNonce()))
                             .build();
 
                     Header deliverHeader = Header.newBuilder()
@@ -2550,7 +2550,7 @@ public class Channel {
 
         BL(BlockListener listener) {
 
-            handle = SDKUtil.generateUUID();
+            handle = Utils.generateUUID();
             logger.debug(format("Channel %s blockListener %s starting", name, handle));
 
             this.listener = listener;

@@ -30,7 +30,7 @@ import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.sdk.TransactionRequest;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
-import org.hyperledger.fabric.sdk.helper.SDKUtil;
+import org.hyperledger.fabric.sdk.helper.Utils;
 
 import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createDeploymentSpec;
@@ -106,7 +106,7 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
         logger.debug("createNetModeTransaction");
 
         // Verify that chaincodePath is being passed
-        if (SDKUtil.isNullOrEmpty(chaincodePath)) {
+        if (Utils.isNullOrEmpty(chaincodePath)) {
             throw new IllegalArgumentException("Missing chaincodePath in InstallRequest");
         }
         if (null == chaincodeSource && chaincodeInputStream == null) {
@@ -165,7 +165,7 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
                     chaincodeID, dplang, projectSourceDir.getAbsolutePath(), targetPathPrefix, chaincodePath));
 
             // generate chaincode source tar
-            data = SDKUtil.generateTarGz(projectSourceDir, targetPathPrefix);
+            data = Utils.generateTarGz(projectSourceDir, targetPathPrefix);
 
         } else {
             logger.info(format("Installing '%s'  %s chaincode chaincodePath:'%s' from input stream",

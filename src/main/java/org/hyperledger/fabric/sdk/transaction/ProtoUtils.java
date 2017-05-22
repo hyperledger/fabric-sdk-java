@@ -38,8 +38,8 @@ import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.hyperledger.fabric.sdk.helper.SDKUtil.logString;
-import static org.hyperledger.fabric.sdk.helper.SDKUtil.toHexString;
+import static org.hyperledger.fabric.sdk.helper.Utils.logString;
+import static org.hyperledger.fabric.sdk.helper.Utils.toHexString;
 
 public class ProtoUtils {
 

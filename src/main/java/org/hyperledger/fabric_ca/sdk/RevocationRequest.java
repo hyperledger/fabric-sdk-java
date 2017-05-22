@@ -22,7 +22,7 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonWriter;
 
-import static org.hyperledger.fabric.sdk.helper.SDKUtil.isNullOrEmpty;
+import static org.hyperledger.fabric.sdk.helper.Utils.isNullOrEmpty;
 
 /**
  * A RevocationRequest defines the attributes required to revoke credentials with member service.

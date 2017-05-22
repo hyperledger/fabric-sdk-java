@@ -83,7 +83,7 @@ import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.User;
-import org.hyperledger.fabric.sdk.helper.SDKUtil;
+import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
@@ -150,20 +150,20 @@ public class HFCAClient {
         }
         final String host = purl.getHost();
 
-        if (SDKUtil.isNullOrEmpty(host)) {
+        if (Utils.isNullOrEmpty(host)) {
             throw new IllegalArgumentException("HFCAClient url needs host");
         }
 
         final String path = purl.getPath();
 
-        if (!SDKUtil.isNullOrEmpty(path)) {
+        if (!Utils.isNullOrEmpty(path)) {
 
             throw new IllegalArgumentException("HFCAClient url does not support path portion in url remove path: '" + path + "'.");
         }
 
         final String query = purl.getQuery();
 
-        if (!SDKUtil.isNullOrEmpty(query)) {
+        if (!Utils.isNullOrEmpty(query)) {
 
             throw new IllegalArgumentException("HFCAClient url does not support query portion in url remove query: '" + query + "'.");
         }
@@ -217,7 +217,7 @@ public class HFCAClient {
 
     public String register(RegistrationRequest req, User registrar) throws RegistrationException, InvalidArgumentException {
 
-        if (SDKUtil.isNullOrEmpty(req.getEnrollmentID())) {
+        if (Utils.isNullOrEmpty(req.getEnrollmentID())) {
             throw new InvalidArgumentException("EntrollmentID cannot be null or empty");
         }
 
@@ -276,10 +276,10 @@ public class HFCAClient {
 
         logger.debug(format("url:%s enroll user: %s", url, user));
 
-        if (SDKUtil.isNullOrEmpty(user)) {
+        if (Utils.isNullOrEmpty(user)) {
             throw new InvalidArgumentException("enrollment user is not set");
         }
-        if (SDKUtil.isNullOrEmpty(secret)) {
+        if (Utils.isNullOrEmpty(secret)) {
             throw new InvalidArgumentException("enrollment secret is not set");
         }
 
@@ -497,7 +497,7 @@ public class HFCAClient {
 
         logger.debug(format("revoke revoker: %s, revokee: %s, reason: %s", revoker, revokee, reason));
 
-        if (SDKUtil.isNullOrEmpty(revokee)) {
+        if (Utils.isNullOrEmpty(revokee)) {
             throw new InvalidArgumentException("revokee user is not set");
         }
         if (revoker == null) {

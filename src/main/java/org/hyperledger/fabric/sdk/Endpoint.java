@@ -45,10 +45,10 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
-import org.hyperledger.fabric.sdk.helper.SDKUtil;
+import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 
-import static org.hyperledger.fabric.sdk.helper.SDKUtil.parseGrpcUrl;
+import static org.hyperledger.fabric.sdk.helper.Utils.parseGrpcUrl;
 
 class Endpoint {
     private static final Log logger = LogFactory.getLog(Endpoint.class);
@@ -133,7 +133,7 @@ class Endpoint {
                         .usePlaintext(true);
                 addNettyBuilderProps(channelBuilder, properties);
             } else if (protocol.equalsIgnoreCase("grpcs")) {
-                if (SDKUtil.isNullOrEmpty(pem)) {
+                if (Utils.isNullOrEmpty(pem)) {
                     // use root certificate
                     this.channelBuilder = ManagedChannelBuilder.forAddress(addr, port);
                     addNettyBuilderProps(channelBuilder, properties);

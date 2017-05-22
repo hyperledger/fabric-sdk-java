@@ -105,7 +105,7 @@ import org.bouncycastle.util.io.pem.PemReader;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Config;
-import org.hyperledger.fabric.sdk.helper.SDKUtil;
+import org.hyperledger.fabric.sdk.helper.Utils;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -189,8 +189,9 @@ public class CryptoPrimitives implements CryptoSuite {
     public boolean verify(byte[] plainText, byte[] signature, byte[] pemCertificate) throws CryptoException {
         boolean isVerified = false;
 
-        if (plainText == null || signature == null || pemCertificate == null)
+        if (plainText == null || signature == null || pemCertificate == null) {
             return false;
+        }
 
         if (config.extraLogLevel(10)) {
 
@@ -259,8 +260,9 @@ public class CryptoPrimitives implements CryptoSuite {
      */
     public void setTrustStore(KeyStore keyStore) throws InvalidArgumentException {
 
-        if (keyStore == null)
+        if (keyStore == null) {
             throw new InvalidArgumentException("Need to specify a java.security.KeyStore input parameter");
+        }
 
         trustStore = keyStore;
     }
@@ -474,7 +476,7 @@ public class CryptoPrimitives implements CryptoSuite {
     }
 
     public void setHashAlgorithm(String algorithm) throws InvalidArgumentException {
-        if (SDKUtil.isNullOrEmpty(algorithm)
+        if (Utils.isNullOrEmpty(algorithm)
                 || !(algorithm.equalsIgnoreCase("SHA2") || algorithm.equalsIgnoreCase("SHA3"))) {
             throw new InvalidArgumentException("Illegal Hash function family: "
                     + this.hashAlgorithm + " - must be either SHA2 or SHA3");

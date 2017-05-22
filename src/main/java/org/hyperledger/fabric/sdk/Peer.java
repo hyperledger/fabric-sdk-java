@@ -27,7 +27,7 @@ import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.PeerException;
 
 import static java.lang.String.format;
-import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
+import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
 
 /**
  * The Peer class represents a peer to which SDK sends deploy, or query proposals requests.

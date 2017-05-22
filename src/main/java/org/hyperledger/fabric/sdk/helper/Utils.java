@@ -54,8 +54,8 @@ import org.bouncycastle.util.encoders.Hex;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.codec.binary.Hex.encodeHexString;
 
-public class SDKUtil {
-    private static final Log logger = LogFactory.getLog(SDKUtil.class);
+public class Utils {
+    private static final Log logger = LogFactory.getLog(Utils.class);
     private static final Config confg = Config.getConfig();
     private static final int maxLogStringLength = confg.maxLogStringLength();
 
@@ -156,7 +156,7 @@ public class SDKUtil {
                 String relativePath = childPath.substring((sourcePath.length() + 1), childPath.length());
 
                 if (pathPrefix != null) {
-                    relativePath = SDKUtil.combinePaths(pathPrefix, relativePath);
+                    relativePath = Utils.combinePaths(pathPrefix, relativePath);
                 }
 
                 relativePath = FilenameUtils.separatorsToUnix(relativePath);
@@ -266,7 +266,7 @@ public class SDKUtil {
      * @throws IOException
      */
     public static byte[] readFileFromClasspath(String fileName) throws IOException {
-        InputStream is = SDKUtil.class.getClassLoader().getResourceAsStream(fileName);
+        InputStream is = Utils.class.getClassLoader().getResourceAsStream(fileName);
         byte[] data = ByteStreams.toByteArray(is);
         try {
             is.close();

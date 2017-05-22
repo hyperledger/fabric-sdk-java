@@ -31,7 +31,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
-import org.hyperledger.fabric.sdk.helper.SDKUtil;
+import org.hyperledger.fabric.sdk.helper.Utils;
 
 class Util {
 
@@ -67,7 +67,7 @@ class Util {
                 String relativePath = childPath.substring((sourcePath.length() + 1), childPath.length());
 
                 if (pathPrefix != null) {
-                    relativePath = SDKUtil.combinePaths(pathPrefix, relativePath);
+                    relativePath = Utils.combinePaths(pathPrefix, relativePath);
                 }
 
                 relativePath = FilenameUtils.separatorsToUnix(relativePath);

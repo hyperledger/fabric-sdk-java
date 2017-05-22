@@ -35,7 +35,7 @@ import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 
 import static java.lang.String.format;
-import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
+import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
 
 /**
  * Class to manage fabric events.

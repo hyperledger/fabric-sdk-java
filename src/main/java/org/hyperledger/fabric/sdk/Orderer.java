@@ -26,7 +26,7 @@ import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
 
 import static java.lang.String.format;
-import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
+import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
 
 /**
  * The Orderer class represents a orderer to which SDK sends deploy, invoke, or query requests.

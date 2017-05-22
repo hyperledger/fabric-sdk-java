@@ -65,12 +65,12 @@ public class BlockEvent extends BlockInfo {
 
     TransactionEvent getTransactionEvent(int index) throws InvalidProtocolBufferException {
 
-        return new TransactionEvent((TansactionEnvelopeInfo) getEnvelopeInfo(index), index);
+        return new TransactionEvent((TransactionEnvelopeInfo) getEnvelopeInfo(index), index);
     }
 
-    public class TransactionEvent extends BlockInfo.TansactionEnvelopeInfo {
-        TransactionEvent(TansactionEnvelopeInfo tansactionEnvelopeInfo, int index) {
-            super(tansactionEnvelopeInfo.getTransactionDeserializer(), index);
+    public class TransactionEvent extends TransactionEnvelopeInfo {
+        TransactionEvent(TransactionEnvelopeInfo transactionEnvelopeInfo, int index) {
+            super(transactionEnvelopeInfo.getTransactionDeserializer(), index);
         }
 
         EventHub getEventHub() {

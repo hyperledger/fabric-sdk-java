@@ -38,7 +38,6 @@ public class BlockInfo {
         this.block = new BlockDeserializer(block);
     }
 
-
     public String getChannelId() throws InvalidProtocolBufferException {
 
         return getEnvelopeInfo(0).getChannelId();
@@ -67,7 +66,7 @@ public class BlockInfo {
     }
 
     /**
-     * @return the {@link Block} tansaction metadata value
+     * @return the {@link Block} transaction metadata value
      */
     public byte[] getTransActionsMetaData() {
 
@@ -99,7 +98,7 @@ public class BlockInfo {
 //     * @throws InvalidProtocolBufferException
 //     */
 
-//    public TansactionEnvelopeInfo getEnvelopeInfo(int index) throws InvalidProtocolBufferException {
+//    public TransactionEnvelopeInfo getEnvelopeInfo(int index) throws InvalidProtocolBufferException {
 //
 //        try {
 //            // block.getData(0).getEnvelope().getSignature();
@@ -108,7 +107,7 @@ public class BlockInfo {
 //
 //            final PayloadDeserializer payload = block.getData(index).getPayload();
 //
-//            return new TansactionEnvelopeInfo(null, payload.getHeader());
+//            return new TransactionEnvelopeInfo(null, payload.getHeader());
 //        } catch (InvalidProtocolBufferRuntimeException e) {
 //            throw (InvalidProtocolBufferException) e.getCause();
 //        }
@@ -161,9 +160,8 @@ public class BlockInfo {
          * @return the validation code of this Transaction (enumeration TxValidationCode in Transaction.proto)
          */
         public byte getValidationCode() {
-           return envelopeDeserializer.validationCode();
+            return envelopeDeserializer.validationCode();
         }
-
 
         public EnvelopeType getType() {
 
@@ -190,7 +188,7 @@ public class BlockInfo {
 
             switch (ed.getType()) {
                 case 3:
-                    ret = new TansactionEnvelopeInfo((EndorserTransactionEnvDeserializer) ed, blockIndex);
+                    ret = new TransactionEnvelopeInfo((EndorserTransactionEnvDeserializer) ed, blockIndex);
                     break;
                 default: //just assume base properties.
                     ret = new EnvelopeInfo(ed, blockIndex);
@@ -210,7 +208,7 @@ public class BlockInfo {
         return new TransactionInfoIterable();
     }
 
-    public class TansactionEnvelopeInfo extends EnvelopeInfo {
+    public class TransactionEnvelopeInfo extends EnvelopeInfo {
 
         EndorserTransactionEnvDeserializer getTransactionDeserializer() {
             return transactionDeserializer;
@@ -218,9 +216,7 @@ public class BlockInfo {
 
         protected final EndorserTransactionEnvDeserializer transactionDeserializer;
 
-
-
-        public TansactionEnvelopeInfo(EndorserTransactionEnvDeserializer transactionDeserializer, int blockIndex) {
+        public TransactionEnvelopeInfo(EndorserTransactionEnvDeserializer transactionDeserializer, int blockIndex) {
             super(transactionDeserializer, blockIndex);
 
             this.transactionDeserializer = transactionDeserializer;

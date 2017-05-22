@@ -32,7 +32,7 @@ import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
-import org.hyperledger.fabric.sdk.helper.SDKUtil;
+import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 import static java.lang.String.format;
@@ -244,7 +244,7 @@ public class HFClient {
             throw new InvalidArgumentException("setUserContext is null");
         }
         final String userName = userContext.getName();
-        if (SDKUtil.isNullOrEmpty(userName)) {
+        if (Utils.isNullOrEmpty(userName)) {
             throw new InvalidArgumentException("setUserContext user's name is missing");
         }
 
@@ -253,15 +253,15 @@ public class HFClient {
             throw new InvalidArgumentException(format("setUserContext for user %s has no Enrollment set", userName));
         }
 
-        if (SDKUtil.isNullOrEmpty(userContext.getMSPID())) {
+        if (Utils.isNullOrEmpty(userContext.getMSPID())) {
             throw new InvalidArgumentException(format("setUserContext for user %s  has user's MSPID is missing", userName));
         }
 
-        if (SDKUtil.isNullOrEmpty(userContext.getName())) {
+        if (Utils.isNullOrEmpty(userContext.getName())) {
             throw new InvalidArgumentException("setUserContext user's name is missing");
         }
 
-        if (SDKUtil.isNullOrEmpty(enrollment.getCert())) {
+        if (Utils.isNullOrEmpty(enrollment.getCert())) {
             throw new InvalidArgumentException(format("setUserContext for user %s Enrollment missing user certificate.", userName));
         }
         if (null == enrollment.getKey()) {

@@ -40,7 +40,7 @@ public class ProposalResponse extends ChaincodeResponse {
 
     }
 
-    private ProposalResponsePayloadDeserializer getProposalResponsePayloadDeserializer() throws InvalidArgumentException {
+    public ProposalResponsePayloadDeserializer getProposalResponsePayloadDeserializer() throws InvalidArgumentException {
         ProposalResponsePayloadDeserializer ret = null;
 
         if (proposalResponsePayload != null) {

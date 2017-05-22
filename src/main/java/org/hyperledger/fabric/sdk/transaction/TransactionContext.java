@@ -32,7 +32,7 @@ import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.helper.Config;
-import org.hyperledger.fabric.sdk.helper.SDKUtil;
+import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 /**
@@ -43,7 +43,7 @@ public class TransactionContext {
     private static final Config config = Config.getConfig();
     private static final Log logger = LogFactory.getLog(TransactionContext.class);
     //TODO right now the server does not care need to figure out
-    private final ByteString nonce = ByteString.copyFrom(SDKUtil.generateNonce());
+    private final ByteString nonce = ByteString.copyFrom(Utils.generateNonce());
 
     private boolean verify = true;
 
@@ -80,7 +80,7 @@ public class TransactionContext {
         byte[] txh = cryptoPrimitives.hash(comp.toByteArray());
 
         //    txID = Hex.encodeHexString(txh);
-        txID = new String(SDKUtil.toHexString(txh));
+        txID = new String(Utils.toHexString(txh));
 
     }
 

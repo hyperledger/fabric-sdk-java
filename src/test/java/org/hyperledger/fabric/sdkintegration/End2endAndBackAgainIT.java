@@ -37,6 +37,7 @@ import org.hyperledger.fabric.sdk.InstallProposalRequest;
 import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.ProposalResponse;
 import org.hyperledger.fabric.sdk.QueryByChaincodeRequest;
+import org.hyperledger.fabric.sdk.SDKUtils;
 import org.hyperledger.fabric.sdk.TestConfigHelper;
 import org.hyperledger.fabric.sdk.TransactionProposalRequest;
 import org.hyperledger.fabric.sdk.UpgradeProposalRequest;
@@ -170,7 +171,6 @@ public class End2endAndBackAgainIT {
             runChannel(client, barChannel, sampleOrg, 100); //run a newly constructed foo channel with different b value!
             barChannel.shutdown(true);
 
-
             out("That's all folks!");
 
         } catch (Exception e) {
@@ -234,7 +234,14 @@ public class End2endAndBackAgainIT {
                             failed.add(response);
                         }
                     }
-                    //   }
+
+                    // Check that all the proposals are consistent with each other. We should have only one set
+                    // where all the proposals above are consistent.
+                    Collection<Set<ProposalResponse>> proposalConsistencySets = SDKUtils.getProposalConsistencySets(responses);
+                    if (proposalConsistencySets.size() != 1) {
+                        fail(format("Expected only one set of consistent install proposal responses but got %d", proposalConsistencySets.size()));
+                    }
+
                     out("Received %d install proposal responses. Successful+verified: %d . Failed: %d", numInstallProposal, successful.size(), failed.size());
 
                     if (failed.size() > 0) {
@@ -274,7 +281,14 @@ public class End2endAndBackAgainIT {
                             failed.add(response);
                         }
                     }
-                    //   }
+
+                    // Check that all the proposals are consistent with each other. We should have only one set
+                    // where the proposals above are consistent.
+                    proposalConsistencySets = SDKUtils.getProposalConsistencySets(responses2);
+                    if (proposalConsistencySets.size() != 1) {
+                        fail(format("Expected only one set of consistent upgrade proposal responses but got %d", proposalConsistencySets.size()));
+                    }
+
                     out("Received %d upgrade proposal responses. Successful+verified: %d . Failed: %d", channel.getPeers().size(), successful.size(), failed.size());
 
                     if (failed.size() > 0) {
@@ -385,6 +399,14 @@ public class End2endAndBackAgainIT {
                     failed.add(response);
                 }
             }
+
+            // Check that all the proposals are consistent with each other. We should have only one set
+            // where all the proposals above are consistent.
+            Collection<Set<ProposalResponse>> proposalConsistencySets = SDKUtils.getProposalConsistencySets(invokePropResp);
+            if (proposalConsistencySets.size() != 1) {
+                fail(format("Expected only one set of consistent move proposal responses but got %d", proposalConsistencySets.size()));
+            }
+
             out("Received %d transaction proposal responses. Successful+verified: %d . Failed: %d",
                     invokePropResp.size(), successful.size(), failed.size());
             if (failed.size() > 0) {
