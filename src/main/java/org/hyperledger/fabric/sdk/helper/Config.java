@@ -41,6 +41,7 @@ public class Config {
     public static final String HASH_ALGORITHM = "org.hyperledger.fabric.sdk.hash_algorithm";
     public static final String CACERTS = "org.hyperledger.fabric.sdk.cacerts";
     public static final String PROPOSAL_WAIT_TIME = "org.hyperledger.fabric.sdk.proposal.wait.time";
+    public static final String PROPOSAL_CONSISTENCY_VALIDATION = "org.hyperledger.fabric.sdk.proposal.consistency_validation";
     public static final String GENESISBLOCK_WAIT_TIME = "org.hyperledger.fabric.sdk.channel.genesisblock_wait_time";
     public static final String ASYMMETRIC_KEY_TYPE = "org.hyperledger.fabric.sdk.crypto.asymmetric_key_type";
     public static final String KEY_AGREEMENT_ALGORITHM = "org.hyperledger.fabric.sdk.crypto.key_agreement_algorithm";
@@ -85,6 +86,7 @@ public class Config {
             defaultProperty(SIGNATURE_ALGORITHM, "SHA256withECDSA");
             defaultProperty(SECURITY_LEVEL, "256");
             defaultProperty(HASH_ALGORITHM, "SHA2");
+            defaultProperty(PROPOSAL_CONSISTENCY_VALIDATION, "true");
             // TODO remove this once we have implemented MSP and get the peer certs from the channel
             defaultProperty(CACERTS, "/genesisblock/peercacert.pem");
 
@@ -273,6 +275,18 @@ public class Config {
 
     public int maxLogStringLength() {
         return Integer.parseInt(getProperty(MAX_LOG_STRING_LENGTH));
+    }
+
+    /**
+     * getProposalConsistencyValidation determine if validation of the proposals should
+     * be done before sending to the orderer.
+     *
+     * @return if true proposals will be checked they are consistent with each other before sending to the Orderer
+     */
+
+    public boolean getProposalConsistencyValidation() {
+        return Boolean.parseBoolean(getProperty(PROPOSAL_CONSISTENCY_VALIDATION));
+
     }
 
     public int extraLogLevel = -1;

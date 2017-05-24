@@ -995,16 +995,16 @@ public class Channel {
             Payload payload = Payload.parseFrom(envelopeRet.getPayload());
             ChannelHeader channelHeader = ChannelHeader.parseFrom(payload.getHeader().getChannelHeader());
             if (channelHeader.getType() != HeaderType.CONFIG.getNumber()) {
-                throw new TransactionException(format("Bad last configuation block type %d, expected %d",
+                throw new TransactionException(format("Bad last configuration block type %d, expected %d",
                         channelHeader.getType(), HeaderType.CONFIG.getNumber()));
             }
 
             if (!name.equals(channelHeader.getChannelId())) {
-                throw new TransactionException(format("Bad last configuation block channel id %s, expected %s",
+                throw new TransactionException(format("Bad last configuration block channel id %s, expected %s",
                         channelHeader.getChannelId(), name));
             }
 
-            logger.trace(format("Channel %s getConfigurationBlock retraceturned %s", name, "" + configBlock));
+            logger.trace(format("Channel %s getConfigurationBlock returned %s", name, "" + configBlock));
             if (!logger.isTraceEnabled()) {
                 logger.debug(format("Channel %s getConfigurationBlock returned", name));
             }
@@ -1246,9 +1246,9 @@ public class Channel {
      *
      * @param instantiateProposalRequest
      * @param peers
+     * @return
      * @throws IllegalArgumentException
      * @throws ProposalException
-     * @return
      */
 
     public Collection<ProposalResponse> sendInstantiationProposal(InstantiateProposalRequest instantiateProposalRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
@@ -1502,7 +1502,7 @@ public class Channel {
             }
             responseBlock = new BlockInfo(Block.parseFrom(proposalResponse.getProposalResponse().getResponse().getPayload()));
         } catch (Exception e) {
-            String emsg = format("queryBlockByHash hash: %s %npeer %s channel %s %nerror: %s",
+            String emsg = format("queryBlockByHash hash: %s peer %s channel %s error: %s",
                     Hex.encodeHexString(blockHash), peer.getName(), name, e.getMessage());
             logger.error(emsg, e);
             throw new ProposalException(emsg, e);
@@ -2057,7 +2057,6 @@ public class Channel {
      * @return
      * @throws InvalidArgumentException
      * @throws ProposalException
-     *
      */
 
     public Collection<ProposalResponse> queryByChaincode(QueryByChaincodeRequest queryByChaincodeRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
@@ -2229,6 +2228,15 @@ public class Channel {
                 throw new TransactionException("sendTransaction on channel not initialized.");
             }
 
+            if (config.getProposalConsistencyValidation()) {
+
+                if (1 != SDKUtils.getProposalConsistencySets(proposalResponses).size()) {
+                    throw new IllegalArgumentException("The proposal responses do not have consistent read write sets");
+
+                }
+
+            }
+
             List<FabricProposalResponse.Endorsement> ed = new LinkedList<>();
             FabricProposal.Proposal proposal = null;
             ByteString proposalResponsePayload = null;
@@ -2274,8 +2282,6 @@ public class Channel {
                     logger.error(emsg);
 
                 }
-
-                //TransactionResponse tresp = new TransactionResponse(transactionContext.getTxID(), transactionContext.getChannelID(), resp.getStatusValue(), resp.getStatus().name());
 
             }
 

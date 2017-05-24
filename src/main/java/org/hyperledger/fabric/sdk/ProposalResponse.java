@@ -24,7 +24,7 @@ import org.hyperledger.fabric.sdk.security.CryptoSuite;
 public class ProposalResponse extends ChaincodeResponse {
 
     private static final Log logger = LogFactory.getLog(ProposalResponse.class);
-    Config config = Config.getConfig();
+    final static Config config = Config.getConfig();
     private FabricProposal.SignedProposal signedProposal;
 
     private boolean isVerified = false;
@@ -40,7 +40,7 @@ public class ProposalResponse extends ChaincodeResponse {
 
     }
 
-    public ProposalResponsePayloadDeserializer getProposalResponsePayloadDeserializer() throws InvalidArgumentException {
+    ProposalResponsePayloadDeserializer getProposalResponsePayloadDeserializer() throws InvalidArgumentException {
         ProposalResponsePayloadDeserializer ret = null;
 
         if (proposalResponsePayload != null) {
@@ -158,6 +158,7 @@ public class ProposalResponse extends ChaincodeResponse {
 
     /**
      * Chaincode ID that was executed.
+     *
      * @return See {@link ChaincodeID}
      * @throws InvalidArgumentException
      */
@@ -185,10 +186,10 @@ public class ProposalResponse extends ChaincodeResponse {
      * ChaincodeActionResponsePayload is the result of the executing chaincode.
      *
      * @return the result of the executing chaincode.
-     * @throws InvalidProtocolBufferException
+     * @throws InvalidArgumentException
      */
 
-    public byte[] getChaincodeActionResponsePayload() throws InvalidProtocolBufferException, InvalidArgumentException {
+    public byte[] getChaincodeActionResponsePayload() throws InvalidArgumentException {
 
         try {
 
@@ -229,6 +230,7 @@ public class ProposalResponse extends ChaincodeResponse {
 
     /**
      * getChaincodeActionResponseReadWriteSetInfo get this proposals read write set.
+     *
      * @return The read write set. See {@link TxReadWriteSetInfo}
      * @throws InvalidArgumentException
      */
