@@ -209,15 +209,18 @@ public class HFCAClient {
     }
 
     /**
-     * Register the user and return an enrollment secret.
+     * Register a user.
      *
-     * @param req       Registration request with the following fields: name, role
-     * @param registrar The identity of the registrar (i.e. who is performing the registration)
+     * @param request Registration request with the following fields: name, role.
+     * @param registrar The identity of the registrar (i.e. who is performing the registration).
+     * @return the enrollment secret.
+     * @throws RegistrationException if registration fails.
+     * @throws InvalidArgumentException
      */
 
-    public String register(RegistrationRequest req, User registrar) throws RegistrationException, InvalidArgumentException {
+    public String register(RegistrationRequest request, User registrar) throws RegistrationException, InvalidArgumentException {
 
-        if (Utils.isNullOrEmpty(req.getEnrollmentID())) {
+        if (Utils.isNullOrEmpty(request.getEnrollmentID())) {
             throw new InvalidArgumentException("EntrollmentID cannot be null or empty");
         }
 
@@ -229,7 +232,7 @@ public class HFCAClient {
         setUpSSL();
 
         try {
-            String body = req.toJson();
+            String body = request.toJson();
             String authHdr = getHTTPAuthCertificate(registrar.getEnrollment(), body);
             JsonObject resp = httpPost(url + HFCA_REGISTER, body, authHdr);
             String secret = resp.getString("secret");
@@ -657,7 +660,7 @@ public class HFCAClient {
         String cert = b64.encodeToString(enrollment.getCert().getBytes(UTF_8));
         body = b64.encodeToString(body.getBytes(UTF_8));
         String signString = body + "." + cert;
-        byte[] signature = cryptoPrimitives.ecdsaSignToBytes(enrollment.getKey(), signString.getBytes(UTF_8));
+        byte[] signature = cryptoPrimitives.sign(enrollment.getKey(), signString.getBytes(UTF_8));
         return cert + "." + b64.encodeToString(signature);
     }
 
@@ -739,12 +742,15 @@ public class HFCAClient {
             super(truststore);
 
             TrustManager tm = new X509TrustManager() {
+                @Override
                 public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
                 }
 
+                @Override
                 public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
                 }
 
+                @Override
                 public X509Certificate[] getAcceptedIssuers() {
                     return null;
                 }

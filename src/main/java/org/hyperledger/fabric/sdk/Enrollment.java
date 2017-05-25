@@ -17,19 +17,19 @@ package org.hyperledger.fabric.sdk;
 import java.security.PrivateKey;
 
 /**
- * Enrollment - Interface which is the contract between the Certificate Authority provider and the SDK.
+ * Interface which is the contract between the Certificate Authority provider and the SDK.
  */
 public interface Enrollment {
 
     /**
-     * Key is the user's private key
+     * Get the user's private key
      * @return private key.
      */
     public PrivateKey getKey();
 
     /**
-     * Certificate is the users signed certificate.
-     * @return
+     * Get the user's signed certificate.
+     * @return a certificate.
      */
     public String getCert();
 

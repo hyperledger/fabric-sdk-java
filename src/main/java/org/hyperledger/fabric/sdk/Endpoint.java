@@ -39,7 +39,6 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslProvider;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.asn1.x500.AttributeTypeAndValue;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
@@ -58,7 +57,7 @@ class Endpoint {
     private final String url;
     private NettyChannelBuilder channelBuilder = null;
 
-    private final static Map<String, String> cnCache = Collections.synchronizedMap(new HashMap<>());
+    private static final Map<String, String> CN_CACHE = Collections.synchronizedMap(new HashMap<>());
 
     Endpoint(String url, Properties properties) {
 
@@ -86,7 +85,7 @@ class Endpoint {
                         File pemF = new File(pem);
                         final String cnKey = pemF.getAbsolutePath() + pemF.length() + pemF.lastModified();
 
-                        cn = cnCache.get(cnKey);
+                        cn = CN_CACHE.get(cnKey);
                         if (cn == null) {
                             Path path = Paths.get(pem);
                             byte[] data = Files.readAllBytes(path);
@@ -95,10 +94,8 @@ class Endpoint {
 
                             X500Name x500name = new JcaX509CertificateHolder((X509Certificate) cp.bytesToCertificate(data)).getSubject();
                             RDN rdn = x500name.getRDNs(BCStyle.CN)[0];
-                            //   cnn =  cn +"";
-                            AttributeTypeAndValue f = rdn.getFirst();
                             cn = IETFUtils.valueToString(rdn.getFirst().getValue());
-                            cnCache.put(cnKey, cn);
+                            CN_CACHE.put(cnKey, cn);
                         }
 
                     }
@@ -171,8 +168,8 @@ class Endpoint {
 
     }
 
-    private final static Pattern methodPat = Pattern.compile("grpc\\.NettyChannelBuilderOption\\.([^.]*)$");
-    private final static Map<Class<?>, Class<?>> WRAPPERS_TO_PRIM
+    private static final Pattern METHOD_PATTERN = Pattern.compile("grpc\\.NettyChannelBuilderOption\\.([^.]*)$");
+    private static final Map<Class<?>, Class<?>> WRAPPERS_TO_PRIM
             = new ImmutableMap.Builder<Class<?>, Class<?>>()
             .put(Boolean.class, boolean.class)
             .put(Byte.class, byte.class)
@@ -191,16 +188,14 @@ class Endpoint {
             return;
         }
 
-
-        for (Map.Entry<Object, Object> es : props.entrySet()) {
-
+        for (Map.Entry<?, ?> es : props.entrySet()) {
             Object methodprop = es.getKey();
             if (methodprop == null) {
                 continue;
             }
-            String methodprops = methodprop + "";
+            String methodprops = String.valueOf(methodprop);
 
-            Matcher match = methodPat.matcher(methodprops);
+            Matcher match = METHOD_PATTERN.matcher(methodprops);
 
             String methodName = null;
 
@@ -214,7 +209,7 @@ class Endpoint {
             }
 
             Object parmsArrayO = es.getValue();
-            Object parmsArray[];
+            Object[] parmsArray;
             if (!(parmsArrayO instanceof Object[])) {
                 parmsArray = new Object[] {parmsArrayO};
 
@@ -222,7 +217,7 @@ class Endpoint {
                 parmsArray = (Object[]) parmsArrayO;
             }
 
-            Class[] classParms = new Class[parmsArray.length];
+            Class<?>[] classParms = new Class[parmsArray.length];
             int i = -1;
             for (Object oparm : parmsArray) {
                 ++i;
@@ -232,7 +227,7 @@ class Endpoint {
                     continue;
                 }
 
-                Class unwrapped = WRAPPERS_TO_PRIM.get(oparm.getClass());
+                Class<?> unwrapped = WRAPPERS_TO_PRIM.get(oparm.getClass());
                 if (null != unwrapped) {
                     classParms[i] = unwrapped;
                 } else {

@@ -59,42 +59,22 @@ public class SampleUser implements User, Serializable {
 
     }
 
-    /**
-     * Get the user name.
-     *
-     * @return {string} The user name.
-     */
     @Override
     public String getName() {
         return this.name;
     }
 
-    /**
-     * Get the roles.
-     *
-     * @return {string[]} The roles.
-     */
     @Override
     public Set<String> getRoles() {
         return this.roles;
     }
 
-    /**
-     * Set the roles.
-     *
-     * @param roles {string[]} The roles.
-     */
     public void setRoles(Set<String> roles) {
 
         this.roles = roles;
         saveState();
     }
 
-    /**
-     * Get the account.
-     *
-     * @return {String} The account.
-     */
     @Override
     public String getAccount() {
         return this.account;
@@ -111,11 +91,6 @@ public class SampleUser implements User, Serializable {
         saveState();
     }
 
-    /**
-     * Get the affiliation.
-     *
-     * @return {string} The affiliation.
-     */
     @Override
     public String getAffiliation() {
         return this.affiliation;
@@ -124,17 +99,12 @@ public class SampleUser implements User, Serializable {
     /**
      * Set the affiliation.
      *
-     * @param affiliation The affiliation.
+     * @param affiliation the affiliation.
      */
     public void setAffiliation(String affiliation) {
         this.affiliation = affiliation;
     }
 
-    /**
-     * Get the enrollment logger.info.
-     *
-     * @return {Enrollment} The enrollment.
-     */
     @Override
     public Enrollment getEnrollment() {
         return this.enrollment;
@@ -143,7 +113,7 @@ public class SampleUser implements User, Serializable {
     /**
      * Determine if this name has been registered.
      *
-     * @return {boolean} True if registered; otherwise, false.
+     * @return {@code true} if registered; otherwise {@code false}.
      */
     public boolean isRegistered() {
         return !StringUtil.isNullOrEmpty(enrollmentSecret);
@@ -152,7 +122,7 @@ public class SampleUser implements User, Serializable {
     /**
      * Determine if this name has been enrolled.
      *
-     * @return {boolean} True if enrolled; otherwise, false.
+     * @return {@code true} if enrolled; otherwise {@code false}.
      */
     public boolean isEnrolled() {
         return this.enrollment != null;

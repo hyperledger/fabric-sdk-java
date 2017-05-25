@@ -64,8 +64,14 @@ public class TransactionRequest {
     }
 
     /**
-     * Some peer requests (e.g. queries to QSCC) require the field to be blank.
-     * Subclasses should override this method as needed.
+     * Determines whether an empty channel ID should be set on proposals built
+     * from this request. Some peer requests (e.g. queries to QSCC) require the
+     * field to be blank. Subclasses should override this method as needed.
+     * <p>
+     * This implementation returns {@code false}.
+     *
+     * @return {@code true} if an empty channel ID should be used; otherwise
+     *         {@code false}.
      */
     public boolean noChannelID() {
         return false;

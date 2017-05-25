@@ -182,7 +182,7 @@ public class CryptoPrimitives implements CryptoSuite {
      * @param plainText      original text.
      * @param signature      signature value as a byte array.
      * @param pemCertificate the X509 certificate to be used for verification
-     * @return
+     * @return {@code true} if the signature was successfully verified; otherwise {@code false}.
      * @throws CryptoException
      */
     @Override
@@ -619,17 +619,16 @@ public class CryptoPrimitives implements CryptoSuite {
     }
 
     /**
-     * ecdsaSignToBytes - sign to bytes
+     * Sign data with the specified elliptic curve private key.
      *
-     * @param privateKey private key.
+     * @param privateKey elliptic curve private key.
      * @param data       data to sign
-     * @return
+     * @return the signed data.
      * @throws CryptoException
      */
-    public byte[] ecdsaSignToBytes(PrivateKey privateKey, byte[] data) throws CryptoException {
+    public byte[] ecdsaSignToBytes(ECPrivateKey privateKey, byte[] data) throws CryptoException {
         try {
-            byte[] encoded = data;
-            encoded = hash(data);
+            final byte[] encoded = hash(data);
 
             // char[] hexenncoded = Hex.encodeHex(encoded);
             // encoded = new String(hexenncoded).getBytes();
@@ -642,7 +641,7 @@ public class CryptoPrimitives implements CryptoSuite {
 
             ECDSASigner signer = new ECDSASigner();
 
-            ECPrivateKeyParameters privKey = new ECPrivateKeyParameters(((ECPrivateKey) privateKey).getS(), ecParams);
+            ECPrivateKeyParameters privKey = new ECPrivateKeyParameters(privateKey.getS(), ecParams);
             signer.init(true, privKey);
             BigInteger[] sigs = signer.generateSignature(encoded);
 
@@ -663,9 +662,12 @@ public class CryptoPrimitives implements CryptoSuite {
 
     }
 
+    /**
+     * @throws ClassCastException if the supplied private key is not of type {@link ECPrivateKey}.
+     */
     @Override
     public byte[] sign(PrivateKey key, byte[] data) throws CryptoException {
-        return ecdsaSignToBytes(key, data);
+        return ecdsaSignToBytes((ECPrivateKey)key, data);
     }
     /*
      *  code for signing using JCA/JSSE methods only .  Still needed ?
@@ -785,11 +787,11 @@ public class CryptoPrimitives implements CryptoSuite {
     }
 
     /**
-     * shake256 do shake256 hashing
+     * Shake256 hash the supplied byte data.
      *
      * @param in        byte array to be hashed.
      * @param bitLength of the result.
-     * @return
+     * @return the hashed byte data.
      */
     public byte[] shake256(byte[] in, int bitLength) {
 
@@ -864,8 +866,7 @@ public class CryptoPrimitives implements CryptoSuite {
 
     public byte[] certificateToDER(String certricatePEM){
 
-        final PemReader pemReader = new PemReader(new StringReader(certricatePEM));
-        try {
+        try (final PemReader pemReader = new PemReader(new StringReader(certricatePEM))) {
             final PemObject pemObject = pemReader.readPemObject();
             return pemObject.getContent();
 

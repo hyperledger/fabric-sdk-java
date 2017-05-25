@@ -18,6 +18,8 @@ package org.hyperledger.fabric.sdk.exception;
 Exception that is thrown from Chaincode
  */
 public class InvalidArgumentException extends BaseException {
+    private static final long serialVersionUID = -6094512275378074427L;
+
     public InvalidArgumentException(String message, Exception parent) {
         super(message, parent);
     }

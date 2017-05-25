@@ -31,6 +31,7 @@ public class TransactionProposalRequest extends TransactionRequest {
      * Transient data added to the proposal that is not added to the ledger.
      *
      * @param transientMap Map of strings to bytes that's added to the proposal
+     * @throws InvalidArgumentException if the argument is null.
      */
     public void setTransientMap(Map<String, byte[]> transientMap) throws InvalidArgumentException {
         if (null == transientMap) {

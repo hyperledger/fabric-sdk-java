@@ -125,9 +125,9 @@ public class ProposalResponse extends ChaincodeResponse {
     }
 
     /**
-     * Protofbuf FabricProposalResponse.
+     * Get response to the proposal returned by the peer.
      *
-     * @return
+     * @return peer response.
      */
 
     public FabricProposalResponse.ProposalResponse getProposalResponse() {

@@ -51,7 +51,7 @@ public class ChaincodeEndorsementPolicy {
     public ChaincodeEndorsementPolicy() {
     }
 
-    private static SignaturePolicy parsePolicy(IndexedHashMap<String, MSPPrincipal> identities, Map mp) throws ChaincodeEndorsementPolicyParseException {
+    private static SignaturePolicy parsePolicy(IndexedHashMap<String, MSPPrincipal> identities, Map<?, ?> mp) throws ChaincodeEndorsementPolicyParseException {
 
         if (mp == null) {
             throw new ChaincodeEndorsementPolicyParseException("No policy section was found in the document.");
@@ -61,7 +61,7 @@ public class ChaincodeEndorsementPolicy {
 
         }
 
-        for (Map.Entry<Object, Object> ks : ((Map<Object, Object>) mp).entrySet()) {
+        for (Map.Entry<?, ?> ks : mp.entrySet()) {
             Object ko = ks.getKey();
             Object vo = ks.getValue();
             final String key = (String) ko;
@@ -92,20 +92,23 @@ public class ChaincodeEndorsementPolicy {
                     int matchNo = Integer.parseInt(matchStingNo);
 
                     if (!(vo instanceof List)) {
-
-                        throw new ChaincodeEndorsementPolicyParseException(format("%s expected to have list but found %s.", key, "" + vo));
+                        throw new ChaincodeEndorsementPolicyParseException(format("%s expected to have list but found %s.", key, String.valueOf(vo)));
                     }
-                    if (((List) vo).size() < matchNo) {
 
-                        throw new ChaincodeEndorsementPolicyParseException(format("%s expected to have at least %d items to match but only found %d.", key, matchNo, ((List) vo).size()));
+                    @SuppressWarnings("unchecked")
+                    final List<Map<?, ?>> voList = (List<Map<?, ?>>)vo;
+
+                    if (voList.size() < matchNo) {
+
+                        throw new ChaincodeEndorsementPolicyParseException(format("%s expected to have at least %d items to match but only found %d.", key, matchNo, voList.size()));
                     }
 
                     SignaturePolicy.NOutOf.Builder spBuilder = SignaturePolicy.NOutOf.newBuilder()
                             .setN(matchNo);
 
-                    for (Object nlo : (List) vo) {
+                    for (Map<?, ?> nlo : voList) {
 
-                        SignaturePolicy sp = parsePolicy(identities, (Map) nlo);
+                        SignaturePolicy sp = parsePolicy(identities, nlo);
                         spBuilder.addPolicies(sp);
                     }
 
@@ -123,12 +126,12 @@ public class ChaincodeEndorsementPolicy {
 
     }
 
-    private static IndexedHashMap<String, MSPPrincipal> parseIdentities(Map<Object, Object> identities) throws ChaincodeEndorsementPolicyParseException {
+    private static IndexedHashMap<String, MSPPrincipal> parseIdentities(Map<?, ?> identities) throws ChaincodeEndorsementPolicyParseException {
         //Only Role types are excepted at this time.
 
         IndexedHashMap<String, MSPPrincipal> ret = new IndexedHashMap<>();
 
-        for (Map.Entry<Object, Object> kp : identities.entrySet()) {
+        for (Map.Entry<?, ?> kp : identities.entrySet()) {
             Object key = kp.getKey();
             Object val = kp.getValue();
 
@@ -144,13 +147,14 @@ public class ChaincodeEndorsementPolicy {
                 throw new ChaincodeEndorsementPolicyParseException(format("In identities with key %s value expected Map got %s ", key, val == null ? "null" : val.getClass().getName()));
             }
 
-            Object role = ((Map<String, Object>) val).get("role");
+            Object role = ((Map<?, ?>) val).get("role");
 
             if (!(role instanceof Map)) {
                 throw new ChaincodeEndorsementPolicyParseException(format("In identities with key %s value expected Map for role got %s ", key, role == null ? "null" : role.getClass().getName()));
             }
+            final Map<?, ?> roleMap = (Map<?, ?>)role;
 
-            Object name = ((Map) role).get("name");
+            Object name = (roleMap).get("name");
 
             if (!(name instanceof String)) {
                 throw new ChaincodeEndorsementPolicyParseException(format("In identities with key %s name expected String in role got %s ", key, name == null ? "null" : name.getClass().getName()));
@@ -160,7 +164,7 @@ public class ChaincodeEndorsementPolicy {
                 throw new ChaincodeEndorsementPolicyParseException(format("In identities with key %s name expected member or admin  in role got %s ", key, name));
             }
 
-            Object mspId = ((Map) role).get("mspId");
+            Object mspId = roleMap.get("mspId");
 
             if (!(mspId instanceof String)) {
                 throw new ChaincodeEndorsementPolicyParseException(format("In identities with key %s mspId expected String in role got %s ", key, mspId == null ? "null" : mspId.getClass().getName()));
@@ -212,15 +216,15 @@ public class ChaincodeEndorsementPolicy {
 
     public void fromYamlFile(File yamlPolicyFile) throws IOException, ChaincodeEndorsementPolicyParseException {
         final Yaml yaml = new Yaml();
-        final Map load = (Map) yaml.load(new FileInputStream(yamlPolicyFile));
+        final Map<?, ?> load = (Map<?, ?>)yaml.load(new FileInputStream(yamlPolicyFile));
 
-        Map<String, Map> mp = (Map<String, Map>) load.get("policy");
+        Map<?, ?> mp = (Map<?, ?>)load.get("policy");
 
         if (null == mp) {
             throw new ChaincodeEndorsementPolicyParseException("The policy file has no policy section");
         }
 
-        IndexedHashMap<String, MSPPrincipal> identities = parseIdentities((Map<Object, Object>) load.get("identities"));
+        IndexedHashMap<String, MSPPrincipal> identities = parseIdentities((Map<?, ?>)load.get("identities"));
 
         SignaturePolicy sp = parsePolicy(identities, mp);
 
@@ -258,6 +262,7 @@ public class ChaincodeEndorsementPolicy {
         return policyBytes;
     }
 
+    @SuppressWarnings("serial")
     private static class IndexedHashMap<K, V> extends LinkedHashMap<K, V> {
         final HashMap<K, Integer> kmap = new HashMap<>();
 

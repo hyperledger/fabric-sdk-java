@@ -17,15 +17,9 @@ package org.hyperledger.fabric.sdk;
 /**
  * ChaincodeID identifies chaincode.
  */
-public class ChaincodeID {
+public final class ChaincodeID {
 
     private final org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID fabricChaincodeID;
-
-    private ChaincodeID() {
-
-        fabricChaincodeID = null;
-
-    }
 
     public org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID getFabricChaincodeID() {
         return fabricChaincodeID;
@@ -53,7 +47,7 @@ public class ChaincodeID {
      * Build a new ChaincodeID
      */
 
-    public static class Builder {
+    public static final class Builder {
         private final org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID.Builder protoBuilder = org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID.newBuilder();
 
         private Builder() {

@@ -41,7 +41,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.helper.Utils.logString;
 import static org.hyperledger.fabric.sdk.helper.Utils.toHexString;
 
-public class ProtoUtils {
+public final class ProtoUtils {
 
     private final static Log logger = LogFactory.getLog(ProtoUtils.class);
     private final static boolean isDebugLevel = logger.isDebugEnabled();
@@ -49,13 +49,13 @@ public class ProtoUtils {
     /**
      * createChannelHeader create chainHeader
      *
-     * @param type
-     * @param txID
-     * @param channelID
-     * @param epoch
-     * @param timeStamp
-     * @param chaincodeHeaderExtension
-     * @return
+     * @param type header type. See {@link ChannelHeader.Builder#setType}.
+     * @param txID transaction ID. See {@link ChannelHeader.Builder#setTxId}.
+     * @param channelID channel ID. See {@link ChannelHeader.Builder#setChannelId}.
+     * @param epoch the epoch in which this header was generated. See {@link ChannelHeader.Builder#setEpoch}.
+     * @param timeStamp local time when the message was created. See {@link ChannelHeader.Builder#setTimestamp}.
+     * @param chaincodeHeaderExtension extension to attach dependent on the header type. See {@link ChannelHeader.Builder#setExtension}.
+     * @return a new chain header.
      */
     public static ChannelHeader createChannelHeader(HeaderType type, String txID, String channelID, long epoch, Timestamp timeStamp, ChaincodeHeaderExtension chaincodeHeaderExtension) {
 
@@ -246,5 +246,10 @@ public class ProtoUtils {
         return new Date(Timestamps.toMillis(timestamp));
 
     }
+
+    /**
+     * Private constructor to prevent instantiation.
+     */
+    private ProtoUtils() { }
 
 }

@@ -295,9 +295,9 @@ public class EventHub {
     }
 
     /**
-     * Get URL connected to.
+     * Get the GRPC URL used to connect.
      *
-     * @return
+     * @return GRPC URL.
      */
     public String getUrl() {
         return url;
@@ -344,11 +344,11 @@ public class EventHub {
     public interface EventHubDisconnected {
 
         /**
-         * Method to be called when a disconnect is detected.
+         * Called when a disconnect is detected.
          *
          * @param eventHub
+         * @throws EventHubException
          */
-
         void disconnected(EventHub eventHub) throws EventHubException;
 
     }

@@ -31,61 +31,70 @@ public interface CryptoSuite {
      * implementation specific initialization. Whoever constructs a CryptoSuite instance <b>MUST</b> call
      * init before using the instance
      * @throws CryptoException
+     * @throws InvalidArgumentException
      */
-    public void init() throws CryptoException, InvalidArgumentException ;
+    public void init() throws CryptoException, InvalidArgumentException;
+
     /**
      * Pass in implementation specific properties to the CryptoSuite
      * @param properties A {@link java.util.Properties} object. The key/value pairs are implementation specific
      * @throws CryptoException
      * @throws InvalidArgumentException
      */
-    public void setProperties(Properties properties) throws CryptoException, InvalidArgumentException ;
+    public void setProperties(Properties properties) throws CryptoException, InvalidArgumentException;
+
     /**
-     * @return the {@link java.util.Properties) object containing implementation specific key generation properties
+     * @return the {@link Properties} object containing implementation specific key generation properties
      */
     public Properties getProperties();
+
     /**
      * Set the Certificate Authority certificates to be used when validating a certificate chain of trust
      * @param CACertificates A collection of {@link java.security.cert.Certificate}s
      * @throws CryptoException
      */
     public void loadCACertificates(Collection<Certificate> CACertificates) throws CryptoException;
+
     /**
      * Set the Certificate Authority certificates to be used when validating a certificate chain of trust.
      *
-     * @param CACertificates a collection of certificates in PEM format
+     * @param certificates a collection of certificates in PEM format
      * @throws CryptoException
      */
-    public void loadCACertificatesAsBytes(Collection<byte[]> CACertificatesBytes) throws CryptoException;
+    public void loadCACertificatesAsBytes(Collection<byte[]> certificates) throws CryptoException;
+
     /**
-     * @return a {@link java.security.KeyPair} according to the options set via {@link #setKeyGenProperties}
+     * Generate a key.
+     * @return the generated key.
      * @throws CryptoException
      */
     public KeyPair keyGen() throws CryptoException;
+
     /**
-     * Sign the inputted byte string.
+     * Sign the specified byte string.
      * @param key the {@link java.security.PrivateKey} to be used for signing
      * @param plainText the byte string to sign
-     * @return
+     * @return the signed data.
      * @throws CryptoException
      */
-    public byte[] sign(PrivateKey key, byte[] plainText) throws CryptoException ;
+    public byte[] sign(PrivateKey key, byte[] plainText) throws CryptoException;
+
     /**
-     * Verify the inputted signature
+     * Verify the specified signature
      * @param plainText the original text
      * @param signature the signature to verify
      * @param certificate the certificate of the signer as the contents of the PEM file
-     * @return
+     * @return {@code true} if the signature is successfully verified; otherwise {@code false}.
      * @throws CryptoException
      */
-    public boolean verify(byte[] plainText, byte[] signature, byte[] certificate) throws CryptoException ;
+    public boolean verify(byte[] plainText, byte[] signature, byte[] certificate) throws CryptoException;
+
     /**
-     * Hash the inputted byte string according to the options set via {@link #setHashProperties}
+     * Hash the specified text byte data.
      * @param plainText the text to hash
-     * @return
-     * @throws CryptoException
+     * @return the hashed data.
      */
-    public byte[] hash(byte[] plainText) ;
+    public byte[] hash(byte[] plainText);
 
     /**
      * The CryptoSuite factory. Currently {@link #getCryptoSuite} will always

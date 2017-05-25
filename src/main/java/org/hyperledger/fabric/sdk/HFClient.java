@@ -97,7 +97,7 @@ public class HFClient {
      * newChannel - already configured channel.
      *
      * @param name
-     * @return
+     * @return a new channel.
      * @throws InvalidArgumentException
      */
 
@@ -111,12 +111,12 @@ public class HFClient {
     /**
      * Create a new channel
      *
-     * @param name                         The channels name
-     * @param orderer                      Order to create the channel with.
+     * @param name                         The channel's name
+     * @param orderer                      Orderer to create the channel with.
      * @param channelConfiguration           Channel configuration data.
-     * @param channelConfigurationSignatures array of byte array's containing ConfigSignature's proto serialized.
+     * @param channelConfigurationSignatures byte arrays containing ConfigSignature's proto serialized.
      *                                     See {@link Channel#getChannelConfigurationSignature} on how to create
-     * @return
+     * @return a new channel.
      * @throws TransactionException
      * @throws InvalidArgumentException
      */
@@ -182,7 +182,7 @@ public class HFClient {
      * getChannel by name
      *
      * @param name
-     * @return
+     * @return a channel
      */
 
     public Channel getChannel(String name) {
@@ -236,6 +236,7 @@ public class HFClient {
      * Set the User context for this client.
      *
      * @param userContext
+     * @throws InvalidArgumentException
      */
 
     public void setUserContext(User userContext) throws InvalidArgumentException {
@@ -315,6 +316,7 @@ public class HFClient {
      * @param name    Name of eventhup should match peer's name it's associated with.
      * @param grpcURL The http url location of the event hub
      * @return event hub
+     * @throws InvalidArgumentException
      */
 
     public EventHub newEventHub(String name, String grpcURL) throws InvalidArgumentException {
@@ -458,7 +460,7 @@ public class HFClient {
      *
      * @param installProposalRequest
      * @param peers                  Collection of peers to install on.
-     * @return
+     * @return responses from peers.
      * @throws InvalidArgumentException
      * @throws ProposalException
      */

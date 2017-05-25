@@ -16,7 +16,7 @@ package org.hyperledger.fabric.sdk.exception;
 
 
 public class InvalidTransactionException extends BaseException{
-
+    private static final long serialVersionUID = -1510202790871884019L;
 
     public InvalidTransactionException(String message, Exception parent) {
         super(message, parent);

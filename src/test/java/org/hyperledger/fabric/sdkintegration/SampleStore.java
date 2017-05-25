@@ -21,6 +21,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Reader;
 import java.io.Serializable;
 import java.io.StringReader;
 import java.security.NoSuchAlgorithmException;
@@ -176,17 +177,19 @@ public class SampleStore {
     }
 
     static PrivateKey getPrivateKeyFromBytes(byte[] data) throws IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
+        final Reader pemReader = new StringReader(new String(data));
 
-        final PEMParser pemParser = new PEMParser(new StringReader(new String(data)));
-
-        PrivateKeyInfo pemPair = (PrivateKeyInfo) pemParser.readObject();
+        final PrivateKeyInfo pemPair;
+        try (final PEMParser pemParser = new PEMParser(pemReader)) {
+            pemPair = (PrivateKeyInfo)pemParser.readObject();
+        }
 
         PrivateKey privateKey = new JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getPrivateKey(pemPair);
 
         return privateKey;
     }
 
-    static class SampleStoreEnrollement implements Enrollment, Serializable {
+    static final class SampleStoreEnrollement implements Enrollment, Serializable {
 
         private  PrivateKey privateKey;
        // private transient PrivateKey privateKey;

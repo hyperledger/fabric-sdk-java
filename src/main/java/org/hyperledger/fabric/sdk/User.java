@@ -22,41 +22,40 @@ import java.util.Set;
 public interface User {
 
     /**
-     * Name - what identifies the user.
-     * @return - User's name.
+     * Get the name that identifies the user.
+     * @return the user name.
      */
 
     String getName();
 
     /**
-     * The roles
-     * @return
+     * Get the roles to which the user belongs.
+     * @return role names.
      */
     Set<String> getRoles();
 
     /**
-     * Users account
-     * @return
+     * Get the user's account
+     * @return the account name
      */
     String getAccount();
 
     /**
-     * Users affliation
-     * @return
+     * Get the user's affiliation.
+     * @return the affiliation.
      */
     String getAffiliation();
 
     /**
-     * Enrollment
-     * @see Enrollment
+     * Get the user's enrollment certificate information.
      *
-     * @return {Enrollment} The enrollment.
+     * @return the enrollment information.
      */
     Enrollment getEnrollment();
 
     /**
-     * An ID provided by the users organization
-     * @return mspid
+     * Get the ID provided by the user's organization.
+     * @return msp ID.
      */
     String getMSPID();
 }

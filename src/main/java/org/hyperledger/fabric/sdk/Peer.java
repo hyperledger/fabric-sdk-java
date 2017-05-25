@@ -132,7 +132,12 @@ public class Peer {
             return false;
         }
         Peer p = (Peer) otherPeer;
-        return Objects.equals(getName(), p.getName()) && Objects.equals(getUrl(), p.getUrl());
+        return Objects.equals(this.name, p.name) && Objects.equals(this.url, p.url);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, url);
     }
 
     ListenableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal)

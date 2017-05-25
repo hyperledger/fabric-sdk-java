@@ -116,8 +116,9 @@ public class ProposalBuilder {
     }
 
     private FabricProposal.Proposal createFabricProposal(String channelID, Chaincode.ChaincodeID chaincodeID) {
-
-        transientMap = transientMap == null ? Collections.EMPTY_MAP : transientMap;
+        if (null == transientMap) {
+            transientMap = Collections.emptyMap();
+        }
 
         if (isDebugLevel) {
 

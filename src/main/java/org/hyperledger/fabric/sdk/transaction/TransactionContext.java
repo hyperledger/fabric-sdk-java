@@ -113,24 +113,8 @@ public class TransactionContext {
     }
 
     /**
-     * Emit a specific event provided an event listener is already registered.
-     */
-    public void emitMyEvent(String name, Object event) {
-        /*
-       setTimeout(function() {
-         // Check if an event listener has been registered for the event
-         let listeners = self.listeners(name);
-
-         // If an event listener has been registered, emit the event
-         if (listeners && listeners.length > 0) {
-            self.emit(name, event);
-         }
-       }, 0);
-*/
-    }
-
-    /**
-     * Get the attribute names associated
+     * Get the attribute names associated with this transaction context.
+     * @return the attributes.
      */
     public List<String> getAttrs() {
         return this.attrs;
@@ -138,6 +122,7 @@ public class TransactionContext {
 
     /**
      * Set the attributes for this transaction context.
+     * @param attrs the attributes.
      */
     public void setAttrs(List<String> attrs) {
         this.attrs = attrs;

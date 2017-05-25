@@ -39,7 +39,7 @@ public class Orderer {
     /**
      * Get Orderer properties.
      *
-     * @return
+     * @return properties
      */
 
     public Properties getProperties() {

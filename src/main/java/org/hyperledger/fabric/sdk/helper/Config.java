@@ -165,19 +165,6 @@ public class Config {
         return ret;
     }
 
-    /**
-     * getProperty returns the value for given property key. If not found, it
-     * will set the property to defaultValue
-     *
-     * @param property
-     * @param defaultValue
-     * @return property value as a String
-     */
-    private String getProperty(String property, String defaultValue) {
-
-        return sdkProperties.getProperty(property, defaultValue);
-    }
-
     static private void defaultProperty(String key, String value) {
 
         String ret = System.getProperty(key);
@@ -199,9 +186,9 @@ public class Config {
     }
 
     /**
-     * Returns security level.
+     * Get the configured security level. The value determines the elliptic curve used to generate keys.
      *
-     * @return
+     * @return the security level.
      */
     public int getSecurityLevel() {
 
@@ -210,9 +197,9 @@ public class Config {
     }
 
     /**
-     * Returns hash algorithm
+     * Get the name of the configured hash algorithm, used for digital signatures.
      *
-     * @return
+     * @return the hash algorithm name.
      */
     public String getHashAlgorithm() {
         return getProperty(HASH_ALGORITHM);
@@ -224,18 +211,18 @@ public class Config {
     }
 
     /**
-     * Returns the timeout for a single proposal request to endorser in milliseconds.
+     * Get the timeout for a single proposal request to endorser.
      *
-     * @return the timeout for a single proposal request to endorser in milliseconds
+     * @return the timeout in milliseconds.
      */
     public long getProposalWaitTime() {
         return Long.parseLong(getProperty(PROPOSAL_WAIT_TIME));
     }
 
     /**
-     * getGenesisBlockWaiTime time to wait for genesis block
+     * Get the configured time to wait for genesis block.
      *
-     * @return
+     * @return time in milliseconds.
      */
     public long getGenesisBlockWaitTime() {
         return Long.parseLong(getProperty(GENESISBLOCK_WAIT_TIME));
