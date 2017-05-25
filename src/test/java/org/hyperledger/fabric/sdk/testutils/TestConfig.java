@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *        http://www.apache.org/licenses/LICENSE-2.0
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -170,7 +170,7 @@ public class TestConfig {
                     Properties properties = new Properties();
                     properties.setProperty("pemFile", cf.getAbsolutePath());
 
-                    properties.setProperty("allowAllHostNames", "true");//testing environment only NOT FOR PRODUCTION!
+                    properties.setProperty("allowAllHostNames", "true"); //testing environment only NOT FOR PRODUCTION!
 
                     sampleOrg.setCAProperties(properties);
                 }
@@ -227,20 +227,7 @@ public class TestConfig {
         return ret;
     }
 
-    /**
-     * getProperty returns the value for given property key. If not found, it
-     * will set the property to defaultValueidea-IC-171.3780.107
-     *
-     * @param property
-     * @param defaultValue
-     * @return property value as a String
-     */
-    private String getProperty(String property, String defaultValue) {
-
-        return sdkProperties.getProperty(property, defaultValue);
-    }
-
-    static private void defaultProperty(String key, String value) {
+    private static void defaultProperty(String key, String value) {
 
         String ret = System.getProperty(key);
         if (ret != null) {
@@ -272,11 +259,6 @@ public class TestConfig {
         return Integer.parseInt(getProperty(GOSSIPWAITTIME));
     }
 
-    /**
-     * Time to wait for proposal to complete
-     *
-     * @return
-     */
     public long getProposalWaitTime() {
         return Integer.parseInt(getProperty(PROPOSALWAITTIME));
     }
@@ -290,7 +272,6 @@ public class TestConfig {
 
     }
 
-    private final static String tlsbase = "src/test/fixture/sdkintegration/e2e-2Orgs/tls/";
 
     public Properties getPeerProperties(String name) {
 
@@ -309,11 +290,11 @@ public class TestConfig {
 
         final String domainName = getDomainName(name);
 
-        File cert = Paths.get(getTestChannlePath(), "crypto-config/ordererOrganizations".replace("orderer", type), domainName, type +"s",
+        File cert = Paths.get(getTestChannlePath(), "crypto-config/ordererOrganizations".replace("orderer", type), domainName, type + "s",
                 name, "tls/server.crt").toFile();
-        if(!cert.exists()){
+        if (!cert.exists()) {
             throw new RuntimeException(String.format("Missing cert file for: %s. Could not find at location: %s", name,
-                    cert.getAbsolutePath()) );
+                    cert.getAbsolutePath()));
         }
 
         Properties ret = new Properties();
@@ -332,39 +313,6 @@ public class TestConfig {
 
     }
 
-    private Properties getTLSProperties(String type, String name) {
-        Properties ret = null;
-        if (runningFabricTLS) {
-            String cert = tlsbase + "/" + type + "/" + name + "/cert.pem";
-            File cf = new File(cert);
-            if (!cf.exists() || !cf.isFile()) {
-                throw new RuntimeException("Missing cert file " + cf.getAbsolutePath());
-            }
-            ret = new Properties();
-            ret.setProperty("pemFile", cert);
-            ret.setProperty("trustServerCertificate", "true"); //testing environment only NOT FOR PRODUCTION!
-            ret.setProperty("sslProvider", "openSSL");
-            ret.setProperty("negotiationType", "TLS");
-        }
-        return ret;
-    }
-
-    private Properties getTLSProperties(String cert) {
-        Properties ret = null;
-        if (runningFabricTLS) {
-            //   String cert = tlsbase + "/" + type + "/" + name + "/ca.pem";
-            File cf = new File(tlsbase + cert);
-            if (!cf.exists() || !cf.isFile()) {
-                throw new RuntimeException("TEST error missing cert file " + cf.getAbsolutePath());
-            }
-            ret = new Properties();
-            ret.setProperty("pemFile", cf.getAbsolutePath());
-            ret.setProperty("trustServerCertificate", "true"); //testing environment only NOT FOR PRODUCTION!
-            ret.setProperty("sslProvider", "openSSL");
-            ret.setProperty("negotiationType", "TLS");
-        }
-        return ret;
-    }
 
     public String getTestChannlePath() {
 
@@ -377,7 +325,7 @@ public class TestConfig {
         if (-1 == dot) {
             return null;
         } else {
-            return name.substring(dot+1);
+            return name.substring(dot + 1);
         }
 
     }

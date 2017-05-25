@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *        http://www.apache.org/licenses/LICENSE-2.0
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -44,12 +44,11 @@ import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getSignatureHead
 
 public class ProposalBuilder {
 
-    private final static Log logger = LogFactory.getLog(ProposalBuilder.class);
-    private final static boolean isDebugLevel = logger.isDebugEnabled();
+    private static final Log logger = LogFactory.getLog(ProposalBuilder.class);
+    private static final boolean IS_DEBUG_LEVEL = logger.isDebugEnabled();
 
     private Chaincode.ChaincodeID chaincodeID;
     private List<ByteString> argList;
-    private List<byte[]> argBytesList;
     protected TransactionContext context;
     protected TransactionRequest request;
     protected ChaincodeSpec.Type ccType = ChaincodeSpec.Type.GOLANG;
@@ -70,11 +69,6 @@ public class ProposalBuilder {
 
     public ProposalBuilder args(List<ByteString> argList) {
         this.argList = argList;
-        return this;
-    }
-
-    public ProposalBuilder argBytes(List<byte[]> argBytesList) {
-        this.argBytesList = argBytesList;
         return this;
     }
 
@@ -120,8 +114,7 @@ public class ProposalBuilder {
             transientMap = Collections.emptyMap();
         }
 
-        if (isDebugLevel) {
-
+        if (IS_DEBUG_LEVEL) {
             for (Entry<String, byte[]> tme : transientMap.entrySet()) {
                 logger.debug(format("transientMap('%s', '%s'))", logString(tme.getKey()),
                         logString(new String(tme.getValue(), UTF_8))));
@@ -191,7 +184,7 @@ public class ProposalBuilder {
             }
 
         }
-        if (isDebugLevel) {
+        if (IS_DEBUG_LEVEL) {
 
             StringBuilder logout = new StringBuilder(1000);
 

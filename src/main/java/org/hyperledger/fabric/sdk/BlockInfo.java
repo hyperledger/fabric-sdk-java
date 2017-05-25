@@ -118,14 +118,12 @@ public class BlockInfo {
     public class EnvelopeInfo {
         private final EnvelopeDeserializer envelopeDeserializer;
         HeaderDeserializer headerDeserializer;
-        private final int blockIndex;
 
         //private final EnvelopeDeserializer envelopeDeserializer;
 
         EnvelopeInfo(EnvelopeDeserializer envelopeDeserializer, int blockIndex) {
             this.envelopeDeserializer = envelopeDeserializer;
             headerDeserializer = envelopeDeserializer.getPayload().getHeader();
-            this.blockIndex = blockIndex;
             headerDeserializer.getChannelHeader().getType();
         }
 
@@ -198,7 +196,7 @@ public class BlockInfo {
             return ret;
 
         } catch (InvalidProtocolBufferRuntimeException e) {
-            throw (InvalidProtocolBufferException) e.getCause();
+            throw e.getCause();
         }
 
     }

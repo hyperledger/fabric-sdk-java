@@ -31,7 +31,6 @@ import static org.hyperledger.fabric.protos.peer.FabricTransaction.Transaction;
 class TransactionDeserializer {
     private final ByteString byteString;
     private WeakReference<Transaction> transaction;
-    private WeakReference<PayloadDeserializer> payload;
     private final Map<Integer, WeakReference<TransactionActionDeserializer>> transactionActions =
             Collections.synchronizedMap(new WeakHashMap<Integer, WeakReference<TransactionActionDeserializer>>());
 

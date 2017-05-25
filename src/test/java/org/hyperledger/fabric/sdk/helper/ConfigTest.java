@@ -14,20 +14,17 @@
 
 package org.hyperledger.fabric.sdk.helper;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.Properties;
-
 import org.hyperledger.fabric.sdk.TestConfigHelper;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 public class ConfigTest {
 
-        private TestConfigHelper configHelper = new TestConfigHelper() ;
-        private String originalValue;
+    private TestConfigHelper configHelper = new TestConfigHelper();
+    private String originalValue;
 
     @Before
     public void setUp() throws Exception {
@@ -37,9 +34,9 @@ public class ConfigTest {
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws Exception {
         // reset Config after each test. We do not want to interfere with the next test or the next test suite
-        try {configHelper.clearConfig();} catch (Exception e) {} ;
+        configHelper.clearConfig();
     }
 
     @Test

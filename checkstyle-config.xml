@@ -46,15 +46,23 @@
         <property name="message" value="Line has trailing spaces."/>
     </module>
 
+    <module name="SuppressionCommentFilter">
+        <property name="offCommentFormat" value="CHECKSTYLE.OFF\: ([\w\|]+)"/>
+        <property name="onCommentFormat" value="CHECKSTYLE.ON\: ([\w\|]+)"/>
+        <property name="checkFormat" value="$1"/>
+    </module>
+
     <module name="TreeWalker">
+
+        <!-- Required for SuppressionCommentFilter module -->
+        <module name="FileContentsHolder"/>
 
         <!-- Checks for Naming Conventions.                  -->
         <!-- See http://checkstyle.sf.net/config_naming.html -->
         <module name="ConstantName">
             <property name="format"
                       value="^log(ger)?|config|[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$"/>
-            <property
-                    name="applyToPrivate" value="false"/>
+            <property name="applyToPrivate" value="false"/>
         </module>
         <module name="LocalFinalVariableName"/>
         <module name="LocalVariableName"/>

@@ -139,9 +139,6 @@ public class BlockEventTest {
         badEventBlock = PeerEvents.Event.newBuilder().setBlock(badBlock).build();
     }
 
-    /**
-     * Test method for {@link org.hyperledger.fabric.sdk.BlockEvent#BlockEvent(EventHub, PeerEvents.Event)}.
-     */
     @Test
     public void testBlockEvent() {
         try {
@@ -160,12 +157,7 @@ public class BlockEventTest {
         }
     }
 
-    /**
-     * Test method for {@link org.hyperledger.fabric.sdk.BlockEvent#BlockEvent(EventHub, PeerEvents.Event)}.
-     * With bad block inputted, BlockEvent ctor will throw an exception
-     *
-     * @throws InvalidProtocolBufferException
-     */
+    // Bad block input causes constructor to throw exception
     @Test (expected = InvalidProtocolBufferException.class)
     public void testBlockEventBadBlock() throws InvalidProtocolBufferException {
         BlockEvent be = new BlockEvent(eventHub, badEventBlock);

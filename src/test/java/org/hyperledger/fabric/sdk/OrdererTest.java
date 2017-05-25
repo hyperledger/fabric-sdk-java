@@ -16,110 +16,85 @@ package org.hyperledger.fabric.sdk;
 
 import java.io.File;
 
-import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+
+
 public class OrdererTest {
-        private static final String CHANNEL_NAME = "channel1";
-        static HFClient hfclient = null;
-        static Orderer orderer = null;
-        static File tempFile;
+    static HFClient hfclient = null;
+    static Orderer orderer = null;
+    static File tempFile;
 
-        @BeforeClass
-        public static void setupClient() throws Exception {
+    @BeforeClass
+    public static void setupClient() throws Exception {
+        hfclient = TestHFClient.newInstance();
+        orderer = hfclient.newOrderer("myorder", "grpc://localhost:5151");
+    }
 
-
-                try {
-                        //hfclient = HFClient.createNewInstance();
-                        hfclient = TestHFClient.newInstance();
-                        orderer= hfclient.newOrderer("myorder", "grpc://localhost:5151");
-                } catch (Exception e) {
-                        e.printStackTrace();
-                        Assert.fail("Unexpected Exception " + e.getMessage());
-                }
+    @AfterClass
+    public static void cleanUp() {
+        if (tempFile != null) {
+            tempFile.delete();
+            tempFile = null;
         }
+    }
 
-        @Test
-        public void testSetChannel() {
+    @Test
+    public void testSetChannel() {
 
-                try {
-                        Channel channel = hfclient.newChannel("channel");
-                        orderer.setChannel(channel);
-                        Assert.assertTrue(channel == orderer.getChannel());
+        try {
+            Channel channel = hfclient.newChannel("channel");
+            orderer.setChannel(channel);
+            Assert.assertTrue(channel == orderer.getChannel());
 
-                } catch (Exception e) {
-                        Assert.fail("Unexpected Exception " + e.getMessage());
-                }
+        } catch (Exception e) {
+            Assert.fail("Unexpected Exception " + e.getMessage());
         }
+    }
 
-        @Test
-        public void testSetNullChannel() {
+    @Test(expected = InvalidArgumentException.class)
+    public void testSetNullChannel() throws InvalidArgumentException {
+        orderer.setChannel(null);
+        Assert.fail("Expected null channel to throw exception.");
+    }
 
-                try {
+    @Test(expected = InvalidArgumentException.class)
+    public void testBadAddress() throws InvalidArgumentException {
+        orderer = hfclient.newOrderer("badorderer", "xxxxxx");
+        Assert.fail("Orderer did not allow setting bad URL.");
+    }
 
-                        orderer.setChannel(null);
-                        Assert.fail("Expected null channel to throw exception.");
+    @Test(expected = InvalidArgumentException.class)
+    public void testMissingAddress() throws InvalidArgumentException {
+        orderer = hfclient.newOrderer("badaddress", "");
+        Assert.fail("Orderer did not allow setting a missing address.");
+    }
 
-                } catch (Exception e) {
-                        Assert.assertTrue( e.getClass() == InvalidArgumentException.class);
-                }
+    @Ignore
+    public void testGetChannel() {
+        try {
+            Channel channel = hfclient.newChannel("channel");
+            orderer = hfclient.newOrderer("odererName", "grpc://localhost:5151");
+            channel.addOrderer(orderer);
+        } catch (Exception e) {
+            Assert.fail("Unexpected Exception " + e.getMessage());
         }
+        Assert.assertTrue("Test passed - ", orderer.getChannel().getName().equalsIgnoreCase("channel"));
+    }
 
-        @Test
-        public void testBadAddress() {
-                try {
-                        orderer= hfclient.newOrderer("badorderer", "xxxxxx");
-                        Assert.fail("Orderer did not allow setting bad URL.");
-                } catch (Exception e) {
-                        Assert.assertTrue( e.getClass() == InvalidArgumentException.class);
-                }
+    @Test(expected = Exception.class)
+    public void testSendNullTransactionThrowsException() throws Exception {
+        try {
+            orderer = hfclient.newOrderer("orderertest", "grpc://localhost:5151");
+        } catch (InvalidArgumentException e) {
+            Assert.fail("Failed to create new orderer: " + e);
         }
-        @Test
-        public void testMissingAddress() {
-                try {
-                        orderer= hfclient.newOrderer("badaddress", "");
-                        Assert.fail("Orderer did not allow setting a missing address.");
-                } catch (Exception e) {
-                	    Assert.assertTrue( e.getClass() == InvalidArgumentException.class);
-                }
-        }
-        @Ignore
-        public void testGetChannel() {
-                try {
-                        Channel channel = hfclient.newChannel("channel");
-                        orderer = hfclient.newOrderer("odererName", "grpc://localhost:5151");
-                        channel.addOrderer(orderer);
-                 } catch (Exception e) {
-                        Assert.fail("Unexpected Exception " + e.getMessage());
-                }
-                Assert.assertTrue("Test passed - ", orderer.getChannel().getName().equalsIgnoreCase("channel"));
-        }
-        @Test(expected=AssertionError.class)
-        public void testBroadcast() {
-                	    try {
-							orderer = hfclient.newOrderer("orderertest", "grpc://localhost:5151");
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
-                try {
-                        Ab.BroadcastResponse resp = orderer.sendTransaction(null);
-                        Assert.fail("Transaction should not be null.");
-                } catch (Exception e) {
-                        e.printStackTrace();
-                        Assert.fail("Expected null channel to throw exception.");
-                }
-        }
-        @Override
-        protected void finalize() throws Throwable {
-                super.finalize();
-                if( tempFile != null){
-                        tempFile.delete();
-                        tempFile = null;
-
-                }
-        }
+        orderer.sendTransaction(null);
+        Assert.fail("Transaction should not be null.");
+    }
 
 }

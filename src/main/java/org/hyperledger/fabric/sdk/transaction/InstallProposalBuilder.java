@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *        http://www.apache.org/licenses/LICENSE-2.0
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -37,7 +37,7 @@ import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createDeployment
 
 public class InstallProposalBuilder extends LSCCProposalBuilder {
 
-    private final static Log logger = LogFactory.getLog(InstallProposalBuilder.class);
+    private static final Log logger = LogFactory.getLog(InstallProposalBuilder.class);
 
     private String chaincodePath;
 
@@ -177,20 +177,6 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
         final List<ByteString> argList = new ArrayList<>();
         argList.add(ByteString.copyFrom(action, StandardCharsets.UTF_8));
         argList.add(depspec.toByteString());
-        args(argList);
-
-    }
-
-    private void createDevModeTransaction() {
-        logger.debug("newDevModeTransaction");
-
-        ChaincodeDeploymentSpec depspec = createDeploymentSpec(Type.GOLANG,
-                chaincodeName, null, null, null, null);
-
-        List<ByteString> argList = new ArrayList<>();
-        argList.add(ByteString.copyFrom("install", StandardCharsets.UTF_8));
-        argList.add(depspec.toByteString());
-
         args(argList);
 
     }

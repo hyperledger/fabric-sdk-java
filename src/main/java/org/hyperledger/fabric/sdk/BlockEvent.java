@@ -18,12 +18,9 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common.Block;
+import org.hyperledger.fabric.protos.peer.PeerEvents.Event;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
-
-import static org.hyperledger.fabric.protos.peer.PeerEvents.Event;
 
 /**
  * A wrapper for the Block returned in an Event
@@ -31,14 +28,13 @@ import static org.hyperledger.fabric.protos.peer.PeerEvents.Event;
  * @see Block
  */
 public class BlockEvent extends BlockInfo {
-    private static final Log logger = LogFactory.getLog(BlockEvent.class);
+//    private static final Log logger = LogFactory.getLog(BlockEvent.class);
 
     /**
-     * Get eventhub that received the event
+     * Get the Event Hub that received the event.
      *
-     * @return eventhub that received the event
+     * @return an Event Hub.
      */
-
     public EventHub getEventHub() {
         return eventHub;
     }

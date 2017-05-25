@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *        http://www.apache.org/licenses/LICENSE-2.0
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,7 +20,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ChannelTest {
-    private static final String CHANNEL_NAME = "channel1";
     static HFClient hfclient = null;
 
 
@@ -44,9 +43,9 @@ public class ChannelTest {
 
         try {
 
-            final String CHANNEL_NAME = "channel3";
-            Channel testchannel = new Channel(CHANNEL_NAME, hfclient);
-            Assert.assertEquals(CHANNEL_NAME, testchannel.getName());
+            final String channelNamre = "channel3";
+            Channel testchannel = new Channel(channelNamre, hfclient);
+            Assert.assertEquals(channelNamre, testchannel.getName());
             Assert.assertEquals(testchannel.client, hfclient);
             Assert.assertEquals(testchannel.getOrderers().size(), 0);
             Assert.assertEquals(testchannel.getPeers().size(), 0);
@@ -64,9 +63,9 @@ public class ChannelTest {
 
         try {
 
-            final String CHANNEL_NAME = "channel3";
-            final Channel testchannel = new Channel(CHANNEL_NAME, hfclient);
-            final Peer peer = hfclient.newPeer("peer_" , "grpc://localhost:7051");
+            final String channelName = "channel3";
+            final Channel testchannel = new Channel(channelName, hfclient);
+            final Peer peer = hfclient.newPeer("peer_", "grpc://localhost:7051");
 
             testchannel.addPeer(peer);
 
@@ -85,8 +84,8 @@ public class ChannelTest {
 
         try {
 
-            final String CHANNEL_NAME = "channel3";
-            final Channel testChannel = new Channel(CHANNEL_NAME, hfclient);
+            final String channelName = "channel3";
+            final Channel testChannel = new Channel(channelName, hfclient);
             final Orderer orderer = hfclient.newOrderer("testorder", "grpc://localhost:7051");
 
             testChannel.addOrderer(orderer);
@@ -107,8 +106,8 @@ public class ChannelTest {
 
         try {
 
-            final String CHANNEL_NAME = "channel3";
-            testChannel = new Channel(CHANNEL_NAME, hfclient);
+            final String channelName = "channel3";
+            testChannel = new Channel(channelName, hfclient);
 
             testChannel.addPeer(null);
 
@@ -128,9 +127,9 @@ public class ChannelTest {
 
         try {
 
-            final String CHANNEL_NAME = "channel3";
-            testChannel = new Channel(CHANNEL_NAME, hfclient);
-            final Peer peer = hfclient.newPeer(null , "grpc://localhost:7051");
+            final String channelName = "channel3";
+            testChannel = new Channel(channelName, hfclient);
+            final Peer peer = hfclient.newPeer(null, "grpc://localhost:7051");
 
             testChannel.addPeer(peer);
             Assert.fail("Expected no named peer to throw exception.");
@@ -149,8 +148,8 @@ public class ChannelTest {
 
         try {
 
-            final String CHANNEL_NAME = "channel3";
-            testChannel = new Channel(CHANNEL_NAME, hfclient);
+            final String channelName = "channel3";
+            testChannel = new Channel(channelName, hfclient);
 
             testChannel.addOrderer(null);
 
@@ -175,14 +174,14 @@ public class ChannelTest {
                 }
 
                 @Override
-                protected void parseConfigBlock(){
+                protected void parseConfigBlock() {
 
                 }
             }
 
-            final String CHANNEL_NAME = "channel3";
-            final Channel testChannel = new MockChannel(CHANNEL_NAME, hfclient);
-            final Peer peer = hfclient.newPeer("peer_" , "grpc://localhost:7051");
+            final String channelName = "channel3";
+            final Channel testChannel = new MockChannel(channelName, hfclient);
+            final Peer peer = hfclient.newPeer("peer_", "grpc://localhost:7051");
 
             testChannel.addPeer(peer);
             Assert.assertEquals(testChannel.isInitialized(), false);
@@ -202,8 +201,8 @@ public class ChannelTest {
 
         try {
 
-            final String CHANNEL_NAME = "channel3";
-            testChannel = new Channel(CHANNEL_NAME, hfclient);
+            final String channelName = "channel3";
+            testChannel = new Channel(channelName, hfclient);
 
             Assert.assertEquals(testChannel.isInitialized(), false);
             testChannel.initialize();

@@ -305,9 +305,9 @@
                 </executions>
                 <configuration>
                     <consoleOutput>false</consoleOutput>
-                    <logViolationsToConsole>false</logViolationsToConsole>
-                    <failOnViolation>false</failOnViolation>
-                    <failsOnError>false</failsOnError>
+                    <logViolationsToConsole>true</logViolationsToConsole>
+                    <failOnViolation>true</failOnViolation>
+                    <failsOnError>true</failsOnError>
                     <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
                     <configLocation>checkstyle-config.xml</configLocation>
                 </configuration>

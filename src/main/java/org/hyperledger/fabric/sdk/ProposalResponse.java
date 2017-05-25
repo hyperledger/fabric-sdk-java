@@ -24,8 +24,7 @@ import org.hyperledger.fabric.sdk.security.CryptoSuite;
 public class ProposalResponse extends ChaincodeResponse {
 
     private static final Log logger = LogFactory.getLog(ProposalResponse.class);
-    final static Config config = Config.getConfig();
-    private FabricProposal.SignedProposal signedProposal;
+    private static final Config config = Config.getConfig();
 
     private boolean isVerified = false;
 
@@ -116,7 +115,6 @@ public class ProposalResponse extends ChaincodeResponse {
     public void setProposal(FabricProposal.SignedProposal signedProposal) throws ProposalException {
 
         try {
-            this.signedProposal = signedProposal;
             this.proposal = FabricProposal.Proposal.parseFrom(signedProposal.getProposalBytes());
         } catch (InvalidProtocolBufferException e) {
             throw new ProposalException("Proposal exception", e);

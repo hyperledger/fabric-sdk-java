@@ -24,7 +24,7 @@ class GetTCertBatchRequest {
     private int num;
     private List<String> attrs;
 
-    public GetTCertBatchRequest(String name, Enrollment enrollment, int num, List<String> attrs) {
+    GetTCertBatchRequest(String name, Enrollment enrollment, int num, List<String> attrs) {
         this.name = name;
         this.enrollment = enrollment;
         this.num = num;

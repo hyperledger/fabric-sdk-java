@@ -110,8 +110,8 @@ class RevocationRequest {
             factory.add("reason", reason);
         }
 
-        if(caName != null){
-            factory.add( HFCAClient.FABRIC_CA_REQPROP, caName);
+        if (caName != null) {
+            factory.add(HFCAClient.FABRIC_CA_REQPROP, caName);
         }
         factory.add("reason", reason);
         return factory.build();

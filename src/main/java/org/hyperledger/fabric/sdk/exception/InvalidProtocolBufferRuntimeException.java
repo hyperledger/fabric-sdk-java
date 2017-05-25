@@ -14,13 +14,11 @@
  *
  */
 
-
 package org.hyperledger.fabric.sdk.exception;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
 public class InvalidProtocolBufferRuntimeException extends RuntimeException {
-
 
     private static final long serialVersionUID = 1L;
 
@@ -32,11 +30,10 @@ public class InvalidProtocolBufferRuntimeException extends RuntimeException {
         super(parent);
     }
 
-    public synchronized InvalidProtocolBufferException getCause(){
+    public synchronized InvalidProtocolBufferException getCause() {
 
-       return (InvalidProtocolBufferException)  super.getCause();
+        return (InvalidProtocolBufferException) super.getCause();
 
     }
-
 
 }

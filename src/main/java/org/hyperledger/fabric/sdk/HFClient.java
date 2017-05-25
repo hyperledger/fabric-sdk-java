@@ -258,7 +258,7 @@ public class HFClient {
             throw new InvalidArgumentException(format("setUserContext for user %s has no Enrollment set", userName));
         }
 
-        if (Utils.isNullOrEmpty(userContext.getMSPID())) {
+        if (Utils.isNullOrEmpty(userContext.getMspId())) {
             throw new InvalidArgumentException(format("setUserContext for user %s  has user's MSPID is missing", userName));
         }
 
@@ -273,7 +273,7 @@ public class HFClient {
             throw new InvalidArgumentException(format("setUserContext for user %s has Enrollment missing signing key", userName));
         }
 
-        logger.debug(format("Setting user context to MSPID: %s user: %s", userContext.getMSPID(), userContext.getName()));
+        logger.debug(format("Setting user context to MSPID: %s user: %s", userContext.getMspId(), userContext.getName()));
 
         this.userContext = userContext;
     }

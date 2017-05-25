@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -43,17 +43,17 @@ import static org.hyperledger.fabric.sdk.helper.Utils.toHexString;
 
 public final class ProtoUtils {
 
-    private final static Log logger = LogFactory.getLog(ProtoUtils.class);
-    private final static boolean isDebugLevel = logger.isDebugEnabled();
+    private static final Log logger = LogFactory.getLog(ProtoUtils.class);
+    private static final boolean isDebugLevel = logger.isDebugEnabled();
 
     /**
      * createChannelHeader create chainHeader
      *
-     * @param type header type. See {@link ChannelHeader.Builder#setType}.
-     * @param txID transaction ID. See {@link ChannelHeader.Builder#setTxId}.
-     * @param channelID channel ID. See {@link ChannelHeader.Builder#setChannelId}.
-     * @param epoch the epoch in which this header was generated. See {@link ChannelHeader.Builder#setEpoch}.
-     * @param timeStamp local time when the message was created. See {@link ChannelHeader.Builder#setTimestamp}.
+     * @param type                     header type. See {@link ChannelHeader.Builder#setType}.
+     * @param txID                     transaction ID. See {@link ChannelHeader.Builder#setTxId}.
+     * @param channelID                channel ID. See {@link ChannelHeader.Builder#setChannelId}.
+     * @param epoch                    the epoch in which this header was generated. See {@link ChannelHeader.Builder#setEpoch}.
+     * @param timeStamp                local time when the message was created. See {@link ChannelHeader.Builder#setTimestamp}.
      * @param chaincodeHeaderExtension extension to attach dependent on the header type. See {@link ChannelHeader.Builder#setExtension}.
      * @return a new chain header.
      */
@@ -187,7 +187,7 @@ public final class ProtoUtils {
         if (isDebugLevel) {
 
             String cert = user.getEnrollment().getCert();
-           // logger.debug(format(" User: %s Certificate:\n%s", user.getName(), cert));
+            // logger.debug(format(" User: %s Certificate:\n%s", user.getName(), cert));
 
             if (null == suite) {
 
@@ -229,7 +229,7 @@ public final class ProtoUtils {
 
         return Identities.SerializedIdentity.newBuilder()
                 .setIdBytes(ByteString.copyFromUtf8(user.getEnrollment().getCert()))
-                .setMspid(user.getMSPID()).build();
+                .setMspid(user.getMspId()).build();
     }
 
     public static Timestamp getCurrentFabricTimestamp() {
@@ -250,6 +250,7 @@ public final class ProtoUtils {
     /**
      * Private constructor to prevent instantiation.
      */
-    private ProtoUtils() { }
+    private ProtoUtils() {
+    }
 
 }

@@ -24,7 +24,7 @@ class TransactionPayloadDeserializer extends  PayloadDeserializer {
 
     private WeakReference<TransactionDeserializer> transactionDeserialize;
 
-    public TransactionPayloadDeserializer(ByteString byteString) {
+    TransactionPayloadDeserializer(ByteString byteString) {
 
         super(byteString);
     }

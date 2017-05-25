@@ -44,7 +44,7 @@ public class TestHFClient {
         final SampleStore sampleStore = new SampleStore(sampleStoreFile);
 
         SampleUser someTestUSER = sampleStore.getMember("someTestUSER", "someTestORG");
-        someTestUSER.setMPSID("testMSPID?");
+        someTestUSER.setMspId("testMSPID?");
 
         HFClient hfclient = HFClient.createNewInstance();
 
@@ -52,6 +52,8 @@ public class TestHFClient {
             @Override
             public PrivateKey getKey() {
                 return new PrivateKey() {
+                    private static final long serialVersionUID = -7506317638561401152L;
+
                     @Override
                     public String getAlgorithm() {
                         return "algorithm?";

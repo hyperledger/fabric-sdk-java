@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -66,8 +67,6 @@ public class End2endAndBackAgainIT {
     private static final String TESTUSER_1_NAME = "user1";
     private static final String TEST_FIXTURES_PATH = "src/test/fixture";
 
-    private final int gossipWaitTime = testConfig.getGossipWaitTime();
-
     private static final String CHAIN_CODE_NAME = "example_cc_go";
     private static final String CHAIN_CODE_PATH = "github.com/example_cc";
     private static final String CHAIN_CODE_VERSION = "1";
@@ -82,8 +81,6 @@ public class End2endAndBackAgainIT {
 
     private static final String FOO_CHANNEL_NAME = "foo";
     private static final String BAR_CHANNEL_NAME = "bar";
-
-    private Hashtable<String, HFCAClient> fabricCAs = new Hashtable<>();
 
     String testTxID = null;  // save the CC invoke TxID and use in queries
 

@@ -26,9 +26,8 @@ import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeExceptio
 class PayloadDeserializer {
     private final ByteString byteString;
     private WeakReference<Payload> payload;
-    private WeakReference<TransactionDeserializer> transactionDeserialize;
 
-    public PayloadDeserializer(ByteString byteString) {
+    PayloadDeserializer(ByteString byteString) {
         this.byteString = byteString;
     }
 

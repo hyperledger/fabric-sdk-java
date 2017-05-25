@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -56,7 +56,7 @@ public class Config {
     public static final String LOGGERLEVEL = "org.hyperledger.fabric.sdk.loglevel";  // ORG_HYPERLEDGER_FABRIC_SDK_LOGLEVEL=TRACE,DEBUG
 
     private static Config config;
-    private final static Properties sdkProperties = new Properties();
+    private static final Properties sdkProperties = new Properties();
 
     private Config() {
         File loadFile;
@@ -124,6 +124,10 @@ public class Config {
                         setTo = Level.ERROR;
                         break;
 
+                    default:
+                        setTo = Level.INFO;
+                        break;
+
                 }
 
                 if (null != setTo) {
@@ -165,7 +169,7 @@ public class Config {
         return ret;
     }
 
-    static private void defaultProperty(String key, String value) {
+    private static void defaultProperty(String key, String value) {
 
         String ret = System.getProperty(key);
         if (ret != null) {

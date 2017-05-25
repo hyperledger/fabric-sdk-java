@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *        http://www.apache.org/licenses/LICENSE-2.0
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,13 +14,10 @@
 
 package org.hyperledger.fabric.sdk.transaction;
 
-import java.nio.Buffer;
 import java.util.List;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1Primitive;
@@ -41,7 +38,7 @@ import org.hyperledger.fabric.sdk.security.CryptoSuite;
  */
 public class TransactionContext {
     private static final Config config = Config.getConfig();
-    private static final Log logger = LogFactory.getLog(TransactionContext.class);
+//    private static final Log logger = LogFactory.getLog(TransactionContext.class);
     //TODO right now the server does not care need to figure out
     private final ByteString nonce = ByteString.copyFrom(Utils.generateNonce());
 
@@ -146,19 +143,6 @@ public class TransactionContext {
         this.proposalWaitTime = proposalWaitTime;
     }
 
-    private void decryptResult(Buffer ct) {
-        /* TODO implement decryptResult function
-        let key = new Buffer(
-            this.channel.cryptoPrimitives.hmacAESTruncated(
-                this.user.getEnrollment().queryStateKey,
-                [CONFIDENTIALITY_1_2_STATE_KD_C6].concat(this.nonce))
-        );
-
-        logger.debug("Decrypt Result [%s]", ct.toString("hex"));
-        return this.channel.cryptoPrimitives.aes256GCMDecrypt(key, ct);
-        */
-    }
-
     Timestamp currentTimeStamp = null;
 
     public Timestamp getFabricTimestamp() {
@@ -181,12 +165,6 @@ public class TransactionContext {
 
     public boolean getVerify() {
         return verify;
-    }
-
-    private static class SerializedIdentity {
-        String Mspid;
-        byte[] IdBytes;
-
     }
 
     /* Implementation of an example ASN .1 structure. * < pre > *MyStructure:: = SEQUENCE
@@ -217,7 +195,7 @@ public class TransactionContext {
     }
 
     String getMSPID() {
-        return user.getMSPID();
+        return user.getMspId();
     }
 
     String getCreator() {

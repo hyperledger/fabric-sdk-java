@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *        http://www.apache.org/licenses/LICENSE-2.0
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -105,7 +105,8 @@ public class SampleStore {
 
     /**
      * Get the user with a given name
-     *
+     * @param name
+     * @param org
      * @return user
      */
     public SampleUser getMember(String name, String org) {
@@ -125,10 +126,18 @@ public class SampleStore {
 
     /**
      * Get the user with a given name
-     *
+     * @param name
+     * @param org
+     * @param mspId
+     * @param privateKeyFile
+     * @param certificateFile
      * @return user
+     * @throws IOException
+     * @throws NoSuchAlgorithmException
+     * @throws NoSuchProviderException
+     * @throws InvalidKeySpecException
      */
-    public SampleUser getMember(String name, String org, String MSPID, File privateKeyFile,
+    public SampleUser getMember(String name, String org, String mspId, File privateKeyFile,
                                 File certificateFile) throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException {
 
         try {
@@ -140,11 +149,10 @@ public class SampleStore {
 
             // Create the SampleUser and try to restore it's state from the key value store (if found).
             sampleUser = new SampleUser(name, org, this);
-            sampleUser.setMPSID(MSPID);
+            sampleUser.setMspId(mspId);
 
             String certificate = new String(IOUtils.toByteArray(new FileInputStream(certificateFile)), "UTF-8");
 
-            //PrivateKey privateKey = getPrivateKeyFromFile(privateKeyFile);
             PrivateKey privateKey = getPrivateKeyFromBytes(IOUtils.toByteArray(new FileInputStream(privateKeyFile)));
 
             sampleUser.setEnrollment(new SampleStoreEnrollement(privateKey, certificate));
@@ -165,7 +173,7 @@ public class SampleStore {
         } catch (InvalidKeySpecException e) {
             e.printStackTrace();
             throw e;
-        } catch (ClassCastException e){
+        } catch (ClassCastException e) {
             e.printStackTrace();
             throw e;
         }
@@ -180,8 +188,8 @@ public class SampleStore {
         final Reader pemReader = new StringReader(new String(data));
 
         final PrivateKeyInfo pemPair;
-        try (final PEMParser pemParser = new PEMParser(pemReader)) {
-            pemPair = (PrivateKeyInfo)pemParser.readObject();
+        try (PEMParser pemParser = new PEMParser(pemReader)) {
+            pemPair = (PrivateKeyInfo) pemParser.readObject();
         }
 
         PrivateKey privateKey = new JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getPrivateKey(pemPair);
@@ -191,8 +199,8 @@ public class SampleStore {
 
     static final class SampleStoreEnrollement implements Enrollment, Serializable {
 
-        private  PrivateKey privateKey;
-       // private transient PrivateKey privateKey;
+        private static final long serialVersionUID = -2784835212445309006L;
+        private final PrivateKey privateKey;
         private final String certificate;
 
 

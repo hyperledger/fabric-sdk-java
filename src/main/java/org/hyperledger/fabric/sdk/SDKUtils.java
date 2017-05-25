@@ -31,6 +31,9 @@ import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 public class SDKUtils {
+    private SDKUtils() {
+
+    }
 
     public static CryptoSuite suite = null;
 

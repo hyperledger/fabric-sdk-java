@@ -4,7 +4,7 @@
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *        http://www.apache.org/licenses/LICENSE-2.0
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -292,7 +292,7 @@ public class CryptoPrimitives implements CryptoSuite {
      */
     public void addCACertificateToTrustStore(File caCertPem, String alias) throws CryptoException, InvalidArgumentException {
 
-        if (alias==null || alias.isEmpty()) {
+        if (alias == null || alias.isEmpty()) {
             throw new InvalidArgumentException("You must assign an alias to a certificate when adding to the trust store.");
         }
 
@@ -317,7 +317,7 @@ public class CryptoPrimitives implements CryptoSuite {
      */
     public void addCACertificateToTrustStore(Certificate caCert, String alias) throws InvalidArgumentException, CryptoException {
 
-        if (alias==null || alias.isEmpty()) {
+        if (alias == null || alias.isEmpty()) {
             throw new InvalidArgumentException("You must assign an alias to a certificate when adding to the trust store.");
         }
         if (caCert == null) {
@@ -325,7 +325,7 @@ public class CryptoPrimitives implements CryptoSuite {
         }
 
         try {
-            if(config.extraLogLevel(10)) {
+            if (config.extraLogLevel(10)) {
                 logger.trace("Adding cert to trust store. alias:  " + alias + "cert: " + caCert.toString());
             }
             getTrustStore().setCertificateEntry(alias, caCert);
@@ -337,13 +337,13 @@ public class CryptoPrimitives implements CryptoSuite {
     }
 
     @Override
-    public void loadCACertificates(Collection<Certificate> CACertificates) throws CryptoException {
-        if (CACertificates == null || CACertificates.size() == 0) {
+    public void loadCACertificates(Collection<Certificate> certificates) throws CryptoException {
+        if (certificates == null || certificates.size() == 0) {
             throw new CryptoException("Unable to load CA certificates. List is empty");
         }
 
         try {
-            for (Certificate cert : CACertificates) {
+            for (Certificate cert : certificates) {
                 addCACertificateToTrustStore(cert, Integer.toString(cert.hashCode()));
             }
         } catch (InvalidArgumentException e) {
@@ -357,34 +357,16 @@ public class CryptoPrimitives implements CryptoSuite {
      * @see org.hyperledger.fabric.sdk.security.CryptoSuite#loadCACertificatesAsBytes(java.util.Collection)
      */
     @Override
-    public void loadCACertificatesAsBytes(Collection<byte[]> CACertificatesBytes) throws CryptoException {
-        if (CACertificatesBytes == null || CACertificatesBytes.size() == 0) {
+    public void loadCACertificatesAsBytes(Collection<byte[]> certificatesBytes) throws CryptoException {
+        if (certificatesBytes == null || certificatesBytes.size() == 0) {
             throw new CryptoException("List of CA certificates is empty. Nothing to load.");
         }
         ArrayList<Certificate> certList = new ArrayList<>();
-        for (byte[] certBytes : CACertificatesBytes) {
+        for (byte[] certBytes : certificatesBytes) {
             logger.trace("certificate to load:\n" + new String(certBytes));
             certList.add(bytesToCertificate(certBytes));
         }
         loadCACertificates(certList);
-    }
-
-    /**
-     * loadCACerts loads into the trust stores all the certificates it finds in the <i>cacert</i> directory.
-     * This method assumes that any file with extension <i>.pem</i> is a certificate file
-     */
-    private void loadCACerts() {
-        File certsFolder = new File("cacerts").getAbsoluteFile();
-        Collection<File> certFiles = FileUtils.listFiles(certsFolder, new String[] {"pem"}, false);
-        for (File certFile : certFiles) {
-            try {
-                addCACertificateToTrustStore(certFile, certFile.getName());
-                logger.debug("adding " + certFile.getName() + "to truststore.");
-            } catch (CryptoException | InvalidArgumentException e) {
-                logger.error("Unable to load certificate " + certFile.getName() + "Error: " + e.getMessage(), e);
-                // ignore cert files we can't read
-            }
-        }
     }
 
     /**
@@ -525,13 +507,13 @@ public class CryptoPrimitives implements CryptoSuite {
 
     public byte[] eciesDecrypt(KeyPair keyPair, byte[] data) throws CryptoException {
         try {
-            int ek_len = (int) (Math.floor((this.securityLevel + 7) / 8) * 2 + 1);
-            int mk_len = this.securityLevel >> 3;
-            int em_len = data.length - ek_len - mk_len;
+            int ephemeralKeyLength = (int) (Math.floor((this.securityLevel + 7) / 8) * 2 + 1);
+            int mkLen = this.securityLevel >> 3;
+            int encryptedMessageLength = data.length - ephemeralKeyLength - mkLen;
 
-            byte[] ephemeralPublicKeyBytes = Arrays.copyOfRange(data, 0, ek_len);
-            byte[] encryptedMessage = Arrays.copyOfRange(data, ek_len, ek_len + em_len);
-            byte[] tag = Arrays.copyOfRange(data, ek_len + em_len, data.length);
+            byte[] ephemeralPublicKeyBytes = Arrays.copyOfRange(data, 0, ephemeralKeyLength);
+            byte[] encryptedMessage = Arrays.copyOfRange(data, ephemeralKeyLength, ephemeralKeyLength + encryptedMessageLength);
+            byte[] tag = Arrays.copyOfRange(data, ephemeralKeyLength + encryptedMessageLength, data.length);
 
             // Parsing public key.
             ECParameterSpec asymmetricKeyParams = generateECParameterSpec();
@@ -634,9 +616,9 @@ public class CryptoPrimitives implements CryptoSuite {
             // encoded = new String(hexenncoded).getBytes();
 
             X9ECParameters params = NISTNamedCurves.getByName(this.curveName);
-            BigInteger curve_N = params.getN();
+            BigInteger curveN = params.getN();
 
-            ECDomainParameters ecParams = new ECDomainParameters(params.getCurve(), params.getG(), curve_N,
+            ECDomainParameters ecParams = new ECDomainParameters(params.getCurve(), params.getG(), curveN,
                     params.getH());
 
             ECDSASigner signer = new ECDSASigner();
@@ -645,7 +627,7 @@ public class CryptoPrimitives implements CryptoSuite {
             signer.init(true, privKey);
             BigInteger[] sigs = signer.generateSignature(encoded);
 
-            sigs = preventMalleability(sigs, curve_N);
+            sigs = preventMalleability(sigs, curveN);
 
             ByteArrayOutputStream s = new ByteArrayOutputStream();
 
@@ -667,7 +649,7 @@ public class CryptoPrimitives implements CryptoSuite {
      */
     @Override
     public byte[] sign(PrivateKey key, byte[] data) throws CryptoException {
-        return ecdsaSignToBytes((ECPrivateKey)key, data);
+        return ecdsaSignToBytes((ECPrivateKey) key, data);
     }
     /*
      *  code for signing using JCA/JSSE methods only .  Still needed ?
@@ -694,14 +676,14 @@ public class CryptoPrimitives implements CryptoSuite {
     }
     */
 
-    private BigInteger[] preventMalleability(BigInteger[] sigs, BigInteger curve_n) {
-        BigInteger cmpVal = curve_n.divide(BigInteger.valueOf(2l));
+    private BigInteger[] preventMalleability(BigInteger[] sigs, BigInteger curveN) {
+        BigInteger cmpVal = curveN.divide(BigInteger.valueOf(2L));
 
         BigInteger sval = sigs[1];
 
         if (sval.compareTo(cmpVal) == 1) {
 
-            sigs[1] = curve_n.subtract(sval);
+            sigs[1] = curveN.subtract(sval);
         }
 
         return sigs;
@@ -864,9 +846,9 @@ public class CryptoPrimitives implements CryptoSuite {
         return properties;
     }
 
-    public byte[] certificateToDER(String certricatePEM){
+    public byte[] certificateToDER(String certricatePEM) {
 
-        try (final PemReader pemReader = new PemReader(new StringReader(certricatePEM))) {
+        try (PemReader pemReader = new PemReader(new StringReader(certricatePEM))) {
             final PemObject pemObject = pemReader.readPemObject();
             return pemObject.getContent();
 
