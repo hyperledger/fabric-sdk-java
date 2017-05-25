@@ -131,12 +131,6 @@ public class Channel {
     // Security enabled flag
     private boolean securityEnabled = true;
 
-    // Is in dev mode or network mode
-    private boolean devMode = false;
-
-    // If in prefetch mode, we prefetch tcerts from member services to help performance
-    private boolean preFetchMode = true;
-
     // Temporary variables to control how long to wait for deploy and invoke to complete before
     // emitting events.  This will be removed when the SDK is able to receive events from the
     private int deployWaitTime = 20;
@@ -497,37 +491,6 @@ public class Channel {
      */
     public Collection<Peer> getPeers() {
         return Collections.unmodifiableCollection(this.peers);
-    }
-
-    /**
-     * Determine if pre-fetch mode is enabled to prefetch tcerts.
-     *
-     * @return true if  pre-fetch mode is enabled, false otherwise
-     */
-    public boolean isPreFetchMode() {
-        return this.preFetchMode;
-    }
-
-    /**
-     * Set prefetch mode to true or false.
-     */
-    public void setPreFetchMode(boolean preFetchMode) {
-        this.preFetchMode = preFetchMode;
-    }
-
-    /**
-     * Determine if dev mode is enabled.
-     */
-    public boolean isDevMode() {
-        return this.devMode;
-    }
-
-    /**
-     * Set dev mode to true or false.
-     */
-    public void setDevMode(boolean devMode) {
-
-        this.devMode = devMode;
     }
 
     /**
