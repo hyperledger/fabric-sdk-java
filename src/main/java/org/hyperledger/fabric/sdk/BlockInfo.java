@@ -260,7 +260,7 @@ public class BlockInfo {
             public int getChaincodeInputArgsCount() {
                 if (getChaincodeInputArgsCount < 0) {
                     getChaincodeInputArgsCount = transactionAction.getPayload().getChaincodeProposalPayload().
-                            getChaincodeInput().getChaincodeInput().getArgsCount();
+                            getChaincodeInvocationSpec().getChaincodeInput().getChaincodeInput().getArgsCount();
                 }
                 return getChaincodeInputArgsCount;
             }
@@ -268,7 +268,7 @@ public class BlockInfo {
             public byte[] getChaincodeInputArgs(int index) {
 
                 ChaincodeInput input = transactionAction.getPayload().getChaincodeProposalPayload().
-                        getChaincodeInput().getChaincodeInput();
+                        getChaincodeInvocationSpec().getChaincodeInput().getChaincodeInput();
 
                 return input.getArgs(index).toByteArray();
             }

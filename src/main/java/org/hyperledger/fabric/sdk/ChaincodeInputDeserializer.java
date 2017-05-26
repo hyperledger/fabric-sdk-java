@@ -27,8 +27,9 @@ class ChaincodeInputDeserializer {
     private final ByteString byteString;
     private WeakReference<ChaincodeInput> chaincodeInput;
 
-    ChaincodeInputDeserializer(ByteString byteString) {
-        this.byteString = byteString;
+    ChaincodeInputDeserializer(ChaincodeInput chaincodeInput) {
+        this.byteString = chaincodeInput.toByteString();
+        this.chaincodeInput =  new WeakReference<>(chaincodeInput);
     }
 
     ChaincodeInput getChaincodeInput() {

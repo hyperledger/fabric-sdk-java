@@ -18,61 +18,59 @@ package org.hyperledger.fabric.sdk;
 
 import java.lang.ref.WeakReference;
 
-import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
+import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInvocationSpec;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
 
-import static org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeProposalPayload;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
 
-class ChaincodeProposalPayloadDeserializer {
+class ChaincodeInvocationSpecDeserializer {
     private final ByteString byteString;
-    private WeakReference<ChaincodeProposalPayload> chaincodeProposalPayload;
-    private WeakReference<ChaincodeInvocationSpecDeserializer> invocationSpecDeserializer;
+    private WeakReference<ChaincodeInvocationSpec> invocationSpec;
+    private WeakReference<ChaincodeInputDeserializer> chaincodeInputDeserializer;
 
-    ChaincodeProposalPayloadDeserializer(ByteString byteString) {
+    ChaincodeInvocationSpecDeserializer(ByteString byteString) {
         this.byteString = byteString;
     }
 
-    ChaincodeProposalPayload getChaincodeProposalPayload() {
-        ChaincodeProposalPayload ret = null;
+    ChaincodeInvocationSpec getChaincodeInvocationSpec() {
+        ChaincodeInvocationSpec ret = null;
 
-        if (chaincodeProposalPayload != null) {
-            ret = chaincodeProposalPayload.get();
+        if (invocationSpec != null) {
+            ret = invocationSpec.get();
 
         }
         if (ret == null) {
 
             try {
-                ret = ChaincodeProposalPayload.parseFrom(byteString);
+                ret = ChaincodeInvocationSpec.parseFrom(byteString);
             } catch (InvalidProtocolBufferException e) {
                 throw new InvalidProtocolBufferRuntimeException(e);
             }
 
-            chaincodeProposalPayload = new WeakReference<>(ret);
+            invocationSpec = new WeakReference<>(ret);
 
         }
 
         return ret;
 
     }
+    ChaincodeInputDeserializer getChaincodeInput() {
+        ChaincodeInputDeserializer ret = null;
 
-    ChaincodeInvocationSpecDeserializer getChaincodeInvocationSpec() {
-        ChaincodeInvocationSpecDeserializer ret = null;
-
-        if (invocationSpecDeserializer != null) {
-            ret = invocationSpecDeserializer.get();
+        if (chaincodeInputDeserializer != null) {
+            ret = chaincodeInputDeserializer.get();
 
         }
         if (ret == null) {
 
-            ret = new ChaincodeInvocationSpecDeserializer(getChaincodeProposalPayload().getInput());
+            ret = new ChaincodeInputDeserializer(getChaincodeInvocationSpec().getChaincodeSpec().getInput());
 
-            invocationSpecDeserializer = new WeakReference<>(ret);
+            chaincodeInputDeserializer = new WeakReference<>(ret);
 
         }
 
         return ret;
 
     }
-
 }
