@@ -17,9 +17,6 @@ limitations under the License.
 package example;
 
 import static java.lang.String.format;
-import static org.hyperledger.fabric.shim.ChaincodeHelper.newBadRequestResponse;
-import static org.hyperledger.fabric.shim.ChaincodeHelper.newInternalServerErrorResponse;
-import static org.hyperledger.fabric.shim.ChaincodeHelper.newSuccessResponse;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -31,7 +28,6 @@ import javax.json.JsonObjectBuilder;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.hyperledger.fabric.protos.peer.ProposalResponsePackage.Response;
 import org.hyperledger.fabric.shim.ChaincodeBase;
 import org.hyperledger.fabric.shim.ChaincodeStub;
 
@@ -49,14 +45,14 @@ public class SimpleChaincode extends ChaincodeBase {
 			case "init":
 				return init(stub, args.stream().skip(0).toArray(String[]::new));
 			default:
-				return newBadRequestResponse(format("Unknown function: %s", args.get(0)));
+				return newErrorResponse(format("Unknown function: %s", args.get(0)));
 			}
 		} catch (NumberFormatException e) {
-			return newBadRequestResponse(e.toString());
+			return newErrorResponse(e.toString());
 		} catch (IllegalArgumentException e) {
-			return newBadRequestResponse(e.getMessage());
+			return newErrorResponse(e.getMessage());
 		} catch (Throwable e) {
-			return newInternalServerErrorResponse(e);
+			return newErrorResponse(e);
 		}
 	}
 
@@ -86,15 +82,15 @@ public class SimpleChaincode extends ChaincodeBase {
 			case "query":
 				return query(stub, args);
 			default:
-				return newBadRequestResponse(newErrorJson("Unknown function: %s", function));
+				return newErrorResponse(newErrorJson("Unknown function: %s", function));
 			}
 
 		} catch (NumberFormatException e) {
-			return newBadRequestResponse(e.toString());
+			return newErrorResponse(e.toString());
 		} catch (IllegalArgumentException e) {
-			return newBadRequestResponse(e.getMessage());
+			return newErrorResponse(e.getMessage());
 		} catch (Throwable e) {
-			return newInternalServerErrorResponse(e);
+			return newErrorResponse(e);
 		}
 
 	}
@@ -114,7 +110,7 @@ public class SimpleChaincode extends ChaincodeBase {
 				stub.delState(arg);
 			return newSuccessResponse();
 		default:
-			return newBadRequestResponse(newErrorJson("Unknown invoke sub-function: %s", subFunction));
+			return newErrorResponse(newErrorJson("Unknown invoke sub-function: %s", subFunction));
 		}
 	}
 
