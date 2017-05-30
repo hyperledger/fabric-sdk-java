@@ -28,7 +28,7 @@ SDK's `Enrollment` interface.
 * HSM not supported. JIRA FAB-3137
 * Single Crypto strength 256 JIRA FAB-2564
 * Network configuration updates not supported JIRA FAB-3103
-
+* No release/previews to Maven yet. JIRA FAB-648
 
 
 
@@ -42,6 +42,8 @@ There is a git tagged v1.0.0-Alpha2 [dec17727ddb6b269f8fb30930e10d89bc185225f] r
 need to build the Fabric and Fabric-ca described below.
 The provided docker-compose.yaml for the integration tests should pull alpha2 images
 from Docker hub.
+
+Later versions of the SDK are NOT guaranteed to work with v1.0.0-Alpha2
 
 <p &nbsp; />
 <p &nbsp; />
@@ -61,8 +63,8 @@ You should use the following commit levels of the Hyperledger projects:
 
 | Project        | Commit level                               | Date                       |
 |:---------------|:------------------------------------------:|---------------------------:|
-| fabric         | e182390035ec207535c7ba0f5df70dc702057e18   | May 8 14:42:36 2017 +0000  |
-| fabric-ca      | 73a42156f637702b2ac8d4ceae0d663c4c688ed4   | May 7 09:43:08 2017 +0000  |
+| fabric         | d2bfa744059e68d2e50d2cb01d285e3c6e1f2757   | May 30 10:59:01 2017 +0000 |
+| fabric-ca      | ac2ee79ce8a1f80d5ae9c1ec84968882f45fd0e7   | May 27 06:11:20 2017 +0000 |
 
  You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
 
