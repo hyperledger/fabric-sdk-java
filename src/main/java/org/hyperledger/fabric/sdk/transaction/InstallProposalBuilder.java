@@ -90,11 +90,7 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
 
         try {
 
-            if (context.isDevMode()) {
-                createDevModeTransaction();
-            } else {
-                createNetModeTransaction();
-            }
+            createNetModeTransaction();
 
         } catch (Exception exp) {
             logger.error(exp);
@@ -105,10 +101,6 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
     private void createNetModeTransaction() throws Exception {
         logger.debug("createNetModeTransaction");
 
-        // Verify that chaincodePath is being passed
-        if (Utils.isNullOrEmpty(chaincodePath)) {
-            throw new IllegalArgumentException("Missing chaincodePath in InstallRequest");
-        }
         if (null == chaincodeSource && chaincodeInputStream == null) {
             throw new IllegalArgumentException("Missing chaincode source or chaincode inputstream in InstallRequest");
         }
@@ -124,6 +116,11 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
 
         switch (chaincodeLanguage) {
             case GO_LANG:
+
+                //   Verify that chaincodePath is being passed
+                if (Utils.isNullOrEmpty(chaincodePath)) {
+                    throw new IllegalArgumentException("Missing chaincodePath in InstallRequest");
+                }
                 dplang = "Go";
                 ccType = Type.GOLANG;
                 if (null != chaincodeSource) {

@@ -240,10 +240,6 @@ public class TransactionContext {
 
     }
 
-    public boolean isDevMode() {
-        return channel.isDevMode();
-    }
-
     public String getChannelID() {
         return getChannel().getName();
     }

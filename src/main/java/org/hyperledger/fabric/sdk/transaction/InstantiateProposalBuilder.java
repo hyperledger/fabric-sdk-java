@@ -21,11 +21,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.protobuf.ByteString;
-import io.netty.util.internal.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeDeploymentSpec;
-import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
 import org.hyperledger.fabric.sdk.TransactionRequest;
@@ -105,11 +103,7 @@ public class InstantiateProposalBuilder extends LSCCProposalBuilder {
 
         try {
 
-            if (context.isDevMode()) {
-                createDevModeTransaction();
-            } else {
-                createNetModeTransaction();
-            }
+            createNetModeTransaction();
 
         } catch (Exception exp) {
             logger.error(exp);
@@ -119,11 +113,6 @@ public class InstantiateProposalBuilder extends LSCCProposalBuilder {
 
     private void createNetModeTransaction() throws Exception {
         logger.debug("NetModeTransaction");
-
-        // Verify that chaincodePath is being passed
-        if (StringUtil.isNullOrEmpty(chaincodePath)) {
-            throw new IllegalArgumentException("[NetMode] Missing chaincodePath in Instantiate Request");
-        }
 
         List<String> modlist = new LinkedList<>();
         modlist.add("init");
@@ -141,20 +130,6 @@ public class InstantiateProposalBuilder extends LSCCProposalBuilder {
         }
 
         args(argList);
-
-    }
-
-    private void createDevModeTransaction() {
-        logger.debug("newDevModeTransaction");
-
-        ChaincodeDeploymentSpec depspec = createDeploymentSpec(Type.GOLANG,
-                chaincodeName, chaincodePath, chaincodeVersion, argList, null);
-
-        List<ByteString> argList = new ArrayList<>();
-        argList.add(ByteString.copyFrom("install", StandardCharsets.UTF_8));
-        argList.add(depspec.toByteString());
-
-        super.args(argList);
 
     }
 
