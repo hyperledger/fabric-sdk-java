@@ -300,7 +300,7 @@ public class End2endIT {
             ///////////////
             //// Instantiate chaincode.
             InstantiateProposalRequest instantiateProposalRequest = client.newInstantiationProposalRequest();
-            instantiateProposalRequest.setProposalWaitTime(60000);
+            instantiateProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
             instantiateProposalRequest.setChaincodeID(chaincodeID);
             instantiateProposalRequest.setFcn("init");
             instantiateProposalRequest.setArgs(new String[] {"a", "500", "b", "" + (200 + delta)});
@@ -357,6 +357,7 @@ public class End2endIT {
                     TransactionProposalRequest transactionProposalRequest = client.newTransactionProposalRequest();
                     transactionProposalRequest.setChaincodeID(chaincodeID);
                     transactionProposalRequest.setFcn("invoke");
+                    transactionProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
                     transactionProposalRequest.setArgs(new String[] {"move", "a", "b", "100"});
 
                     Map<String, byte[]> tm2 = new HashMap<>();

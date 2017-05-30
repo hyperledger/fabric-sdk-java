@@ -211,6 +211,7 @@ public class End2endAndBackAgainIT {
                     ////For GO language and serving just a single user, chaincodeSource is mostly likely the users GOPATH
                     installProposalRequest.setChaincodeSourceLocation(new File(TEST_FIXTURES_PATH + "/sdkintegration/gocc/sample_11"));
                     installProposalRequest.setChaincodeVersion(CHAIN_CODE_VERSION_11);
+                    installProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
 
                     out("Sending install proposal");
 
@@ -254,7 +255,7 @@ public class End2endAndBackAgainIT {
 
                     UpgradeProposalRequest upgradeProposalRequest = client.newUpgradeProposalRequest();
                     upgradeProposalRequest.setChaincodeID(chaincodeID_11);
-                    upgradeProposalRequest.setProposalWaitTime(60000);
+                    upgradeProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
                     upgradeProposalRequest.setFcn("init");
                     upgradeProposalRequest.setArgs(new String[] {});// no arguments don't change the ledger see chaincode.
 
@@ -388,6 +389,7 @@ public class End2endAndBackAgainIT {
             transactionProposalRequest.setChaincodeID(chaincodeID);
             transactionProposalRequest.setFcn("invoke");
             transactionProposalRequest.setArgs(new String[] {"move", "a", "b", moveAmount});
+            transactionProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
             out("sending transaction proposal to all peers with arguments: move(a,b,%s)", moveAmount);
 
             Collection<ProposalResponse> invokePropResp = channel.sendTransactionProposal(transactionProposalRequest, channel.getPeers());
