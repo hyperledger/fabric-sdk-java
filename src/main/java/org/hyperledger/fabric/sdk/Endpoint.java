@@ -56,7 +56,7 @@ class Endpoint {
     private final String addr;
     private final int port;
     private final String url;
-    private ManagedChannelBuilder<?> channelBuilder = null;
+    private NettyChannelBuilder channelBuilder = null;
 
     private final static Map<String, String> cnCache = Collections.synchronizedMap(new HashMap<>());
 
@@ -129,13 +129,13 @@ class Endpoint {
 
         try {
             if (protocol.equalsIgnoreCase("grpc")) {
-                this.channelBuilder = ManagedChannelBuilder.forAddress(addr, port)
+                this.channelBuilder = NettyChannelBuilder.forAddress(addr, port)
                         .usePlaintext(true);
                 addNettyBuilderProps(channelBuilder, properties);
             } else if (protocol.equalsIgnoreCase("grpcs")) {
                 if (Utils.isNullOrEmpty(pem)) {
                     // use root certificate
-                    this.channelBuilder = ManagedChannelBuilder.forAddress(addr, port);
+                    this.channelBuilder = NettyChannelBuilder.forAddress(addr, port);
                     addNettyBuilderProps(channelBuilder, properties);
                 } else {
                     try {
@@ -171,7 +171,7 @@ class Endpoint {
 
     }
 
-    private final static Pattern methodPat = Pattern.compile("grpc\\.ManagedChannelBuilderOption\\.([^.]*)$");
+    private final static Pattern methodPat = Pattern.compile("grpc\\.NettyChannelBuilderOption\\.([^.]*)$");
     private final static Map<Class<?>, Class<?>> WRAPPERS_TO_PRIM
             = new ImmutableMap.Builder<Class<?>, Class<?>>()
             .put(Boolean.class, boolean.class)
@@ -185,11 +185,12 @@ class Endpoint {
             .put(Void.class, void.class)
             .build();
 
-    private void addNettyBuilderProps(ManagedChannelBuilder<?> channelBuilder, Properties props) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    private void addNettyBuilderProps(NettyChannelBuilder channelBuilder, Properties props) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
 
         if (props == null) {
             return;
         }
+
 
         for (Map.Entry<Object, Object> es : props.entrySet()) {
 
@@ -235,7 +236,15 @@ class Endpoint {
                 if (null != unwrapped) {
                     classParms[i] = unwrapped;
                 } else {
-                    classParms[i] = oparm.getClass();
+
+                    Class<?> clz = oparm.getClass();
+
+                    Class<?> ecz = clz.getEnclosingClass();
+                    if (null != ecz && ecz.isEnum()) {
+                        clz = ecz;
+                    }
+
+                    classParms[i] = clz;
                 }
             }
 

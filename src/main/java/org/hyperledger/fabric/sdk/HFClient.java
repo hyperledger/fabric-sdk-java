@@ -152,7 +152,7 @@ public class HFClient {
      *                   hostname verifications during TLS handshake.
      *                   </li>
      *                   <li>
-     *                   grpc.ManagedChannelBuilderOption.&lt;methodName&gt;  where methodName is any method on
+     *                   grpc.NettyChannelBuilderOption.&lt;methodName&gt;  where methodName is any method on
      *                   grpc ManagedChannelBuilder.  If more than one argument to the method is needed then the
      *                   parameters need to be supplied in an array of Objects.
      *                   </li>
@@ -296,7 +296,7 @@ public class HFClient {
      *                   hostname verifications during TLS handshake.
      *                   </li>
      *                   <li>
-     *                   grpc.ManagedChannelBuilderOption.&lt;methodName&gt;  where methodName is any method on
+     *                   grpc.NettyChannelBuilderOption.&lt;methodName&gt;  where methodName is any method on
      *                   grpc ManagedChannelBuilder.  If more than one argument to the method is needed then the
      *                   parameters need to be supplied in an array of Objects.
      *                   </li>
@@ -357,7 +357,7 @@ public class HFClient {
      *                   hostname verifications during TLS handshake.
      *                   </li>
      *                   <li>
-     *                   grpc.ManagedChannelBuilderOption.&lt;methodName&gt;  where methodName is any method on
+     *                   grpc.NettyChannelBuilderOption.&lt;methodName&gt;  where methodName is any method on
      *                   grpc ManagedChannelBuilder.  If more than one argument to the method is needed then the
      *                   parameters need to be supplied in an array of Objects.
      *                   </li>
