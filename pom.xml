@@ -226,7 +226,7 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>2.19.1</version>
                 <configuration>
-                    <argLine>${surefireArgLine}</argLine>
+                    <argLine>${failsafeArgLine}</argLine>
                     <includes>
                         <include>**/IntegrationSuite.java</include>
                     </includes>
@@ -316,6 +316,11 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco.version}</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/org/hyperledger/fabric/protos/**</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <id>default-prepare-agent</id>
@@ -340,13 +345,14 @@
                             <goal>prepare-agent</goal>
                         </goals>
                         <configuration>
+                            <propertyName>surefireArgLine</propertyName>
                             <!-- Sets the path to the file which contains the execution data. -->
                             <destFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</destFile>
                             <!--
                                 Sets the name of the property containing the settings
-                                for JaCoCo runtime agent.
+                                for JaCoCo runtime  agent.
                             -->
-                            <propertyName>surefireArgLine</propertyName>
+
                         </configuration>
                     </execution>
                     <!--
@@ -402,6 +408,38 @@
                             <dataFile>${project.build.directory}/coverage-reports/jacoco-it.exec</dataFile>
                             <!-- Sets the output directory for the code coverage report. -->
                             <outputDirectory>${project.reporting.outputDirectory}/jacoco-it</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>merge-results</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>merge</goal>
+                        </goals>
+                        <configuration>
+                            <fileSets>
+                                <!-- Implementation attribute not needed in Maven 3 -->
+                                <!--<fileSet implementation="org.apache.maven.shared.model.fileset.FileSet">-->
+                                <fileSet>
+                                    <directory>${project.build.directory}/coverage-reports</directory>
+                                    <includes>
+                                        <include>*.exec</include>
+                                    </includes>
+                                </fileSet>
+                            </fileSets>
+                            <!-- File containing the merged data -->
+                            <destFile>${project.build.directory}/jacoco-merged/merged.exec</destFile>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>post-merge-report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <dataFile>${project.build.directory}/jacoco-merged/merged.exec</dataFile>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-aggregate</outputDirectory>
                         </configuration>
                     </execution>
                 </executions>
