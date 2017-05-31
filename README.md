@@ -1,8 +1,8 @@
 # Java SDK for Hyperledger Fabric 1.0
 Welcome to Java SDK for Hyperledger project. The SDK helps facilitate Java applications to manage the lifecycle of
- Hyperledger channels  (*often referred to as chains*) and user chaincode. The SDK also provides a means to execute
+ Hyperledger channels  and user chaincode. The SDK also provides a means to execute
   user chaincode, query blocks
- and transactions on the chain, and monitor events on the chain.
+ and transactions on the channel, and monitor events on the channel.
 
 THe SDK acts on behave of a particular User which is defined by the embedding application through the implementation
  of the SDK's `User` interface.
@@ -22,9 +22,33 @@ SDK's `Enrollment` interface.
  on this 1.0 version `preview` may need updating
  with subsequent updates of the SDK.
 
-## Known limitations
+## Known limitations and restrictions
 
 * TCerts are not supported: JIRA FAB-1401
+* HSM not supported. JIRA FAB-3137
+* Single Crypto strength 256 JIRA FAB-2564
+* Network configuration updates not supported JIRA FAB-3103
+* No release/previews to Maven yet. JIRA FAB-648
+
+
+
+<p &nbsp; />
+<p &nbsp; />
+
+`*************************************************`
+## *v1.0.0-Alpha2*
+
+There is a git tagged v1.0.0-Alpha2 [dec17727ddb6b269f8fb30930e10d89bc185225f] release of the SDK where there is no
+need to build the Fabric and Fabric-ca described below.
+The provided docker-compose.yaml for the integration tests should pull alpha2 images
+from Docker hub.
+
+Later versions of the SDK are NOT guaranteed to work with v1.0.0-Alpha2
+
+<p &nbsp; />
+<p &nbsp; />
+
+`*************************************************`
 
 
 ## Valid builds of Fabric and Fabric-ca
@@ -39,8 +63,8 @@ You should use the following commit levels of the Hyperledger projects:
 
 | Project        | Commit level                               | Date                       |
 |:---------------|:------------------------------------------:|---------------------------:|
-| fabric         | b2a2b3b11481438639bf27ed10b99e490dd23b8c   | Apr 19 14:06:27 2017 +0000 |
-| fabric-ca      | 09107e7ba6fef7134c949a8edd5d036f9832398b   | Apr 23 16:45:07 2017 +0000 |
+| fabric         | d2bfa744059e68d2e50d2cb01d285e3c6e1f2757   | May 30 10:59:01 2017 +0000 |
+| fabric-ca      | ac2ee79ce8a1f80d5ae9c1ec84968882f45fd0e7   | May 27 06:11:20 2017 +0000 |
 
  You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
 
@@ -49,9 +73,29 @@ You should use the following commit levels of the Hyperledger projects:
  Once you have cloned `fabric` and `fabric-ca`, use the `git reset --hard commitlevel` to set your repositories to the correct commit.
 
 ## Working with the Fabric Vagrant environment
+Vagrant is NOT required if your OS has Docker support and all the requirements needed to build directly in your
+environment.  For non Vagrant envrionment, the steps would be the same as below minus those parts involving Vagrant.
  Do the following if you want to run the Fabric components ( peer, orderer, fabric-ca ) in Vagrant:
 
- * Follow the instructions <a href="https://github.com/hyperledger/fabric/blob/master/docs/dev-setup/devenv.md">here</a> to setup the development environment.
+  ```
+  git clone  https://github.com/hyperledger/fabric.git
+  git clone  https://github.com/hyperledger/fabric-ca.git
+  cd  fabric-ca
+  git reset --hard fabric-ca_commitlevel from above
+  cd ../fabric
+  git reset --hard fabric_commitlevel from above
+  cd devenv
+  change the Vagrant file as suggested below:
+  vagrant up
+  vagrant ssh
+  make docker
+  cd ../fabric-ca
+  make docker
+  cd ../fabric/sdkintegration
+  docker-compose down;  rm -rf /var/hyperledger/*; docker-compose up --force-recreate
+  ```
+
+
 
  * Open the file `Vagrantfile` and verify that the following `config.vm.network` statements are set. If not, then add them:
 ```
@@ -71,29 +115,16 @@ You should use the following commit levels of the Hyperledger projects:
 
 ```
 
-Add to your Vagrant file a folder for referencing the sdkintegration folder
+Add to your Vagrant file a folder for referencing the sdkintegration folder between the lines below:
 
   config.vm.synced_folder "..", "/opt/gopath/src/github.com/hyperledger/fabric"</br>
 
-  ***config.vm.synced_folder "/home/user/fabric-sdk-java/src/test/fixture/sdkintegration", "/opt/gopath/src/github.com/hyperledger/fabric/sdkintegration"***</br>
+  `config.vm.synced_folder "/home/<<user>>/fabric-sdk-java/src/test/fixture/sdkintegration", "/opt/gopath/src/github.com/hyperledger/fabric/sdkintegration`</br>
 
   config.vm.synced_folder ENV.fetch('LOCALDEVDIR', ".."), "#{LOCALDEV}"</br>
 
- * Start the vagrant virtual machine
-```
-vagrant up
-```
- * ssh into vagrant,
-   * go to $GOPATH/src/github.com/hyperledger/fabric
-   * run `make docker` to create the docker images for peer and orderer
-   * go to $GOPATH/src/github/hyperledger/fabric-ca
-   * run `make docker` to create the docker image for Fabric_ca
- * The fabric service creation may have created some files for testing that need to be removed.
-   * _rm -rf /var/hyperledger/*_
 
- * Start the needed fabric services in vagrant.  In the vagrant system:
-   1. _cd $GOPATH/src/github.com/hyperledger/fabric/sdkintegration
-   1. _docker-compose up -d --force-recreate_
+
 
 ## SDK dependencies
 SDK depends on few third party libraries that must be included in your classpath when using the JAR file. To get a list of dependencies, refer to pom.xml file or run
@@ -104,8 +135,34 @@ Alternatively, <code> mvn dependency:analyze-report </code> will produce a repor
 ## Using the SDK
 The SDK's test cases uses chaincode in the SDK's source tree: `/src/test/fixture`
 
-The sdk jar is in `target/fabric-sdk-java-1.0-SNAPSHOT.jar` and you will need the additional dependencies listed above.
+The SDK's JAR is in `target/fabric-sdk-java-1.0.0-SNAPSHOT.jar` and you will need the additional dependencies listed above.
 When the SDK is published to `Maven` you will be able to simply include it in a your application's `pom.xml`.
+
+Add below code in your `pom.xml` to download fabric-sdk-java-1.0.0-SNAPSHOT
+
+```xml
+
+     <repositories>
+        <repository>
+            <id>nexus-snapshot</id>
+            <url>https://nexus.hyperledger.org/content/repositories/snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+     </repositories>
+
+     <dependencies>
+     <dependency>
+            <groupId>org.hyperledger.fabric-sdk-java</groupId>
+            <artifactId>fabric-sdk-java</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+         </dependency>
+     </dependencies>
+```
 
 ### Compiling
 To build this project, the following dependencies must be met
@@ -132,13 +189,26 @@ Use this `maven` command to run the integration tests:
 
 ### End to end test scenario
 The _src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java_ integration test is an example of installing, instantiating, invoking and querying a chaincode.
-It constructs the Hyperledger channel, deploys the `GO` chain code, invokes the chaincode to do a transfer amount operation and queries the resulting blockchain world state.
+It constructs the Hyperledger channel, deploys the `GO` chaincode, invokes the chaincode to do a transfer amount operation and queries the resulting blockchain world state.
 
 This test is a reworked version of the Fabric [e2e_cli example](https://github.com/hyperledger/fabric/tree/master/examples/e2e_cli) to demonstrate the features of the SDK.
 To better understand blockchain and Fabric concepts, we recommend you install and run the _e2e_cli_ example.
 
-#### End to end test environment
+### End to end test environment
 The test defines one Fabric orderer and two organizations (peerOrg1, peerOrg2), each of which has 2 peers, one fabric-ca service.
+
+#### Certificates and other cryptography artifacts
+
+Fabric requires that each organization has private keys and certificates for use in signing and verifying messages going to and from clients, peers and orderers.
+Each organization groups these artifacts in an **MSP** (Membership Service Provider) with a corresponding unique _MSPID_ .
+
+Furthermore, each organization is assumed to generate these artifacts independently. The *fabric-ca* project is an example of such a certificate generation service.
+Fabric also provides the `cryptogen` tool to automatically generate all cryptographic artifacts needed for the end to end test.
+In the directory src/test/fixture/sdkintegration/e2e-2Orgs/channel
+
+  The command used to generate end2end `crypto-config` artifacts:</br>
+
+  ```build/bin/cryptogen generate --config crypto-config.yaml --output=crypto-config```
 
 For ease of assigning ports and mapping of artifacts to physical files, all peers, orderers and fabric-ca are run as Docker containers controlled via a docker-compose configuration file.
 
@@ -147,15 +217,8 @@ The files used by the end to end are:
  * _src/test/fixture/sdkintegration/e2e-2Orgs/crypto-config_ (as-is. Used by `configtxgen` and `docker-compose` to map the MSP directories)
  * _src/test/fixture/sdkintegration/docker-compose.yaml_
 
-### Certificates and other cryptography artifacts
 
-Fabric requires that each organization have private keys and certificates for use in signing and verifying messages going to and from clients, peers and orderers.
-Each organization groups these artifacts in an **MSP** (Membership Service Provider) with a unique _MSPID_ .
-
-Furthermore, each organization is assumed to generate these artifacts independently. The *fabric-ca* project is an example of such a certificate generation service.
-Fabric also provides the `cryptogen` tool to automatically generate all cryptographic artifacts needed for the end to end test.
-
-The end to end test case artifacts are stored under in directory _src/test/fixture/sdkintegration/e2e-2Org/crypto-config_ .
+The end to end test case artifacts are stored under the directory _src/test/fixture/sdkintegration/e2e-2Org/channel_ .
 
 ### TLS connection to Orderer and Peers
 
@@ -195,15 +258,15 @@ and one file in th _src/test/fixture/sdkintegration/e2e-2Orgs/channel_ directory
  The policy section is comprised of `n-of` and `signed-by` elements.  Then n-of (`1-of` `2-of`) require that many (`n`) in that
  section to be true. The `signed-by` references an identity in the identities section.
 
-### Chain creation artifacts
+### Channel creation artifacts
 Channel configuration files and orderer bootstrap files ( see directory _src/test/fixture/sdkintegration/e2e-2Orgs/channel_ ) are needed when creating a new channel.
 This is created with the Hyperledger Fabric `configtxgen` tool.
 
 For End2endIT.java the commands are
 
- * build/bin/configtxgen -outputCreateChannelTx foo.tx -profile TwoOrgs -channelID foo
- * build/bin/configtxgen -outputCreateChannelTx bar.tx -profile TwoOrgs -channelID bar
- * build/bin/configtxgen -outputBlock twoorgs.orderer.block -profile TwoOrgs
+ * build/bin/configtxgen -outputCreateChannelTx foo.tx -profile TwoOrgsChannel -channelID foo
+ * build/bin/configtxgen -outputCreateChannelTx bar.tx -profile TwoOrgsChannel -channelID bar
+ * build/bin/configtxgen -outputBlock orderer.block -profile TwoOrgsOrdererGenesis
 
 with the configtxgen config file _src/test/fixture/sdkintegration/e2e-2Orgs/channel/configtx.yaml_
 

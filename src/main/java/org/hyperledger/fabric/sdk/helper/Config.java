@@ -20,6 +20,7 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Level;
 
 /**
  * Config allows for a global config of the toolkit. Central location for all
@@ -40,7 +41,8 @@ public class Config {
     public static final String HASH_ALGORITHM = "org.hyperledger.fabric.sdk.hash_algorithm";
     public static final String CACERTS = "org.hyperledger.fabric.sdk.cacerts";
     public static final String PROPOSAL_WAIT_TIME = "org.hyperledger.fabric.sdk.proposal.wait.time";
-    public static final String GENESISBLOCK_WAIT_TIME = "org.hyperledger.fabric.sdk.chain.genesisblock_wait_time";
+    public static final String PROPOSAL_CONSISTENCY_VALIDATION = "org.hyperledger.fabric.sdk.proposal.consistency_validation";
+    public static final String GENESISBLOCK_WAIT_TIME = "org.hyperledger.fabric.sdk.channel.genesisblock_wait_time";
     public static final String ASYMMETRIC_KEY_TYPE = "org.hyperledger.fabric.sdk.crypto.asymmetric_key_type";
     public static final String KEY_AGREEMENT_ALGORITHM = "org.hyperledger.fabric.sdk.crypto.key_agreement_algorithm";
     public static final String SYMMETRIC_KEY_TYPE = "org.hyperledger.fabric.sdk.crypto.symmetric_key_type";
@@ -50,6 +52,8 @@ public class Config {
     public static final String CERTIFICATE_FORMAT = "org.hyperledger.fabric.sdk.crypto.certificate_format";
     public static final String SIGNATURE_ALGORITHM = "org.hyperledger.fabric.sdk.crypto.default_signature_algorithm";
     public static final String MAX_LOG_STRING_LENGTH = "org.hyperledger.fabric.sdk.log.stringlengthmax";
+    public static final String EXTRALOGLEVEL = "org.hyperledger.fabric.sdk.log.extraloglevel";
+    public static final String LOGGERLEVEL = "org.hyperledger.fabric.sdk.loglevel";  // ORG_HYPERLEDGER_FABRIC_SDK_LOGLEVEL=TRACE,DEBUG
 
     private static Config config;
     private final static Properties sdkProperties = new Properties();
@@ -82,12 +86,51 @@ public class Config {
             defaultProperty(SIGNATURE_ALGORITHM, "SHA256withECDSA");
             defaultProperty(SECURITY_LEVEL, "256");
             defaultProperty(HASH_ALGORITHM, "SHA2");
+            defaultProperty(PROPOSAL_CONSISTENCY_VALIDATION, "true");
             // TODO remove this once we have implemented MSP and get the peer certs from the channel
             defaultProperty(CACERTS, "/genesisblock/peercacert.pem");
 
-            defaultProperty(PROPOSAL_WAIT_TIME, "12000");
+            defaultProperty(PROPOSAL_WAIT_TIME, "20000");
             defaultProperty(GENESISBLOCK_WAIT_TIME, "5000");
             defaultProperty(MAX_LOG_STRING_LENGTH, "64");
+            defaultProperty(EXTRALOGLEVEL, "0");
+            defaultProperty(LOGGERLEVEL, null);
+
+            final String inLogLevel = sdkProperties.getProperty(LOGGERLEVEL);
+
+            if (null != inLogLevel) {
+
+                org.apache.log4j.Level setTo = null;
+
+                switch (inLogLevel) {
+
+                    case "TRACE":
+                        setTo = org.apache.log4j.Level.TRACE;
+                        break;
+
+                    case "DEBUG":
+                        setTo = org.apache.log4j.Level.DEBUG;
+                        break;
+
+                    case "INFO":
+                        setTo = Level.INFO;
+                        break;
+
+                    case "WARN":
+                        setTo = Level.WARN;
+                        break;
+
+                    case "ERROR":
+                        setTo = Level.ERROR;
+                        break;
+
+                }
+
+                if (null != setTo) {
+                    org.apache.log4j.Logger.getLogger("org.hyperledger.fabric").setLevel(setTo);
+                }
+
+            }
 
         }
 
@@ -137,7 +180,6 @@ public class Config {
 
     static private void defaultProperty(String key, String value) {
 
-
         String ret = System.getProperty(key);
         if (ret != null) {
             sdkProperties.put(key, ret);
@@ -147,7 +189,7 @@ public class Config {
             if (null != ret) {
                 sdkProperties.put(key, ret);
             } else {
-                if (null == sdkProperties.getProperty(key)) {
+                if (null == sdkProperties.getProperty(key) && value != null) {
                     sdkProperties.put(key, value);
                 }
 
@@ -192,6 +234,7 @@ public class Config {
 
     /**
      * getGenesisBlockWaiTime time to wait for genesis block
+     *
      * @return
      */
     public long getGenesisBlockWaitTime() {
@@ -234,4 +277,26 @@ public class Config {
         return Integer.parseInt(getProperty(MAX_LOG_STRING_LENGTH));
     }
 
+    /**
+     * getProposalConsistencyValidation determine if validation of the proposals should
+     * be done before sending to the orderer.
+     *
+     * @return if true proposals will be checked they are consistent with each other before sending to the Orderer
+     */
+
+    public boolean getProposalConsistencyValidation() {
+        return Boolean.parseBoolean(getProperty(PROPOSAL_CONSISTENCY_VALIDATION));
+
+    }
+
+    public int extraLogLevel = -1;
+
+    public boolean extraLogLevel(int val) {
+        if (extraLogLevel == -1) {
+            extraLogLevel = Integer.parseInt(getProperty(EXTRALOGLEVEL));
+        }
+
+        return val < extraLogLevel;
+
+    }
 }

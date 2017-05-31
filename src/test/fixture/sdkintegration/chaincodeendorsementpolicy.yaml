@@ -1,5 +1,5 @@
 ---
-# A Shotgun policy
+# A Shotgun policy xx
 identities:  # list roles to be used in the policy
     user1: {"role": {"name": "member", "mspId": "Org1MSP"}} # role member in org with mspid Org1MSP
     user2: {"role": {"name": "member", "mspId": "Org2MSP"}}

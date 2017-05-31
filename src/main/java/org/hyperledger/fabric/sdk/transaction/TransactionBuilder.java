@@ -25,11 +25,12 @@ import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 import org.hyperledger.fabric.protos.peer.FabricTransaction;
-
+import org.hyperledger.fabric.sdk.helper.Config;
 
 public class TransactionBuilder {
 
     private final static Log logger = LogFactory.getLog(TransactionBuilder.class);
+    Config config = Config.getConfig();
     private FabricProposal.Proposal chaincodeProposal;
     private Collection<FabricProposalResponse.Endorsement> endorsements;
     private ByteString proposalResponsePayload;
@@ -76,22 +77,26 @@ public class TransactionBuilder {
         //We need to remove any transient fields - they are not part of what the peer uses to calculate hash.
         FabricProposal.ChaincodeProposalPayload.Builder chaincodeProposalPayloadNoTransBuilder = FabricProposal.ChaincodeProposalPayload.newBuilder();
         chaincodeProposalPayloadNoTransBuilder.mergeFrom(chaincodeProposal.getPayload());
-       // chaincodeProposalPayloadNoTransBuilder.clearTransient();
+        chaincodeProposalPayloadNoTransBuilder.clearTransientMap();
 
-       // chaincodeActionPayloadBuilder.setChaincodeProposalPayload(chaincodeProposalPayloadNoTransBuilder.build().toByteString());
-        chaincodeActionPayloadBuilder.setChaincodeProposalPayload(chaincodeProposal.getPayload());
+        chaincodeActionPayloadBuilder.setChaincodeProposalPayload(chaincodeProposalPayloadNoTransBuilder.build().toByteString());
 
         FabricTransaction.TransactionAction.Builder transactionActionBuilder = FabricTransaction.TransactionAction.newBuilder();
 
         Common.Header header = Common.Header.parseFrom(chaincodeProposal.getHeader());
 
-        logger.trace("transaction header bytes:" + Arrays.toString(header.toByteArray()));
-        logger.trace("transaction header sig bytes:" + Arrays.toString(header.getSignatureHeader().toByteArray()));
+        if (config.extraLogLevel(10)) {
+            logger.trace("transaction header bytes:" + Arrays.toString(header.toByteArray()));
+            logger.trace("transaction header sig bytes:" + Arrays.toString(header.getSignatureHeader().toByteArray()));
+        }
+
 
         transactionActionBuilder.setHeader(header.getSignatureHeader());
 
         FabricTransaction.ChaincodeActionPayload chaincodeActionPayload = chaincodeActionPayloadBuilder.build();
-        logger.trace("transactionActionBuilder.setPayload" + Arrays.toString(chaincodeActionPayload.toByteString().toByteArray()));
+        if (config.extraLogLevel(10)) {
+                    logger.trace("transactionActionBuilder.setPayload" + Arrays.toString(chaincodeActionPayload.toByteString().toByteArray()));
+        }
         transactionActionBuilder.setPayload(chaincodeActionPayload.toByteString());
 
         //Transaction

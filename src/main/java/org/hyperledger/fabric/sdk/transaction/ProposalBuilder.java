@@ -15,14 +15,17 @@
 package org.hyperledger.fabric.sdk.transaction;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.common.Common.HeaderType;
-import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInput;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInvocationSpec;
@@ -35,16 +38,14 @@ import org.hyperledger.fabric.sdk.exception.ProposalException;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.hyperledger.fabric.sdk.helper.SDKUtil.logString;
+import static org.hyperledger.fabric.sdk.helper.Utils.logString;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createChannelHeader;
-
+import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getSignatureHeaderAsByteString;
 
 public class ProposalBuilder {
 
-
     private final static Log logger = LogFactory.getLog(ProposalBuilder.class);
     private final static boolean isDebugLevel = logger.isDebugEnabled();
-
 
     private Chaincode.ChaincodeID chaincodeID;
     private List<ByteString> argList;
@@ -52,8 +53,8 @@ public class ProposalBuilder {
     protected TransactionContext context;
     protected TransactionRequest request;
     protected ChaincodeSpec.Type ccType = ChaincodeSpec.Type.GOLANG;
-    private String chainID;
-
+    protected Map<String, byte[]> transientMap = null;
+    private String channelID;
 
     protected ProposalBuilder() {
     }
@@ -79,8 +80,8 @@ public class ProposalBuilder {
 
     public ProposalBuilder context(TransactionContext context) {
         this.context = context;
-        if (null == chainID) {
-            chainID = context.getChain().getName(); //Default to context chain.
+        if (null == channelID) {
+            channelID = context.getChannel().getName(); //Default to context channel.
         }
         return this;
     }
@@ -88,63 +89,68 @@ public class ProposalBuilder {
     public ProposalBuilder request(TransactionRequest request) {
         this.request = request;
 
-        chaincodeID(request.getChaincodeID().getFabricChainCodeID());
+        chaincodeID(request.getChaincodeID().getFabricChaincodeID());
         ccType(request.getChaincodeLanguage() == TransactionRequest.Type.JAVA ?
                 Chaincode.ChaincodeSpec.Type.JAVA : Chaincode.ChaincodeSpec.Type.GOLANG);
+
+        transientMap = request.getTransientMap();
+
         return this;
     }
 
     /**
-     * The chain that is being targeted . note blank string means no specific chain.
+     * The channel that is being targeted . note blank string means no specific channel.
      *
-     * @param chainID
+     * @param channelID
      */
 
-    public void chainID(String chainID) {
-        this.chainID = chainID;
+    public void channelID(String channelID) {
+        this.channelID = channelID;
     }
-
 
     public FabricProposal.Proposal build() throws ProposalException {
-        if (request != null && request.noChainID())
-            chainID = "";
-        return createFabricProposal(chainID, chaincodeID);
+        if (request != null && request.noChannelID()) {
+            channelID = "";
+        }
+        return createFabricProposal(channelID, chaincodeID);
     }
 
+    private FabricProposal.Proposal createFabricProposal(String channelID, Chaincode.ChaincodeID chaincodeID) {
 
-    private FabricProposal.Proposal createFabricProposal(String chainID, Chaincode.ChaincodeID chaincodeID) {
+        transientMap = transientMap == null ? Collections.EMPTY_MAP : transientMap;
 
+        if (isDebugLevel) {
 
+            for (Entry<String, byte[]> tme : transientMap.entrySet()) {
+                logger.debug(format("transientMap('%s', '%s'))", logString(tme.getKey()),
+                        logString(new String(tme.getValue(), UTF_8))));
+            }
+        }
         ChaincodeHeaderExtension chaincodeHeaderExtension = ChaincodeHeaderExtension.newBuilder()
                 .setChaincodeId(chaincodeID).build();
 
         Common.ChannelHeader chainHeader = createChannelHeader(HeaderType.ENDORSER_TRANSACTION,
-                context.getTxID(), chainID, context.getEpoch(), chaincodeHeaderExtension);
-
-        if (isDebugLevel) {
-            Identities.SerializedIdentity identity = context.getIdentity();
-
-            logger.debug(format("SignatureHeader: MSPID: %s, creator: %s, nonce: %s",
-                    logString(new String(identity.getMspidBytes().toByteArray(), UTF_8)),
-                    logString(new String(identity.getIdBytes().toByteArray(), UTF_8)),
-                    logString(new String(context.getNonce().toByteArray(), UTF_8)))
-            );
-        }
-
-        Common.SignatureHeader sigHeader = Common.SignatureHeader.newBuilder()
-                .setCreator(context.getIdentity().toByteString())
-                .setNonce(context.getNonce()).build();
+                context.getTxID(), channelID, context.getEpoch(), context.getFabricTimestamp(), chaincodeHeaderExtension);
 
         ChaincodeInvocationSpec chaincodeInvocationSpec = createChaincodeInvocationSpec(
                 chaincodeID,
                 ccType);
 
+        //Convert to bytestring map.
+        Map<String, ByteString> bsm = new HashMap<>(transientMap.size());
+
+        for (Entry<String, byte[]> tme : transientMap.entrySet()) {
+            bsm.put(tme.getKey(), ByteString.copyFrom(tme.getValue()));
+
+        }
+
         ChaincodeProposalPayload payload = ChaincodeProposalPayload.newBuilder()
                 .setInput(chaincodeInvocationSpec.toByteString())
+                .putAllTransientMap(bsm)
                 .build();
 
         Common.Header header = Common.Header.newBuilder()
-                .setSignatureHeader(sigHeader.toByteString())
+                .setSignatureHeader(getSignatureHeaderAsByteString(context))
                 .setChannelHeader(chainHeader.toByteString())
                 .build();
 
@@ -155,11 +161,9 @@ public class ProposalBuilder {
 
     }
 
-
-    private ChaincodeInvocationSpec createChaincodeInvocationSpec(Chaincode.ChaincodeID chainCodeId, ChaincodeSpec.Type langType) {
+    private ChaincodeInvocationSpec createChaincodeInvocationSpec(Chaincode.ChaincodeID chaincodeID, ChaincodeSpec.Type langType) {
 
         List<ByteString> allArgs = new ArrayList<>();
-
 
         if (argList != null && argList.size() > 0) {
             // If we already have an argList then the Builder subclasses have already set the arguments
@@ -170,29 +174,31 @@ public class ProposalBuilder {
             // if argList is empty and we have a Request, build the chaincodeInput args array from the Request args and argbytes lists
             allArgs.add(ByteString.copyFrom(request.getFcn(), UTF_8));
             List<String> args = request.getArgs();
-            if (args != null && args.size() > 0)
+            if (args != null && args.size() > 0) {
                 for (String arg : args) {
                     allArgs.add(ByteString.copyFrom(arg.getBytes(UTF_8)));
                 }
+            }
             // TODO currently assume that chaincodeInput args are strings followed by byte[].
             // Either agree with Fabric folks that this will always be the case or modify all Builders to expect
             // a List of Objects and determine if each list item is a string or a byte array
             List<byte[]> argBytes = request.getArgBytes();
-            if (argBytes != null && argBytes.size() > 0)
+            if (argBytes != null && argBytes.size() > 0) {
                 for (byte[] arg : argBytes) {
                     allArgs.add(ByteString.copyFrom(arg));
                 }
+            }
+
         }
         if (isDebugLevel) {
 
             StringBuilder logout = new StringBuilder(1000);
 
             logout.append(format("ChaincodeInvocationSpec type: %s, chaincode name: %s, chaincode path: %s, chaincode version: %s",
-                    langType.name(), chainCodeId.getName(), chainCodeId.getPath(), chainCodeId.getVersion()));
+                    langType.name(), chaincodeID.getName(), chaincodeID.getPath(), chaincodeID.getVersion()));
 
             String sep = "";
             logout.append(" args(");
-
 
             for (ByteString x : allArgs) {
                 logout.append(sep).append("\"").append(logString(new String(x.toByteArray(), UTF_8))).append("\"");
@@ -203,14 +209,13 @@ public class ProposalBuilder {
 
             logger.debug(logout.toString());
 
-
         }
 
         ChaincodeInput chaincodeInput = ChaincodeInput.newBuilder().addAllArgs(allArgs).build();
 
         ChaincodeSpec chaincodeSpec = ChaincodeSpec.newBuilder()
                 .setType(langType)
-                .setChaincodeId(chainCodeId)
+                .setChaincodeId(chaincodeID)
                 .setInput(chaincodeInput)
                 .build();
 
@@ -219,11 +224,9 @@ public class ProposalBuilder {
 
     }
 
-
     public ProposalBuilder ccType(ChaincodeSpec.Type ccType) {
         this.ccType = ccType;
         return this;
     }
-
 
 }

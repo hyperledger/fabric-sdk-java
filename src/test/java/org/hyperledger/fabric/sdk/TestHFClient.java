@@ -74,10 +74,6 @@ public class TestHFClient {
                 return "fakecert?";
             }
 
-            @Override
-            public String getPublicKey() {
-                return "publickey";
-            }
         });
         hfclient.setUserContext(someTestUSER);
 

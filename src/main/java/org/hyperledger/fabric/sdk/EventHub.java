@@ -35,12 +35,12 @@ import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 
 import static java.lang.String.format;
-import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
+import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
 
 /**
  * Class to manage fabric events.
  * <p>
- * Feeds Chain event queues with events
+ * Feeds Channel event queues with events
  */
 
 public class EventHub {
@@ -50,17 +50,17 @@ public class EventHub {
     private final String url;
     private final String name;
     private final Properties properties;
-    private ManagedChannel channel;
+    private ManagedChannel managedChannel;
     private boolean connected = false;
     private EventsGrpc.EventsStub events;
     private StreamObserver<PeerEvents.SignedEvent> sender;
     /**
-     * Event queue for all events from eventhubs in the chain
+     * Event queue for all events from eventhubs in the channel
      */
-    private Chain.ChainEventQue eventQue;
+    private Channel.ChannelEventQue eventQue;
     private long connectedTime = 0L; // 0 := never connected
     private boolean shutdown = false;
-    private Chain chain;
+    private Channel channel;
     private TransactionContext transactionContext;
 
     /**
@@ -173,9 +173,9 @@ public class EventHub {
 
         lastConnectedAttempt = System.currentTimeMillis();
 
-        channel = new Endpoint(url, properties).getChannelBuilder().build();
+        managedChannel = new Endpoint(url, properties).getChannelBuilder().build();
 
-        events = EventsGrpc.newStub(channel);
+        events = EventsGrpc.newStub(managedChannel);
 
         final ArrayList<Throwable> threw = new ArrayList<>();
 
@@ -183,9 +183,11 @@ public class EventHub {
             @Override
             public void onNext(PeerEvents.Event event) {
 
+                logger.debug(format("EventHub %s got  event type: %s", EventHub.this.name, event.getEventCase().name()));
+
                 if (event.getEventCase() == PeerEvents.Event.EventCase.BLOCK) {
                     try {
-                        eventQue.addBEvent(new BlockEvent(EventHub.this, event));  //add to chain queue
+                        eventQue.addBEvent(new BlockEvent(EventHub.this, event));  //add to channel queue
                     } catch (InvalidProtocolBufferException e) {
                         EventHubException eventHubException = new EventHubException(format("%s onNext error %s", this, e.getMessage()), e);
                         logger.error(eventHubException.getMessage());
@@ -200,8 +202,8 @@ public class EventHub {
                     return;
                 }
 
-                final boolean isTerminated = channel.isTerminated();
-                final boolean isChannelShutdown = channel.isShutdown();
+                final boolean isTerminated = managedChannel.isTerminated();
+                final boolean isChannelShutdown = managedChannel.isShutdown();
 
                 logger.error(format("%s terminated is %b shutdown is %b has error %s ", EventHub.this.toString(), isTerminated, isChannelShutdown,
                         t.getMessage()), new EventHubException(t));
@@ -217,7 +219,7 @@ public class EventHub {
                         disconnectedTime = System.currentTimeMillis();
                         try {
                             if (!isChannelShutdown) {
-                                channel.shutdownNow();
+                                managedChannel.shutdownNow();
                             }
                             if (null != disconnectedHandler) {
                                 try {
@@ -238,7 +240,7 @@ public class EventHub {
             @Override
             public void onCompleted() {
 
-                logger.info(format("Stream completed %s", EventHub.this.toString()));
+                logger.warn(format("Stream completed %s", EventHub.this.toString()));
 
             }
         };
@@ -253,11 +255,11 @@ public class EventHub {
         logger.info(format("done with connect for %s", EventHub.this.toString()));
 
 // Not implemented!
-//        channel.notifyWhenStateChanged(ConnectivityState.CONNECTING, () -> {
+//        managedChannel.notifyWhenStateChanged(ConnectivityState.CONNECTING, () -> {
 //            logger.info(format("CONNECTING %s", EventHub.this.toString()));
 //        });
 //
-//        channel.notifyWhenStateChanged(ConnectivityState.READY, () -> {
+//        managedChannel.notifyWhenStateChanged(ConnectivityState.READY, () -> {
 //            logger.info(format("READY %s", EventHub.this.toString()));
 //        });
 
@@ -302,11 +304,11 @@ public class EventHub {
     }
 
     /**
-     * Set the chain queue that will receive events
+     * Set the channel queue that will receive events
      *
      * @param eventQue
      */
-    void setEventQue(Chain.ChainEventQue eventQue) {
+    void setEventQue(Channel.ChannelEventQue eventQue) {
         this.eventQue = eventQue;
     }
 
@@ -319,21 +321,21 @@ public class EventHub {
         shutdown = true;
         connected = false;
         disconnectedHandler = null;
-        chain = null;
-        channel.shutdownNow();
+        channel = null;
+        managedChannel.shutdownNow();
     }
 
-    void setChain(Chain chain) throws InvalidArgumentException {
-        if (chain == null) {
-            throw new InvalidArgumentException("setChain Chain can not be null");
+    void setChannel(Channel channel) throws InvalidArgumentException {
+        if (channel == null) {
+            throw new InvalidArgumentException("setChannel Channel can not be null");
         }
 
-        if (null != this.chain) {
-            throw new InvalidArgumentException(format("Can not add event hub  %s to chain %s because it already belongs to chain %s.",
-                    name, chain.getName(), this.chain.getName()));
+        if (null != this.channel) {
+            throw new InvalidArgumentException(format("Can not add event hub  %s to channel %s because it already belongs to channel %s.",
+                    name, channel.getName(), this.channel.getName()));
         }
 
-        this.chain = chain;
+        this.channel = channel;
     }
 
     /**

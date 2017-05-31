@@ -28,8 +28,8 @@ public class QuerySCCRequest extends TransactionRequest {
     public static final String GETBLOCKBYTXID = "GetBlockByTxID";
 
     @Override
-    public ChainCodeID getChaincodeID() {
-        return new ChainCodeID(
+    public ChaincodeID getChaincodeID() {
+        return new ChaincodeID(
                 Chaincode.ChaincodeID.newBuilder().setName("qscc").build());
     }
 

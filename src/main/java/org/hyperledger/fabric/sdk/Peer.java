@@ -27,19 +27,19 @@ import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.PeerException;
 
 import static java.lang.String.format;
-import static org.hyperledger.fabric.sdk.helper.SDKUtil.checkGrpcUrl;
+import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
 
 /**
  * The Peer class represents a peer to which SDK sends deploy, or query proposals requests.
  */
 public class Peer {
     private static final Log logger = LogFactory.getLog(Peer.class);
-    private EndorserClient endorserClent;
+    private volatile EndorserClient endorserClent;
     private final Properties properties;
     private final String name;
     private final String url;
     private boolean shutdown = false;
-    private Chain chain;
+    private Channel channel;
 
     Peer(String name, String grpcURL, Properties properties) throws InvalidArgumentException {
 
@@ -56,8 +56,6 @@ public class Peer {
         this.url = grpcURL;
         this.name = name;
         this.properties = properties == null ? null : (Properties) properties.clone(); //keep our own copy.
-
-        this.endorserClent = new EndorserClient(new Endpoint(url, this.properties).getChannelBuilder());
 
     }
 
@@ -78,31 +76,31 @@ public class Peer {
     }
 
     /**
-     * Set the chain the peer is on.
+     * Set the channel the peer is on.
      *
-     * @param chain
+     * @param channel
      */
 
-    void setChain(Chain chain) throws InvalidArgumentException {
+    void setChannel(Channel channel) throws InvalidArgumentException {
 
-        if (null != this.chain) {
-            throw new InvalidArgumentException(format("Can not add peer %s to chain %s because it already belongs to chain %s.",
-                    name, chain.getName(), this.chain.getName()));
+        if (null != this.channel) {
+            throw new InvalidArgumentException(format("Can not add peer %s to channel %s because it already belongs to channel %s.",
+                    name, channel.getName(), this.channel.getName()));
         }
 
-        this.chain = chain;
+        this.channel = channel;
 
     }
 
     /**
-     * The chain the peer is set on.
+     * The channel the peer is set on.
      *
      * @return
      */
 
-    Chain getChain() {
+    Channel getChannel() {
 
-        return chain;
+        return channel;
 
     }
 
@@ -141,9 +139,23 @@ public class Peer {
             throws PeerException, InvalidArgumentException {
         checkSendProposal(proposal);
 
-        logger.debug(format("peer.sendProposalAsync name:%s, url: %s", name, url));
+        logger.debug(format("peer.sendProposalAsync name: %s, url: %s", name, url));
 
-        return endorserClent.sendProposalAsync(proposal);
+        EndorserClient localEndorserClient = endorserClent; //work off thread local copy.
+
+        if (null == localEndorserClient || !localEndorserClient.isChannelActive()) {
+            endorserClent = localEndorserClient = new EndorserClient(new Endpoint(url, properties).getChannelBuilder());
+        }
+
+        try {
+            return localEndorserClient.sendProposalAsync(proposal);
+        } catch (PeerException e) { //Any error start with a clean connection.
+            endorserClent = null;
+            throw e;
+        } catch (Throwable t) {
+            endorserClent = null;
+            throw t;
+        }
     }
 
     FabricProposalResponse.ProposalResponse sendProposal(FabricProposal.SignedProposal proposal)
@@ -152,7 +164,21 @@ public class Peer {
 
         logger.debug(format("peer.sendProposalAsync name: %s, url: %s", name, url));
 
-        return endorserClent.sendProposal(proposal);
+        EndorserClient localEndorserClient = endorserClent; //work off thread local copy.
+
+        if (null == localEndorserClient || !localEndorserClient.isChannelActive()) {
+            endorserClent = localEndorserClient = new EndorserClient(new Endpoint(url, properties).getChannelBuilder());
+        }
+
+        try {
+            return localEndorserClient.sendProposal(proposal);
+        } catch (PeerException e) { //Any error start with a clean connection.
+            endorserClent = null;
+            throw e;
+        } catch (Throwable t) {
+            endorserClent = null;
+            throw t;
+        }
     }
 
     private void checkSendProposal(FabricProposal.SignedProposal proposal) throws PeerException, InvalidArgumentException {
@@ -180,7 +206,7 @@ public class Peer {
             return;
         }
         shutdown = true;
-        chain = null;
+        channel = null;
 
         EndorserClient lendorserClent = endorserClent;
 

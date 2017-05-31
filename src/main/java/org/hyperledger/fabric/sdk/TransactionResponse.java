@@ -14,10 +14,9 @@
 
 package org.hyperledger.fabric.sdk;
 
-public class TransactionResponse extends ChainCodeResponse{
+public class TransactionResponse extends ChaincodeResponse {
 
-
-    public TransactionResponse(String transactionID, String chainCodeID, int istatus, String message) {
-        super(transactionID, chainCodeID, istatus, message);
+    public TransactionResponse(String transactionID, String chaincodeID, int istatus, String message) {
+        super(transactionID, chaincodeID, istatus, message);
     }
 }

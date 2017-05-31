@@ -44,7 +44,7 @@ public class SimpleChaincode extends ChaincodeBase {
 	@Override
 	public Response init(ChaincodeStub stub) {
 		try {
-			final List<String> args = stub.getArgsAsStrings();
+			final List<String> args = stub.getStringArgs();
 			switch (args.get(0)) {
 			case "init":
 				return init(stub, args.stream().skip(0).toArray(String[]::new));
@@ -64,7 +64,7 @@ public class SimpleChaincode extends ChaincodeBase {
 	public Response invoke(ChaincodeStub stub) {
 
 		try {
-			final List<String> argList = stub.getArgsAsStrings();
+			final List<String> argList = stub.getStringArgs();
 			final String function = argList.get(0);
 			final String[] args = argList.stream().skip(1).toArray(String[]::new);
 
@@ -77,7 +77,7 @@ public class SimpleChaincode extends ChaincodeBase {
 				return transfer(stub, args);
 			case "put":
 				for (int i = 0; i < args.length; i += 2)
-					stub.putState(args[i], args[i + 1]);
+					stub.putStringState(args[i], args[i + 1]);
 				return newSuccessResponse();
 			case "del":
 				for (String arg : args)
@@ -125,8 +125,8 @@ public class SimpleChaincode extends ChaincodeBase {
 		final String amount = args[2];
 
 		// get state of the from/to keys
-		final String fromKeyState = stub.getState(fromKey);
-		final String toKeyState = stub.getState(toKey);
+		final String fromKeyState = stub.getStringState(fromKey);
+		final String toKeyState = stub.getStringState(toKey);
 
 		// parse states as integers
 		int fromAccountBalance = Integer.parseInt(fromKeyState);
@@ -145,8 +145,8 @@ public class SimpleChaincode extends ChaincodeBase {
 		int newFromAccountBalance = fromAccountBalance - transferAmount;
 		int newToAccountBalance = toAccountBalance + transferAmount;
 		log.info(String.format("New holding values will be: %s = %d, %s = %d", fromKey, newFromAccountBalance, toKey, newToAccountBalance));
-		stub.putState(fromKey, Integer.toString(newFromAccountBalance));
-		stub.putState(toKey, Integer.toString(newToAccountBalance));
+		stub.putStringState(fromKey, Integer.toString(newFromAccountBalance));
+		stub.putStringState(toKey, Integer.toString(newToAccountBalance));
 		log.info("Transfer complete.");
 
 		return newSuccessResponse(String.format("Successfully transferred %d assets from %s to %s.", transferAmount, fromKey, toKey));
@@ -160,8 +160,8 @@ public class SimpleChaincode extends ChaincodeBase {
 		final String account1Balance = args[1];
 		final String account2Balance = args[3];
 
-		stub.putState(accountKey1, new Integer(account1Balance).toString());
-		stub.putState(accountKey2, new Integer(account2Balance).toString());
+		stub.putStringState(accountKey1, new Integer(account1Balance).toString());
+		stub.putStringState(accountKey2, new Integer(account2Balance).toString());
 
 		return newSuccessResponse();
 	}
@@ -171,7 +171,7 @@ public class SimpleChaincode extends ChaincodeBase {
 
 		final String accountKey = args[0];
 
-		return newSuccessResponse(String.valueOf(Integer.parseInt(stub.getState(accountKey))));
+		return newSuccessResponse(String.valueOf(Integer.parseInt(stub.getStringState(accountKey))));
 
 	}
 
@@ -189,11 +189,6 @@ public class SimpleChaincode extends ChaincodeBase {
 			builder.add("Stacktrace", buffer.toString());
 		}
 		return builder.build().toString();
-	}
-
-	@Override
-	public String getChaincodeID() {
-		return "SimpleChaincode";
 	}
 
 	public static void main(String[] args) throws Exception {

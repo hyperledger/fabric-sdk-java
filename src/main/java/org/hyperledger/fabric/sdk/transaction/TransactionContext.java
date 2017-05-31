@@ -15,12 +15,10 @@
 package org.hyperledger.fabric.sdk.transaction;
 
 import java.nio.Buffer;
-import java.time.Instant;
 import java.util.List;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.ASN1Encodable;
@@ -30,13 +28,12 @@ import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.DERUTF8String;
 import org.hyperledger.fabric.protos.msp.Identities;
-import org.hyperledger.fabric.sdk.Chain;
+import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.helper.Config;
-import org.hyperledger.fabric.sdk.helper.SDKUtil;
+import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
-
 
 /**
  * A transaction context emits events 'submitted', 'complete', and 'error'.
@@ -46,8 +43,7 @@ public class TransactionContext {
     private static final Config config = Config.getConfig();
     private static final Log logger = LogFactory.getLog(TransactionContext.class);
     //TODO right now the server does not care need to figure out
-    private final ByteString nonce = ByteString.copyFromUtf8(SDKUtil.generateUUID());
-
+    private final ByteString nonce = ByteString.copyFrom(Utils.generateNonce());
 
     private boolean verify = true;
 
@@ -57,7 +53,7 @@ public class TransactionContext {
 
     private final CryptoSuite cryptoPrimitives;
     private final User user;
-    private final Chain chain;
+    private final Channel channel;
 
     private final String txID;
 
@@ -65,28 +61,26 @@ public class TransactionContext {
     private long proposalWaitTime = config.getProposalWaitTime();
     private final Identities.SerializedIdentity identity;
 
-    public TransactionContext(Chain chain, User user, CryptoSuite cryptoPrimitives) {
-
+    public TransactionContext(Channel channel, User user, CryptoSuite cryptoPrimitives) {
 
         this.user = user;
-        this.chain = chain;
+        this.channel = channel;
         //TODO clean up when public classes are interfaces.
-        this.verify = !"".equals(chain.getName());  //if name is not blank not system chain and need verify.
+        this.verify = !"".equals(channel.getName());  //if name is not blank not system channel and need verify.
 
         //  this.txID = transactionID;
         this.cryptoPrimitives = cryptoPrimitives;
 
-
-        identity = Identities.SerializedIdentity.newBuilder()
-                .setIdBytes(ByteString.copyFromUtf8(getCreator()))
-                .setMspid(getMSPID()).build();
-
+        identity = ProtoUtils.createSerializedIdentity(getUser());
 
         ByteString no = getNonce();
+
         ByteString comp = no.concat(identity.toByteString());
+
         byte[] txh = cryptoPrimitives.hash(comp.toByteArray());
+
         //    txID = Hex.encodeHexString(txh);
-        txID = new String(Hex.encodeHex(txh));
+        txID = new String(Utils.toHexString(txh));
 
     }
 
@@ -96,11 +90,9 @@ public class TransactionContext {
 
     }
 
-
     public long getEpoch() {
         return 0;
     }
-
 
     /**
      * Get the user with which this transaction context is associated.
@@ -112,14 +104,13 @@ public class TransactionContext {
     }
 
     /**
-     * Get the chain with which this transaction context is associated.
+     * Get the channel with which this transaction context is associated.
      *
-     * @return The chain
+     * @return The channel
      */
-    public Chain getChain() {
-        return this.chain;
+    public Channel getChannel() {
+        return this.channel;
     }
-
 
     /**
      * Emit a specific event provided an event listener is already registered.
@@ -137,7 +128,6 @@ public class TransactionContext {
        }, 0);
 */
     }
-
 
     /**
      * Get the attribute names associated
@@ -171,30 +161,25 @@ public class TransactionContext {
         this.proposalWaitTime = proposalWaitTime;
     }
 
-
     private void decryptResult(Buffer ct) {
         /* TODO implement decryptResult function
         let key = new Buffer(
-            this.chain.cryptoPrimitives.hmacAESTruncated(
+            this.channel.cryptoPrimitives.hmacAESTruncated(
                 this.user.getEnrollment().queryStateKey,
                 [CONFIDENTIALITY_1_2_STATE_KD_C6].concat(this.nonce))
         );
 
         logger.debug("Decrypt Result [%s]", ct.toString("hex"));
-        return this.chain.cryptoPrimitives.aes256GCMDecrypt(key, ct);
+        return this.channel.cryptoPrimitives.aes256GCMDecrypt(key, ct);
         */
     }
 
     Timestamp currentTimeStamp = null;
 
-
     public Timestamp getFabricTimestamp() {
         if (currentTimeStamp == null) {
 
-
-            Timestamp.Builder ts = Timestamp.newBuilder();
-            ts.setSeconds(Instant.now().toEpochMilli());
-            currentTimeStamp = ts.build();
+            currentTimeStamp = ProtoUtils.getCurrentFabricTimestamp();
         }
         return currentTimeStamp;
     }
@@ -234,7 +219,6 @@ public class TransactionContext {
 
         }
 
-
         @Override
         public ASN1Primitive toASN1Primitive() {
 
@@ -247,7 +231,6 @@ public class TransactionContext {
         }
     }
 
-
     String getMSPID() {
         return user.getMSPID();
     }
@@ -257,21 +240,15 @@ public class TransactionContext {
 
     }
 
-
-    public boolean isDevMode() {
-        return chain.isDevMode();
-    }
-
-    public String getChainID() {
-        return getChain().getName();
+    public String getChannelID() {
+        return getChannel().getName();
     }
 
     public String getTxID() {
         return txID;
     }
 
-
-    public byte[] sign(byte[] b) throws CryptoException {
+    byte[] sign(byte[] b) throws CryptoException {
         return cryptoPrimitives.sign(getUser().getEnrollment().getKey(), b);
     }
 
@@ -279,5 +256,49 @@ public class TransactionContext {
         return ByteString.copyFrom(sign(b));
     }
 
+    public ByteString signByteStrings(ByteString... bs) throws CryptoException {
+        assert bs != null;
+        if (bs == null) {
+            return null;
+        }
+        assert bs.length != 0;
+        if (bs.length == 0) {
+            return null;
+        }
+
+        ByteString f = bs[0];
+        for (int i = 1; i < bs.length; ++i) {
+            f = f.concat(bs[i]);
+
+        }
+        return ByteString.copyFrom(sign(f.toByteArray()));
+    }
+
+    public ByteString[] signByteStrings(User[] users, ByteString... bs) throws CryptoException {
+        assert bs != null;
+        if (bs == null) {
+            return null;
+        }
+        assert bs.length != 0;
+        if (bs.length == 0) {
+            return null;
+        }
+
+        ByteString f = bs[0];
+        for (int i = 1; i < bs.length; ++i) {
+            f = f.concat(bs[i]);
+
+        }
+
+        final byte[] signbytes = f.toByteArray();
+
+        ByteString[] ret = new ByteString[users.length];
+
+        int i = -1;
+        for (User user : users) {
+            ret[++i] = ByteString.copyFrom(cryptoPrimitives.sign(user.getEnrollment().getKey(), signbytes));
+        }
+        return ret;
+    }
 
 }  // end TransactionContext

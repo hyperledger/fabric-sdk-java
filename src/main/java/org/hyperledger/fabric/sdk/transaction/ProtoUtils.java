@@ -14,23 +14,32 @@
 package org.hyperledger.fabric.sdk.transaction;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Timestamp;
+import com.google.protobuf.util.Timestamps;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common.ChannelHeader;
 import org.hyperledger.fabric.protos.common.Common.HeaderType;
+import org.hyperledger.fabric.protos.common.Common.SignatureHeader;
+import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeDeploymentSpec;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInput;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type;
 import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeHeaderExtension;
+import org.hyperledger.fabric.sdk.User;
+import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.hyperledger.fabric.sdk.helper.SDKUtil.logString;
+import static org.hyperledger.fabric.sdk.helper.Utils.logString;
+import static org.hyperledger.fabric.sdk.helper.Utils.toHexString;
 
 public class ProtoUtils {
 
@@ -42,16 +51,17 @@ public class ProtoUtils {
      *
      * @param type
      * @param txID
-     * @param chainID
+     * @param channelID
      * @param epoch
+     * @param timeStamp
      * @param chaincodeHeaderExtension
      * @return
      */
-    public static ChannelHeader createChannelHeader(HeaderType type, String txID, String chainID, long epoch, ChaincodeHeaderExtension chaincodeHeaderExtension) {
+    public static ChannelHeader createChannelHeader(HeaderType type, String txID, String channelID, long epoch, Timestamp timeStamp, ChaincodeHeaderExtension chaincodeHeaderExtension) {
 
         if (isDebugLevel) {
             logger.debug(format("ChannelHeader: type: %s, version: 1, Txid: %s, channelId: %s, epoch %d",
-                    type.name(), txID, chainID, epoch));
+                    type.name(), txID, channelID, epoch));
 
         }
 
@@ -59,7 +69,8 @@ public class ProtoUtils {
                 .setType(type.getNumber())
                 .setVersion(1)
                 .setTxId(txID)
-                .setChannelId(chainID)
+                .setChannelId(channelID)
+                .setTimestamp(timeStamp)
                 .setEpoch(epoch);
         if (null != chaincodeHeaderExtension) {
             ret.setExtension(chaincodeHeaderExtension.toByteString());
@@ -70,11 +81,10 @@ public class ProtoUtils {
     }
 
     public static ChaincodeDeploymentSpec createDeploymentSpec(Type ccType, String name, String chaincodePath,
-                                                               String chainCodeVersion, List<String> args,
+                                                               String chaincodeVersion, List<String> args,
                                                                byte[] codePackage) {
 
-
-        ChaincodeID.Builder chaincodeIDBuilder = ChaincodeID.newBuilder().setName(name).setVersion(chainCodeVersion);
+        ChaincodeID.Builder chaincodeIDBuilder = ChaincodeID.newBuilder().setName(name).setVersion(chaincodeVersion);
         if (chaincodePath != null) {
             chaincodeIDBuilder = chaincodeIDBuilder.setPath(chaincodePath);
         }
@@ -90,7 +100,6 @@ public class ProtoUtils {
             }
 
         }
-
 
         ChaincodeInput chaincodeInput = ChaincodeInput.newBuilder().addAllArgs(argList).build();
 
@@ -110,10 +119,8 @@ public class ProtoUtils {
                     .append(", version: ")
                     .append(chaincodeID.getVersion());
 
-
             String sep = "";
             sb.append(" args(");
-
 
             for (ByteString x : argList) {
                 sb.append(sep).append("\"").append(logString(new String(x.toByteArray(), UTF_8))).append("\"");
@@ -124,14 +131,11 @@ public class ProtoUtils {
 
             logger.debug(sb.toString());
 
-
         }
-
 
         ChaincodeDeploymentSpec.Builder chaincodeDeploymentSpecBuilder = ChaincodeDeploymentSpec
                 .newBuilder().setChaincodeSpec(chaincodeSpec) //.setEffectiveDate(context.getFabricTimestamp())
                 .setExecEnv(ChaincodeDeploymentSpec.ExecutionEnvironment.DOCKER);
-
 
         if (codePackage != null) {
             chaincodeDeploymentSpecBuilder.setCodePackage(ByteString.copyFrom(codePackage));
@@ -142,10 +146,9 @@ public class ProtoUtils {
 
     }
 
-    public static ChaincodeSpec createChainCodeSpec(String name, ChaincodeSpec.Type ccType, Object... args) {
+    public static ChaincodeSpec createChaincodeSpec(String name, ChaincodeSpec.Type ccType, Object... args) {
 
         ChaincodeID chaincodeID = ChaincodeID.newBuilder().setName(name).build();
-
 
         List<ByteString> argList = new ArrayList<>(args.length);
 
@@ -167,4 +170,81 @@ public class ProtoUtils {
                 .build();
 
     }
+
+    // static CryptoSuite suite = null;
+
+    public static ByteString getSignatureHeaderAsByteString(TransactionContext transactionContext) {
+
+        return getSignatureHeaderAsByteString(transactionContext.getUser(), transactionContext);
+    }
+
+    public static CryptoSuite suite;
+
+    public static ByteString getSignatureHeaderAsByteString(User user, TransactionContext transactionContext) {
+
+        final Identities.SerializedIdentity identity = ProtoUtils.createSerializedIdentity(user);
+
+        if (isDebugLevel) {
+
+            String cert = user.getEnrollment().getCert();
+           // logger.debug(format(" User: %s Certificate:\n%s", user.getName(), cert));
+
+            if (null == suite) {
+
+                try {
+                    suite = CryptoSuite.Factory.getCryptoSuite();
+                    suite.init();
+                } catch (Exception e) {
+                    //best try.
+                }
+
+            }
+            if (null != suite && suite instanceof CryptoPrimitives) {
+
+                CryptoPrimitives cp = (CryptoPrimitives) suite;
+                byte[] der = cp.certificateToDER(cert);
+                if (null != der && der.length > 0) {
+
+                    cert = toHexString(suite.hash(der));
+
+                }
+
+            }
+
+            logger.debug(format("SignatureHeader: nonce: %s, User:%s, MSPID: %s, idBytes: %s",
+                    toHexString(transactionContext.getNonce()),
+                    user.getName(),
+                    identity.getMspid(),
+                    cert
+            ));
+
+        }
+        return SignatureHeader.newBuilder()
+                .setCreator(identity.toByteString())
+                .setNonce(transactionContext.getNonce())
+                .build().toByteString();
+    }
+
+    public static Identities.SerializedIdentity createSerializedIdentity(User user) {
+
+        return Identities.SerializedIdentity.newBuilder()
+                .setIdBytes(ByteString.copyFromUtf8(user.getEnrollment().getCert()))
+                .setMspid(user.getMSPID()).build();
+    }
+
+    public static Timestamp getCurrentFabricTimestamp() {
+
+        final long millis = System.currentTimeMillis();
+
+        return Timestamp.newBuilder().setSeconds(millis / 1000)
+                .setNanos((int) ((millis % 1000) * 1000000)).build();
+
+    }
+
+    public static Date getDateFromTimestamp(Timestamp timestamp) {
+
+        return new Date(Timestamps.toMillis(timestamp));
+
+    }
+
 }

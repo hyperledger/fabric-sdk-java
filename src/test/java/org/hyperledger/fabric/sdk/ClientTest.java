@@ -20,7 +20,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ClientTest {
-    private static final String CHAIN_NAME = "chain1";
+    private static final String CHANNEL_NAME = "channel1";
     static HFClient hfclient = null;
 
     @BeforeClass
@@ -37,21 +37,21 @@ public class ClientTest {
     }
 
     @Test
-    public void testNewChain() {
+    public void testNewChannel() {
         try {
-            Chain testChain = hfclient.newChain(CHAIN_NAME);
-            Assert.assertTrue(testChain != null && CHAIN_NAME.equalsIgnoreCase(testChain.getName()));
+            Channel testChannel = hfclient.newChannel(CHANNEL_NAME);
+            Assert.assertTrue(testChannel != null && CHANNEL_NAME.equalsIgnoreCase(testChannel.getName()));
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail("Unexpected Exception " + e.getMessage());
         }
     }
-    
+
     @Test
-	public void testSetNullChain() {
-		try {
-			Chain testChain = hfclient.newChain(null);
-			Assert.fail("Expected null chain to throw exception.");
+    public void testSetNullChannel() {
+        try {
+            Channel testChannel = hfclient.newChannel(null);
+            Assert.fail("Expected null channel to throw exception.");
 
 		} catch (Exception e) {
 			Assert.assertTrue( e.getClass() == InvalidArgumentException.class);
@@ -68,13 +68,13 @@ public class ClientTest {
             Assert.fail("Unexpected Exception " + e.getMessage());
         }
     }
-    
+
     @Test
 	public void testBadURL() {
 		try {
 			Peer peer = hfclient.newPeer("peer_", " ");
-			Assert.fail("Expected peer with no chain throw exception");
-		} catch (Exception e) {
+            Assert.fail("Expected peer with no channel throw exception");
+        } catch (Exception e) {
 			Assert.assertTrue( e.getClass() == InvalidArgumentException.class);
 		}
 	}
@@ -86,18 +86,18 @@ public class ClientTest {
             Assert.assertTrue(orderer != null);
     	} catch (Exception e) {
             e.printStackTrace();
-            Assert.fail("Unexpected Exception " + e.getMessage()); 
-    	}    
+            Assert.fail("Unexpected Exception " + e.getMessage());
+        }
     }
-    
-    @Test 
+
+    @Test
     public void testBadAddress() {
          try {
               Orderer orderer= hfclient.newOrderer("xx","xxxxxx");
               Assert.fail("Orderer did not allow setting bad URL.");
          } catch (Exception e) {
               Assert.assertTrue( e.getClass() == InvalidArgumentException.class);
-         }  
+         }
     }
 
 }

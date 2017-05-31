@@ -14,8 +14,6 @@
 
 package org.hyperledger.fabric_ca.sdk;
 
-import io.netty.util.internal.StringUtil;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
@@ -24,11 +22,14 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonWriter;
 
+import static org.hyperledger.fabric.sdk.helper.Utils.isNullOrEmpty;
+
 /**
  * A RevocationRequest defines the attributes required to revoke credentials with member service.
  */
 class RevocationRequest {
 
+    private final String caName;
     // Enrollment ID whose certificates are to be revoked
     private String enrollmentID;
     // Serial number of certificate to be revoked
@@ -36,12 +37,12 @@ class RevocationRequest {
     // Authority key identifier of certificate to be revoked
     private String aki;
     // Reason for revocation
-    private int reason;
+    private String reason;
 
     // Constructor
-    RevocationRequest(String id, String serial, String aki, int reason) throws Exception {
-        if (StringUtil.isNullOrEmpty(id)) {
-            if (StringUtil.isNullOrEmpty(serial) || StringUtil.isNullOrEmpty(aki)) {
+    RevocationRequest(String caNmae, String id, String serial, String aki, String reason) throws Exception {
+        if (isNullOrEmpty(id)) {
+            if (isNullOrEmpty(serial) || isNullOrEmpty(aki)) {
                 throw new Exception("Enrollment ID is empty, thus both aki and serial must have non-empty values");
             }
         }
@@ -49,6 +50,7 @@ class RevocationRequest {
         this.serial = serial;
         this.aki = aki;
         this.reason = reason;
+        this.caName = caNmae;
     }
 
     String getUser() {
@@ -75,11 +77,11 @@ class RevocationRequest {
         this.aki = aki;
     }
 
-    int getReason() {
+    String getReason() {
         return reason;
     }
 
-    void setReason(int reason) {
+    void setReason(String reason) {
         this.reason = reason;
     }
 
@@ -102,6 +104,14 @@ class RevocationRequest {
             // revoke one particular enrollment
             factory.add("serial", "0" + serial);
             factory.add("aki", aki);
+        }
+
+        if (null != reason) {
+            factory.add("reason", reason);
+        }
+
+        if(caName != null){
+            factory.add( HFCAClient.FABRIC_CA_REQPROP, caName);
         }
         factory.add("reason", reason);
         return factory.build();

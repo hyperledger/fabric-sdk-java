@@ -25,27 +25,18 @@ public class HFCAEnrollment implements Enrollment, Serializable {
     private static final long serialVersionUID = 550416591376968096L;
     private KeyPair key;
     private String cert;
-    private String publicKey;
 
-    HFCAEnrollment(KeyPair signingKeyPair, String publicKey, String signedPem) {
+    HFCAEnrollment(KeyPair signingKeyPair, String signedPem) {
         key = signingKeyPair;
-        this. publicKey = publicKey;
         this.cert = signedPem;
     }
-
-
 
     public PrivateKey getKey() {
         return key.getPrivate();
     }
 
-
     public String getCert() {
         return cert;
-    }
-
-    public String getPublicKey() {
-        return publicKey;
     }
 
 }

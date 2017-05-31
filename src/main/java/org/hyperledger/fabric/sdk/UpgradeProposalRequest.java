@@ -14,11 +14,26 @@
 
 package org.hyperledger.fabric.sdk;
 
-import java.io.File;
+import java.util.Map;
+
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 
 /**
  * Upgrade chaincode proposal request.
  */
 public class UpgradeProposalRequest extends TransactionRequest {
 
- }
+    /**
+     * Transient data added to the proposal that is not added to the ledger.
+     *
+     * @param transientMap Map of strings to bytes that's added to the proposal
+     */
+    public void setTransientMap(Map<String, byte[]> transientMap) throws InvalidArgumentException {
+        if (null == transientMap) {
+
+            throw new InvalidArgumentException("Transient map may not be set to null");
+
+        }
+        this.transientMap = transientMap;
+    }
+}

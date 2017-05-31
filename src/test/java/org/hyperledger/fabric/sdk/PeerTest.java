@@ -17,13 +17,14 @@ package org.hyperledger.fabric.sdk;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.PeerException;
-//import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+//import org.hyperledger.fabric.protos.peer.FabricProposal;
+
 public class PeerTest {
-	private static final String CHAIN_NAME = "chain1";
+	private static final String CHANNEL_NAME = "channel1";
 	static HFClient hfclient = null;
 	static Peer peer = null;
 
@@ -92,7 +93,7 @@ public class PeerTest {
 		}
 	}
 	@Test
-	public void testSendNullChainl() {
+	public void testSendNullChannel() {
 
 		try {
 
@@ -100,7 +101,7 @@ public class PeerTest {
 
 
 			badpeer.sendProposal(FabricProposal.SignedProposal.newBuilder().build());
-			Assert.fail("Expected peer with no chain throw exception");
+            Assert.fail("Expected peer with no channel throw exception");
 
 		} catch (Exception e) {
 			Assert.assertTrue( e.getClass() == PeerException.class);
@@ -120,7 +121,7 @@ public class PeerTest {
 
 			hfclient.newPeer("peer_", " ");
 
-			Assert.fail("Expected peer with no chain throw exception");
+            Assert.fail("Expected peer with no channel throw exception");
 
 		} catch (Exception e) {
 			Assert.assertTrue( e.getClass() == InvalidArgumentException.class);

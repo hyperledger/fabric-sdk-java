@@ -14,6 +14,7 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +25,6 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import io.netty.util.internal.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.peer.Query.ChaincodeInfo;
@@ -32,6 +32,7 @@ import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
+import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 import static java.lang.String.format;
@@ -62,7 +63,7 @@ public class HFClient {
 
     private static final Log logger = LogFactory.getLog(HFClient.class);
 
-    private final Map<String, Chain> chains = new HashMap<>();
+    private final Map<String, Channel> channels = new HashMap<>();
 
     public User getUserContext() {
         return userContext;
@@ -93,37 +94,39 @@ public class HFClient {
     }
 
     /**
-     * newChain - already configured chain.
+     * newChannel - already configured channel.
      *
      * @param name
      * @return
      * @throws InvalidArgumentException
      */
 
-    public Chain newChain(String name) throws InvalidArgumentException {
-        logger.trace("Creating chain :" + name);
-        Chain newChain = Chain.createNewInstance(name, this);
-        chains.put(name, newChain);
-        return newChain;
+    public Channel newChannel(String name) throws InvalidArgumentException {
+        logger.trace("Creating channel :" + name);
+        Channel newChannel = Channel.createNewInstance(name, this);
+        channels.put(name, newChannel);
+        return newChannel;
     }
 
     /**
-     * Create a new chain
+     * Create a new channel
      *
-     * @param name               The chains name
-     * @param orderer            Order to create the chain with.
-     * @param chainConfiguration Chain configuration data.
+     * @param name                         The channels name
+     * @param orderer                      Order to create the channel with.
+     * @param channelConfiguration           Channel configuration data.
+     * @param channelConfigurationSignatures array of byte array's containing ConfigSignature's proto serialized.
+     *                                     See {@link Channel#getChannelConfigurationSignature} on how to create
      * @return
      * @throws TransactionException
      * @throws InvalidArgumentException
      */
 
-    public Chain newChain(String name, Orderer orderer, ChainConfiguration chainConfiguration) throws TransactionException, InvalidArgumentException {
+    public Channel newChannel(String name, Orderer orderer, ChannelConfiguration channelConfiguration, byte[]... channelConfigurationSignatures) throws TransactionException, InvalidArgumentException {
 
-        logger.trace("Creating chain :" + name);
-        Chain newChain = Chain.createNewInstance(name, this, orderer, chainConfiguration);
-        chains.put(name, newChain);
-        return newChain;
+        logger.trace("Creating channel :" + name);
+        Channel newChannel = Channel.createNewInstance(name, this, orderer, channelConfiguration, channelConfigurationSignatures);
+        channels.put(name, newChannel);
+        return newChannel;
     }
 
     /**
@@ -144,9 +147,14 @@ public class HFClient {
      *                   <li>hostnameOverride - Specify the certificates CN -- for development only.
      *                   <li>sslProvider - Specify the SSL provider, openSSL or JDK.</li>
      *                   <li>negotiationType - Specify the type of negotiation, TLS or plainText.</li>
-     *                   If the pemFile does not represent the server certificate, use this property to specify the URI authority
+     *                   <li>If the pemFile does not represent the server certificate, use this property to specify the URI authority
      *                   (a.k.a hostname) expected in the target server's certificate. This is required to get past default server
      *                   hostname verifications during TLS handshake.
+     *                   </li>
+     *                   <li>
+     *                   grpc.ManagedChannelBuilderOption.&lt;methodName&gt;  where methodName is any method on
+     *                   grpc ManagedChannelBuilder.  If more than one argument to the method is needed then the
+     *                   parameters need to be supplied in an array of Objects.
      *                   </li>
      *                   </ul>
      * @return Peer
@@ -171,14 +179,14 @@ public class HFClient {
     }
 
     /**
-     * getChain by name
+     * getChannel by name
      *
      * @param name
      * @return
      */
 
-    public Chain getChain(String name) {
-        return chains.get(name);
+    public Channel getChannel(String name) {
+        return channels.get(name);
     }
 
     /**
@@ -236,7 +244,7 @@ public class HFClient {
             throw new InvalidArgumentException("setUserContext is null");
         }
         final String userName = userContext.getName();
-        if (StringUtil.isNullOrEmpty(userName)) {
+        if (Utils.isNullOrEmpty(userName)) {
             throw new InvalidArgumentException("setUserContext user's name is missing");
         }
 
@@ -245,23 +253,22 @@ public class HFClient {
             throw new InvalidArgumentException(format("setUserContext for user %s has no Enrollment set", userName));
         }
 
-        if (StringUtil.isNullOrEmpty(userContext.getMSPID())) {
+        if (Utils.isNullOrEmpty(userContext.getMSPID())) {
             throw new InvalidArgumentException(format("setUserContext for user %s  has user's MSPID is missing", userName));
         }
 
-        if (StringUtil.isNullOrEmpty(userContext.getName())) {
+        if (Utils.isNullOrEmpty(userContext.getName())) {
             throw new InvalidArgumentException("setUserContext user's name is missing");
         }
 
-        if (StringUtil.isNullOrEmpty(enrollment.getCert())) {
+        if (Utils.isNullOrEmpty(enrollment.getCert())) {
             throw new InvalidArgumentException(format("setUserContext for user %s Enrollment missing user certificate.", userName));
         }
         if (null == enrollment.getKey()) {
             throw new InvalidArgumentException(format("setUserContext for user %s has Enrollment missing signing key", userName));
         }
-        if (StringUtil.isNullOrEmpty(enrollment.getPublicKey())) {
-            throw new InvalidArgumentException(format("setUserContext for user %s  Enrollment missing user public key.", userName));
-        }
+
+        logger.debug(format("Setting user context to MSPID: %s user: %s", userContext.getMSPID(), userContext.getName()));
 
         this.userContext = userContext;
     }
@@ -284,9 +291,14 @@ public class HFClient {
      *                   <li>hostnameOverride - Specify the certificates CN -- for development only.
      *                   <li>sslProvider - Specify the SSL provider, openSSL or JDK.</li>
      *                   <li>negotiationType - Specify the type of negotiation, TLS or plainText.</li>
-     *                   If the pemFile does not represent the server certificate, use this property to specify the URI authority
+     *                   <li>If the pemFile does not represent the server certificate, use this property to specify the URI authority
      *                   (a.k.a hostname) expected in the target server's certificate. This is required to get past default server
      *                   hostname verifications during TLS handshake.
+     *                   </li>
+     *                   <li>
+     *                   grpc.ManagedChannelBuilderOption.&lt;methodName&gt;  where methodName is any method on
+     *                   grpc ManagedChannelBuilder.  If more than one argument to the method is needed then the
+     *                   parameters need to be supplied in an array of Objects.
      *                   </li>
      *                   </ul>
      * @return The orderer.
@@ -337,12 +349,17 @@ public class HFClient {
      *                   useful in development to get past default server hostname verification during
      *                   TLS handshake, when the server host name does not match the certificate.
      *                   </li>
-     *                   <li>hostnameOverride - Specify the certificates CN -- for development only.
      *                   <li>sslProvider - Specify the SSL provider, openSSL or JDK.</li>
      *                   <li>negotiationType - Specify the type of negotiation, TLS or plainText.</li>
+     *                   <li>hostnameOverride - Specify the certificates CN -- for development only.
      *                   If the pemFile does not represent the server certificate, use this property to specify the URI authority
      *                   (a.k.a hostname) expected in the target server's certificate. This is required to get past default server
      *                   hostname verifications during TLS handshake.
+     *                   </li>
+     *                   <li>
+     *                   grpc.ManagedChannelBuilderOption.&lt;methodName&gt;  where methodName is any method on
+     *                   grpc ManagedChannelBuilder.  If more than one argument to the method is needed then the
+     *                   parameters need to be supplied in an array of Objects.
      *                   </li>
      *                   </ul>
      * @return The orderer.
@@ -372,12 +389,12 @@ public class HFClient {
 
         }
 
-        //Run this on a system chain.
+        //Run this on a system channel.
 
         try {
-            Chain systemChain = Chain.newSystemChain(this);
+            Channel systemChannel = Channel.newSystemChannel(this);
 
-            return systemChain.queryChannels(peer);
+            return systemChannel.queryChannels(peer);
         } catch (InvalidArgumentException e) {
             throw e;  //dont log
         } catch (ProposalException e) {
@@ -408,15 +425,50 @@ public class HFClient {
         }
 
         try {
-            //Run this on a system chain.
+            //Run this on a system channel.
 
-            Chain systemChain = Chain.newSystemChain(this);
+            Channel systemChannel = Channel.newSystemChannel(this);
 
-            return systemChain.queryInstalledChaincodes(peer);
+            return systemChannel.queryInstalledChaincodes(peer);
         } catch (ProposalException e) {
             logger.error(format("queryInstalledChaincodes for peer %s failed." + e.getMessage(), peer.getName()), e);
             throw e;
         }
+
+    }
+
+    /**
+     * Get signature for channel configuration
+     *
+     * @param channelConfiguration
+     * @param signer
+     * @return byte array with the signature
+     * @throws InvalidArgumentException
+     */
+
+    public byte[] getChannelConfigurationSignature(ChannelConfiguration channelConfiguration, User signer) throws InvalidArgumentException {
+
+        Channel systemChannel = Channel.newSystemChannel(this);
+        return systemChannel.getChannelConfigurationSignature(channelConfiguration, signer);
+
+    }
+
+    /**
+     * Send install chaincode request proposal to peers.
+     *
+     * @param installProposalRequest
+     * @param peers                  Collection of peers to install on.
+     * @return
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+
+    public Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest, Collection<Peer> peers)
+            throws ProposalException, InvalidArgumentException {
+
+        Channel systemChannel = Channel.newSystemChannel(this);
+
+        return systemChannel.sendInstallProposal(installProposalRequest, peers);
 
     }
 

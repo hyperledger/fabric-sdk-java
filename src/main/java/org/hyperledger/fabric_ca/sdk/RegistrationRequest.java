@@ -20,11 +20,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import javax.json.Json;
+import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.json.JsonArrayBuilder;
 import javax.json.JsonWriter;
-
 
 /**
  * A registration request is information required to register a user, peer, or other
@@ -44,6 +43,8 @@ public class RegistrationRequest {
     private String affiliation;
     // Array of attribute names and values
     private Collection<Attribute> attrs;
+
+    private String caName;
 
     // Constructor
     public RegistrationRequest(String id, String affiliation) throws Exception {
@@ -107,6 +108,10 @@ public class RegistrationRequest {
         this.attrs.add(attr);
     }
 
+    void setCAName(String caName) {
+        this.caName = caName;
+    }
+
     // Convert the registration request to a JSON string
     public String toJson() {
         StringWriter stringWriter = new StringWriter();
@@ -119,16 +124,19 @@ public class RegistrationRequest {
     // Convert the registration request to a JSON object
     public JsonObject toJsonObject() {
         JsonObjectBuilder ob = Json.createObjectBuilder();
-        ob.add("id", this.enrollmentID);
-        ob.add("type",  this.type);
+        ob.add("id", enrollmentID);
+        ob.add("type", type);
         if (this.secret != null) {
-            ob.add("secret",  this.secret);
+            ob.add("secret", secret);
         }
-        ob.add("max_enrollments",  this.maxEnrollments);
-        ob.add("affiliation",  this.affiliation);
+        ob.add("max_enrollments", maxEnrollments);
+        ob.add("affiliation", affiliation);
         JsonArrayBuilder ab = Json.createArrayBuilder();
-        for (Attribute attr: this.attrs) {
+        for (Attribute attr : attrs) {
             ab.add(attr.toJsonObject());
+        }
+        if (caName != null) {
+            ob.add(HFCAClient.FABRIC_CA_REQPROP, caName);
         }
         ob.add("attrs", ab.build());
         return ob.build();

@@ -19,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
@@ -100,12 +101,11 @@ import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.encoders.Hex;
 import org.bouncycastle.util.io.pem.PemObject;
-
+import org.bouncycastle.util.io.pem.PemReader;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Config;
-
-import io.netty.util.internal.StringUtil;
+import org.hyperledger.fabric.sdk.helper.Utils;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -141,7 +141,7 @@ public class CryptoPrimitives implements CryptoSuite {
      * @param sigAlg the name of the signature algorithm. See the list of valid names in the JCA Standard Algorithm Name documentation
      */
     public void setSignatureAlgorithm(String sigAlg) {
-        this.DEFAULT_SIGNATURE_ALGORITHM = sigAlg ;
+        this.DEFAULT_SIGNATURE_ALGORITHM = sigAlg;
     }
 
     /**
@@ -157,8 +157,9 @@ public class CryptoPrimitives implements CryptoSuite {
     }
 
     public Certificate bytesToCertificate(byte[] certBytes) throws CryptoException {
-        if (certBytes == null || certBytes.length == 0)
+        if (certBytes == null || certBytes.length == 0) {
             throw new CryptoException("bytesToCertificate: input null or zero length");
+        }
 
         X509Certificate certificate;
         try {
@@ -178,8 +179,8 @@ public class CryptoPrimitives implements CryptoSuite {
     /**
      * Verify a signature.
      *
-     * @param plainText original text.
-     * @param signature signature value as a byte array.
+     * @param plainText      original text.
+     * @param signature      signature value as a byte array.
      * @param pemCertificate the X509 certificate to be used for verification
      * @return
      * @throws CryptoException
@@ -188,12 +189,17 @@ public class CryptoPrimitives implements CryptoSuite {
     public boolean verify(byte[] plainText, byte[] signature, byte[] pemCertificate) throws CryptoException {
         boolean isVerified = false;
 
-        if (plainText == null || signature == null || pemCertificate == null)
+        if (plainText == null || signature == null || pemCertificate == null) {
             return false;
+        }
 
-        logger.trace("plaintext in hex: " + DatatypeConverter.printHexBinary(plainText));
-        logger.trace("signature in hex: " + DatatypeConverter.printHexBinary(signature));
-        logger.trace("PEM cert in hex: " + DatatypeConverter.printHexBinary(pemCertificate));
+        if (config.extraLogLevel(10)) {
+
+            logger.trace("plaintext in hex: " + DatatypeConverter.printHexBinary(plainText));
+            logger.trace("signature in hex: " + DatatypeConverter.printHexBinary(signature));
+            logger.trace("PEM cert in hex: " + DatatypeConverter.printHexBinary(pemCertificate));
+
+        }
 
         try {
             BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(pemCertificate));
@@ -201,12 +207,12 @@ public class CryptoPrimitives implements CryptoSuite {
             X509Certificate certificate = (X509Certificate) certFactory.generateCertificate(pem);
             isVerified = validateCertificate(certificate);
             if (isVerified) { // only proceed if cert is trusted
-                String signatureAlgorithm = certificate.getSigAlgName() ;
+                String signatureAlgorithm = certificate.getSigAlgName();
                 Signature sig = Signature.getInstance(signatureAlgorithm);
                 sig.initVerify(certificate);
                 sig.update(plainText);
                 isVerified = sig.verify(signature);
-                if (! isVerified) {
+                if (!isVerified) {
                     // TODO currently fabric is trying to decide if the signature algorithm should
                     // be passed along inside the certificate or configured manually or included in
                     // the message itself. fabric-ca is also about to align its defaults with fabric.
@@ -220,13 +226,13 @@ public class CryptoPrimitives implements CryptoSuite {
             }
         } catch (InvalidKeyException | CertificateException e) {
             CryptoException ex = new CryptoException("Cannot verify signature. Error is: "
-                            + e.getMessage() + "\r\nCertificate: "
-                            + DatatypeConverter.printHexBinary(pemCertificate),e);
+                    + e.getMessage() + "\r\nCertificate: "
+                    + DatatypeConverter.printHexBinary(pemCertificate), e);
             logger.error(ex.getMessage(), ex);
             throw ex;
         } catch (NoSuchAlgorithmException | SignatureException e) {
-            CryptoException ex = new CryptoException("Cannot verify. Signature algorithm is invalid. Error is: " + e.getMessage(),e);
-            logger.error(ex.getMessage(), ex) ;
+            CryptoException ex = new CryptoException("Cannot verify. Signature algorithm is invalid. Error is: " + e.getMessage(), e);
+            logger.error(ex.getMessage(), ex);
             throw ex;
         }
 
@@ -249,14 +255,14 @@ public class CryptoPrimitives implements CryptoSuite {
      * setTrustStore uses the given KeyStore object as the container for trusted
      * certificates
      *
-     * @param keyStore
-     *            the KeyStore which will be used to hold trusted certificates
+     * @param keyStore the KeyStore which will be used to hold trusted certificates
      * @throws InvalidArgumentException
      */
     public void setTrustStore(KeyStore keyStore) throws InvalidArgumentException {
 
-        if (keyStore == null)
+        if (keyStore == null) {
             throw new InvalidArgumentException("Need to specify a java.security.KeyStore input parameter");
+        }
 
         trustStore = keyStore;
     }
@@ -270,28 +276,31 @@ public class CryptoPrimitives implements CryptoSuite {
      * @see KeyStore
      */
     public KeyStore getTrustStore() throws CryptoException {
-        if (trustStore == null)
+        if (trustStore == null) {
             createTrustStore();
+        }
         return trustStore;
     }
 
     /**
      * addCACertificateToTrustStore adds a CA cert to the set of certificates used for signature validation
+     *
      * @param caCertPem an X.509 certificate in PEM format
-     * @param alias an alias associated with the certificate. Used as shorthand for the certificate during crypto operations
+     * @param alias     an alias associated with the certificate. Used as shorthand for the certificate during crypto operations
      * @throws CryptoException
      * @throws InvalidArgumentException
      */
     public void addCACertificateToTrustStore(File caCertPem, String alias) throws CryptoException, InvalidArgumentException {
 
-        if (alias==null || alias.isEmpty())
+        if (alias==null || alias.isEmpty()) {
             throw new InvalidArgumentException("You must assign an alias to a certificate when adding to the trust store.");
+        }
 
         BufferedInputStream bis;
         try {
 
             bis = new BufferedInputStream(new ByteArrayInputStream(FileUtils.readFileToByteArray(caCertPem)));
-            Certificate caCert = cf.generateCertificate(bis) ;
+            Certificate caCert = cf.generateCertificate(bis);
             this.addCACertificateToTrustStore(caCert, alias);
         } catch (CertificateException | IOException e) {
             throw new CryptoException("Unable to add CA certificate to trust store. Error: " + e.getMessage(), e);
@@ -300,23 +309,28 @@ public class CryptoPrimitives implements CryptoSuite {
 
     /**
      * addCACertificateToTrustStore adds a CA cert to the set of certificates used for signature validation
+     *
      * @param caCert an X.509 certificate
-     * @param alias an alias associated with the certificate. Used as shorthand for the certificate during crypto operations
+     * @param alias  an alias associated with the certificate. Used as shorthand for the certificate during crypto operations
      * @throws CryptoException
      * @throws InvalidArgumentException
      */
     public void addCACertificateToTrustStore(Certificate caCert, String alias) throws InvalidArgumentException, CryptoException {
 
-        if (alias==null || alias.isEmpty())
+        if (alias==null || alias.isEmpty()) {
             throw new InvalidArgumentException("You must assign an alias to a certificate when adding to the trust store.");
-        if (caCert == null)
+        }
+        if (caCert == null) {
             throw new InvalidArgumentException("Certificate cannot be null.");
+        }
 
         try {
-            logger.trace("Adding cert to trust store. alias:  " + alias + "cert: " + caCert.toString());
+            if(config.extraLogLevel(10)) {
+                logger.trace("Adding cert to trust store. alias:  " + alias + "cert: " + caCert.toString());
+            }
             getTrustStore().setCertificateEntry(alias, caCert);
         } catch (KeyStoreException e) {
-            String emsg = "Unable to add CA certificate to trust store. Error: "+ e.getMessage();
+            String emsg = "Unable to add CA certificate to trust store. Error: " + e.getMessage();
             logger.error(emsg, e);
             throw new CryptoException(emsg, e);
         }
@@ -324,8 +338,9 @@ public class CryptoPrimitives implements CryptoSuite {
 
     @Override
     public void loadCACertificates(Collection<Certificate> CACertificates) throws CryptoException {
-        if (CACertificates == null || CACertificates.size() == 0)
+        if (CACertificates == null || CACertificates.size() == 0) {
             throw new CryptoException("Unable to load CA certificates. List is empty");
+        }
 
         try {
             for (Certificate cert : CACertificates) {
@@ -343,8 +358,9 @@ public class CryptoPrimitives implements CryptoSuite {
      */
     @Override
     public void loadCACertificatesAsBytes(Collection<byte[]> CACertificatesBytes) throws CryptoException {
-        if (CACertificatesBytes == null || CACertificatesBytes.size() == 0)
+        if (CACertificatesBytes == null || CACertificatesBytes.size() == 0) {
             throw new CryptoException("List of CA certificates is empty. Nothing to load.");
+        }
         ArrayList<Certificate> certList = new ArrayList<>();
         for (byte[] certBytes : CACertificatesBytes) {
             logger.trace("certificate to load:\n" + new String(certBytes));
@@ -359,7 +375,7 @@ public class CryptoPrimitives implements CryptoSuite {
      */
     private void loadCACerts() {
         File certsFolder = new File("cacerts").getAbsoluteFile();
-        Collection<File> certFiles = FileUtils.listFiles(certsFolder, new String[]{"pem"}, false);
+        Collection<File> certFiles = FileUtils.listFiles(certsFolder, new String[] {"pem"}, false);
         for (File certFile : certFiles) {
             try {
                 addCACertificateToTrustStore(certFile, certFile.getName());
@@ -376,14 +392,14 @@ public class CryptoPrimitives implements CryptoSuite {
      * checks if the certificate is signed by one of the trusted certs in the
      * trust store.
      *
-     * @param certPEM
-     *            the certificate in PEM format
+     * @param certPEM the certificate in PEM format
      * @return true if the certificate is trusted
      */
     public boolean validateCertificate(byte[] certPEM) {
 
-        if (certPEM == null)
+        if (certPEM == null) {
             return false;
+        }
 
         try {
             BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(certPEM));
@@ -392,7 +408,7 @@ public class CryptoPrimitives implements CryptoSuite {
             return validateCertificate(certificate);
         } catch (CertificateException e) {
             logger.error("Cannot validate certificate. Error is: " + e.getMessage() + "\r\nCertificate (PEM, hex): "
-                            + DatatypeConverter.printHexBinary(certPEM));
+                    + DatatypeConverter.printHexBinary(certPEM));
             return false;
         }
     }
@@ -400,13 +416,15 @@ public class CryptoPrimitives implements CryptoSuite {
     public boolean validateCertificate(Certificate cert) {
         boolean isValidated = false;
 
-        if (cert == null)
+        if (cert == null) {
             return isValidated;
+        }
 
         try {
             KeyStore keyStore = getTrustStore();
-            if (keyStore == null)
+            if (keyStore == null) {
                 throw new CryptoException("Crypto does not have a trust store. No certificate can be validated", null);
+            }
 
             PKIXParameters parms = new PKIXParameters(keyStore);
             parms.setRevocationEnabled(false);
@@ -421,9 +439,9 @@ public class CryptoPrimitives implements CryptoSuite {
             certValidator.validate(certPath, parms);
             isValidated = true;
         } catch (KeyStoreException | InvalidAlgorithmParameterException | NoSuchAlgorithmException
-                        | CertificateException | CertPathValidatorException | CryptoException e) {
+                | CertificateException | CertPathValidatorException | CryptoException e) {
             logger.error("Cannot validate certificate. Error is: " + e.getMessage() + "\r\nCertificate"
-                            + cert.toString());
+                    + cert.toString());
             isValidated = false;
         }
 
@@ -436,14 +454,14 @@ public class CryptoPrimitives implements CryptoSuite {
 
     /**
      * Security Level determines the elliptic curve used in key generation
-     * @param securityLevel  currently 256 or 384
+     *
+     * @param securityLevel currently 256 or 384
      * @throws InvalidArgumentException
      */
     public void setSecurityLevel(int securityLevel) throws InvalidArgumentException {
         if (securityLevel != 256 && securityLevel != 384) {
             throw new InvalidArgumentException("Illegal level: " + securityLevel + " must be either 256 or 384");
         }
-
 
         // TODO need to get set of supported curves from #fabric-crypto team
         if (this.securityLevel == 256) {
@@ -458,10 +476,10 @@ public class CryptoPrimitives implements CryptoSuite {
     }
 
     public void setHashAlgorithm(String algorithm) throws InvalidArgumentException {
-        if (StringUtil.isNullOrEmpty(algorithm)
-                        || !(algorithm.equalsIgnoreCase("SHA2") || algorithm.equalsIgnoreCase("SHA3"))) {
+        if (Utils.isNullOrEmpty(algorithm)
+                || !(algorithm.equalsIgnoreCase("SHA2") || algorithm.equalsIgnoreCase("SHA3"))) {
             throw new InvalidArgumentException("Illegal Hash function family: "
-                        + this.hashAlgorithm + " - must be either SHA2 or SHA3");
+                    + this.hashAlgorithm + " - must be either SHA2 or SHA3");
         }
 
         this.hashAlgorithm = algorithm;
@@ -498,8 +516,7 @@ public class CryptoPrimitives implements CryptoSuite {
             KeyFactory asymmetricKeyFactory = KeyFactory.getInstance(ASYMMETRIC_KEY_TYPE, SECURITY_PROVIDER);
             X509EncodedKeySpec pubX509 = new X509EncodedKeySpec(Hex.decode(data));
             return asymmetricKeyFactory.generatePublic(pubX509);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             String emsg = "Failed to decode public key: " + data + ". error : " + e.getMessage();
             logger.error(emsg);
             throw new CryptoException(emsg, e);
@@ -521,7 +538,7 @@ public class CryptoPrimitives implements CryptoSuite {
             KeyFactory asymmetricKeyFactory = KeyFactory.getInstance(ASYMMETRIC_KEY_TYPE, SECURITY_PROVIDER);
 
             PublicKey ephemeralPublicKey = asymmetricKeyFactory.generatePublic(new ECPublicKeySpec(
-                            asymmetricKeyParams.getCurve().decodePoint(ephemeralPublicKeyBytes), asymmetricKeyParams));
+                    asymmetricKeyParams.getCurve().decodePoint(ephemeralPublicKeyBytes), asymmetricKeyParams));
 
             // Deriving shared secret.
             KeyAgreement keyAgreement = KeyAgreement.getInstance(KEY_AGREEMENT_ALGORITHM, SECURITY_PROVIDER);
@@ -559,7 +576,7 @@ public class CryptoPrimitives implements CryptoSuite {
     }
 
     private byte[] calculateMac(byte[] macKey, byte[] encryptedMessage)
-                    throws InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException {
+            throws InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException {
         HMac hmac = new HMac(getHashDigest());
         hmac.init(new KeyParameter(macKey));
         hmac.update(encryptedMessage, 0, encryptedMessage.length);
@@ -569,8 +586,8 @@ public class CryptoPrimitives implements CryptoSuite {
     }
 
     private byte[] aesDecrypt(byte[] encryptionKey, byte[] iv, byte[] encryptedMessage)
-                    throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
-                    InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
+            throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
+            InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
 
         Cipher cipher = Cipher.getInstance(SYMMETRIC_ALGORITHM);
         cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(encryptionKey, SYMMETRIC_KEY_TYPE), new IvParameterSpec(iv));
@@ -588,13 +605,13 @@ public class CryptoPrimitives implements CryptoSuite {
             byte[] encoded = hash(data);
             X9ECParameters params = SECNamedCurves.getByName(this.curveName);
             ECDomainParameters ecParams = new ECDomainParameters(params.getCurve(), params.getG(), params.getN(),
-                            params.getH());
+                    params.getH());
 
             ECDSASigner signer = new ECDSASigner(new HMacDSAKCalculator(new SHA512Digest()));
             ECPrivateKeyParameters privKey = new ECPrivateKeyParameters(((ECPrivateKey) privateKey).getS(), ecParams);
             signer.init(true, privKey);
             BigInteger[] sigs = signer.generateSignature(encoded);
-            return new byte[][] { sigs[0].toString().getBytes(UTF_8), sigs[1].toString().getBytes(UTF_8) };
+            return new byte[][] {sigs[0].toString().getBytes(UTF_8), sigs[1].toString().getBytes(UTF_8)};
         } catch (Exception e) {
             throw new CryptoException("Could not sign the message using private key", e);
         }
@@ -605,7 +622,7 @@ public class CryptoPrimitives implements CryptoSuite {
      * ecdsaSignToBytes - sign to bytes
      *
      * @param privateKey private key.
-     * @param data data to sign
+     * @param data       data to sign
      * @return
      * @throws CryptoException
      */
@@ -621,7 +638,7 @@ public class CryptoPrimitives implements CryptoSuite {
             BigInteger curve_N = params.getN();
 
             ECDomainParameters ecParams = new ECDomainParameters(params.getCurve(), params.getG(), curve_N,
-                            params.getH());
+                    params.getH());
 
             ECDSASigner signer = new ECDSASigner();
 
@@ -692,16 +709,16 @@ public class CryptoPrimitives implements CryptoSuite {
      * generateCertificationRequest
      *
      * @param subject The subject to be added to the certificate
-     * @param pair Public private key pair
+     * @param pair    Public private key pair
      * @return PKCS10CertificationRequest Certificate Signing Request.
      * @throws OperatorCreationException
      */
 
     public PKCS10CertificationRequest generateCertificationRequest(String subject, KeyPair pair)
-                    throws OperatorCreationException {
+            throws OperatorCreationException {
 
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                        new X500Principal("CN=" + subject), pair.getPublic());
+                new X500Principal("CN=" + subject), pair.getPublic());
 
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withECDSA");
 
@@ -770,7 +787,7 @@ public class CryptoPrimitives implements CryptoSuite {
     /**
      * shake256 do shake256 hashing
      *
-     * @param in byte array to be hashed.
+     * @param in        byte array to be hashed.
      * @param bitLength of the result.
      * @return
      */
@@ -797,6 +814,7 @@ public class CryptoPrimitives implements CryptoSuite {
 
     /**
      * Resets curve name, hash algorithm and cert factory. Call this method when a config value changes
+     *
      * @throws CryptoException
      * @throws InvalidArgumentException
      */
@@ -821,13 +839,13 @@ public class CryptoPrimitives implements CryptoSuite {
     @Override
     public void setProperties(Properties properties) throws CryptoException, InvalidArgumentException {
         if (properties != null) {
-        hashAlgorithm = Optional.ofNullable(properties.getProperty(Config.HASH_ALGORITHM)).orElse(hashAlgorithm);
-        String secLevel = Optional.ofNullable(properties.getProperty(Config.SECURITY_LEVEL)).orElse(Integer.toString(securityLevel));
-        securityLevel = Integer.parseInt(secLevel);
-        CERTIFICATE_FORMAT = Optional.ofNullable(properties.getProperty(Config.CERTIFICATE_FORMAT)).orElse(CERTIFICATE_FORMAT);
-        DEFAULT_SIGNATURE_ALGORITHM = Optional.ofNullable(properties.getProperty(Config.SIGNATURE_ALGORITHM)).orElse(DEFAULT_SIGNATURE_ALGORITHM);
+            hashAlgorithm = Optional.ofNullable(properties.getProperty(Config.HASH_ALGORITHM)).orElse(hashAlgorithm);
+            String secLevel = Optional.ofNullable(properties.getProperty(Config.SECURITY_LEVEL)).orElse(Integer.toString(securityLevel));
+            securityLevel = Integer.parseInt(secLevel);
+            CERTIFICATE_FORMAT = Optional.ofNullable(properties.getProperty(Config.CERTIFICATE_FORMAT)).orElse(CERTIFICATE_FORMAT);
+            DEFAULT_SIGNATURE_ALGORITHM = Optional.ofNullable(properties.getProperty(Config.SIGNATURE_ALGORITHM)).orElse(DEFAULT_SIGNATURE_ALGORITHM);
 
-        resetConfiguration() ;
+            resetConfiguration();
         }
     }
 
@@ -841,7 +859,21 @@ public class CryptoPrimitives implements CryptoSuite {
         properties.setProperty(Config.SECURITY_LEVEL, Integer.toString(securityLevel));
         properties.setProperty(Config.CERTIFICATE_FORMAT, CERTIFICATE_FORMAT);
         properties.setProperty(Config.SIGNATURE_ALGORITHM, DEFAULT_SIGNATURE_ALGORITHM);
-        return properties ;
+        return properties;
+    }
+
+    public byte[] certificateToDER(String certricatePEM){
+
+        final PemReader pemReader = new PemReader(new StringReader(certricatePEM));
+        try {
+            final PemObject pemObject = pemReader.readPemObject();
+            return pemObject.getContent();
+
+        } catch (IOException e) {
+           // best attempt
+        }
+        return  null;
+
     }
 
 }

@@ -38,13 +38,13 @@ import static org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse.TypeCase.
 class OrdererClient {
     boolean shutdown = false;
     private static final Log logger = LogFactory.getLog(OrdererClient.class);
-    private ManagedChannel channel;
+    private ManagedChannel managedChannel;
 
     /**
-     * Construct client for accessing Orderer server using the existing channel.
+     * Construct client for accessing Orderer server using the existing managedChannel.
      */
     OrdererClient(ManagedChannelBuilder<?> channelBuilder) {
-        channel = channelBuilder.build();
+        managedChannel = channelBuilder.build();
     }
 
     synchronized void shutdown(boolean force) {
@@ -53,8 +53,8 @@ class OrdererClient {
             return;
         }
         shutdown = true;
-        ManagedChannel lchannel = channel;
-        channel = null;
+        ManagedChannel lchannel = managedChannel;
+        managedChannel = null;
         if (lchannel == null) {
             return;
         }
@@ -86,8 +86,8 @@ class OrdererClient {
         }
 
         final CountDownLatch finishLatch = new CountDownLatch(1);
-        AtomicBroadcastGrpc.AtomicBroadcastStub broadcast = AtomicBroadcastGrpc.newStub(channel);
-        AtomicBroadcastGrpc.AtomicBroadcastBlockingStub bsc = AtomicBroadcastGrpc.newBlockingStub(channel);
+        AtomicBroadcastGrpc.AtomicBroadcastStub broadcast = AtomicBroadcastGrpc.newStub(managedChannel);
+        AtomicBroadcastGrpc.AtomicBroadcastBlockingStub bsc = AtomicBroadcastGrpc.newBlockingStub(managedChannel);
         bsc.withDeadlineAfter(2, TimeUnit.MINUTES);
 
         final Ab.BroadcastResponse[] ret = new Ab.BroadcastResponse[1];
@@ -122,7 +122,11 @@ class OrdererClient {
         //nso.onCompleted();
 
         try {
-            finishLatch.await(2, TimeUnit.MINUTES);
+            if(!finishLatch.await(2, TimeUnit.MINUTES)){
+                TransactionException ste = new TransactionException("Send transactions failed. Reason:  timeout");
+                logger.error("sendTransaction error " + ste.getMessage(), ste);
+                throw ste;
+            }
             if (throwable[0] != null) {
                 //get full stack trace
                 TransactionException ste = new TransactionException("Send transactions failed. Reason: " + throwable[0].getMessage(), throwable[0]);
@@ -146,8 +150,8 @@ class OrdererClient {
         }
 
         final CountDownLatch finishLatch = new CountDownLatch(1);
-        AtomicBroadcastGrpc.AtomicBroadcastStub broadcast = AtomicBroadcastGrpc.newStub(channel);
-        AtomicBroadcastGrpc.AtomicBroadcastBlockingStub bsc = AtomicBroadcastGrpc.newBlockingStub(channel);
+        AtomicBroadcastGrpc.AtomicBroadcastStub broadcast = AtomicBroadcastGrpc.newStub(managedChannel);
+        AtomicBroadcastGrpc.AtomicBroadcastBlockingStub bsc = AtomicBroadcastGrpc.newBlockingStub(managedChannel);
         bsc.withDeadlineAfter(2, TimeUnit.MINUTES);
 
         // final DeliverResponse[] ret = new DeliverResponse[1];
@@ -162,7 +166,7 @@ class OrdererClient {
             public void onNext(DeliverResponse resp) {
 
                 // logger.info("Got Broadcast response: " + resp);
-                logger.debug("resp status value: " + resp.getStatusValue() + ", resp: " + resp.getStatus() + ", type case" + resp.getTypeCase());
+                logger.debug("resp status value: " + resp.getStatusValue() + ", resp: " + resp.getStatus() + ", type case: " + resp.getTypeCase());
 
                 if (done) {
                     return;
@@ -201,8 +205,12 @@ class OrdererClient {
         //nso.onCompleted();
 
         try {
-            boolean res = finishLatch.await(2, TimeUnit.MINUTES);
-            logger.trace("Done waiting for reply! Got:" + retList);
+            if(!finishLatch.await(2, TimeUnit.MINUTES)){
+                TransactionException ex = new TransactionException("sendDeliver time exceeded for orderer");
+                logger.error(ex.getMessage(),ex);
+                throw  ex;
+            }
+            logger.trace("Done waiting for reply!");
 
         } catch (InterruptedException e) {
             logger.error(e);
@@ -216,5 +224,10 @@ class OrdererClient {
         }
 
         return retList.toArray(new DeliverResponse[retList.size()]);
+    }
+
+    boolean isChannelActive(){
+        ManagedChannel lchannel = managedChannel;
+        return lchannel != null && !lchannel.isShutdown() && ! lchannel.isTerminated();
     }
 }

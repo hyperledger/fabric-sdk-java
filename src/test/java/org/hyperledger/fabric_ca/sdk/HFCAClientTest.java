@@ -27,7 +27,7 @@ public class HFCAClientTest {
         public void testCOPCreation() {
 
             try {
-                HFCAClient memberServices = new HFCAClient("http://localhost:99", null);
+                HFCAClient memberServices = HFCAClient.createNewInstance("http://localhost:99", null);
                 Assert.assertNotNull(memberServices);
                 Assert.assertSame(HFCAClient.class, memberServices.getClass());
 
@@ -41,7 +41,7 @@ public class HFCAClientTest {
         public void testNullURL() {
 
             try {
-                new HFCAClient(null, null);
+                HFCAClient.createNewInstance(null, null);
                 Assert.fail("Expected exception");
 
             } catch (Exception e) {
@@ -54,7 +54,7 @@ public class HFCAClientTest {
         public void emptyURL() {
 
             try {
-                new HFCAClient("", null);
+                HFCAClient.createNewInstance("", null);
                 Assert.fail("Expected exception");
 
             } catch (Exception e) {
@@ -67,7 +67,7 @@ public class HFCAClientTest {
         public void testBadProto() {
 
             try {
-                new HFCAClient("file://localhost", null);
+                HFCAClient.createNewInstance("file://localhost", null);
                 Assert.fail("Expected exception");
 
             } catch (Exception e) {
@@ -80,7 +80,7 @@ public class HFCAClientTest {
         public void testBadURLPath() {
 
             try {
-                new HFCAClient("http://localhost/bad", null);
+                HFCAClient.createNewInstance("http://localhost/bad", null);
                 Assert.fail("Expected exception");
 
             } catch (Exception e) {
@@ -93,7 +93,7 @@ public class HFCAClientTest {
         public void testBadURLQuery() {
 
             try {
-                new HFCAClient("http://localhost?bad", null);
+                HFCAClient.createNewInstance("http://localhost?bad", null);
                 Assert.fail("Expected exception");
 
             } catch (Exception e) {
@@ -101,54 +101,5 @@ public class HFCAClientTest {
 
             }
         }
-
-
-        //    @Test
-        //    public void testBadEnrollUser() {
-        //
-        //        try {
-        //            HFCAClient memberServices = new HFCAClient("http://localhost:99", null);
-        //            memberServices.enroll(null);
-        //            Assert.fail("Expected exception");
-        //
-        //        } catch (Exception e) {
-        //            Assert.assertSame(e.getClass(), RuntimeException.class);
-        //
-        //        }
-        //    }
-        //
-        //    @Test
-        //    public void testBadEnrollBadUser() {
-        //
-        //        try {
-        //            HFCAClient memberServices = new HFCAClient("http://localhost:99", null);
-        //            EnrollmentRequest req = new EnrollmentRequest();
-        //            req.setEnrollmentID("");
-        //            req.setEnrollmentSecret("adminpw");
-        //            memberServices.enroll(null);
-        //            Assert.fail("Expected exception");
-        //
-        //        } catch (Exception e) {
-        //            Assert.assertSame(e.getClass(), RuntimeException.class);
-        //
-        //        }
-        //    }
-        //
-        //    @Test
-        //    public void testBadEnrollBadSecret() {
-        //
-        //        try {
-        //            HFCAClient memberServices = new HFCAClient("http://localhost:99", null);
-        //            EnrollmentRequest req = new EnrollmentRequest();
-        //            req.setEnrollmentID("user");
-        //            req.setEnrollmentSecret("");
-        //            memberServices.enroll(null);
-        //            Assert.fail("Expected exception");
-        //
-        //        } catch (Exception e) {
-        //            Assert.assertSame(e.getClass(), RuntimeException.class);
-        //
-        //        }
-        //    }
     }
 }

@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.security.PrivateKey;
 import java.util.List;
 import java.util.Set;
 
@@ -32,8 +31,6 @@ import org.hyperledger.fabric.sdk.User;
 public class SampleUser implements User, Serializable {
     private static final long serialVersionUID = 8077132186383604355L;
 
-
-    //   private transient Chain chain;
     private String name;
     private Set<String> roles;
     private String account;
@@ -186,36 +183,6 @@ public class SampleUser implements User, Serializable {
         }
     }
 
-    /**
-     * Make sure we're not dependent of HFCAEnrollment class.
-     */
-    class AfakeEnrollmentImplementation implements Enrollment{
-
-        private final String publicKey;
-        private final PrivateKey privateKey;
-        private final String certificate;
-
-        public AfakeEnrollmentImplementation(String publicKey, PrivateKey privateKey, String certificate ) {
-            this.publicKey = publicKey;
-            this.privateKey = privateKey;
-            this.certificate = certificate;
-        }
-
-        @Override
-        public PrivateKey getKey() {
-            return privateKey;
-        }
-
-        @Override
-        public String getCert() {
-            return certificate;
-        }
-
-        @Override
-        public String getPublicKey() {
-            return publicKey;
-        }
-    }
 
     /**
      * Restore the state of this user from the key value store (if found).  If not found, do nothing.
@@ -237,11 +204,11 @@ public class SampleUser implements User, Serializable {
                     this.affiliation = state.affiliation;
                     this.organization = state.organization;
                     this.enrollmentSecret = state.enrollmentSecret;
-                    this.enrollment = new AfakeEnrollmentImplementation(state.enrollment.getPublicKey(), state.enrollment.getKey(), state.enrollment.getCert());
+                    this.enrollment = state.enrollment;
                     this.mspID = state.mspID;
                     return this;
                 }
-            } catch (IOException | ClassNotFoundException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(String.format("Could not restore state of member %s", this.name), e);
             }
         }

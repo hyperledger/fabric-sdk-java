@@ -46,6 +46,10 @@ public class SampleOrg {
     private String caLocation;
     private Properties caProperties= null;
 
+    private SampleUser peerAdmin;
+
+
+    private String domainName;
 
     public SampleOrg(String name, String mspid) {
         this.name = name;
@@ -162,5 +166,22 @@ public class SampleOrg {
 
     public Properties getCAProperties() {
         return caProperties;
+    }
+
+
+    public SampleUser getPeerAdmin() {
+        return peerAdmin;
+    }
+
+    public void setPeerAdmin(SampleUser peerAdmin) {
+        this.peerAdmin = peerAdmin;
+    }
+
+    public void setDomainName(String domainName) {
+        this.domainName = domainName;
+    }
+
+    public String getDomainName() {
+        return domainName;
     }
 }
