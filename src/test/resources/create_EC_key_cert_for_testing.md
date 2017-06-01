@@ -45,3 +45,6 @@ For elliptic curve, I use the curve **secp384r1**. Note that the Go tls package 
   - openssl verify -CAfile _ca-cert-file_ _cert-file_
 
 - [keystore explorer](http://www.keystore-explorer.org/) can read keystores and truststores
+
+<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
+s
