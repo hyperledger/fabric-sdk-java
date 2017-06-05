@@ -100,7 +100,7 @@ public class RegistrationRequest {
         this.affiliation = affiliation;
     }
 
-    public Collection<Attribute> getAttrbutes() {
+    public Collection<Attribute> getAttributes() {
         return attrs;
     }
 
