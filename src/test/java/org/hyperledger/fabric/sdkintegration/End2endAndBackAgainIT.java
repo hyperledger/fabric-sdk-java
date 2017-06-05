@@ -41,6 +41,7 @@ import org.hyperledger.fabric.sdk.SDKUtils;
 import org.hyperledger.fabric.sdk.TestConfigHelper;
 import org.hyperledger.fabric.sdk.TransactionProposalRequest;
 import org.hyperledger.fabric.sdk.UpgradeProposalRequest;
+import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
@@ -183,6 +184,9 @@ public class End2endAndBackAgainIT {
         final String channelName = channel.getName();
         try {
 
+//            final boolean changeContext = false; // BAR_CHANNEL_NAME.equals(channel.getName()) ? true : false;
+            final boolean changeContext = BAR_CHANNEL_NAME.equals(channel.getName()) ? true : false;
+
             out("Running Channel %s with a delta %d", channelName, delta);
             channel.setTransactionWaitTime(testConfig.getTransactionWaitTime());
             channel.setDeployWaitTime(testConfig.getDeployWaitTime());
@@ -192,9 +196,15 @@ public class End2endAndBackAgainIT {
             //
             queryChaincodeForExpectedValue(client, channel, "" + (300 + delta), chaincodeID);
 
+            //Set user context on client but use explicit user contest on each call.
+            if (changeContext) {
+                client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME));
+
+            }
+
             // exercise v1 of chaincode
 
-            moveAmount(client, channel, chaincodeID, "25").thenApply(transactionEvent -> {
+            moveAmount(client, channel, chaincodeID, "25", changeContext ? sampleOrg.getPeerAdmin() : null).thenApply(transactionEvent -> {
                 try {
 
                     waitOnFabric();
@@ -213,7 +223,11 @@ public class End2endAndBackAgainIT {
                     installProposalRequest.setChaincodeVersion(CHAIN_CODE_VERSION_11);
                     installProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
 
-                    out("Sending install proposal");
+                    if (changeContext) {
+                        installProposalRequest.setUserContext(sampleOrg.getPeerAdmin());
+                    }
+
+                    out("Sending install proposal for channel: %s", channel.getName());
 
                     ////////////////////////////
                     // only a client from the same org as the peer can issue an install request
@@ -236,13 +250,6 @@ public class End2endAndBackAgainIT {
                         }
                     }
 
-                    // Check that all the proposals are consistent with each other. We should have only one set
-                    // where all the proposals above are consistent.
-                    Collection<Set<ProposalResponse>> proposalConsistencySets = SDKUtils.getProposalConsistencySets(responses);
-                    if (proposalConsistencySets.size() != 1) {
-                        fail(format("Expected only one set of consistent install proposal responses but got %d", proposalConsistencySets.size()));
-                    }
-
                     out("Received %d install proposal responses. Successful+verified: %d . Failed: %d", numInstallProposal, successful.size(), failed.size());
 
                     if (failed.size() > 0) {
@@ -250,8 +257,19 @@ public class End2endAndBackAgainIT {
                         fail("Not enough endorsers for install :" + successful.size() + ".  " + first.getMessage());
                     }
 
+                    // Check that all the proposals are consistent with each other. We should have only one set
+                    // where all the proposals above are consistent.
+                    Collection<Set<ProposalResponse>> proposalConsistencySets = SDKUtils.getProposalConsistencySets(responses);
+                    if (proposalConsistencySets.size() != 1) {
+                        fail(format("Expected only one set of consistent install proposal responses but got %d", proposalConsistencySets.size()));
+                    }
+
                     //////////////////
                     // Upgrade chaincode to ***double*** our move results.
+
+                    if (changeContext) {
+                        installProposalRequest.setUserContext(sampleOrg.getPeerAdmin());
+                    }
 
                     UpgradeProposalRequest upgradeProposalRequest = client.newUpgradeProposalRequest();
                     upgradeProposalRequest.setChaincodeID(chaincodeID_11);
@@ -265,6 +283,10 @@ public class End2endAndBackAgainIT {
                     chaincodeEndorsementPolicy.fromYamlFile(new File(TEST_FIXTURES_PATH + "/sdkintegration/chaincodeendorsementpolicy.yaml"));
 
                     upgradeProposalRequest.setChaincodeEndorsementPolicy(chaincodeEndorsementPolicy);
+
+                    if (changeContext) {
+                        upgradeProposalRequest.setUserContext(sampleOrg.getPeerAdmin());
+                    }
 
                     out("Sending upgrade proposal");
 
@@ -283,13 +305,6 @@ public class End2endAndBackAgainIT {
                         }
                     }
 
-                    // Check that all the proposals are consistent with each other. We should have only one set
-                    // where the proposals above are consistent.
-                    proposalConsistencySets = SDKUtils.getProposalConsistencySets(responses2);
-                    if (proposalConsistencySets.size() != 1) {
-                        fail(format("Expected only one set of consistent upgrade proposal responses but got %d", proposalConsistencySets.size()));
-                    }
-
                     out("Received %d upgrade proposal responses. Successful+verified: %d . Failed: %d", channel.getPeers().size(), successful.size(), failed.size());
 
                     if (failed.size() > 0) {
@@ -298,7 +313,21 @@ public class End2endAndBackAgainIT {
                                 + successful.size() + ".  " + first.getMessage());
                     }
 
-                    return channel.sendTransaction(successful).get(testConfig.getTransactionWaitTime(), TimeUnit.SECONDS);
+                    // Check that all the proposals are consistent with each other. We should have only one set
+                    // where the proposals above are consistent.
+                    proposalConsistencySets = SDKUtils.getProposalConsistencySets(responses2);
+                    if (proposalConsistencySets.size() != 1) {
+                        fail(format("Expected only one set of consistent upgrade proposal responses but got %d", proposalConsistencySets.size()));
+                    }
+
+                    if (changeContext) {
+                        return channel.sendTransaction(successful, sampleOrg.getPeerAdmin()).get(testConfig.getTransactionWaitTime(), TimeUnit.SECONDS);
+
+                    } else {
+
+                        return channel.sendTransaction(successful).get(testConfig.getTransactionWaitTime(), TimeUnit.SECONDS);
+
+                    }
 
                 } catch (CompletionException e) {
                     throw e;
@@ -313,6 +342,8 @@ public class End2endAndBackAgainIT {
                     out("Chaincode has been upgraded to version %s", CHAIN_CODE_VERSION_11);
 
                     //Check to see if peers have new chaincode and old chaincode is gone.
+
+                    client.setUserContext(sampleOrg.getPeerAdmin());
                     for (Peer peer : channel.getPeers()) {
 
                         if (!checkInstalledChaincode(client, peer, CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_VERSION_11)) {
@@ -337,12 +368,19 @@ public class End2endAndBackAgainIT {
 
                     client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME));
 
+//
+//                    if( !changeContext ){
+//
+//                        client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME));
+//                    }
+
                     ///Check if we still get the same value on the ledger
                     out("delta is %s", delta);
                     queryChaincodeForExpectedValue(client, channel, "" + (325 + delta), chaincodeID);
 
                     //Now lets run the new chaincode which should *double* the results we asked to move.
-                    return moveAmount(client, channel, chaincodeID_11, "50").get(testConfig.getTransactionWaitTime(), TimeUnit.SECONDS); // really move 100
+                    return moveAmount(client, channel, chaincodeID_11, "50",
+                            changeContext ? sampleOrg.getPeerAdmin() : null).get(testConfig.getTransactionWaitTime(), TimeUnit.SECONDS); // really move 100
                 } catch (CompletionException e) {
                     throw e;
                 } catch (Exception e) {
@@ -363,9 +401,13 @@ public class End2endAndBackAgainIT {
                 if (e instanceof TransactionEventException) {
                     BlockEvent.TransactionEvent te = ((TransactionEventException) e).getTransactionEvent();
                     if (te != null) {
+
+                        e.printStackTrace(System.err);
                         fail(format("Transaction with txid %s failed. %s", te.getTransactionID(), e.getMessage()));
                     }
                 }
+
+                e.printStackTrace(System.err);
                 fail(format("Test failed with %s exception %s", e.getClass().getName(), e.getMessage()));
 
                 return null;
@@ -377,7 +419,7 @@ public class End2endAndBackAgainIT {
 
     }
 
-    CompletableFuture<BlockEvent.TransactionEvent> moveAmount(HFClient client, Channel channel, ChaincodeID chaincodeID, String moveAmount) {
+    CompletableFuture<BlockEvent.TransactionEvent> moveAmount(HFClient client, Channel channel, ChaincodeID chaincodeID, String moveAmount, User user) {
 
         try {
             Collection<ProposalResponse> successful = new LinkedList<>();
@@ -390,6 +432,9 @@ public class End2endAndBackAgainIT {
             transactionProposalRequest.setFcn("invoke");
             transactionProposalRequest.setArgs(new String[] {"move", "a", "b", moveAmount});
             transactionProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
+            if (user != null) { // specific user use that
+                transactionProposalRequest.setUserContext(user);
+            }
             out("sending transaction proposal to all peers with arguments: move(a,b,%s)", moveAmount);
 
             Collection<ProposalResponse> invokePropResp = channel.sendTransactionProposal(transactionProposalRequest, channel.getPeers());
@@ -423,6 +468,9 @@ public class End2endAndBackAgainIT {
             ////////////////////////////
             // Send transaction to orderer
             out("Sending chaincode transaction(move a,b,%s) to orderer.", moveAmount);
+            if (user != null) {
+                return channel.sendTransaction(successful, user);
+            }
             return channel.sendTransaction(successful);
         } catch (Exception e) {
 
@@ -532,6 +580,8 @@ public class End2endAndBackAgainIT {
     }
 
     private static boolean checkInstalledChaincode(HFClient client, Peer peer, String cc_name, String cc_path, String cc_version) throws InvalidArgumentException, ProposalException {
+
+        out("Checking installed chaincode: %s, at version: %s, on peer: %s", cc_name, cc_version, peer.getName());
         List<ChaincodeInfo> ccinfoList = client.queryInstalledChaincodes(peer);
 
         boolean found = false;
@@ -549,6 +599,7 @@ public class End2endAndBackAgainIT {
     }
 
     private static boolean checkInstantiatedChaincode(Channel channel, Peer peer, String cc_name, String cc_path, String cc_version) throws InvalidArgumentException, ProposalException {
+        out("Checking instantiated chaincode: %s, at version: %s, on peer: %s", cc_name, cc_version, peer.getName());
         List<ChaincodeInfo> ccinfoList = channel.queryInstantiatedChaincodes(peer);
 
         boolean found = false;

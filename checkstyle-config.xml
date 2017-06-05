@@ -52,7 +52,9 @@
         <!-- See http://checkstyle.sf.net/config_naming.html -->
         <module name="ConstantName">
             <property name="format"
-                      value="^log(ger)?|[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$"/>
+                      value="^log(ger)?|config|[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$"/>
+            <property
+                    name="applyToPrivate" value="false"/>
         </module>
         <module name="LocalFinalVariableName"/>
         <module name="LocalVariableName"/>

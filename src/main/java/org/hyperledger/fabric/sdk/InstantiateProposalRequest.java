@@ -23,6 +23,10 @@ import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
  */
 public class InstantiateProposalRequest extends TransactionRequest {
 
+    InstantiateProposalRequest(User userContext) {
+        super(userContext);
+    }
+
     /**
      * Transient data added to the proposal that is not added to the ledger.
      *

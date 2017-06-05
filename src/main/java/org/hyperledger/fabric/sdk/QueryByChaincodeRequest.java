@@ -18,11 +18,12 @@ import java.util.Map;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 
 public class QueryByChaincodeRequest extends TransactionRequest {
-    private QueryByChaincodeRequest() {
+    private QueryByChaincodeRequest(User userContext) {
+        super(userContext);
     }
 
-    public static QueryByChaincodeRequest newInstance() {
-        return new QueryByChaincodeRequest();
+    public static QueryByChaincodeRequest newInstance(User userContext) {
+        return new QueryByChaincodeRequest(userContext);
     }
 
     /**

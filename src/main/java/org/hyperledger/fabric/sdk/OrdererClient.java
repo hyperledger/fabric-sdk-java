@@ -30,21 +30,28 @@ import org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse;
 import org.hyperledger.fabric.protos.orderer.AtomicBroadcastGrpc;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
 
+import static java.lang.String.format;
 import static org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse.TypeCase.STATUS;
 
 /**
  * Sample client code that makes gRPC calls to the server.
  */
 class OrdererClient {
+    private final String channelName;
     boolean shutdown = false;
     private static final Log logger = LogFactory.getLog(OrdererClient.class);
     private ManagedChannel managedChannel;
+    private final String name;
+    private final String url;
 
     /**
      * Construct client for accessing Orderer server using the existing managedChannel.
      */
-    OrdererClient(ManagedChannelBuilder<?> channelBuilder) {
+    OrdererClient(Orderer orderer, ManagedChannelBuilder<?> channelBuilder) {
         managedChannel = channelBuilder.build();
+        name = orderer.getName();
+        url = orderer.getUrl();
+        channelName = orderer.getChannel().getName();
     }
 
     synchronized void shutdown(boolean force) {
@@ -105,6 +112,10 @@ class OrdererClient {
 
             @Override
             public void onError(Throwable t) {
+                if (!shutdown) {
+                    logger.error(format("Received error on channel %s, orderer %s, url %s, %s",
+                            channelName, name, url, t.getMessage()), t);
+                }
                 throwable[0] = t;
                 finishLatch.countDown();
             }
@@ -122,7 +133,7 @@ class OrdererClient {
         //nso.onCompleted();
 
         try {
-            if(!finishLatch.await(2, TimeUnit.MINUTES)){
+            if (!finishLatch.await(2, TimeUnit.MINUTES)) {
                 TransactionException ste = new TransactionException("Send transactions failed. Reason:  timeout");
                 logger.error("sendTransaction error " + ste.getMessage(), ste);
                 throw ste;
@@ -187,7 +198,8 @@ class OrdererClient {
             @Override
             public void onError(Throwable t) {
                 if (!shutdown) {
-                    logger.error("broadcast error " + t);
+                    logger.error(format("Received error on channel %s, orderer %s, url %s, %s",
+                            channelName, name, url, t.getMessage()), t);
                 }
                 throwableList.add(t);
                 finishLatch.countDown();
@@ -205,10 +217,10 @@ class OrdererClient {
         //nso.onCompleted();
 
         try {
-            if(!finishLatch.await(2, TimeUnit.MINUTES)){
+            if (!finishLatch.await(2, TimeUnit.MINUTES)) {
                 TransactionException ex = new TransactionException("sendDeliver time exceeded for orderer");
-                logger.error(ex.getMessage(),ex);
-                throw  ex;
+                logger.error(ex.getMessage(), ex);
+                throw ex;
             }
             logger.trace("Done waiting for reply!");
 
@@ -226,8 +238,8 @@ class OrdererClient {
         return retList.toArray(new DeliverResponse[retList.size()]);
     }
 
-    boolean isChannelActive(){
+    boolean isChannelActive() {
         ManagedChannel lchannel = managedChannel;
-        return lchannel != null && !lchannel.isShutdown() && ! lchannel.isTerminated();
+        return lchannel != null && !lchannel.isShutdown() && !lchannel.isTerminated();
     }
 }

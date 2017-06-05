@@ -18,12 +18,13 @@ import java.util.Map;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 
 public class TransactionProposalRequest extends TransactionRequest {
-    private TransactionProposalRequest() {
 
+    TransactionProposalRequest(User userContext) {
+        super(userContext);
     }
 
-    public static TransactionProposalRequest newInstance() {
-        return new TransactionProposalRequest();
+    public static TransactionProposalRequest newInstance(User userContext) {
+        return new TransactionProposalRequest(userContext);
 
     }
 

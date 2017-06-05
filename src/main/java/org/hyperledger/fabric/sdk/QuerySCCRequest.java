@@ -27,6 +27,10 @@ public class QuerySCCRequest extends TransactionRequest {
     public static final String GETTRANSACTIONBYID = "GetTransactionByID";
     public static final String GETBLOCKBYTXID = "GetBlockByTxID";
 
+    public QuerySCCRequest(User userContext) {
+        super(userContext);
+    }
+
     @Override
     public ChaincodeID getChaincodeID() {
         return new ChaincodeID(

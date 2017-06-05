@@ -80,6 +80,10 @@ public class HFClient {
     }
 
     public void setCryptoSuite(CryptoSuite cryptoSuite) throws CryptoException, InvalidArgumentException {
+        if (this.cryptoSuite != null) {
+            throw new InvalidArgumentException("CryptoSuite may only be set once.");
+
+        }
         this.cryptoSuite = cryptoSuite;
         this.cryptoSuite.init();
     }
@@ -111,11 +115,11 @@ public class HFClient {
     /**
      * Create a new channel
      *
-     * @param name                         The channel's name
-     * @param orderer                      Orderer to create the channel with.
+     * @param name                           The channel's name
+     * @param orderer                        Orderer to create the channel with.
      * @param channelConfiguration           Channel configuration data.
      * @param channelConfigurationSignatures byte arrays containing ConfigSignature's proto serialized.
-     *                                     See {@link Channel#getChannelConfigurationSignature} on how to create
+     *                                       See {@link Channel#getChannelConfigurationSignature} on how to create
      * @return a new channel.
      * @throws TransactionException
      * @throws InvalidArgumentException
@@ -195,7 +199,7 @@ public class HFClient {
      * @return InstallProposalRequest
      */
     public InstallProposalRequest newInstallProposalRequest() {
-        return new InstallProposalRequest();
+        return new InstallProposalRequest(userContext);
     }
 
     /**
@@ -205,11 +209,11 @@ public class HFClient {
      */
 
     public InstantiateProposalRequest newInstantiationProposalRequest() {
-        return new InstantiateProposalRequest();
+        return new InstantiateProposalRequest(userContext);
     }
 
     public UpgradeProposalRequest newUpgradeProposalRequest() {
-        return new UpgradeProposalRequest();
+        return new UpgradeProposalRequest(userContext);
     }
 
     /**
@@ -219,7 +223,7 @@ public class HFClient {
      */
 
     public TransactionProposalRequest newTransactionProposalRequest() {
-        return TransactionProposalRequest.newInstance();
+        return TransactionProposalRequest.newInstance(userContext);
     }
 
     /**
@@ -229,7 +233,7 @@ public class HFClient {
      */
 
     public QueryByChaincodeRequest newQueryProposalRequest() {
-        return QueryByChaincodeRequest.newInstance();
+        return QueryByChaincodeRequest.newInstance(userContext);
     }
 
     /**
@@ -468,6 +472,7 @@ public class HFClient {
     public Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest, Collection<Peer> peers)
             throws ProposalException, InvalidArgumentException {
 
+        installProposalRequest.setSubmitted();
         Channel systemChannel = Channel.newSystemChannel(this);
 
         return systemChannel.sendInstallProposal(installProposalRequest, peers);

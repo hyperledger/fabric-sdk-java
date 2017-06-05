@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,12 +18,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
 
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Config;
 
 /**
  * A base transaction request common for InstallProposalRequest,trRequest, and QueryRequest.
  */
 public class TransactionRequest {
+    private User userContext;
+
+    boolean submitted = false;
 
     private final Config config = Config.getConfig();
 
@@ -54,6 +58,26 @@ public class TransactionRequest {
     protected Map<String, byte[]> transientMap;
 
     /**
+     * The user context to use on this request.
+     *
+     *
+     * @return User context that is used for signing
+     */
+    User getUserContext() {
+        return userContext;
+    }
+
+    /**
+     * Set the user context for this request. This context will override the user context set
+     * on {@link HFClient#setUserContext(User)}
+     *
+     * @param userContext The user context for this request used for signing.
+     */
+    public void setUserContext(User userContext) {
+        this.userContext = userContext;
+    }
+
+    /**
      * Transient data added to the proposal that is not added to the ledger.
      *
      * @return Map of strings to bytes that's added to the proposal
@@ -71,7 +95,7 @@ public class TransactionRequest {
      * This implementation returns {@code false}.
      *
      * @return {@code true} if an empty channel ID should be used; otherwise
-     *         {@code false}.
+     * {@code false}.
      */
     public boolean noChannelID() {
         return false;
@@ -235,6 +259,28 @@ public class TransactionRequest {
      */
     public void setProposalWaitTime(long proposalWaitTime) {
         this.proposalWaitTime = proposalWaitTime;
+    }
+
+    /**
+     * If this request has been submitted already.
+     *
+     * @return true if the already submitted.
+     */
+
+    public boolean isSubmitted() {
+        return submitted;
+    }
+
+    void setSubmitted() throws InvalidArgumentException {
+        if (submitted) {
+            // Has already been submitted.
+            throw new InvalidArgumentException("Request has been already submitted and can not be reused.");
+        }
+        this.submitted = true;
+    }
+
+    protected TransactionRequest(User userContext) {
+        this.userContext = userContext;
     }
 
 }

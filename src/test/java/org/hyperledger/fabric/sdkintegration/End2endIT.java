@@ -178,6 +178,8 @@ public class End2endIT {
                 final String sampleOrgName = sampleOrg.getName();
                 final String sampleOrgDomainName = sampleOrg.getDomainName();
 
+                // src/test/fixture/sdkintegration/e2e-2Orgs/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/
+
                 SampleUser peerOrgAdmin = sampleStore.getMember(sampleOrgName + "Admin", sampleOrgName, sampleOrg.getMSPID(),
                         findFile_sk(Paths.get(testConfig.getTestChannlePath(), "crypto-config/peerOrganizations/",
                                 sampleOrgDomainName, format("/users/Admin@%s/msp/keystore", sampleOrgDomainName)).toFile()),
@@ -200,6 +202,7 @@ public class End2endIT {
             Channel barChannel = constructChannel(BAR_CHANNEL_NAME, client, sampleOrg);
             runChannel(client, barChannel, true, sampleOrg, 100); //run a newly constructed bar channel with different b value!
             //let bar channel just shutdown so we have both scenarios.
+
 
             out("\nTraverse the blocks for chain %s ", barChannel.getName());
             blockWalker(barChannel);
@@ -549,8 +552,9 @@ public class End2endIT {
             Properties ordererProperties = testConfig.getOrdererProperties(orderName);
 
             //example of setting keepAlive to avoid timeouts on inactive http2 connections.
-            //calls: NettyChannelBuilder.enableKeepAlive(true, 1, TimeUnit.SECONDS, 1, TimeUnit.SECONDS);
-            ordererProperties.put("grpc.NettyChannelBuilderOption.enableKeepAlive", new Object[] {true, 1L, TimeUnit.SECONDS, 1L, TimeUnit.SECONDS});
+            // Under 5 minutes would require changes to server side to accept faster ping rates.
+            ordererProperties.put("grpc.NettyChannelBuilderOption.keepAliveTime", new Object[] {5L, TimeUnit.MINUTES});
+            ordererProperties.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {8L, TimeUnit.SECONDS});
 
             orderers.add(client.newOrderer(orderName, sampleOrg.getOrdererLocation(orderName),
                     ordererProperties));
@@ -592,8 +596,14 @@ public class End2endIT {
         }
 
         for (String eventHubName : sampleOrg.getEventHubNames()) {
+
+            final Properties eventHubProperties = testConfig.getEventHubProperties(eventHubName);
+
+            eventHubProperties.put("grpc.NettyChannelBuilderOption.keepAliveTime", new Object[] {5L, TimeUnit.MINUTES});
+            eventHubProperties.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {8L, TimeUnit.SECONDS});
+
             EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
-                    testConfig.getEventHubProperties(eventHubName));
+                    eventHubProperties);
             newChannel.addEventHub(eventHub);
         }
 

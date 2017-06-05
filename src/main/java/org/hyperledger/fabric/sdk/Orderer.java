@@ -89,7 +89,7 @@ public class Orderer {
             throw new InvalidArgumentException("setChannel Channel can not be null");
         }
 
-        if (null != this.channel) {
+        if (null != this.channel && this.channel != channel) {
             throw new InvalidArgumentException(format("Can not add orderer  %s to channel %s because it already belongs to channel %s.",
                     name, channel.getName(), this.channel.getName()));
         }
@@ -125,7 +125,7 @@ public class Orderer {
         OrdererClient localOrdererClient = ordererClient;
 
         if (localOrdererClient == null || !localOrdererClient.isChannelActive()) {
-            localOrdererClient = ordererClient = new OrdererClient(new Endpoint(url, properties).getChannelBuilder());
+            localOrdererClient = ordererClient = new OrdererClient(this, new Endpoint(url, properties).getChannelBuilder());
         }
 
         try {
@@ -160,7 +160,7 @@ public class Orderer {
 
         logger.debug(format("Order.sendDeliver name: %s, url: %s", name, url));
         if (localOrdererClient == null || !localOrdererClient.isChannelActive()) {
-            ordererClient =localOrdererClient = new OrdererClient(new Endpoint(url, properties).getChannelBuilder());
+            ordererClient = localOrdererClient = new OrdererClient(this, new Endpoint(url, properties).getChannelBuilder());
         }
 
         try {
