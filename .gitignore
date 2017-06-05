@@ -4,3 +4,4 @@ target
 *.class
 .idea/
 *.iml
+*.resources.prefs
