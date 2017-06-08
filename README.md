@@ -36,19 +36,6 @@ SDK's `Enrollment` interface.
 <p &nbsp; />
 
 `*************************************************`
-## *v1.0.0-Alpha2*
-
-There is a git tagged v1.0.0-Alpha2 [dec17727ddb6b269f8fb30930e10d89bc185225f] release of the SDK where there is no
-need to build the Fabric and Fabric-ca described below.
-The provided docker-compose.yaml for the integration tests should pull alpha2 images
-from Docker hub.
-
-Later versions of the SDK are NOT guaranteed to work with v1.0.0-Alpha2
-
-<p &nbsp; />
-<p &nbsp; />
-
-`*************************************************`
 
 
 ## Valid builds of Fabric and Fabric-ca
@@ -56,6 +43,7 @@ Later versions of the SDK are NOT guaranteed to work with v1.0.0-Alpha2
 Hyperledger Fabric v1.0 is currently under active development and the very latest Hyperledger Fabric builds may not work with this sdk.
 You should use the following commit levels of the Hyperledger projects:
 
+TODO: update for beta release
 <!--
 [comment]: <> (****************************************************************************************************)
 [comment]: <> (*******   src/test/fabric_test_commitlevel.sh tells Jenkins to use the latest commit levels   ******)
