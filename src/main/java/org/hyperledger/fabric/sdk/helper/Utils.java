@@ -369,7 +369,6 @@ public final class Utils {
 
 
     public static String toHexString(ByteString byteString) {
-        assert (byteString != null);
         if (byteString == null) {
             return null;
         }
@@ -379,7 +378,6 @@ public final class Utils {
     }
 
     public static String toHexString(byte[] bytes) {
-        assert (bytes != null);
         if (bytes == null) {
             return null;
         }
