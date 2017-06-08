@@ -36,6 +36,19 @@ SDK's `Enrollment` interface.
 <p &nbsp; />
 
 `*************************************************`
+## *v1.0.0-beta*
+
+There is a git tagged v1.0.0-beta [dec17727ddb6b269f8fb30930e10d89bc185225f] release of the SDK where there is no
+need to build the Fabric and Fabric-ca described below.
+The provided docker-compose.yaml for the integration tests should pull beta images
+from Docker hub.
+
+Later versions of the SDK are NOT guaranteed to work with v1.0.0-beta
+
+<p &nbsp; />
+<p &nbsp; />
+
+`*************************************************`
 
 
 ## Valid builds of Fabric and Fabric-ca
@@ -43,7 +56,6 @@ SDK's `Enrollment` interface.
 Hyperledger Fabric v1.0 is currently under active development and the very latest Hyperledger Fabric builds may not work with this sdk.
 You should use the following commit levels of the Hyperledger projects:
 
-TODO: update for beta release
 <!--
 [comment]: <> (****************************************************************************************************)
 [comment]: <> (*******   src/test/fabric_test_commitlevel.sh tells Jenkins to use the latest commit levels   ******)
@@ -51,8 +63,8 @@ TODO: update for beta release
 
 | Project        | Commit level                               | Date                       |
 |:---------------|:------------------------------------------:|---------------------------:|
-| fabric         | d2bfa744059e68d2e50d2cb01d285e3c6e1f2757   | May 30 10:59:01 2017 +0000 |
-| fabric-ca      | ac2ee79ce8a1f80d5ae9c1ec84968882f45fd0e7   | May 27 06:11:20 2017 +0000 |
+| fabric         | d25b99453764b49050e3bdfe8745f530f74fee2b   | Jun 8 13:22:35 2017 +0000  |
+| fabric-ca      | a2fb8ea3cf31e70d7fc20ed8a142f1b1a917ed05   | Jun 5 18:08:17 2017 +0000  |
 
  You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
 

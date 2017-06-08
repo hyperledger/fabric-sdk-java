@@ -95,8 +95,7 @@ public class ChaincodeEndorsementPolicy {
                         throw new ChaincodeEndorsementPolicyParseException(format("%s expected to have list but found %s.", key, String.valueOf(vo)));
                     }
 
-                    @SuppressWarnings("unchecked")
-                    final List<Map<?, ?>> voList = (List<Map<?, ?>>)vo;
+                    @SuppressWarnings ("unchecked") final List<Map<?, ?>> voList = (List<Map<?, ?>>) vo;
 
                     if (voList.size() < matchNo) {
 
@@ -109,7 +108,8 @@ public class ChaincodeEndorsementPolicy {
                     for (Map<?, ?> nlo : voList) {
 
                         SignaturePolicy sp = parsePolicy(identities, nlo);
-                        spBuilder.addPolicies(sp);
+                        spBuilder.addRules(sp);
+
                     }
 
                     return SignaturePolicy.newBuilder().setNOutOf(spBuilder.build()).build();
@@ -152,7 +152,7 @@ public class ChaincodeEndorsementPolicy {
             if (!(role instanceof Map)) {
                 throw new ChaincodeEndorsementPolicyParseException(format("In identities with key %s value expected Map for role got %s ", key, role == null ? "null" : role.getClass().getName()));
             }
-            final Map<?, ?> roleMap = (Map<?, ?>)role;
+            final Map<?, ?> roleMap = (Map<?, ?>) role;
 
             Object name = (roleMap).get("name");
 
@@ -216,22 +216,22 @@ public class ChaincodeEndorsementPolicy {
 
     public void fromYamlFile(File yamlPolicyFile) throws IOException, ChaincodeEndorsementPolicyParseException {
         final Yaml yaml = new Yaml();
-        final Map<?, ?> load = (Map<?, ?>)yaml.load(new FileInputStream(yamlPolicyFile));
+        final Map<?, ?> load = (Map<?, ?>) yaml.load(new FileInputStream(yamlPolicyFile));
 
-        Map<?, ?> mp = (Map<?, ?>)load.get("policy");
+        Map<?, ?> mp = (Map<?, ?>) load.get("policy");
 
         if (null == mp) {
             throw new ChaincodeEndorsementPolicyParseException("The policy file has no policy section");
         }
 
-        IndexedHashMap<String, MSPPrincipal> identities = parseIdentities((Map<?, ?>)load.get("identities"));
+        IndexedHashMap<String, MSPPrincipal> identities = parseIdentities((Map<?, ?>) load.get("identities"));
 
         SignaturePolicy sp = parsePolicy(identities, mp);
 
         policyBytes = Policies.SignaturePolicyEnvelope.newBuilder()
                 .setVersion(0)
                 .addAllIdentities(identities.values())
-                .setPolicy(sp)
+                .setRule(sp)
                 .build().toByteArray();
     }
 
@@ -262,7 +262,7 @@ public class ChaincodeEndorsementPolicy {
         return policyBytes;
     }
 
-    @SuppressWarnings("serial")
+    @SuppressWarnings ("serial")
     private static class IndexedHashMap<K, V> extends LinkedHashMap<K, V> {
         final HashMap<K, Integer> kmap = new HashMap<>();
 

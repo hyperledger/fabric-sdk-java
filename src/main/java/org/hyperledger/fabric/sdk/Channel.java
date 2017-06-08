@@ -1163,11 +1163,11 @@ public class Channel {
 
         SignaturePolicyEnvelope signaturePolicyEnvelope = SignaturePolicyEnvelope.newBuilder()
                 .setVersion(0)
-                .setPolicy(signaturePolicy).build();
+                .setRule(signaturePolicy).build();
 
         return Policy.newBuilder()
                 .setType(Policy.PolicyType.SIGNATURE.getNumber())
-                .setPolicy(signaturePolicyEnvelope.toByteString())
+                .setValue(signaturePolicyEnvelope.toByteString())
                 .build();
     }
 
