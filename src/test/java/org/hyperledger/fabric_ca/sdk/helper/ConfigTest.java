@@ -12,7 +12,7 @@
  *  limitations under the License.
  */
 
-package org.hyperledger.fabric.sdk.helper;
+package org.hyperledger.fabric_ca.sdk.helper;
 
 import org.apache.log4j.Level;
 
@@ -25,19 +25,18 @@ import org.junit.Test;
 public class ConfigTest {
 
     private TestConfigHelper configHelper = new TestConfigHelper();
-    // private String originalHashAlgorithm;
 
     @Before
     public void setUp() throws Exception {
         // reset Config before each test
-        configHelper.clearConfig();
+        configHelper.clearCaConfig();
     }
 
     @After
     public void tearDown() throws Exception {
         // reset Config after each test. We do not want to interfere with the
         // next test or the next test suite
-        configHelper.clearConfig();
+        configHelper.clearCaConfig();
     }
 
     // Tests that Config.getConfig properly loads a value from a system property
@@ -75,16 +74,11 @@ public class ConfigTest {
         // Numeric params
         Assert.assertTrue(config.getSecurityLevel() > 0);
         Assert.assertTrue(config.getProposalWaitTime() > 0);
-        Assert.assertTrue(config.getGenesisBlockWaitTime() > 0);
         Assert.assertTrue(config.getSymmetricKeyByteCount() > 0);
         Assert.assertTrue(config.getMACKeyByteCount() > 0);
 
+        // TODO: This Config property should be renamed getMaxLogStringLength
         Assert.assertTrue(config.maxLogStringLength() > 0);
-
-        // Boolean params
-        // Not sure how best to deal with these, as they will always return either true or false
-        // So, for coverage, let's simply call the method to ensure they don't throw exceptions...
-        config.getProposalConsistencyValidation();
 
         // String params
         Assert.assertNotNull(config.getHashAlgorithm());
@@ -97,13 +91,6 @@ public class ConfigTest {
 
         // Arrays
         Assert.assertNotNull(config.getPeerCACerts());
-    }
-
-    @Test
-    public void testExtraLogLevel() {
-        Config config = Config.getConfig();
-        Assert.assertTrue(config.extraLogLevel(-99));
-        Assert.assertFalse(config.extraLogLevel(99));
     }
 
     @Test
@@ -136,13 +123,12 @@ public class ConfigTest {
     // ==========================================================================================
 
     // Helper method to set the value of a system property
-    private Object setSystemProperty(String propName, String propValue) {
+    private void setSystemProperty(String propName, String propValue) {
         if (propValue == null) {
             System.clearProperty(propName);
         } else {
             System.setProperty(propName, propValue);
         }
-        return propValue;
     }
 
     // Helper function to test one of the possible log levels
@@ -152,7 +138,7 @@ public class ConfigTest {
             // Dummy call to ensure that a config instance is created and the
             // underlying logging level is set...
             Config.getConfig();
-            Assert.assertEquals(level, org.apache.log4j.Logger.getLogger("org.hyperledger.fabric").getLevel());
+            Assert.assertEquals(level, org.apache.log4j.Logger.getLogger("org.hyperledger.fabric_ca").getLevel());
         } finally {
             // Restore the original value so that other tests run consistently
             setSystemProperty(Config.LOGGERLEVEL, originalValue);
