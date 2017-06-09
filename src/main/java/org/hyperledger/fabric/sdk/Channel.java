@@ -152,9 +152,6 @@ public class Channel {
     private Block genesisBlock;
     private final boolean systemChannel;
 
-    ExecutorService getChannelExecutorService() {
-        return executorService;
-    }
 
     private Channel(String name, HFClient hfClient, Orderer orderer, ChannelConfiguration channelConfiguration, byte[][] signers) throws InvalidArgumentException, TransactionException {
         this(name, hfClient, false);
@@ -685,7 +682,6 @@ public class Channel {
                             .build();
 
                     byte[] deliverPayloadBytes = deliverPayload.toByteArray();
-
 
                     Envelope deliverEnvelope = Envelope.newBuilder()
                             .setSignature(ByteString.copyFrom(cryptoSuite.sign(getEnrollment().getKey(), deliverPayloadBytes)))
@@ -2152,7 +2148,7 @@ public class Channel {
      * Send transaction to one of the orderers on the channel using a specific user context.
      *
      * @param proposalResponses The proposal responses to be sent to the orderer.
-     * @param userContext The usercontext used for signing transaction.
+     * @param userContext       The usercontext used for signing transaction.
      * @return a future allowing access to the result of the transaction invocation once complete.
      */
     public CompletableFuture<TransactionEvent> sendTransaction(Collection<ProposalResponse> proposalResponses, User userContext) {
@@ -2318,7 +2314,7 @@ public class Channel {
 
         }
 
-        if (signer == channelConfiguration) {
+        if (null == channelConfiguration) {
 
             throw new InvalidArgumentException("channelConfiguration is null");
 
