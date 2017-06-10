@@ -314,17 +314,6 @@ public final class Utils {
 
     /**
      * Check if a string is null or empty.
-     * @param url
-     * @return {@code true} if the string is null or empty; otherwise {@code false}.
-     * @deprecated Replaced by {@link #isNullOrEmpty}
-     */
-    @Deprecated
-    public static boolean nullOrEmptyString(String url) {
-        return url == null || url.isEmpty();
-    }
-
-    /**
-     * Check if a string is null or empty.
      *
      * @param url the string to test.
      * @return {@code true} if the string is null or empty; otherwise {@code false}.
