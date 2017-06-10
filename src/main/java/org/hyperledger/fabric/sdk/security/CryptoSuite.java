@@ -86,13 +86,14 @@ public interface CryptoSuite {
     /**
      * Verify the specified signature
      *
-     * @param plainText   the original text
-     * @param signature   the signature to verify
      * @param certificate the certificate of the signer as the contents of the PEM file
+     * @param signatureAlgorithm the algorithm used to create the signature.
+     * @param signature   the signature to verify
+     * @param plainText   the original text that is to be verified
      * @return {@code true} if the signature is successfully verified; otherwise {@code false}.
      * @throws CryptoException
      */
-    boolean verify(byte[] plainText, byte[] signature, byte[] certificate) throws CryptoException;
+    boolean verify(byte[] certificate, String signatureAlgorithm, byte[] signature, byte[] plainText) throws CryptoException;
 
     /**
      * Hash the specified text byte data.

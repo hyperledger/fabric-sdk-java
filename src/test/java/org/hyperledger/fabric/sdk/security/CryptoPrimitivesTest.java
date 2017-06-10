@@ -62,7 +62,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-
 public class CryptoPrimitivesTest {
 
     // run End2EndIT test and copy from first peer ProposalResponse ( fabric at
@@ -71,6 +70,7 @@ public class CryptoPrimitivesTest {
     public static final String SIGNATURE_HEX = "3045022100880FFD28A54ACDCBDC8C54EC7927143A734199EF6BC659FBE5312C736F40769E02202A4EA0F2060AEE5E59D9440F31748E1BD01DB32031DBD7A12791B16A8E3E4D3D";
     public static final String PEM_CERT_HEX = "2D2D2D2D2D424547494E202D2D2D2D2D0A4D4949436A444343416A4B6741774942416749554245567773537830546D7164627A4E776C654E42427A6F4954307777436759494B6F5A497A6A3045417749770A667A454C4D416B474131554542684D4356564D78457A415242674E5642416754436B4E6862476C6D62334A7561574578466A415542674E564241635444564E680A62694247636D467559326C7A59323878487A416442674E5642416F54466B6C7564475679626D5630494664705A47646C64484D7349456C75597934784444414B0A42674E564241735441316458567A45554D4249474131554541784D4C5A586868625842735A53356A623230774868634E4D5459784D5445784D5463774E7A41770A5768634E4D5463784D5445784D5463774E7A4177576A426A4D517377435159445651514745774A56557A45584D4255474131554543424D4F546D3979644767670A5132467962327870626D45784544414F42674E564241635442314A68624756705A326778477A415A42674E5642416F54456B6835634756796247566B5A3256790A49455A68596E4A70597A454D4D416F474131554543784D44513039514D466B77457759484B6F5A497A6A3043415159494B6F5A497A6A304441516344516741450A4842754B73414F34336873344A4770466669474D6B422F7873494C54734F766D4E32576D77707350485A4E4C36773848576533784350517464472F584A4A765A0A2B433735364B457355424D337977355054666B7538714F42707A43427044414F42674E56485138424166384542414D4342614177485159445652306C424259770A464159494B7759424251554841774547434373474151554642774D434D41774741315564457745422F7751434D414177485159445652304F42425945464F46430A6463555A346573336C746943674156446F794C66567050494D42384741315564497751594D4261414642646E516A32716E6F492F784D55646E3176446D6447310A6E4567514D43554741315564455151654D427943436D31356147397A6443356A62323243446E6433647935746557687663335175593239744D416F47434371470A534D343942414D43413067414D4555434944663948626C34786E337A3445774E4B6D696C4D396C58324671346A5770416152564239374F6D56456579416945410A32356144505148474771324176684B54307776743038635831475447434962666D754C704D774B516A33383D0A2D2D2D2D2D454E44202D2D2D2D2D0A";
     public static final String INVALID_PEM_CERT = "2D2D224547494E202D2D2D2D2D0A4D4949436A444343416A4B6741774942416749554245567773537830546D7164627A4E776C654E42427A6F4954307777436759494B6F5A497A6A3045417749770A667A454C4D416B474131554542684D4356564D78457A415242674E5642416754436B4E6862476C6D62334A7561574578466A415542674E564241635444564E680A62694247636D467559326C7A59323878487A416442674E5642416F54466B6C7564475679626D5630494664705A47646C64484D7349456C75597934784444414B0A42674E564241735441316458567A45554D4249474131554541784D4C5A586868625842735A53356A623230774868634E4D5459784D5445784D5463774E7A41770A5768634E4D5463784D5445784D5463774E7A4177576A426A4D517377435159445651514745774A56557A45584D4255474131554543424D4F546D3979644767670A5132467962327870626D45784544414F42674E564241635442314A68624756705A326778477A415A42674E5642416F54456B6835634756796247566B5A3256790A49455A68596E4A70597A454D4D416F474131554543784D44513039514D466B77457759484B6F5A497A6A3043415159494B6F5A497A6A304441516344516741450A4842754B73414F34336873344A4770466669474D6B422F7873494C54734F766D4E32576D77707350485A4E4C36773848576533784350517464472F584A4A765A0A2B433735364B457355424D337977355054666B7538714F42707A43427044414F42674E56485138424166384542414D4342614177485159445652306C424259770A464159494B7759424251554841774547434373474151554642774D434D41774741315564457745422F7751434D414177485159445652304F42425945464F46430A6463555A346573336C746943674156446F794C66567050494D42384741315564497751594D4261414642646E516A32716E6F492F784D55646E3176446D6447310A6E4567514D43554741315564455151654D427943436D31356147397A6443356A62323243446E6433647935746557687663335175593239744D416F47434371470A534D343942414D43413067414D4555434944663948626C34786E337A3445774E4B6D696C4D396C58324671346A5770416152564239374F6D56456579416945410A32356144505148474771324176684B54307776743038635831475447434962666D754C704D774B516A33383D0A2D2D2D2D2D454E44202D2D2D2D2D0A";
+    private static final String SIGNING_ALGORITHM = "SHA256withECDSA";
 
     // File create_key_cert_for_testing.md has info on the other keys and
     // certificates used in this test suite
@@ -150,19 +150,19 @@ public class CryptoPrimitivesTest {
         }
     }
 
-    @Test(expected = InvalidArgumentException.class)
+    @Test (expected = InvalidArgumentException.class)
     public void testSecurityLevel() throws InvalidArgumentException {
         CryptoPrimitives testCrypto = new CryptoPrimitives();
         testCrypto.setSecurityLevel(2001);
     }
 
-    @Test(expected = InvalidArgumentException.class)
+    @Test (expected = InvalidArgumentException.class)
     public void testSetHashAlgorithm() throws InvalidArgumentException {
         CryptoPrimitives testCrypto = new CryptoPrimitives();
         testCrypto.setHashAlgorithm(null);
     }
 
-    @Test(expected = InvalidArgumentException.class)
+    @Test (expected = InvalidArgumentException.class)
     public void testSetHashAlgorithmBadArg() throws InvalidArgumentException {
         CryptoPrimitives testCrypto = new CryptoPrimitives();
         testCrypto.setHashAlgorithm("FAKE");
@@ -205,15 +205,15 @@ public class CryptoPrimitivesTest {
     @Test
     public void testSetTrustStore() {
 
-            try {
-                CryptoPrimitives myCrypto = new CryptoPrimitives();
-                KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-                keyStore.load(null, null);
-                myCrypto.setTrustStore(keyStore);
-                assertSame(keyStore, myCrypto.getTrustStore());
-            } catch (CryptoException | KeyStoreException | NoSuchAlgorithmException | CertificateException | InvalidArgumentException | IOException e) {
-                fail("testSetTrustStore() should not have thrown Exception. Error: " + e.getMessage());
-            }
+        try {
+            CryptoPrimitives myCrypto = new CryptoPrimitives();
+            KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            keyStore.load(null, null);
+            myCrypto.setTrustStore(keyStore);
+            assertSame(keyStore, myCrypto.getTrustStore());
+        } catch (CryptoException | KeyStoreException | NoSuchAlgorithmException | CertificateException | InvalidArgumentException | IOException e) {
+            fail("testSetTrustStore() should not have thrown Exception. Error: " + e.getMessage());
+        }
     }
 
     @Test
@@ -225,7 +225,7 @@ public class CryptoPrimitivesTest {
         }
     }
 
-    @Test(expected = InvalidArgumentException.class)
+    @Test (expected = InvalidArgumentException.class)
     public void testAddCACertificateToTrustStoreNoAlias() throws InvalidArgumentException {
         try {
             crypto.addCACertificateToTrustStore(new File("something"), null);
@@ -234,7 +234,7 @@ public class CryptoPrimitivesTest {
         }
     }
 
-    @Test(expected = InvalidArgumentException.class)
+    @Test (expected = InvalidArgumentException.class)
     public void testAddCACertificateToTrustStoreEmptyAlias() throws InvalidArgumentException {
         try {
             crypto.addCACertificateToTrustStore(new File("something"), "");
@@ -243,7 +243,7 @@ public class CryptoPrimitivesTest {
         }
     }
 
-    @Test(expected = CryptoException.class)
+    @Test (expected = CryptoException.class)
     public void testAddCACertificateToTrustStoreNoFile() throws CryptoException {
         try {
             crypto.addCACertificateToTrustStore(new File("does/not/exist"), "abc");
@@ -252,7 +252,7 @@ public class CryptoPrimitivesTest {
         }
     }
 
-    @Test(expected = CryptoException.class)
+    @Test (expected = CryptoException.class)
     public void testAddCACertificateToTrustStoreInvalidCertFile() throws CryptoException {
         try {
             crypto.addCACertificateToTrustStore(new File("/bad-ca1.crt"), "abc");
@@ -261,26 +261,26 @@ public class CryptoPrimitivesTest {
         }
     }
 
-    @Test(expected = InvalidArgumentException.class)
+    @Test (expected = InvalidArgumentException.class)
     public void testAddCACertificateToTrustStoreNoCert() throws InvalidArgumentException {
-                try {
-                    crypto.addCACertificateToTrustStore((Certificate) null, "abc");
-                } catch (CryptoException e) {
-                    fail("testAddCACertificateToTrustStoreNoCert should not have thrown CryptoException. Error " + e.getMessage());
-                }
+        try {
+            crypto.addCACertificateToTrustStore((Certificate) null, "abc");
+        } catch (CryptoException e) {
+            fail("testAddCACertificateToTrustStoreNoCert should not have thrown CryptoException. Error " + e.getMessage());
+        }
     }
 
-    @Test(expected = InvalidArgumentException.class)
+    @Test (expected = InvalidArgumentException.class)
     public void testAddCACertsNullInput() throws Exception {
         crypto.addCACertificateToTrustStore((File) null, null);
     }
 
-    @Test(expected = CryptoException.class)
+    @Test (expected = CryptoException.class)
     public void testLoadCACertsBadInput() throws CryptoException {
         crypto.loadCACertificates(null);
     }
 
-    @Test(expected = CryptoException.class)
+    @Test (expected = CryptoException.class)
     public void testLoadCACertsBytesBadInput() throws CryptoException {
         crypto.loadCACertificatesAsBytes(null);
     }
@@ -289,7 +289,7 @@ public class CryptoPrimitivesTest {
     public void testLoadCACerts() {
         try {
             File certsFolder = new File("cacerts").getAbsoluteFile();
-            Collection<File> certFiles = FileUtils.listFiles(certsFolder, new String[]{"pem"}, false);
+            Collection<File> certFiles = FileUtils.listFiles(certsFolder, new String[] {"pem"}, false);
             int numFiles = certFiles.size();
             int numStore = crypto.getTrustStore().size();
 
@@ -313,6 +313,7 @@ public class CryptoPrimitivesTest {
             e.printStackTrace();
         }
     }
+
     @Test
     public void testValidateNullCertificateByteArray() {
         assertFalse(crypto.validateCertificate((byte[]) null));
@@ -345,12 +346,12 @@ public class CryptoPrimitivesTest {
         }
     }
 
-    @Test(expected = CryptoException.class)
+    @Test (expected = CryptoException.class)
     public void testBytesToCertificateInvalidBytes() throws CryptoException {
         crypto.bytesToCertificate(INVALID_PEM_CERT.getBytes());
     }
 
-    @Test(expected = CryptoException.class)
+    @Test (expected = CryptoException.class)
     public void testBytesToCertificateNullBytes() throws CryptoException {
         crypto.bytesToCertificate(null);
     }
@@ -389,29 +390,29 @@ public class CryptoPrimitivesTest {
     @Test
     public void testVerifyNullInput() {
         try {
-            assertFalse(crypto.verify(null, null, null));
+            assertFalse(crypto.verify(null, SIGNING_ALGORITHM, null, null));
         } catch (CryptoException e) {
             fail("testVerifyNullInput should not have thrown exception. Error: " + e.getMessage());
         }
     } // testVerifyNullInput
 
-    @Test(expected = CryptoException.class)
+    @Test (expected = CryptoException.class)
     public void testVerifyBadCert() throws CryptoException {
         byte[] badCert = new byte[] {(byte) 0x00};
-        crypto.verify(plainText, sig, badCert);
+        crypto.verify(badCert, SIGNING_ALGORITHM, sig, plainText);
     } // testVerifyBadCert
 
-    @Test(expected = CryptoException.class)
+    @Test (expected = CryptoException.class)
     public void testVerifyBadSig() throws CryptoException {
         byte[] badSig = new byte[] {(byte) 0x00};
-        crypto.verify(plainText, badSig, pemCert);
+        crypto.verify(pemCert, SIGNING_ALGORITHM, badSig, plainText);
     } // testVerifyBadSign
 
     @Test
     public void testVerifyBadPlaintext() {
         byte[] badPlainText = new byte[] {(byte) 0x00};
         try {
-            assertFalse(crypto.verify(badPlainText, sig, pemCert));
+            assertFalse(crypto.verify(pemCert, SIGNING_ALGORITHM, sig, badPlainText));
         } catch (CryptoException e) {
             fail("testVerifyBadPlaintext should not have thrown exception. Error: " + e.getMessage());
         }
@@ -420,7 +421,7 @@ public class CryptoPrimitivesTest {
     @Test
     public void testVerify() {
         try {
-            assertTrue(crypto.verify(plainText, sig, pemCert));
+            assertTrue(crypto.verify(pemCert, SIGNING_ALGORITHM, sig, plainText));
         } catch (CryptoException e) {
             fail("testVerify should not have thrown exception. Error: " + e.getMessage());
         }
@@ -468,17 +469,16 @@ public class CryptoPrimitivesTest {
             signature = crypto.sign(key, plainText);
 
             BufferedInputStream bis = new BufferedInputStream(
-                            this.getClass().getResourceAsStream("/keypair-signed.crt"));
+                    this.getClass().getResourceAsStream("/keypair-signed.crt"));
             byte[] cert = IOUtils.toByteArray(bis);
             bis.close();
 
-            assertTrue(crypto.verify(plainText, signature, cert));
+            assertTrue(crypto.verify(cert, SIGNING_ALGORITHM, signature, plainText));
         } catch (KeyStoreException | CryptoException | IOException | UnrecoverableKeyException
-                        | NoSuchAlgorithmException e) {
+                | NoSuchAlgorithmException e) {
             fail("Could not verify signature. Error: " + e.getMessage());
         }
     }
-
 
     @Test
     public void testKeyGen() throws CryptoException {

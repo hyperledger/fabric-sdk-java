@@ -98,8 +98,9 @@ public class ProposalResponse extends ChaincodeResponse {
                 logger.trace("plainText bytes in hex: " + DatatypeConverter.printHexBinary(plainText.toByteArray()));
             }
 
-            this.isVerified = crypto.verify(plainText.toByteArray(), sig.toByteArray(),
-                    endorser.getIdBytes().toByteArray());
+            this.isVerified = crypto.verify(endorser.getIdBytes().toByteArray(), config.getSignatureAlgorithm(),
+                    sig.toByteArray(), plainText.toByteArray()
+            );
         } catch (InvalidProtocolBufferException | CryptoException e) {
             logger.error("verify: Cannot retrieve peer identity from ProposalResponse. Error is: " + e.getMessage(), e);
             this.isVerified = false;

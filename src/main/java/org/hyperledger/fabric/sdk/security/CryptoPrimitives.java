@@ -93,12 +93,13 @@ public class CryptoPrimitives implements CryptoSuite {
 
     // Following configuration settings are hardcoded as they don't deal with any interactions with Fabric MSP and BCCSP components
     // If you wish to make these customizable, follow the logic from setProperties();
-    private String ASYMMETRIC_KEY_TYPE = "EC";
-    private String KEY_AGREEMENT_ALGORITHM = "ECDH";
-    private String SYMMETRIC_KEY_TYPE = "AES";
-    private int SYMMETRIC_KEY_BYTE_COUNT = 32;
-    private String SYMMETRIC_ALGORITHM = "AES/CFB/NoPadding";
-    private int MAC_KEY_BYTE_COUNT = 32;
+    //TODO May need this for TCERTS ?
+//    private String ASYMMETRIC_KEY_TYPE = "EC";
+//    private String KEY_AGREEMENT_ALGORITHM = "ECDH";
+//    private String SYMMETRIC_KEY_TYPE = "AES";
+//    private int SYMMETRIC_KEY_BYTE_COUNT = 32;
+//    private String SYMMETRIC_ALGORITHM = "AES/CFB/NoPadding";
+//    private int MAC_KEY_BYTE_COUNT = 32;
 
     private static final Log logger = LogFactory.getLog(CryptoPrimitives.class);
 
@@ -148,17 +149,12 @@ public class CryptoPrimitives implements CryptoSuite {
     }
 
     /**
-     * Verify a signature.
-     *
-     * @param plainText      original text.
-     * @param signature      signature value as a byte array.
-     * @param pemCertificate the X509 certificate to be used for verification
-     * @return {@code true} if the signature was successfully verified; otherwise {@code false}.
-     * @throws CryptoException
+     * @inheritDoc
      */
+
     @Override
-    public boolean verify(byte[] plainText, byte[] signature, byte[] pemCertificate) throws CryptoException {
-        boolean isVerified = false;
+    public boolean verify(byte[] pemCertificate, String signatureAlgorithm, byte[] signature, byte[] plainText) throws CryptoException {
+        boolean isVerified;
 
         if (plainText == null || signature == null || pemCertificate == null) {
             return false;
@@ -176,24 +172,14 @@ public class CryptoPrimitives implements CryptoSuite {
             BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(pemCertificate));
             CertificateFactory certFactory = CertificateFactory.getInstance(CERTIFICATE_FORMAT);
             X509Certificate certificate = (X509Certificate) certFactory.generateCertificate(pem);
+
             isVerified = validateCertificate(certificate);
             if (isVerified) { // only proceed if cert is trusted
-                String signatureAlgorithm = certificate.getSigAlgName();
+
                 Signature sig = Signature.getInstance(signatureAlgorithm);
                 sig.initVerify(certificate);
                 sig.update(plainText);
                 isVerified = sig.verify(signature);
-                if (!isVerified) {
-                    // TODO currently fabric is trying to decide if the signature algorithm should
-                    // be passed along inside the certificate or configured manually or included in
-                    // the message itself. fabric-ca is also about to align its defaults with fabric.
-                    // while we wait, we will try both the algorithm specified in the cert and the
-                    // hardcoded default from fabric/fabric-ca
-                    sig = Signature.getInstance(DEFAULT_SIGNATURE_ALGORITHM);
-                    sig.initVerify(certificate);
-                    sig.update(plainText);
-                    isVerified = sig.verify(signature);
-                }
             }
         } catch (InvalidKeyException | CertificateException e) {
             CryptoException ex = new CryptoException("Cannot verify signature. Error is: "
@@ -229,7 +215,7 @@ public class CryptoPrimitives implements CryptoSuite {
      * @param keyStore the KeyStore which will be used to hold trusted certificates
      * @throws InvalidArgumentException
      */
-    public void setTrustStore(KeyStore keyStore) throws InvalidArgumentException {
+    void setTrustStore(KeyStore keyStore) throws InvalidArgumentException {
 
         if (keyStore == null) {
             throw new InvalidArgumentException("Need to specify a java.security.KeyStore input parameter");
@@ -286,7 +272,7 @@ public class CryptoPrimitives implements CryptoSuite {
      * @throws CryptoException
      * @throws InvalidArgumentException
      */
-    public void addCACertificateToTrustStore(Certificate caCert, String alias) throws InvalidArgumentException, CryptoException {
+    void addCACertificateToTrustStore(Certificate caCert, String alias) throws InvalidArgumentException, CryptoException {
 
         if (alias == null || alias.isEmpty()) {
             throw new InvalidArgumentException("You must assign an alias to a certificate when adding to the trust store.");
@@ -348,7 +334,7 @@ public class CryptoPrimitives implements CryptoSuite {
      * @param certPEM the certificate in PEM format
      * @return true if the certificate is trusted
      */
-    public boolean validateCertificate(byte[] certPEM) {
+    boolean validateCertificate(byte[] certPEM) {
 
         if (certPEM == null) {
             return false;
@@ -366,11 +352,11 @@ public class CryptoPrimitives implements CryptoSuite {
         }
     }
 
-    public boolean validateCertificate(Certificate cert) {
-        boolean isValidated = false;
+    boolean validateCertificate(Certificate cert) {
+        boolean isValidated;
 
         if (cert == null) {
-            return isValidated;
+            return false;
         }
 
         try {
@@ -384,7 +370,7 @@ public class CryptoPrimitives implements CryptoSuite {
 
             CertPathValidator certValidator = CertPathValidator.getInstance(CertPathValidator.getDefaultType()); // PKIX
 
-            ArrayList<Certificate> start = new ArrayList<Certificate>();
+            ArrayList<Certificate> start = new ArrayList<>();
             start.add(cert);
             CertificateFactory certFactory = CertificateFactory.getInstance(CERTIFICATE_FORMAT);
             CertPath certPath = certFactory.generateCertPath(start);
@@ -401,17 +387,13 @@ public class CryptoPrimitives implements CryptoSuite {
         return isValidated;
     } // validateCertificate
 
-    public int getSecurityLevel() {
-        return securityLevel;
-    }
-
     /**
      * Security Level determines the elliptic curve used in key generation
      *
      * @param securityLevel currently 256 or 384
      * @throws InvalidArgumentException
      */
-    public void setSecurityLevel(int securityLevel) throws InvalidArgumentException {
+    void setSecurityLevel(int securityLevel) throws InvalidArgumentException {
         if (securityLevel != 256 && securityLevel != 384) {
             throw new InvalidArgumentException("Illegal level: " + securityLevel + " must be either 256 or 384");
         }
@@ -424,11 +406,7 @@ public class CryptoPrimitives implements CryptoSuite {
         }
     }
 
-    public String getHashAlgorithm() {
-        return this.hashAlgorithm;
-    }
-
-    public void setHashAlgorithm(String algorithm) throws InvalidArgumentException {
+    void setHashAlgorithm(String algorithm) throws InvalidArgumentException {
         if (Utils.isNullOrEmpty(algorithm)
                 || !(algorithm.equalsIgnoreCase("SHA2") || algorithm.equalsIgnoreCase("SHA3"))) {
             throw new InvalidArgumentException("Illegal Hash function family: "
@@ -452,8 +430,7 @@ public class CryptoPrimitives implements CryptoSuite {
             ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(curveName);
             KeyPairGenerator g = KeyPairGenerator.getInstance(encryptionName, SECURITY_PROVIDER);
             g.initialize(ecGenSpec, new SecureRandom());
-            KeyPair pair = g.generateKeyPair();
-            return pair;
+            return g.generateKeyPair();
         } catch (Exception exp) {
             throw new CryptoException("Unable to generate key pair", exp);
         }
@@ -579,7 +556,7 @@ public class CryptoPrimitives implements CryptoSuite {
      * @return the signed data.
      * @throws CryptoException
      */
-    public byte[] ecdsaSignToBytes(ECPrivateKey privateKey, byte[] data) throws CryptoException {
+    private byte[] ecdsaSignToBytes(ECPrivateKey privateKey, byte[] data) throws CryptoException {
         try {
             final byte[] encoded = hash(data);
 
@@ -606,8 +583,7 @@ public class CryptoPrimitives implements CryptoSuite {
             seq.addObject(new ASN1Integer(sigs[0]));
             seq.addObject(new ASN1Integer(sigs[1]));
             seq.close();
-            byte[] ret = s.toByteArray();
-            return ret;
+            return s.toByteArray();
 
         } catch (Exception e) {
             throw new CryptoException("Could not sign the message using private key", e);
@@ -817,9 +793,9 @@ public class CryptoPrimitives implements CryptoSuite {
         return properties;
     }
 
-    public byte[] certificateToDER(String certricatePEM) {
+    public byte[] certificateToDER(String certificatePEM) {
 
-        try (PemReader pemReader = new PemReader(new StringReader(certricatePEM))) {
+        try (PemReader pemReader = new PemReader(new StringReader(certificatePEM))) {
             final PemObject pemObject = pemReader.readPemObject();
             return pemObject.getContent();
 
