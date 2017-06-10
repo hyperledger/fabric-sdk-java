@@ -18,11 +18,11 @@ package org.hyperledger.fabric.sdk;
 
 import java.lang.ref.WeakReference;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInvocationSpec;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
 
-import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
 
 class ChaincodeInvocationSpecDeserializer {
     private final ByteString byteString;

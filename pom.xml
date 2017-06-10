@@ -304,7 +304,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <consoleOutput>false</consoleOutput>
+                    <consoleOutput>true</consoleOutput>
                     <logViolationsToConsole>true</logViolationsToConsole>
                     <failOnViolation>true</failOnViolation>
                     <failsOnError>true</failsOnError>

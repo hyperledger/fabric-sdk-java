@@ -13,7 +13,6 @@
  */
 package org.hyperledger.fabric.sdk.helper;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import com.google.protobuf.ByteString;
 import org.bouncycastle.crypto.digests.SHA3Digest;
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.Assert;
@@ -32,7 +32,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.google.protobuf.ByteString;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 
 public class UtilsTest {
 
