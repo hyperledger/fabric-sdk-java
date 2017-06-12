@@ -92,12 +92,10 @@ class EnvelopeDeserializer {
         return type;
     }
 
-
     /**
      * @return whether this Transaction is marked as TxValidationCode.VALID
      */
     public boolean isValid() {
-
 
         return validcode == FabricTransaction.TxValidationCode.VALID_VALUE;
     }
@@ -109,7 +107,6 @@ class EnvelopeDeserializer {
 
         return validcode;
     }
-
 
     static EnvelopeDeserializer newInstance(ByteString byteString, byte b) throws InvalidProtocolBufferException {
 

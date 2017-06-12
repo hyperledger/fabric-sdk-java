@@ -60,7 +60,6 @@ public class TransactionRequest {
     /**
      * The user context to use on this request.
      *
-     *
      * @return User context that is used for signing
      */
     User getUserContext() {

@@ -25,6 +25,7 @@ public class TransactionException extends BaseException {
     public TransactionException(String message) {
         super(message);
     }
+
     public TransactionException(Throwable t) {
         super(t);
     }

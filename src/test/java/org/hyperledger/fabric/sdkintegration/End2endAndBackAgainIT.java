@@ -183,7 +183,7 @@ public class End2endAndBackAgainIT {
         try {
 
 //            final boolean changeContext = false; // BAR_CHANNEL_NAME.equals(channel.getName()) ? true : false;
-            final boolean changeContext = BAR_CHANNEL_NAME.equals(channel.getName()) ? true : false;
+            final boolean changeContext = BAR_CHANNEL_NAME.equals(channel.getName());
 
             out("Running Channel %s with a delta %d", channelName, delta);
             channel.setTransactionWaitTime(testConfig.getTransactionWaitTime());

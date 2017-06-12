@@ -129,7 +129,7 @@ public final class Utils {
      * Compress the contents of given directory using Tar and Gzip to an in-memory byte array.
      *
      * @param sourceDirectory the source directory.
-     * @param pathPrefix a path to be prepended to every file name in the .tar.gz output, or {@code null} if no prefix is required.
+     * @param pathPrefix      a path to be prepended to every file name in the .tar.gz output, or {@code null} if no prefix is required.
      * @return the compressed directory contents.
      * @throws IOException
      */
@@ -322,7 +322,6 @@ public final class Utils {
         return url == null || url.isEmpty();
     }
 
-
     /**
      * Makes logging strings which can be long or with unprintable characters be logged and trimmed.
      *
@@ -344,7 +343,6 @@ public final class Utils {
 
     private static final int NONONCE_LENGTH = 24;
 
-
     private static final SecureRandom RANDOM = new SecureRandom();
 
     public static byte[] generateNonce() {
@@ -354,8 +352,6 @@ public final class Utils {
 
         return values;
     }
-
-
 
     public static String toHexString(ByteString byteString) {
         if (byteString == null) {
@@ -378,6 +374,7 @@ public final class Utils {
     /**
      * Private constructor to prevent instantiation.
      */
-    private Utils() { }
+    private Utils() {
+    }
 
 }

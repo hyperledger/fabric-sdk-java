@@ -14,7 +14,6 @@
 
 package org.hyperledger.fabric.sdk.transaction;
 
-
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +21,6 @@ import java.util.List;
 import com.google.protobuf.ByteString;
 
 public class QueryInstantiatedChaincodesBuilder extends LSCCProposalBuilder {
-
 
     private QueryInstantiatedChaincodesBuilder() {
 
@@ -41,7 +39,6 @@ public class QueryInstantiatedChaincodesBuilder extends LSCCProposalBuilder {
     public static QueryInstantiatedChaincodesBuilder newBuilder() {
         return new QueryInstantiatedChaincodesBuilder();
     }
-
 
 }
 

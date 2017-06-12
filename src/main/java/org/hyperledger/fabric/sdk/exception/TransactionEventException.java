@@ -17,7 +17,6 @@ import org.hyperledger.fabric.sdk.BlockEvent.TransactionEvent;
 
 /**
  * The exception to be thrown when we receive an event for an invalid Transaction
- *
  */
 public class TransactionEventException extends TransactionException {
 
@@ -27,6 +26,7 @@ public class TransactionEventException extends TransactionException {
 
     /**
      * save the TransactionEvent in the exception so that caller can use for debugging
+     *
      * @param message
      * @param transactionEvent
      */
@@ -37,6 +37,7 @@ public class TransactionEventException extends TransactionException {
 
     /**
      * save the TransactionEvent in the exception so that caller can use for debugging
+     *
      * @param message
      * @param transactionEvent
      * @param throwable

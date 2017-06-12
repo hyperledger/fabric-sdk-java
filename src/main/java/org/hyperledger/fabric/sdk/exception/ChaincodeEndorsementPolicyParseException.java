@@ -12,9 +12,7 @@
  *  limitations under the License.
  */
 
-
 package org.hyperledger.fabric.sdk.exception;
-
 
 public class ChaincodeEndorsementPolicyParseException extends BaseException {
     public ChaincodeEndorsementPolicyParseException(String message) {

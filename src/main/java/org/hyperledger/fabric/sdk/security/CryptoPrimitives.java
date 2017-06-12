@@ -824,9 +824,9 @@ public class CryptoPrimitives implements CryptoSuite {
             return pemObject.getContent();
 
         } catch (IOException e) {
-           // best attempt
+            // best attempt
         }
-        return  null;
+        return null;
 
     }
 

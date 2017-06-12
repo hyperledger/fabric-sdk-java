@@ -17,6 +17,7 @@ package org.hyperledger.fabric.sdk.exception;
 public class InvokeException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
+
     public InvokeException(String message, Exception parent) {
         super(message, parent);
     }

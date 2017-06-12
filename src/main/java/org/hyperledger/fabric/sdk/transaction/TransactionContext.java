@@ -38,7 +38,7 @@ import org.hyperledger.fabric.sdk.security.CryptoSuite;
  */
 public class TransactionContext {
     private static final Config config = Config.getConfig();
-//    private static final Log logger = LogFactory.getLog(TransactionContext.class);
+    //    private static final Log logger = LogFactory.getLog(TransactionContext.class);
     //TODO right now the server does not care need to figure out
     private final ByteString nonce = ByteString.copyFrom(Utils.generateNonce());
 
@@ -111,6 +111,7 @@ public class TransactionContext {
 
     /**
      * Get the attribute names associated with this transaction context.
+     *
      * @return the attributes.
      */
     public List<String> getAttrs() {
@@ -119,6 +120,7 @@ public class TransactionContext {
 
     /**
      * Set the attributes for this transaction context.
+     *
      * @param attrs the attributes.
      */
     public void setAttrs(List<String> attrs) {

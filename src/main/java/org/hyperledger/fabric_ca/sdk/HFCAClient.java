@@ -22,7 +22,6 @@ import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyPair;
@@ -721,7 +720,7 @@ public class HFCAClient {
         }
 
         @Override
-        public Socket createSocket(Socket socket, String host, int port, boolean autoClose) throws IOException, UnknownHostException {
+        public Socket createSocket(Socket socket, String host, int port, boolean autoClose) throws IOException {
             return sslContext.getSocketFactory().createSocket(socket, host, port, autoClose);
         }
 

@@ -46,6 +46,7 @@ public class EnrollmentRequest {
 
     /**
      * The certificate signing request if it's not supplied it will be generated.
+     *
      * @param csr
      */
 
@@ -71,7 +72,7 @@ public class EnrollmentRequest {
      *
      * @param profile
      * @param label
-     * @param keypair  Keypair used to sign or create the certificate if needed.
+     * @param keypair Keypair used to sign or create the certificate if needed.
      */
     public EnrollmentRequest(String profile, String label, KeyPair keypair) {
         this.csr = null;
@@ -92,6 +93,7 @@ public class EnrollmentRequest {
 
     /**
      * The Key pair to create the signing certificate if not supplied it will be generated.
+     *
      * @param keypair
      */
     public void setKeyPair(KeyPair keypair) {

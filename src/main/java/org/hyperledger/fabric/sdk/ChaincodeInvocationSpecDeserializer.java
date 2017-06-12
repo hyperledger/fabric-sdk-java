@@ -23,7 +23,6 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInvocationSpec;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
 
-
 class ChaincodeInvocationSpecDeserializer {
     private final ByteString byteString;
     private WeakReference<ChaincodeInvocationSpec> invocationSpec;
@@ -55,6 +54,7 @@ class ChaincodeInvocationSpecDeserializer {
         return ret;
 
     }
+
     ChaincodeInputDeserializer getChaincodeInput() {
         ChaincodeInputDeserializer ret = null;
 

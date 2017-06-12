@@ -20,7 +20,7 @@ import java.lang.ref.WeakReference;
 
 import com.google.protobuf.ByteString;
 
-class TransactionPayloadDeserializer extends  PayloadDeserializer {
+class TransactionPayloadDeserializer extends PayloadDeserializer {
 
     private WeakReference<TransactionDeserializer> transactionDeserialize;
 
@@ -30,7 +30,6 @@ class TransactionPayloadDeserializer extends  PayloadDeserializer {
     }
 
     TransactionDeserializer getTransaction() {
-
 
         TransactionDeserializer ret = null;
 

@@ -44,15 +44,15 @@ public class ChaincodeResponse {
     public ChaincodeResponse(String transactionID, String chaincodeID, int istatus, String message) {
 
         switch (istatus) {
-        case 200:
-            this.status = Status.SUCCESS;
-            break;
-        case 500:
-            this.status = Status.FAILURE;
-            break;
-        default:
-            this.status = Status.UNDEFINED;
-            break;
+            case 200:
+                this.status = Status.SUCCESS;
+                break;
+            case 500:
+                this.status = Status.FAILURE;
+                break;
+            default:
+                this.status = Status.UNDEFINED;
+                break;
         }
         this.message = message;
         this.transactionID = transactionID;

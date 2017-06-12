@@ -14,7 +14,6 @@
 
 package org.hyperledger.fabric.sdk.transaction;
 
-
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +26,6 @@ import org.hyperledger.fabric.sdk.exception.ProposalException;
 
 public class JoinPeerProposalBuilder extends CSCCProposalBuilder {
     private static final Log logger = LogFactory.getLog(JoinPeerProposalBuilder.class);
-
 
     public JoinPeerProposalBuilder genesisBlock(Block genesisBlock) throws ProposalException {
 
@@ -51,13 +49,12 @@ public class JoinPeerProposalBuilder extends CSCCProposalBuilder {
     @Override
     public JoinPeerProposalBuilder context(TransactionContext context) {
         super.context(context);
-        return  this;
+        return this;
     }
 
     public static JoinPeerProposalBuilder newBuilder() {
         return new JoinPeerProposalBuilder();
     }
-
 
 }
 

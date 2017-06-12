@@ -58,6 +58,7 @@ public class InstallProposalRequest extends TransactionRequest {
 
     /**
      * The location of the chaincode.
+     *
      * @param chaincodeSourceLocation
      * @throws InvalidArgumentException
      */

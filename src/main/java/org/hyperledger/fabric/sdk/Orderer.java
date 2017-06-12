@@ -121,7 +121,6 @@ public class Orderer {
 
         logger.debug(format("Order.sendTransaction name: %s, url: %s", name, url));
 
-
         OrdererClient localOrdererClient = ordererClient;
 
         if (localOrdererClient == null || !localOrdererClient.isChannelActive()) {

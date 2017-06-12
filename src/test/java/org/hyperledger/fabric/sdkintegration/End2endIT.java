@@ -16,7 +16,6 @@ package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -27,7 +26,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.codec.binary.Hex;
 import org.hyperledger.fabric.protos.ledger.rwset.kvrwset.KvRwset;
 import org.hyperledger.fabric.sdk.BlockEvent;
@@ -661,7 +659,7 @@ public class End2endIT {
         TX_EXPECTED.put("writeset1", "Missing writeset for channel bar block 1");
     }
 
-    void blockWalker(Channel channel) throws InvalidProtocolBufferException, InvalidArgumentException, ProposalException, UnsupportedEncodingException, IOException {
+    void blockWalker(Channel channel) throws InvalidArgumentException, ProposalException, IOException {
         try {
             BlockchainInfo channelInfo = channel.queryBlockchainInfo();
 

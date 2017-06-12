@@ -74,14 +74,12 @@ public final class ChaincodeID {
             return this;
         }
 
-
         /**
          * Set path of chaincode
          *
          * @param path of chaincode
          * @return Builder
          */
-
 
         public Builder setPath(String path) {
             this.protoBuilder.setPath(path);
@@ -94,7 +92,7 @@ public final class ChaincodeID {
     }
 
     /**
-     *  Chaincode builder
+     * Chaincode builder
      *
      * @return ChaincodeID builder.
      */
@@ -102,6 +100,5 @@ public final class ChaincodeID {
     public static Builder newBuilder() {
         return new Builder();
     }
-
 
 }

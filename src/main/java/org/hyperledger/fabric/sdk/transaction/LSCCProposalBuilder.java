@@ -19,7 +19,6 @@ import org.hyperledger.fabric.sdk.exception.ProposalException;
 
 import static org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type.GOLANG;
 
-
 public class LSCCProposalBuilder extends ProposalBuilder {
     private static final String LSCC_CHAIN_NAME = "lscc";
     private static final Chaincode.ChaincodeID CHAINCODE_ID_LSCC =

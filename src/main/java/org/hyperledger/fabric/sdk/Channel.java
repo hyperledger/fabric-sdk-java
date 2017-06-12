@@ -152,7 +152,6 @@ public class Channel {
     private Block genesisBlock;
     private final boolean systemChannel;
 
-
     private Channel(String name, HFClient hfClient, Orderer orderer, ChannelConfiguration channelConfiguration, byte[][] signers) throws InvalidArgumentException, TransactionException {
         this(name, hfClient, false);
 

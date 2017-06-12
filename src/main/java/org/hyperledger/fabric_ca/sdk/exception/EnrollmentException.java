@@ -14,7 +14,6 @@
 
 package org.hyperledger.fabric_ca.sdk.exception;
 
-
 public class EnrollmentException extends BaseException {
 
     private static final long serialVersionUID = 1L;

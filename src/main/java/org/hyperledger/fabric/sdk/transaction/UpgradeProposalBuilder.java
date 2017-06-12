@@ -16,9 +16,7 @@ package org.hyperledger.fabric.sdk.transaction;
 
 public class UpgradeProposalBuilder extends InstantiateProposalBuilder {
 
-
 //    private final static Log logger = LogFactory.getLog(UpgradeProposalBuilder.class);
-
 
     private UpgradeProposalBuilder() {
         super();

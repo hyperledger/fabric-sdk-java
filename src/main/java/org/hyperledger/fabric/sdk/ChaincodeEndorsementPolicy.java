@@ -95,7 +95,7 @@ public class ChaincodeEndorsementPolicy {
                         throw new ChaincodeEndorsementPolicyParseException(format("%s expected to have list but found %s.", key, String.valueOf(vo)));
                     }
 
-                    @SuppressWarnings("unchecked") final List<Map<?, ?>> voList = (List<Map<?, ?>>) vo;
+                    @SuppressWarnings ("unchecked") final List<Map<?, ?>> voList = (List<Map<?, ?>>) vo;
 
                     if (voList.size() < matchNo) {
 
