@@ -578,7 +578,7 @@ public class End2endIT {
         for (String peerName : sampleOrg.getPeerNames()) {
             String peerLocation = sampleOrg.getPeerLocation(peerName);
 
-            Properties peerProperties = testConfig.getPeerProperties(peerName);//test properties for peer.. if any.
+            Properties peerProperties = testConfig.getPeerProperties(peerName); //test properties for peer.. if any.
             if (peerProperties == null) {
                 peerProperties = new Properties();
             }

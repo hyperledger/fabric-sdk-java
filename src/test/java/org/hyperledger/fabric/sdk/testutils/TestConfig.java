@@ -64,11 +64,11 @@ public class TestConfig {
     private static final String INTEGRATIONTESTSTLS = PROPBASE + "integrationtests.tls";
 
     private static TestConfig config;
-    private final static Properties sdkProperties = new Properties();
+    private static final Properties sdkProperties = new Properties();
     private final boolean runningTLS;
     private final boolean runningFabricCATLS;
     private final boolean runningFabricTLS;
-    private final static HashMap<String, SampleOrg> sampleOrgs = new HashMap<>();
+    private static final HashMap<String, SampleOrg> sampleOrgs = new HashMap<>();
 
     private TestConfig() {
         File loadFile;

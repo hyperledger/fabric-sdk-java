@@ -272,7 +272,7 @@ public class CryptoPrimitivesTest {
 
     @Test(expected = InvalidArgumentException.class)
     public void testAddCACertsNullInput() throws Exception {
-        crypto.addCACertificateToTrustStore((File)null, null);;
+        crypto.addCACertificateToTrustStore((File) null, null);
     }
 
     @Test(expected = CryptoException.class)
@@ -368,7 +368,7 @@ public class CryptoPrimitivesTest {
     }
 
     @Test
-    public void testValidateInvalidCertificate() throws IOException, CertificateException{
+    public void testValidateInvalidCertificate() throws IOException, CertificateException {
         BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(invalidPemCert));
 
         assertFalse(crypto.validateCertificate(invalidPemCert));
@@ -481,7 +481,7 @@ public class CryptoPrimitivesTest {
 
 
     @Test
-    public void testKeyGen() throws CryptoException{
+    public void testKeyGen() throws CryptoException {
         Assert.assertNotNull(crypto.keyGen());
         Assert.assertSame(KeyPair.class, crypto.keyGen().getClass());
     }

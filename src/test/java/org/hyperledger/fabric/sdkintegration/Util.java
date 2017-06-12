@@ -36,6 +36,11 @@ import org.hyperledger.fabric.sdk.helper.Utils;
 class Util {
 
     /**
+     * Private constructor to prevent instantiation.
+     */
+    private Util() { }
+
+    /**
      * Generate a targz inputstream from source folder.
      *
      * @param src        Source location
@@ -43,22 +48,18 @@ class Util {
      * @return return inputstream.
      * @throws IOException
      */
-
     public static InputStream generateTarGzInputStream(File src, String pathPrefix) throws IOException {
         File sourceDirectory = src;
-        //File destinationArchive = new File(target);
 
         ByteArrayOutputStream bos = new ByteArrayOutputStream(500000);
 
         String sourcePath = sourceDirectory.getAbsolutePath();
-        //	FileOutputStream destinationOutputStream = new FileOutputStream(destinationArchive);
 
         TarArchiveOutputStream archiveOutputStream = new TarArchiveOutputStream(new GzipCompressorOutputStream(new BufferedOutputStream(bos)));
         archiveOutputStream.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
 
         try {
             Collection<File> childrenFiles = org.apache.commons.io.FileUtils.listFiles(sourceDirectory, null, true);
-            //		childrenFiles.remove(destinationArchive);
 
             ArchiveEntry archiveEntry;
             FileInputStream fileInputStream;

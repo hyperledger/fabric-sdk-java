@@ -17,10 +17,8 @@ package org.hyperledger.fabric.sdkintegration;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.util.Collection;
-import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -177,6 +175,9 @@ public class End2endAndBackAgainIT {
         }
     }
 
+    // Disable MethodLength as this method is for instructional purposes and hence
+    // we don't want to split it into smaller pieces
+    // CHECKSTYLE:OFF: MethodLength
     void runChannel(HFClient client, Channel channel, SampleOrg sampleOrg, final int delta) {
         final String channelName = channel.getName();
         try {
@@ -272,7 +273,7 @@ public class End2endAndBackAgainIT {
                     upgradeProposalRequest.setChaincodeID(chaincodeID_11);
                     upgradeProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
                     upgradeProposalRequest.setFcn("init");
-                    upgradeProposalRequest.setArgs(new String[] {});// no arguments don't change the ledger see chaincode.
+                    upgradeProposalRequest.setArgs(new String[] {});    // no arguments don't change the ledger see chaincode.
 
                     ChaincodeEndorsementPolicy chaincodeEndorsementPolicy;
 
@@ -576,16 +577,16 @@ public class End2endAndBackAgainIT {
 //        }
     }
 
-    private static boolean checkInstalledChaincode(HFClient client, Peer peer, String cc_name, String cc_path, String cc_version) throws InvalidArgumentException, ProposalException {
+    private static boolean checkInstalledChaincode(HFClient client, Peer peer, String ccName, String ccPath, String ccVersion) throws InvalidArgumentException, ProposalException {
 
-        out("Checking installed chaincode: %s, at version: %s, on peer: %s", cc_name, cc_version, peer.getName());
+        out("Checking installed chaincode: %s, at version: %s, on peer: %s", ccName, ccVersion, peer.getName());
         List<ChaincodeInfo> ccinfoList = client.queryInstalledChaincodes(peer);
 
         boolean found = false;
 
         for (ChaincodeInfo ccifo : ccinfoList) {
 
-            found = cc_name.equals(ccifo.getName()) && cc_path.equals(ccifo.getPath()) && cc_version.equals(ccifo.getVersion());
+            found = ccName.equals(ccifo.getName()) && ccPath.equals(ccifo.getPath()) && ccVersion.equals(ccifo.getVersion());
             if (found) {
                 break;
             }
@@ -595,14 +596,14 @@ public class End2endAndBackAgainIT {
         return found;
     }
 
-    private static boolean checkInstantiatedChaincode(Channel channel, Peer peer, String cc_name, String cc_path, String cc_version) throws InvalidArgumentException, ProposalException {
-        out("Checking instantiated chaincode: %s, at version: %s, on peer: %s", cc_name, cc_version, peer.getName());
+    private static boolean checkInstantiatedChaincode(Channel channel, Peer peer, String ccName, String ccPath, String ccVersion) throws InvalidArgumentException, ProposalException {
+        out("Checking instantiated chaincode: %s, at version: %s, on peer: %s", ccName, ccVersion, peer.getName());
         List<ChaincodeInfo> ccinfoList = channel.queryInstantiatedChaincodes(peer);
 
         boolean found = false;
 
         for (ChaincodeInfo ccifo : ccinfoList) {
-            found = cc_name.equals(ccifo.getName()) && cc_path.equals(ccifo.getPath()) && cc_version.equals(ccifo.getVersion());
+            found = ccName.equals(ccifo.getName()) && ccPath.equals(ccifo.getPath()) && ccVersion.equals(ccifo.getVersion());
             if (found) {
                 break;
             }

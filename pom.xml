@@ -310,6 +310,7 @@
                     <failsOnError>true</failsOnError>
                     <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
                     <configLocation>checkstyle-config.xml</configLocation>
+                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
                 </configuration>
             </plugin>
             <plugin>
