@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 # simple batch script making it easier to cleanup and start a relatively fresh fabric env.
 
 if [ ! -e "docker-compose.yaml" ];then

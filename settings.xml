@@ -1,3 +1,11 @@
+<!--
+#
+# Copyright IBM Corp. All Rights Reserved.
+# Copyright DTCC All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+-->
 <settings>
     <servers>
         <server>

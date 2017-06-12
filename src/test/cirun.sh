@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 #Script for continuous integration run.  Cleanup, start docker containers for fabric and fabric ca
 #Start integration tests.
 # expect WD env set HLJSDK directory.

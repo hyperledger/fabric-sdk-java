@@ -1,3 +1,8 @@
+/*
+ Copyright IBM Corp. All Rights Reserved.
+
+ SPDX-License-Identifier: Apache-2.0
+*/
 package org.hyperledger.fabric.sdkintegration;
 
 import org.hyperledger.fabric_ca.sdkintegration.HFCAClientEnrollIT;
