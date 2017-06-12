@@ -19,17 +19,24 @@ import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.PeerException;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class PeerTest {
     static HFClient hfclient = null;
     static Peer peer = null;
 
+    static final String PEER_NAME = "peertest";
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
     @BeforeClass
     public static void setupClient() {
         try {
             hfclient = TestHFClient.newInstance();
-            peer = hfclient.newPeer("peer_", "grpc://localhost:7051");
+            peer = hfclient.newPeer(PEER_NAME, "grpc://localhost:7051");
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail("Unexpected Exception " + e.getMessage());
@@ -38,11 +45,10 @@ public class PeerTest {
 
     @Test
     public void testGetName() {
-        final String peerName = "peertest";
         Assert.assertTrue(peer != null);
         try {
-            peer = new Peer(peerName, "grpc://localhost:4", null);
-            Assert.assertEquals(peerName, peer.getName());
+            peer = new Peer(PEER_NAME, "grpc://localhost:4", null);
+            Assert.assertEquals(PEER_NAME, peer.getName());
         } catch (InvalidArgumentException e) {
             Assert.fail("Unexpected Exeception " + e.getMessage());
         }
@@ -81,8 +87,17 @@ public class PeerTest {
 
     @Test(expected = InvalidArgumentException.class)
     public void testBadURL() throws InvalidArgumentException {
-        hfclient.newPeer("peer_", " ");
+        hfclient.newPeer(PEER_NAME, " ");
         Assert.fail("Expected peer with no channel throw exception");
     }
 
+    @Test
+    public void testDuplicateChannel() throws InvalidArgumentException {
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("Can not add peer " + PEER_NAME + " to channel duplicate because it already belongs to channel duplicate.");
+
+        Channel duplicate = hfclient.newChannel("duplicate");
+        peer.setChannel(duplicate);
+        peer.setChannel(duplicate);
+    }
 }

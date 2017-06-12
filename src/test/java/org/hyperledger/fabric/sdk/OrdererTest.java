@@ -21,7 +21,9 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 
 public class OrdererTest {
@@ -29,10 +31,16 @@ public class OrdererTest {
     static Orderer orderer = null;
     static File tempFile;
 
+    static final String DEFAULT_CHANNEL_NAME = "channel";
+    static final String ORDERER_NAME = "testorderer";
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
     @BeforeClass
     public static void setupClient() throws Exception {
         hfclient = TestHFClient.newInstance();
-        orderer = hfclient.newOrderer("myorder", "grpc://localhost:5151");
+        orderer = hfclient.newOrderer(ORDERER_NAME, "grpc://localhost:5151");
     }
 
     @AfterClass
@@ -44,10 +52,28 @@ public class OrdererTest {
     }
 
     @Test
+    public void testSetDuplicateChannnel() throws InvalidArgumentException {
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("Can not add orderer " + ORDERER_NAME + " to channel channel2 because it already belongs to channel " + DEFAULT_CHANNEL_NAME + ".");
+
+        Channel channel2 = hfclient.newChannel("channel2");
+        orderer.setChannel(channel2);
+        orderer.setChannel(channel2);
+    }
+
+    @Test
+    public void testSetNullChannel() throws InvalidArgumentException {
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("setChannel Channel can not be null");
+
+        orderer.setChannel(null);
+    }
+
+    @Test
     public void testSetChannel() {
 
         try {
-            Channel channel = hfclient.newChannel("channel");
+            Channel channel = hfclient.newChannel(DEFAULT_CHANNEL_NAME);
             orderer.setChannel(channel);
             Assert.assertTrue(channel == orderer.getChannel());
 
@@ -56,10 +82,12 @@ public class OrdererTest {
         }
     }
 
-    @Test(expected = InvalidArgumentException.class)
-    public void testSetNullChannel() throws InvalidArgumentException {
-        orderer.setChannel(null);
-        Assert.fail("Expected null channel to throw exception.");
+    @Test
+    public void testNullOrdererName() throws InvalidArgumentException {
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("Invalid name for orderer");
+
+        new Orderer(null, "url", null);
     }
 
     @Test(expected = InvalidArgumentException.class)
@@ -77,19 +105,19 @@ public class OrdererTest {
     @Ignore
     public void testGetChannel() {
         try {
-            Channel channel = hfclient.newChannel("channel");
-            orderer = hfclient.newOrderer("odererName", "grpc://localhost:5151");
+            Channel channel = hfclient.newChannel(DEFAULT_CHANNEL_NAME);
+            orderer = hfclient.newOrderer("ordererName", "grpc://localhost:5151");
             channel.addOrderer(orderer);
         } catch (Exception e) {
             Assert.fail("Unexpected Exception " + e.getMessage());
         }
-        Assert.assertTrue("Test passed - ", orderer.getChannel().getName().equalsIgnoreCase("channel"));
+        Assert.assertTrue("Test passed - ", orderer.getChannel().getName().equalsIgnoreCase(DEFAULT_CHANNEL_NAME));
     }
 
     @Test(expected = Exception.class)
     public void testSendNullTransactionThrowsException() throws Exception {
         try {
-            orderer = hfclient.newOrderer("orderertest", "grpc://localhost:5151");
+            orderer = hfclient.newOrderer(ORDERER_NAME, "grpc://localhost:5151");
         } catch (InvalidArgumentException e) {
             Assert.fail("Failed to create new orderer: " + e);
         }

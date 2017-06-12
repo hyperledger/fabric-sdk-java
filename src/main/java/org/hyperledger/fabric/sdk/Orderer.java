@@ -90,7 +90,7 @@ public class Orderer {
         }
 
         if (null != this.channel && this.channel != channel) {
-            throw new InvalidArgumentException(format("Can not add orderer  %s to channel %s because it already belongs to channel %s.",
+            throw new InvalidArgumentException(format("Can not add orderer %s to channel %s because it already belongs to channel %s.",
                     name, channel.getName(), this.channel.getName()));
         }
 
