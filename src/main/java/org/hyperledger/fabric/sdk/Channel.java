@@ -88,7 +88,6 @@ import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
 import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.helper.Utils;
-import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.transaction.InstallProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.InstantiateProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.JoinPeerProposalBuilder;
@@ -102,7 +101,8 @@ import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 import org.hyperledger.fabric.sdk.transaction.UpgradeProposalBuilder;
 
 import static java.lang.String.format;
-import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
+import static org.hyperledger.fabric.sdk.User.userContextCheck;
+import static org.hyperledger.fabric.sdk.helper.Utils.isNullOrEmpty;
 import static org.hyperledger.fabric.sdk.helper.Utils.toHexString;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createChannelHeader;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getCurrentFabricTimestamp;
@@ -110,6 +110,7 @@ import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getSignatureHead
 
 /**
  * The class representing a channel with which the client SDK interacts.
+ * <p>
  */
 public class Channel {
     private static final Log logger = LogFactory.getLog(Channel.class);
@@ -118,7 +119,7 @@ public class Channel {
     private static final String SYSTEM_CHANNEL_NAME = "";
 
     // Name of the channel is only meaningful to the client
-    private String name;
+    private final String name;
 
     // The peers on this channel to which the client can connect
     private final Collection<Peer> peers = new Vector<>();
@@ -132,7 +133,7 @@ public class Channel {
 //    private Set<Anchor> anchorPeers;
 
     // The crypto primitives object
-    private CryptoSuite cryptoSuite;
+    //   private CryptoSuite cryptoSuite;
     private final Collection<Orderer> orderers = new LinkedList<>();
     HFClient client;
     private boolean initialized = false;
@@ -282,7 +283,7 @@ public class Channel {
             name = SYSTEM_CHANNEL_NAME; //It's special !
             initialized = true;
         } else {
-            if (Utils.isNullOrEmpty(name)) {
+            if (isNullOrEmpty(name)) {
                 throw new InvalidArgumentException("Channel name is invalid can not be null or empty.");
             }
         }
@@ -294,22 +295,6 @@ public class Channel {
         this.client = client;
         this.executorService = client.getExecutorService();
 
-        cryptoSuite = client.getCryptoSuite();
-
-        if (null == cryptoSuite) {
-            throw new InvalidArgumentException(format("CryptoPrimitives value in channel %s can not be null", name));
-        }
-
-        User user = client.getUserContext();
-        if (null == user) {
-            throw new InvalidArgumentException(format("User context in channel %s can not be null", name));
-        }
-
-        //enrollment = user.getEnrollment();
-
-        if (null == client.getUserContext().getEnrollment()) {
-            throw new InvalidArgumentException(format("User context %s is not enrolled.", name));
-        }
         logger.debug(format("Creating channel: %s, client context %s", isSystemChannel() ? "SYSTEM_CHANNEL" : name, client.getUserContext().getName()));
 
     }
@@ -339,14 +324,6 @@ public class Channel {
         if (null == peer) {
             throw new InvalidArgumentException("Peer is invalid can not be null.");
         }
-        if (Utils.isNullOrEmpty(peer.getName())) {
-            throw new InvalidArgumentException("Peer added to channel has no name.");
-        }
-
-        Exception e = checkGrpcUrl(peer.getUrl());
-        if (e != null) {
-            throw new InvalidArgumentException("Peer added to chan has invalid url.", e);
-        }
 
         peer.setChannel(this);
 
@@ -364,8 +341,8 @@ public class Channel {
         }
 
         Channel peerChannel = peer.getChannel();
-        if (null != peerChannel) {
-            throw new ProposalException(format("Can not add peer %s to channel %s because it already belongs to channel %s.", peer.getName(), name, peerChannel));
+        if (null != peerChannel && peerChannel != this) {
+            throw new ProposalException(format("Can not add peer %s to channel %s because it already belongs to channel %s.", peer.getName(), name, peerChannel.getName()));
 
         }
 
@@ -375,7 +352,7 @@ public class Channel {
         }
         try {
 
-            genesisBlock = getGenesisBlock(orderers.iterator().next());
+            genesisBlock = getGenesisBlock(getRandomOrderer());
             logger.debug(format("Channel %s got genesis block", name));
 
             final Channel systemChannel = newSystemChannel(client); //channel is not really created and this is targeted to system channel
@@ -391,6 +368,8 @@ public class Channel {
             SignedProposal signedProposal = getSignedProposal(transactionContext, joinProposal);
             logger.debug("Got signed proposal.");
 
+            addPeer(peer); //need to add peer.
+
             Collection<ProposalResponse> resp = sendProposalToPeers(new ArrayList<>(Collections.singletonList(peer)),
                     signedProposal, transactionContext);
 
@@ -398,17 +377,21 @@ public class Channel {
 
             if (pro.getStatus() == ProposalResponse.Status.SUCCESS) {
                 logger.info(format("Peer %s joined into channel %s", peer.getName(), name));
-                addPeer(peer);
-
             } else {
+                peers.remove(peer);
+                peer.unsetChannel();
                 throw new ProposalException(format("Join peer to channel %s failed.  Status %s, details: %s",
                         name, pro.getStatus().toString(), pro.getMessage()));
 
             }
         } catch (ProposalException e) {
+            peers.remove(peer);
+            peer.unsetChannel();
             logger.error(e);
             throw e;
         } catch (Exception e) {
+            peers.remove(peer);
+            peer.unsetChannel();
             logger.error(e);
             throw new ProposalException(e.getMessage(), e);
         }
@@ -432,11 +415,6 @@ public class Channel {
 
         if (null == orderer) {
             throw new InvalidArgumentException("Orderer is invalid can not be null.");
-        }
-
-        Exception e = checkGrpcUrl(orderer.getUrl());
-        if (e != null) {
-            throw new InvalidArgumentException("Peer added to chan has invalid url.", e);
         }
 
         logger.debug(format("Channel %s adding orderer%s, url: %s", name, orderer.getName(), orderer.getUrl()));
@@ -463,11 +441,6 @@ public class Channel {
             throw new InvalidArgumentException("EventHub is invalid can not be null.");
         }
 
-        Exception e = checkGrpcUrl(eventHub.getUrl());
-        if (e != null) {
-            throw new InvalidArgumentException("Peer added to chan has invalid url.", e);
-        }
-
         logger.debug(format("Channel %s adding event hub %s, url: %s", name, eventHub.getName(), eventHub.getUrl()));
         eventHub.setChannel(this);
         eventHub.setEventQue(channelEventQue);
@@ -482,7 +455,7 @@ public class Channel {
      * @return the peers.
      */
     public Collection<Peer> getPeers() {
-        return Collections.unmodifiableCollection(this.peers);
+        return Collections.unmodifiableCollection(peers);
     }
 
     /**
@@ -491,7 +464,7 @@ public class Channel {
      * @return number of seconds.
      */
     public int getDeployWaitTime() {
-        return this.deployWaitTime;
+        return deployWaitTime;
     }
 
     /**
@@ -538,24 +511,16 @@ public class Channel {
             throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
 
-        if (peers.size() == 0) {
+        if (isNullOrEmpty(name)) {
 
-            throw new InvalidArgumentException("Channel needs at least one peer.");
-
-        }
-        if (Utils.isNullOrEmpty(name)) {
-
-            throw new InvalidArgumentException("Can not initialize Channel without a valid name.");
+            throw new InvalidArgumentException("Can not initialize channel without a valid name.");
 
         }
         if (client == null) {
             throw new InvalidArgumentException("Can not initialize channel without a client object.");
         }
 
-        if (this.client.getUserContext() == null) {
-
-            throw new InvalidArgumentException("Can not initialize the channel without a valid user context");
-        }
+        userContextCheck(client.getUserContext());
 
         try {
             parseConfigBlock(); // Parse config block for this channel to get it's information.
@@ -600,9 +565,7 @@ public class Channel {
      */
     private void loadCACertificates() throws InvalidArgumentException, CryptoException {
         logger.debug(format("Channel %s loadCACertificates", name));
-        if (cryptoSuite == null) {
-            throw new InvalidArgumentException("Unable to load CA certificates. Channel " + name + " does not have a CryptoSuite.");
-        }
+
         if (msps == null) {
             throw new InvalidArgumentException("Unable to load CA certificates. Channel " + name + " does not have any MSPs.");
         }
@@ -612,11 +575,11 @@ public class Channel {
             logger.debug("loading certificates for MSP : " + msp.getID());
             certList = Arrays.asList(msp.getRootCerts());
             if (certList.size() > 0) {
-                cryptoSuite.loadCACertificatesAsBytes(certList);
+                client.getCryptoSuite().loadCACertificatesAsBytes(certList);
             }
             certList = Arrays.asList(msp.getIntermediateCerts());
             if (certList.size() > 0) {
-                cryptoSuite.loadCACertificatesAsBytes(certList);
+                client.getCryptoSuite().loadCACertificatesAsBytes(certList);
             }
             // not adding admin certs. Admin certs should be signed by the CA
         }
@@ -683,7 +646,7 @@ public class Channel {
                     byte[] deliverPayloadBytes = deliverPayload.toByteArray();
 
                     Envelope deliverEnvelope = Envelope.newBuilder()
-                            .setSignature(ByteString.copyFrom(cryptoSuite.sign(getEnrollment().getKey(), deliverPayloadBytes)))
+                            .setSignature(ByteString.copyFrom(client.getCryptoSuite().sign(getEnrollment().getKey(), deliverPayloadBytes)))
                             .setPayload(ByteString.copyFrom(deliverPayloadBytes))
                             .build();
 
@@ -756,6 +719,10 @@ public class Channel {
 
     boolean isSystemChannel() {
         return systemChannel;
+    }
+
+    public boolean isShutdown() {
+        return shutdown;
     }
 
     /**
@@ -839,18 +806,18 @@ public class Channel {
 
     }
 
-    /**
-     * Anchor holds the info for the anchor peers as parsed from the configuration block
-     */
-    class Anchor {
-        public String hostName;
-        public int port;
-
-        Anchor(String hostName, int port) throws InvalidArgumentException {
-            this.hostName = hostName;
-            this.port = port;
-        }
-    }
+//    /**
+//     * Anchor holds the info for the anchor peers as parsed from the configuration block
+//     */
+//    class Anchor {
+//        public String hostName;
+//        public int port;
+//
+//        Anchor(String hostName, int port) throws InvalidArgumentException {
+//            this.hostName = hostName;
+//            this.port = port;
+//        }
+//    }
 
     protected void parseConfigBlock() throws TransactionException {
 
@@ -926,10 +893,7 @@ public class Channel {
         logger.debug(format("getConfigurationBlock for channel %s", name));
 
         try {
-            if (orderers.isEmpty()) {
-                throw new TransactionException(format("No orderers for channel %s", name));
-            }
-            Orderer orderer = orderers.iterator().next();
+            Orderer orderer = getRandomOrderer();
 
             Block latestBlock = getLatestBlock(orderer);
 
@@ -981,10 +945,8 @@ public class Channel {
         logger.trace(format("getConfigurationBlock for channel %s", name));
 
         try {
-            if (orderers.isEmpty()) {
-                throw new TransactionException(format("No orderers for channel %s", name));
-            }
-            Orderer orderer = orderers.iterator().next();
+
+            Orderer orderer = getRandomOrderer();
 
             logger.trace(format("Last config index is %d", number));
 
@@ -1140,23 +1102,6 @@ public class Channel {
         return latestBlock;
     }
 
-//    private static Policy buildPolicyEnvelope(int nOf) {
-//
-//        SignaturePolicy.NOutOf nOutOf = SignaturePolicy.NOutOf.newBuilder().setN(nOf).build();
-//
-//        SignaturePolicy signaturePolicy = SignaturePolicy.newBuilder().setNOutOf(nOutOf)
-//                .build();
-//
-//        SignaturePolicyEnvelope signaturePolicyEnvelope = SignaturePolicyEnvelope.newBuilder()
-//                .setVersion(0)
-//                .setPolicy(signaturePolicy).build();
-//
-//        return Policy.newBuilder()
-//                .setType(Policy.PolicyType.SIGNATURE.getNumber())
-//                .setPolicy(signaturePolicyEnvelope.toByteString())
-//                .build();
-//    }
-
     public Collection<Orderer> getOrderers() {
         return Collections.unmodifiableCollection(orderers);
     }
@@ -1188,10 +1133,6 @@ public class Channel {
 
     public Collection<ProposalResponse> sendInstantiationProposal(InstantiateProposalRequest instantiateProposalRequest) throws InvalidArgumentException, ProposalException {
 
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-        }
-
         return sendInstantiationProposal(instantiateProposalRequest, peers);
     }
 
@@ -1206,25 +1147,14 @@ public class Channel {
      */
     public Collection<ProposalResponse> sendInstantiationProposal(InstantiateProposalRequest instantiateProposalRequest,
                                                                   Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
-
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-        }
+        checkChannelState();
         if (null == instantiateProposalRequest) {
-            throw new InvalidArgumentException("sendDeploymentProposal deploymentProposalRequest is null");
+            throw new InvalidArgumentException("InstantiateProposalRequest is null");
         }
 
         instantiateProposalRequest.setSubmitted();
 
-        if (null == peers) {
-            throw new InvalidArgumentException("sendDeploymentProposal peers is null");
-        }
-        if (peers.isEmpty()) {
-            throw new InvalidArgumentException("sendDeploymentProposal peers to send to is empty.");
-        }
-        if (!isInitialized()) {
-            throw new InvalidArgumentException("sendDeploymentProposal on channel not initialized.");
-        }
+        checkPeers(peers);
 
         try {
             TransactionContext transactionContext = getTransactionContext(instantiateProposalRequest.getUserContext());
@@ -1253,14 +1183,25 @@ public class Channel {
 
     private TransactionContext getTransactionContext(User userContext) throws InvalidArgumentException {
         userContext = userContext != null ? userContext : client.getUserContext();
-        if (userContext == null) {
-            throw new InvalidArgumentException("User context may not be null.");
-        }
-        if (cryptoSuite == null) {
-            throw new InvalidArgumentException("CryptoSuite  may not be null.");
-        }
-        // return new TransactionContext(this, userContext != null ? client.getUserContext() : userContext, cryptoSuite);
-        return new TransactionContext(this, userContext, cryptoSuite);
+
+        userContextCheck(userContext);
+
+        return new TransactionContext(this, userContext, client.getCryptoSuite());
+    }
+
+    /**
+     * Send install chaincode request proposal to all the channels on the peer.
+     *
+     * @param installProposalRequest
+     * @return
+     * @throws ProposalException
+     * @throws InvalidArgumentException
+     */
+
+    Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest)
+            throws ProposalException, InvalidArgumentException {
+        return sendInstallProposal(installProposalRequest, peers);
+
     }
 
     /**
@@ -1276,20 +1217,10 @@ public class Channel {
     Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest, Collection<Peer> peers)
             throws ProposalException, InvalidArgumentException {
 
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-        }
+        checkChannelState();
+        checkPeers(peers);
         if (null == installProposalRequest) {
-            throw new InvalidArgumentException("sendInstallProposal deploymentProposalRequest is null");
-        }
-        if (null == peers) {
-            throw new InvalidArgumentException("sendInstallProposal peers is null");
-        }
-        if (peers.isEmpty()) {
-            throw new InvalidArgumentException("sendInstallProposal peers to send to is empty.");
-        }
-        if (!isInitialized()) {
-            throw new ProposalException("sendInstallProposal on channel not initialized.");
+            throw new InvalidArgumentException("InstallProposalRequest is null");
         }
 
         try {
@@ -1343,20 +1274,11 @@ public class Channel {
     public Collection<ProposalResponse> sendUpgradeProposal(UpgradeProposalRequest upgradeProposalRequest, Collection<Peer> peers)
             throws InvalidArgumentException, ProposalException {
 
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-        }
+        checkChannelState();
+        checkPeers(peers);
+
         if (null == upgradeProposalRequest) {
-            throw new InvalidArgumentException("sendInstallProposal deploymentProposalRequest is null");
-        }
-        if (null == peers) {
-            throw new InvalidArgumentException("sendInstallProposal peers is null");
-        }
-        if (peers.isEmpty()) {
-            throw new InvalidArgumentException("sendInstallProposal peers to send to is empty.");
-        }
-        if (!isInitialized()) {
-            throw new InvalidArgumentException("sendInstallProposal on channel not initialized.");
+            throw new InvalidArgumentException("Upgradeproposal is null");
         }
 
         try {
@@ -1399,16 +1321,25 @@ public class Channel {
      */
     public BlockInfo queryBlockByHash(byte[] blockHash) throws InvalidArgumentException, ProposalException {
 
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-        }
+        checkChannelState();
+
         if (blockHash == null) {
             throw new InvalidArgumentException("blockHash parameter is null.");
         }
-        if (getPeers().isEmpty()) {
-            throw new InvalidArgumentException("Channel " + name + " does not have peers associated with it.");
+        return queryBlockByHash(getRandomPeer(), blockHash);
+    }
+
+    private void checkChannelState() throws InvalidArgumentException {
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
-        return queryBlockByHash(getPeers().iterator().next(), blockHash);
+
+        if (!initialized) {
+            throw new InvalidArgumentException(format("Channel %s has not been initialized.", name));
+        }
+
+        userContextCheck(client.getUserContext());
+
     }
 
     /**
@@ -1422,17 +1353,11 @@ public class Channel {
      */
     public BlockInfo queryBlockByHash(Peer peer, byte[] blockHash) throws InvalidArgumentException, ProposalException {
 
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-        }
-        if (peer == null) {
-            throw new InvalidArgumentException("Must give a peer to send request to.");
-        }
+        checkChannelState();
+        checkPeer(peer);
+
         if (blockHash == null) {
             throw new InvalidArgumentException("blockHash parameter is null.");
-        }
-        if (!getPeers().contains(peer)) {
-            throw new InvalidArgumentException("Channel " + name + " does not have peer " + peer.getName());
         }
 
         ProposalResponse proposalResponse;
@@ -1475,14 +1400,59 @@ public class Channel {
      * @throws ProposalException
      */
     public BlockInfo queryBlockByNumber(long blockNumber) throws InvalidArgumentException, ProposalException {
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-        }
+        return queryBlockByNumber(getRandomPeer(), blockNumber);
+    }
+
+    private Peer getRandomPeer() throws InvalidArgumentException {
 
         if (getPeers().isEmpty()) {
-            throw new InvalidArgumentException("Channel " + name + " does not have peers associated with it.");
+            throw new InvalidArgumentException("Channel " + name + " does not have any peers associated with it.");
         }
-        return queryBlockByNumber(getPeers().iterator().next(), blockNumber);
+
+        return getPeers().iterator().next(); //TODO make this random
+
+    }
+
+    private Orderer getRandomOrderer() throws InvalidArgumentException {
+
+        if (getOrderers().isEmpty()) {
+            throw new InvalidArgumentException("Channel " + name + " does not have any orderers associated with it.");
+        }
+
+        return getOrderers().iterator().next(); //TODO make this random
+
+    }
+
+    private void checkPeer(Peer peer) throws InvalidArgumentException {
+
+        if (peer == null) {
+            throw new InvalidArgumentException("Peer value is null.");
+        }
+        if (isSystemChannel()) {
+            return; // System owns no peers
+        }
+        if (!getPeers().contains(peer)) {
+            throw new InvalidArgumentException("Channel " + name + " does not have peer " + peer.getName());
+        }
+        if (peer.getChannel() != this) {
+            throw new InvalidArgumentException("Peer " + peer.getName() + " not set for channel " + name);
+        }
+
+    }
+
+    private void checkPeers(Collection<Peer> peers) throws InvalidArgumentException {
+
+        if (peers == null) {
+            throw new InvalidArgumentException("Collection of peers is null.");
+        }
+
+        if (peers.isEmpty()) {
+            throw new InvalidArgumentException("Collection of peers is empty.");
+        }
+
+        for (Peer peer : peers) {
+            checkPeer(peer);
+        }
     }
 
     /**
@@ -1495,15 +1465,9 @@ public class Channel {
      * @throws ProposalException
      */
     public BlockInfo queryBlockByNumber(Peer peer, long blockNumber) throws InvalidArgumentException, ProposalException {
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-        }
-        if (peer == null) {
-            throw new InvalidArgumentException("Must give a peer to send request to.");
-        }
-        if (!getPeers().contains(peer)) {
-            throw new InvalidArgumentException("Channel " + name + " does not have peer " + peer.getName());
-        }
+
+        checkChannelState();
+        checkPeer(peer);
 
         ProposalResponse proposalResponse;
         BlockInfo responseBlock;
@@ -1547,17 +1511,8 @@ public class Channel {
      * @throws ProposalException
      */
     public BlockInfo queryBlockByTransactionID(String txID) throws InvalidArgumentException, ProposalException {
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-        }
 
-        if (txID == null) {
-            throw new InvalidArgumentException("TxID parameter is null.");
-        }
-        if (getPeers().isEmpty()) {
-            throw new InvalidArgumentException("Channel " + name + " does not have peers associated with it.");
-        }
-        return queryBlockByTransactionID(getPeers().iterator().next(), txID);
+        return queryBlockByTransactionID(getRandomPeer(), txID);
     }
 
     /**
@@ -1571,17 +1526,11 @@ public class Channel {
      */
     public BlockInfo queryBlockByTransactionID(Peer peer, String txID) throws InvalidArgumentException, ProposalException {
 
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-        }
-        if (peer == null) {
-            throw new InvalidArgumentException("Must give a peer to send request to.");
-        }
+        checkChannelState();
+        checkPeer(peer);
+
         if (txID == null) {
             throw new InvalidArgumentException("TxID parameter is null.");
-        }
-        if (!peers.contains(peer)) {
-            throw new InvalidArgumentException("Channel " + name + " does not have peer " + peer.getName());
         }
 
         ProposalResponse proposalResponse;
@@ -1625,14 +1574,8 @@ public class Channel {
      * @throws ProposalException
      */
     public BlockchainInfo queryBlockchainInfo() throws ProposalException, InvalidArgumentException {
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-        }
 
-        if (getPeers().isEmpty()) {
-            throw new InvalidArgumentException("Channel " + name + " does not have peers associated with it.");
-        }
-        return queryBlockchainInfo(getPeers().iterator().next());
+        return queryBlockchainInfo(getRandomPeer());
     }
 
     /**
@@ -1645,16 +1588,8 @@ public class Channel {
      */
     public BlockchainInfo queryBlockchainInfo(Peer peer) throws ProposalException, InvalidArgumentException {
 
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-        }
-
-        if (peer == null) {
-            throw new InvalidArgumentException("Must give a peer to send request to.");
-        }
-        if (!peers.contains(peer)) {
-            throw new InvalidArgumentException("Channel " + name + " does not have peer " + peer.getName());
-        }
+        checkChannelState();
+        checkPeer(peer);
 
         BlockchainInfo response;
         try {
@@ -1696,17 +1631,7 @@ public class Channel {
      */
     public TransactionInfo queryTransactionByID(String txID) throws ProposalException, InvalidArgumentException {
 
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-        }
-
-        if (txID == null) {
-            throw new InvalidArgumentException("TxID parameter is null.");
-        }
-        if (getPeers().isEmpty()) {
-            throw new InvalidArgumentException("Channel " + name + " does not have peers associated with it.");
-        }
-        return queryTransactionByID(getPeers().iterator().next(), txID);
+        return queryTransactionByID(getRandomPeer(), txID);
     }
 
     /**
@@ -1720,16 +1645,9 @@ public class Channel {
      */
     public TransactionInfo queryTransactionByID(Peer peer, String txID) throws ProposalException, InvalidArgumentException {
 
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-        }
+        checkChannelState();
+        checkPeer(peer);
 
-        if (peer == null) {
-            throw new InvalidArgumentException("Must give a peer to send request to.");
-        }
-        if (!peers.contains(peer)) {
-            throw new InvalidArgumentException("Channel " + name + " does not have peer " + peer.getName());
-        }
         if (txID == null) {
             throw new InvalidArgumentException("TxID parameter is null.");
         }
@@ -1767,9 +1685,7 @@ public class Channel {
 
     Set<String> queryChannels(Peer peer) throws InvalidArgumentException, ProposalException {
 
-        if (peer == null) {
-            throw new InvalidArgumentException("Must have peer to query.");
-        }
+        checkPeer(peer);
 
         if (!isSystemChannel()) {
             throw new InvalidArgumentException("queryChannels should only be invoked on system channel.");
@@ -1834,9 +1750,7 @@ public class Channel {
 
     List<ChaincodeInfo> queryInstalledChaincodes(Peer peer) throws InvalidArgumentException, ProposalException {
 
-        if (peer == null) {
-            throw new InvalidArgumentException("Must have peer to query.");
-        }
+        checkPeer(peer);
 
         if (!isSystemChannel()) {
             throw new InvalidArgumentException("queryInstalledChaincodes should only be invoked on system channel.");
@@ -1904,13 +1818,8 @@ public class Channel {
 
     public List<ChaincodeInfo> queryInstantiatedChaincodes(Peer peer) throws InvalidArgumentException, ProposalException {
 
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-        }
-
-        if (peer == null) {
-            throw new InvalidArgumentException("Must have peer to query.");
-        }
+        checkChannelState();
+        checkPeer(peer);
 
         try {
 
@@ -2019,29 +1928,14 @@ public class Channel {
 
     private Collection<ProposalResponse> sendProposal(TransactionRequest proposalRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
 
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-        }
+        checkChannelState();
+        checkPeers(peers);
 
         if (null == proposalRequest) {
             throw new InvalidArgumentException("sendProposal queryProposalRequest is null");
         }
 
         proposalRequest.setSubmitted();
-
-        if (null == peers) {
-            throw new InvalidArgumentException("sendProposal peers is null");
-        }
-        if (peers.isEmpty()) {
-            throw new InvalidArgumentException("sendProposal peers to send to is empty.");
-        }
-        if (!isInitialized()) {
-            throw new ProposalException("sendProposal on channel not initialized.");
-        }
-
-        if (this.client.getUserContext() == null) {
-            throw new ProposalException("sendProposal on channel not initialized.");
-        }
 
         try {
             TransactionContext transactionContext = getTransactionContext(proposalRequest.getUserContext());
@@ -2068,6 +1962,7 @@ public class Channel {
     private Collection<ProposalResponse> sendProposalToPeers(Collection<Peer> peers,
                                                              SignedProposal signedProposal,
                                                              TransactionContext transactionContext) throws PeerException, InvalidArgumentException, ProposalException {
+        checkPeers(peers);
 
         class Pair {
             private final Peer peer;
@@ -2131,7 +2026,7 @@ public class Channel {
             proposalResponse.setPeer(peerFuturePair.peer);
 
             if (fabricResponse != null && transactionContext.getVerify()) {
-                proposalResponse.verify(cryptoSuite);
+                proposalResponse.verify(client.getCryptoSuite());
             }
 
             proposalResponses.add(proposalResponse);
@@ -2192,9 +2087,8 @@ public class Channel {
     public CompletableFuture<TransactionEvent> sendTransaction(Collection<ProposalResponse> proposalResponses, Collection<Orderer> orderers, User userContext) {
         try {
 
-            if (shutdown) {
-                throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-            }
+            checkChannelState();
+            userContextCheck(userContext);
 
             if (null == proposalResponses) {
 
@@ -2206,14 +2100,6 @@ public class Channel {
             }
             if (orderers.isEmpty()) {
                 throw new InvalidArgumentException("sendTransaction Orderers to send to is empty.");
-            }
-
-            if (userContext == null) {
-                throw new InvalidArgumentException("sendTransaction user context is null.");
-            }
-
-            if (!isInitialized()) {
-                throw new TransactionException("sendTransaction on channel not initialized.");
             }
 
             if (config.getProposalConsistencyValidation()) {
@@ -2300,18 +2186,14 @@ public class Channel {
 
         return Envelope.newBuilder()
                 .setPayload(transactionPayload.toByteString())
-                .setSignature(ByteString.copyFrom(cryptoSuite.sign(user.getEnrollment().getKey(), transactionPayload.toByteArray())))
+                .setSignature(ByteString.copyFrom(client.getCryptoSuite().sign(user.getEnrollment().getKey(), transactionPayload.toByteArray())))
                 .build();
 
     }
 
     byte[] getChannelConfigurationSignature(ChannelConfiguration channelConfiguration, User signer) throws InvalidArgumentException {
 
-        if (signer == null) {
-
-            throw new InvalidArgumentException("signer is null");
-
-        }
+        userContextCheck(signer);
 
         if (null == channelConfiguration) {
 

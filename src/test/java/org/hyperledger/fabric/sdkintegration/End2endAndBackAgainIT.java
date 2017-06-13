@@ -17,8 +17,10 @@ package org.hyperledger.fabric.sdkintegration;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -281,6 +283,9 @@ public class End2endAndBackAgainIT {
                     chaincodeEndorsementPolicy.fromYamlFile(new File(TEST_FIXTURES_PATH + "/sdkintegration/chaincodeendorsementpolicy.yaml"));
 
                     upgradeProposalRequest.setChaincodeEndorsementPolicy(chaincodeEndorsementPolicy);
+                    Map<String, byte[]> tmap = new HashMap<>();
+                    tmap.put("test", "data".getBytes());
+                    upgradeProposalRequest.setTransientMap(tmap);
 
                     if (changeContext) {
                         upgradeProposalRequest.setUserContext(sampleOrg.getPeerAdmin());
@@ -435,7 +440,7 @@ public class End2endAndBackAgainIT {
             }
             out("sending transaction proposal to all peers with arguments: move(a,b,%s)", moveAmount);
 
-            Collection<ProposalResponse> invokePropResp = channel.sendTransactionProposal(transactionProposalRequest, channel.getPeers());
+            Collection<ProposalResponse> invokePropResp = channel.sendTransactionProposal(transactionProposalRequest);
             for (ProposalResponse response : invokePropResp) {
                 if (response.getStatus() == Status.SUCCESS) {
                     out("Successful transaction proposal response Txid: %s from peer %s", response.getTransactionID(), response.getPeer().getName());

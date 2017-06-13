@@ -16,6 +16,11 @@ package org.hyperledger.fabric.sdk;
 
 import java.util.Set;
 
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.helper.Utils;
+
+import static java.lang.String.format;
+
 /**
  * User - Is the interface needed to be implemented by embedding application of the SDK
  */
@@ -58,9 +63,38 @@ public interface User {
     Enrollment getEnrollment();
 
     /**
-     * Get the ID provided by the user's organization.
+     * Get the Membership Service Provider Identifier provided by the user's organization.
      *
-     * @return msp ID.
+     * @return MSP Id.
      */
     String getMspId();
+
+    static void userContextCheck(User userContext) throws InvalidArgumentException {
+
+        if (userContext == null) {
+            throw new InvalidArgumentException("UserContext is null");
+        }
+        final String userName = userContext.getName();
+        if (Utils.isNullOrEmpty(userName)) {
+            throw new InvalidArgumentException("UserContext user's name missing.");
+        }
+
+        Enrollment enrollment = userContext.getEnrollment();
+        if (enrollment == null) {
+            throw new InvalidArgumentException(format("UserContext for user %s has no enrollment set.", userName));
+        }
+
+        if (Utils.isNullOrEmpty(userContext.getMspId())) {
+            throw new InvalidArgumentException(format("UserContext for user %s  has user's MSPID missing.", userName));
+        }
+
+        if (Utils.isNullOrEmpty(enrollment.getCert())) {
+            throw new InvalidArgumentException(format("UserContext for user %s enrollment missing user certificate.", userName));
+        }
+        if (null == enrollment.getKey()) {
+            throw new InvalidArgumentException(format("UserContext for user %s has Enrollment missing signing key", userName));
+        }
+
+    }
+
 }

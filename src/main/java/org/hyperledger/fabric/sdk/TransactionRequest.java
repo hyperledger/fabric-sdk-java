@@ -271,10 +271,12 @@ public class TransactionRequest {
     }
 
     void setSubmitted() throws InvalidArgumentException {
+
         if (submitted) {
             // Has already been submitted.
             throw new InvalidArgumentException("Request has been already submitted and can not be reused.");
         }
+        User.userContextCheck(userContext);
         this.submitted = true;
     }
 

@@ -92,6 +92,11 @@ public class Peer {
 
     }
 
+    void unsetChannel() {
+        channel = null;
+
+    }
+
     /**
      * The channel the peer is set on.
      *
@@ -155,9 +160,6 @@ public class Peer {
 
         try {
             return localEndorserClient.sendProposalAsync(proposal);
-        } catch (PeerException e) { //Any error start with a clean connection.
-            endorserClent = null;
-            throw e;
         } catch (Throwable t) {
             endorserClent = null;
             throw t;
@@ -179,9 +181,6 @@ public class Peer {
 
         try {
             return localEndorserClient.sendProposal(proposal);
-        } catch (PeerException e) { //Any error start with a clean connection.
-            endorserClent = null;
-            throw e;
         } catch (Throwable t) {
             endorserClent = null;
             throw t;

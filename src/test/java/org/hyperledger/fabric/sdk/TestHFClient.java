@@ -47,6 +47,7 @@ public class TestHFClient {
         someTestUSER.setMspId("testMSPID?");
 
         HFClient hfclient = HFClient.createNewInstance();
+        hfclient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
 
         someTestUSER.setEnrollment(new Enrollment() {
             @Override
@@ -78,8 +79,6 @@ public class TestHFClient {
 
         });
         hfclient.setUserContext(someTestUSER);
-
-        hfclient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
 
 
         new TestHFClient(tempFile, hfclient);

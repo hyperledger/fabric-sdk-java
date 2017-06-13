@@ -14,7 +14,11 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.security.PrivateKey;
+import java.util.Set;
+
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -64,7 +68,7 @@ public class ClientTest {
         }
     }
 
-    @Test(expected = InvalidArgumentException.class)
+    @Test (expected = InvalidArgumentException.class)
     public void testBadURL() throws InvalidArgumentException {
         hfclient.newPeer("peer_", " ");
         Assert.fail("Expected peer with no channel throw exception");
@@ -85,6 +89,182 @@ public class ClientTest {
     public void testBadAddress() throws InvalidArgumentException {
         hfclient.newOrderer("xx", "xxxxxx");
         Assert.fail("Orderer allowed setting bad URL.");
+    }
+
+    @Test (expected = InvalidArgumentException.class)
+    public void testBadCryptoSuite() throws InvalidArgumentException {
+        HFClient.createNewInstance()
+                .newOrderer("xx", "xxxxxx");
+        Assert.fail("Orderer allowed setting no cryptoSuite");
+    }
+
+    @Test
+    public void testGoodMockUser() throws Exception {
+        HFClient client = HFClient.createNewInstance();
+        client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+        client.setUserContext(new MockUser());
+        Orderer orderer = hfclient.newOrderer("justMockme", "grpc://localhost:99"); // test mock should work.
+        Assert.assertNotNull(orderer);
+
+    }
+
+    @Test (expected = InvalidArgumentException.class)
+    public void testBadUserContextNull() throws Exception {
+        HFClient client = HFClient.createNewInstance();
+        client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+
+        client.setUserContext(null);
+
+    }
+
+    @Test (expected = InvalidArgumentException.class)
+    public void testBadUserNameNull() throws Exception {
+        HFClient client = HFClient.createNewInstance();
+        client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+
+        MockUser mockUser = new MockUser();
+        mockUser.name = null;
+
+        client.setUserContext(mockUser);
+
+    }
+
+    @Test (expected = InvalidArgumentException.class)
+    public void testBadUserNameEmpty() throws Exception {
+        HFClient client = HFClient.createNewInstance();
+        client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+
+        MockUser mockUser = new MockUser();
+        mockUser.name = "";
+
+        client.setUserContext(mockUser);
+
+    }
+
+    @Test (expected = InvalidArgumentException.class)
+    public void testBadUserMSPIDNull() throws Exception {
+        HFClient client = HFClient.createNewInstance();
+        client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+
+        MockUser mockUser = new MockUser();
+        mockUser.mspId = null;
+
+        client.setUserContext(mockUser);
+
+    }
+
+    @Test (expected = InvalidArgumentException.class)
+    public void testBadUserMSPIDEmpty() throws Exception {
+        HFClient client = HFClient.createNewInstance();
+        client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+
+        MockUser mockUser = new MockUser();
+        mockUser.mspId = "";
+
+        client.setUserContext(mockUser);
+
+    }
+
+    @Test (expected = InvalidArgumentException.class)
+    public void testBadEnrollmentNull() throws Exception {
+        HFClient client = HFClient.createNewInstance();
+        client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+
+        MockUser mockUser = new MockUser();
+        mockUser.enrollment = null;
+
+        client.setUserContext(mockUser);
+
+    }
+
+    @Test (expected = InvalidArgumentException.class)
+    public void testBadEnrollmentBadCert() throws Exception {
+        HFClient client = HFClient.createNewInstance();
+        client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+
+        MockUser mockUser = new MockUser();
+        mockUser.enrollment.cert = null;
+
+        client.setUserContext(mockUser);
+
+    }
+
+    @Test (expected = InvalidArgumentException.class)
+    public void testBadEnrollmentBadKey() throws Exception {
+        HFClient client = HFClient.createNewInstance();
+        client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+
+        MockUser mockUser = new MockUser();
+        mockUser.enrollment.privateKey = null;
+
+        client.setUserContext(mockUser);
+
+    }
+
+    static class MockEnrollment implements Enrollment {
+        public String cert = "mockCert";
+        public PrivateKey privateKey = new PrivateKey() {
+            @Override
+            public String getAlgorithm() {
+                return null;
+            }
+
+            @Override
+            public String getFormat() {
+                return null;
+            }
+
+            @Override
+            public byte[] getEncoded() {
+                return new byte[0];
+            }
+        };
+
+        @Override
+        public PrivateKey getKey() {
+            return privateKey;
+        }
+
+        @Override
+        public String getCert() {
+            return cert;
+        }
+    }
+
+    static class MockUser implements User {
+        public String name = "MockMe";
+        public String mspId = "MockMSPID";
+        public MockEnrollment enrollment = new MockEnrollment();
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public Set<String> getRoles() {
+            return null;
+        }
+
+        @Override
+        public String getAccount() {
+            return null;
+        }
+
+        @Override
+        public String getAffiliation() {
+            return null;
+        }
+
+        @Override
+        public Enrollment getEnrollment() {
+            return enrollment;
+        }
+
+        @Override
+        public String getMspId() {
+            return mspId;
+        }
     }
 
 }

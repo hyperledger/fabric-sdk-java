@@ -32,10 +32,10 @@ import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
-import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 import static java.lang.String.format;
+import static org.hyperledger.fabric.sdk.User.userContextCheck;
 
 public class HFClient {
 
@@ -84,8 +84,10 @@ public class HFClient {
             throw new InvalidArgumentException("CryptoSuite may only be set once.");
 
         }
+
+        cryptoSuite.init();
         this.cryptoSuite = cryptoSuite;
-        this.cryptoSuite.init();
+
     }
 
     /**
@@ -106,6 +108,7 @@ public class HFClient {
      */
 
     public Channel newChannel(String name) throws InvalidArgumentException {
+        clientCheck();
         logger.trace("Creating channel :" + name);
         Channel newChannel = Channel.createNewInstance(name, this);
         channels.put(name, newChannel);
@@ -127,6 +130,7 @@ public class HFClient {
 
     public Channel newChannel(String name, Orderer orderer, ChannelConfiguration channelConfiguration, byte[]... channelConfigurationSignatures) throws TransactionException, InvalidArgumentException {
 
+        clientCheck();
         logger.trace("Creating channel :" + name);
         Channel newChannel = Channel.createNewInstance(name, this, orderer, channelConfiguration, channelConfigurationSignatures);
         channels.put(name, newChannel);
@@ -166,6 +170,7 @@ public class HFClient {
      */
 
     public Peer newPeer(String name, String grpcURL, Properties properties) throws InvalidArgumentException {
+        clientCheck();
         return Peer.createNewInstance(name, grpcURL, properties);
     }
 
@@ -179,6 +184,7 @@ public class HFClient {
      */
 
     public Peer newPeer(String name, String grpcURL) throws InvalidArgumentException {
+        clientCheck();
         return Peer.createNewInstance(name, grpcURL, null);
     }
 
@@ -245,37 +251,14 @@ public class HFClient {
 
     public void setUserContext(User userContext) throws InvalidArgumentException {
 
-        if (userContext == null) {
-            throw new InvalidArgumentException("setUserContext is null");
+        if (null == cryptoSuite) {
+            throw new InvalidArgumentException("No cryptoSuite has been set.");
         }
-        final String userName = userContext.getName();
-        if (Utils.isNullOrEmpty(userName)) {
-            throw new InvalidArgumentException("setUserContext user's name is missing");
-        }
-
-        Enrollment enrollment = userContext.getEnrollment();
-        if (enrollment == null) {
-            throw new InvalidArgumentException(format("setUserContext for user %s has no Enrollment set", userName));
-        }
-
-        if (Utils.isNullOrEmpty(userContext.getMspId())) {
-            throw new InvalidArgumentException(format("setUserContext for user %s  has user's MSPID is missing", userName));
-        }
-
-        if (Utils.isNullOrEmpty(userContext.getName())) {
-            throw new InvalidArgumentException("setUserContext user's name is missing");
-        }
-
-        if (Utils.isNullOrEmpty(enrollment.getCert())) {
-            throw new InvalidArgumentException(format("setUserContext for user %s Enrollment missing user certificate.", userName));
-        }
-        if (null == enrollment.getKey()) {
-            throw new InvalidArgumentException(format("setUserContext for user %s has Enrollment missing signing key", userName));
-        }
+        userContextCheck(userContext);
+        this.userContext = userContext;
 
         logger.debug(format("Setting user context to MSPID: %s user: %s", userContext.getMspId(), userContext.getName()));
 
-        this.userContext = userContext;
     }
 
     /**
@@ -311,6 +294,7 @@ public class HFClient {
      */
 
     public EventHub newEventHub(String name, String grpcURL, Properties properties) throws InvalidArgumentException {
+        clientCheck();
         return EventHub.createNewInstance(name, grpcURL, executorService, properties);
     }
 
@@ -324,6 +308,7 @@ public class HFClient {
      */
 
     public EventHub newEventHub(String name, String grpcURL) throws InvalidArgumentException {
+        clientCheck();
         return newEventHub(name, grpcURL, null);
     }
 
@@ -337,6 +322,7 @@ public class HFClient {
      */
 
     public Orderer newOrderer(String name, String grpcURL) throws InvalidArgumentException {
+        clientCheck();
         return newOrderer(name, grpcURL, null);
     }
 
@@ -373,6 +359,7 @@ public class HFClient {
      */
 
     public Orderer newOrderer(String name, String grpcURL, Properties properties) throws InvalidArgumentException {
+        clientCheck();
         return Orderer.createNewInstance(name, grpcURL, properties);
     }
 
@@ -386,9 +373,8 @@ public class HFClient {
      */
     public Set<String> queryChannels(Peer peer) throws InvalidArgumentException, ProposalException {
 
-        if (userContext == null) {
-            throw new InvalidArgumentException("UserContext has not been set.");
-        }
+        clientCheck();
+
         if (null == peer) {
 
             throw new InvalidArgumentException("peer set to null");
@@ -421,9 +407,8 @@ public class HFClient {
 
     public List<ChaincodeInfo> queryInstalledChaincodes(Peer peer) throws InvalidArgumentException, ProposalException {
 
-        if (userContext == null) {
-            throw new InvalidArgumentException("UserContext has not been set.");
-        }
+        clientCheck();
+
         if (null == peer) {
 
             throw new InvalidArgumentException("peer set to null");
@@ -454,6 +439,8 @@ public class HFClient {
 
     public byte[] getChannelConfigurationSignature(ChannelConfiguration channelConfiguration, User signer) throws InvalidArgumentException {
 
+        clientCheck();
+
         Channel systemChannel = Channel.newSystemChannel(this);
         return systemChannel.getChannelConfigurationSignature(channelConfiguration, signer);
 
@@ -472,10 +459,22 @@ public class HFClient {
     public Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest, Collection<Peer> peers)
             throws ProposalException, InvalidArgumentException {
 
+        clientCheck();
+
         installProposalRequest.setSubmitted();
         Channel systemChannel = Channel.newSystemChannel(this);
 
         return systemChannel.sendInstallProposal(installProposalRequest, peers);
+
+    }
+
+    private void clientCheck() throws InvalidArgumentException {
+
+        if (null == cryptoSuite) {
+            throw new InvalidArgumentException("No cryptoSuite has been set.");
+        }
+
+        userContextCheck(userContext);
 
     }
 

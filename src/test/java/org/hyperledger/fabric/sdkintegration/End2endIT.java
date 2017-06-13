@@ -199,7 +199,6 @@ public class End2endIT {
             runChannel(client, barChannel, true, sampleOrg, 100); //run a newly constructed bar channel with different b value!
             //let bar channel just shutdown so we have both scenarios.
 
-
             out("\nTraverse the blocks for chain %s ", barChannel.getName());
             blockWalker(barChannel);
             out("That's all folks!");
@@ -218,6 +217,7 @@ public class End2endIT {
         try {
 
             final String channelName = channel.getName();
+            boolean isFooChain = FOO_CHANNEL_NAME.equals(channelName);
             out("Running channel %s", channelName);
             channel.setTransactionWaitTime(testConfig.getTransactionWaitTime());
             channel.setDeployWaitTime(testConfig.getDeployWaitTime());
@@ -245,7 +245,7 @@ public class End2endIT {
                 InstallProposalRequest installProposalRequest = client.newInstallProposalRequest();
                 installProposalRequest.setChaincodeID(chaincodeID);
 
-                if (FOO_CHANNEL_NAME.equals(channel.getName())) {
+                if (isFooChain) {
                     // on foo chain install from directory.
 
                     ////For GO language and serving just a single user, chaincodeSource is mostly likely the users GOPATH
@@ -321,7 +321,12 @@ public class End2endIT {
             successful.clear();
             failed.clear();
 
-            responses = channel.sendInstantiationProposal(instantiateProposalRequest, channel.getPeers());
+            if (isFooChain) {  //Send responses both ways with specifying peers and by using those on the channel.
+                responses = channel.sendInstantiationProposal(instantiateProposalRequest, channel.getPeers());
+            } else {
+                responses = channel.sendInstantiationProposal(instantiateProposalRequest);
+
+            }
             for (ProposalResponse response : responses) {
                 if (response.isVerified() && response.getStatus() == ProposalResponse.Status.SUCCESS) {
                     successful.add(response);
@@ -491,10 +496,10 @@ public class End2endIT {
             // We can only send channel queries to peers that are in the same org as the SDK user context
             // Get the peers from the current org being used and pick one randomly to send the queries to.
             Set<Peer> peerSet = sampleOrg.getPeers();
-            Peer queryPeer = peerSet.iterator().next();
-            out("Using peer %s for channel queries", queryPeer.getName());
+            //  Peer queryPeer = peerSet.iterator().next();
+            //   out("Using peer %s for channel queries", queryPeer.getName());
 
-            BlockchainInfo channelInfo = channel.queryBlockchainInfo(queryPeer);
+            BlockchainInfo channelInfo = channel.queryBlockchainInfo();
             out("Channel info for : " + channelName);
             out("Channel height: " + channelInfo.getHeight());
             String chainCurrentHash = Hex.encodeHexString(channelInfo.getCurrentBlockHash());
@@ -503,7 +508,7 @@ public class End2endIT {
             out("Chainl previous block hash: " + chainPreviousHash);
 
             // Query by block number. Should return latest block, i.e. block number 2
-            BlockInfo returnedBlock = channel.queryBlockByNumber(queryPeer, channelInfo.getHeight() - 1);
+            BlockInfo returnedBlock = channel.queryBlockByNumber(channelInfo.getHeight() - 1);
             String previousHash = Hex.encodeHexString(returnedBlock.getPreviousHash());
             out("queryBlockByNumber returned correct block with blockNumber " + returnedBlock.getBlockNumber()
                     + " \n previous_hash " + previousHash);
@@ -512,17 +517,17 @@ public class End2endIT {
 
             // Query by block hash. Using latest block's previous hash so should return block number 1
             byte[] hashQuery = returnedBlock.getPreviousHash();
-            returnedBlock = channel.queryBlockByHash(queryPeer, hashQuery);
+            returnedBlock = channel.queryBlockByHash(hashQuery);
             out("queryBlockByHash returned block with blockNumber " + returnedBlock.getBlockNumber());
             assertEquals(channelInfo.getHeight() - 2, returnedBlock.getBlockNumber());
 
             // Query block by TxID. Since it's the last TxID, should be block 2
-            returnedBlock = channel.queryBlockByTransactionID(queryPeer, testTxID);
+            returnedBlock = channel.queryBlockByTransactionID(testTxID);
             out("queryBlockByTxID returned block with blockNumber " + returnedBlock.getBlockNumber());
             assertEquals(channelInfo.getHeight() - 1, returnedBlock.getBlockNumber());
 
             // query transaction by ID
-            TransactionInfo txInfo = channel.queryTransactionByID(queryPeer, testTxID);
+            TransactionInfo txInfo = channel.queryTransactionByID(testTxID);
             out("QueryTransactionByID returned TransactionInfo: txID " + txInfo.getTransactionID()
                     + "\n     validation code " + txInfo.getValidationCode().getNumber());
 
@@ -542,6 +547,9 @@ public class End2endIT {
         //
 
         out("Constructing channel %s", name);
+
+        //Only peer Admin org
+        client.setUserContext(sampleOrg.getPeerAdmin());
 
         Collection<Orderer> orderers = new LinkedList<>();
 
@@ -564,9 +572,6 @@ public class End2endIT {
         orderers.remove(anOrderer);
 
         ChannelConfiguration channelConfiguration = new ChannelConfiguration(new File(TEST_FIXTURES_PATH + "/sdkintegration/e2e-2Orgs/channel/" + name + ".tx"));
-
-        //Only peer Admin org
-        client.setUserContext(sampleOrg.getPeerAdmin());
 
         //Create channel that has only one signer that is this orgs peer admin. If channel creation policy needed more signature they would need to be added too.
         Channel newChannel = client.newChannel(name, anOrderer, channelConfiguration, client.getChannelConfigurationSignature(channelConfiguration, sampleOrg.getPeerAdmin()));
@@ -654,7 +659,7 @@ public class End2endIT {
     private static final Map<String, String> TX_EXPECTED;
 
     static {
-        TX_EXPECTED = new HashMap<String, String>();
+        TX_EXPECTED = new HashMap<>();
         TX_EXPECTED.put("readset1", "Missing readset for channel bar block 1");
         TX_EXPECTED.put("writeset1", "Missing writeset for channel bar block 1");
     }
