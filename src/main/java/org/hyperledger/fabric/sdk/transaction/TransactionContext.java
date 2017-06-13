@@ -14,7 +14,6 @@
 
 package org.hyperledger.fabric.sdk.transaction;
 
-import java.util.List;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
@@ -54,7 +53,7 @@ public class TransactionContext {
 
     private final String txID;
 
-    private List<String> attrs;
+    //private List<String> attrs;
     private long proposalWaitTime = config.getProposalWaitTime();
     private final Identities.SerializedIdentity identity;
 
@@ -114,18 +113,18 @@ public class TransactionContext {
      *
      * @return the attributes.
      */
-    public List<String> getAttrs() {
-        return this.attrs;
-    }
+    //public List<String> getAttrs() {
+    //    return this.attrs;
+    //}
 
     /**
      * Set the attributes for this transaction context.
      *
      * @param attrs the attributes.
      */
-    public void setAttrs(List<String> attrs) {
-        this.attrs = attrs;
-    }
+    //public void setAttrs(List<String> attrs) {
+    //    this.attrs = attrs;
+    //}
 
     /**
      * Gets the timeout for a single proposal request to endorser in milliseconds.
@@ -196,15 +195,6 @@ public class TransactionContext {
         }
     }
 
-    String getMSPID() {
-        return user.getMspId();
-    }
-
-    String getCreator() {
-        return getUser().getEnrollment().getCert();
-
-    }
-
     public String getChannelID() {
         return getChannel().getName();
     }
@@ -222,12 +212,13 @@ public class TransactionContext {
     }
 
     public ByteString signByteStrings(ByteString... bs) throws CryptoException {
-        assert bs != null;
         if (bs == null) {
             return null;
         }
-        assert bs.length != 0;
         if (bs.length == 0) {
+            return null;
+        }
+        if (bs.length == 1 && bs[0] == null) {
             return null;
         }
 
@@ -240,19 +231,19 @@ public class TransactionContext {
     }
 
     public ByteString[] signByteStrings(User[] users, ByteString... bs) throws CryptoException {
-        assert bs != null;
         if (bs == null) {
             return null;
         }
-        assert bs.length != 0;
         if (bs.length == 0) {
+            return null;
+        }
+        if (bs.length == 1 && bs[0] == null) {
             return null;
         }
 
         ByteString f = bs[0];
         for (int i = 1; i < bs.length; ++i) {
             f = f.concat(bs[i]);
-
         }
 
         final byte[] signbytes = f.toByteArray();

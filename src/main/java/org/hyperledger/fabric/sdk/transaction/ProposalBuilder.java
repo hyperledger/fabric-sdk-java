@@ -53,6 +53,8 @@ public class ProposalBuilder {
     protected TransactionRequest request;
     protected ChaincodeSpec.Type ccType = ChaincodeSpec.Type.GOLANG;
     protected Map<String, byte[]> transientMap = null;
+
+    // The channel that is being targeted . note blank string means no specific channel
     private String channelID;
 
     protected ProposalBuilder() {
@@ -90,16 +92,6 @@ public class ProposalBuilder {
         transientMap = request.getTransientMap();
 
         return this;
-    }
-
-    /**
-     * The channel that is being targeted . note blank string means no specific channel.
-     *
-     * @param channelID
-     */
-
-    public void channelID(String channelID) {
-        this.channelID = channelID;
     }
 
     public FabricProposal.Proposal build() throws ProposalException {

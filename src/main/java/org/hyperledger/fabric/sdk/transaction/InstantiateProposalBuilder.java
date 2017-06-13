@@ -108,7 +108,7 @@ public class InstantiateProposalBuilder extends LSCCProposalBuilder {
         }
     }
 
-    private void createNetModeTransaction() throws Exception {
+    private void createNetModeTransaction() {
         logger.debug("NetModeTransaction");
 
         List<String> modlist = new LinkedList<>();
