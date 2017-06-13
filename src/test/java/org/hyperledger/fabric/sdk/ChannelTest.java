@@ -14,13 +14,24 @@
 
 package org.hyperledger.fabric.sdk;
 
+//Allow throwing undeclared checked execeptions in mock code.
+//CHECKSTYLE.OFF: IllegalImport
+
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.orderer.Ab;
+import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.exception.PeerException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
 import org.junit.Assert;
@@ -28,8 +39,14 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import sun.misc.Unsafe;
 
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.setField;
+
+//CHECKSTYLE.ON: IllegalImport
+
+
+
 
 public class ChannelTest {
     private static HFClient hfclient = null;
@@ -258,7 +275,6 @@ public class ChannelTest {
 
     @Test
     public void testChannelShutdown() {
-        Channel testChannel = null;
 
         try {
 
@@ -267,7 +283,7 @@ public class ChannelTest {
         } catch (Exception e) {
 
             Assert.assertTrue(e.getClass() == InvalidArgumentException.class);
-            Assert.assertTrue(testChannel.isInitialized());
+            Assert.assertTrue(shutdownChannel.isInitialized());
         }
 
     }
@@ -604,5 +620,131 @@ public class ChannelTest {
         channel.queryTransactionByID(null);
 
     }
+
+    @Test
+    public void testQueryInstalledChaincodesThrowInterrupted() throws Exception {
+
+        thrown.expect(ProposalException.class);
+        thrown.expectMessage("You interrupting me?");
+
+        final Channel channel = createRunningChannel(null);
+        Peer peer = channel.getPeers().iterator().next();
+
+        setField(peer, "endorserClent", new MockEndorserClient(new InterruptedException("You interrupting me?")));
+
+        hfclient.queryChannels(peer);
+
+    }
+
+    @Test
+    public void testQueryInstalledChaincodesThrowPeerException() throws Exception {
+
+        thrown.expect(ProposalException.class);
+        thrown.expectMessage("rick did this:)");
+
+        final Channel channel = createRunningChannel(null);
+        Peer peer = channel.getPeers().iterator().next();
+
+        setField(peer, "endorserClent", new MockEndorserClient(new PeerException("rick did this:)")));
+
+        hfclient.queryChannels(peer);
+
+    }
+
+    @Test
+    public void testQueryInstalledChaincodesThrowTimeoutException() throws Exception {
+
+        thrown.expect(ProposalException.class);
+        thrown.expectMessage("What time is it?");
+
+        final Channel channel = createRunningChannel(null);
+        Peer peer = channel.getPeers().iterator().next();
+
+        setField(peer, "endorserClent", new MockEndorserClient(new PeerException("What time is it?")));
+
+        hfclient.queryChannels(peer);
+
+    }
+
+    @Test
+    public void testQueryInstalledChaincodesERROR() throws Exception {
+
+        thrown.expect(Error.class);
+        thrown.expectMessage("Error bad bad bad");
+
+        final Channel channel = createRunningChannel(null);
+        Peer peer = channel.getPeers().iterator().next();
+
+        final SettableFuture<FabricProposalResponse.ProposalResponse> settableFuture = SettableFuture.create();
+        settableFuture.setException(new Error("Error bad bad bad"));
+        setField(peer, "endorserClent", new MockEndorserClient(settableFuture));
+
+        hfclient.queryChannels(peer);
+
+    }
+
+    @Test
+    public void testQueryInstalledChaincodesStatusRuntimeException() throws Exception {
+
+        thrown.expect(ProposalException.class);
+        thrown.expectMessage("ABORTED");
+
+        final Channel channel = createRunningChannel(null);
+        Peer peer = channel.getPeers().iterator().next();
+
+        final SettableFuture<FabricProposalResponse.ProposalResponse> settableFuture = SettableFuture.create();
+        settableFuture.setException(new StatusRuntimeException(Status.ABORTED));
+        setField(peer, "endorserClent", new MockEndorserClient(settableFuture));
+
+        hfclient.queryChannels(peer);
+
+    }
+
+    class MockEndorserClient extends EndorserClient {
+        final Throwable throwThis;
+        private final ListenableFuture<FabricProposalResponse.ProposalResponse> returnedFuture;
+
+        MockEndorserClient(Throwable throwThis) {
+            super(new Endpoint("grpc://loclhost:99", null).getChannelBuilder());
+            if (throwThis == null) {
+                throw new IllegalArgumentException("Can't throw a null!");
+            }
+            this.throwThis = throwThis;
+            this.returnedFuture = null;
+        }
+
+        MockEndorserClient(ListenableFuture<FabricProposalResponse.ProposalResponse> returnedFuture) {
+            super(new Endpoint("grpc://loclhost:99", null).getChannelBuilder());
+            this.throwThis = null;
+            this.returnedFuture = returnedFuture;
+        }
+
+        @Override
+        public ListenableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal) throws PeerException {
+            if (throwThis != null) {
+                getUnsafe().throwException(throwThis);
+            }
+            return returnedFuture;
+
+        }
+
+        @Override
+        public boolean isChannelActive() {
+
+            return true;
+
+        }
+
+        private Unsafe getUnsafe() {  //lets us throw undeclared exceptions.
+            try {
+                Field field = Unsafe.class.getDeclaredField("theUnsafe");
+                field.setAccessible(true);
+                return (Unsafe) field.get(null);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
 
 }

@@ -1710,6 +1710,10 @@ public class Channel {
             }
 
             ProposalResponse proposalResponse = proposalResponses.iterator().next();
+            if (proposalResponse.getStatus() != ChaincodeResponse.Status.SUCCESS) {
+                throw new ProposalException(format("Failed exception message is %s, status is %d", proposalResponse.getMessage(), proposalResponse.getStatus().getStatus()));
+
+            }
 
             FabricProposalResponse.ProposalResponse fabricResponse = proposalResponse.getProposalResponse();
             if (null == fabricResponse) {
@@ -1977,7 +1981,16 @@ public class Channel {
         for (Peer peer : peers) {
             logger.debug(format("Channel %s send proposal to peer %s at url %s",
                     name, peer.getName(), peer.getUrl()));
-            peerFuturePairs.add(new Pair(peer, peer.sendProposalAsync(signedProposal)));
+            Future<FabricProposalResponse.ProposalResponse> proposalResponseListenableFuture;
+            try {
+                proposalResponseListenableFuture = peer.sendProposalAsync(signedProposal);
+            } catch (Exception e) {
+                proposalResponseListenableFuture = new CompletableFuture<>();
+                ((CompletableFuture) proposalResponseListenableFuture).completeExceptionally(e);
+
+            }
+            peerFuturePairs.add(new Pair(peer, proposalResponseListenableFuture));
+
         }
 
         Collection<ProposalResponse> proposalResponses = new ArrayList<>();
@@ -1985,36 +1998,34 @@ public class Channel {
 
             FabricProposalResponse.ProposalResponse fabricResponse = null;
             String message;
-            int status;
+            int status = 500;
+            final String peerName = peerFuturePair.peer.getName();
             try {
                 fabricResponse = peerFuturePair.future.get(transactionContext.getProposalWaitTime(), TimeUnit.MILLISECONDS);
                 message = fabricResponse.getResponse().getMessage();
                 status = fabricResponse.getResponse().getStatus();
                 logger.debug(format("Channel %s got back from peer %s status: %d, message: %s",
-                        name, peerFuturePair.peer.getName(), status, message));
+                        name, peerName, status, message));
             } catch (InterruptedException e) {
-                message = "Sending proposal to " + peerFuturePair.peer.getName() + " failed because of interruption";
-                status = 500;
+                message = "Sending proposal to " + peerName + " failed because of interruption";
                 logger.error(message, e);
             } catch (TimeoutException e) {
-                message = format("Sending proposal to " + peerFuturePair.peer.getName() + " failed because of timeout(%d milliseconds) expiration",
+                message = format("Sending proposal to " + peerName + " failed because of timeout(%d milliseconds) expiration",
                         transactionContext.getProposalWaitTime());
-                status = 500;
                 logger.error(message, e);
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
                 if (cause instanceof Error) {
-                    String emsg = "Sending proposal to " + peerFuturePair.peer.getName() + " failed because of " + cause.getMessage();
+                    String emsg = "Sending proposal to " + peerName + " failed because of " + cause.getMessage();
                     logger.error(emsg, new Exception(cause)); //wrapped in exception to get full stack trace.
                     throw (Error) cause;
                 } else {
                     if (cause instanceof StatusRuntimeException) {
-                        message = format("Sending proposal to " + peerFuturePair.peer.getName() + " failed because of gRPC failure=%s",
+                        message = format("Sending proposal to " + peerName + " failed because of: gRPC failure=%s",
                                 ((StatusRuntimeException) cause).getStatus());
                     } else {
-                        message = format("Sending proposal to " + peerFuturePair.peer.getName() + " failed because of %s", cause.getMessage());
+                        message = format("Sending proposal to " + peerName + " failed because of: %s", cause.getMessage());
                     }
-                    status = 500;
                     logger.error(message, new Exception(cause)); //wrapped in exception to get full stack trace.
                 }
             }
