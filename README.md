@@ -63,8 +63,8 @@ You should use the following commit levels of the Hyperledger projects:
 
 | Project        | Commit level                               | Date                       |
 |:---------------|:------------------------------------------:|---------------------------:|
-| fabric         | d25b99453764b49050e3bdfe8745f530f74fee2b   | Jun 8 13:22:35 2017 +0000  |
-| fabric-ca      | a2fb8ea3cf31e70d7fc20ed8a142f1b1a917ed05   | Jun 5 18:08:17 2017 +0000  |
+| fabric         | 66655f733435685f47cb3f16674c79f00ee0b123   | Jun 14 04:26:47 2017 +0000 |
+| fabric-ca      | 7555a9b9bc1fded60b74ceee9bc64d3af2d080fb   | Jun  9 16:42:57 2017 +0000 |
 
  You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
 
@@ -326,6 +326,26 @@ JIRA Fields should be:
 </dl>
 
 Pleases provide as much information that you can with the issue you're experiencing: stack traces  logs.
+Logging for the SDK can be enabled with setting environment variables:
+
+ORG_HYPERLEDGER_FABRIC_SDK_LOGLEVEL=TRACE
+
+ORG_HYPERLEDGER_FABRIC_CA_SDK_LOGLEVEL=TRACE
+
+Fabric debug is by default enabled in the SDK docker-compose.yaml file with
+
+On Orderer:
+
+ORDERER_GENERAL_LOGLEVEL=debug
+
+On peers:
+CORE_LOGGING_LEVEL=DEBUG
+
+Fabric CA
+by starting command have the -d parameter.
+
+Upload full logs to the JIRA not just where the issue occurred if possible
+
 
 <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
 s
