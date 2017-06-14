@@ -14,11 +14,15 @@
 
 package org.hyperledger.fabric.sdk.exception;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class FabricExceptionsTest {
+
+    private static final String MESSAGE = "test";
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -27,9 +31,9 @@ public class FabricExceptionsTest {
     public void testBaseException1() throws BaseException {
 
         thrown.expect(BaseException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new BaseException("test");
+        throw new BaseException(MESSAGE);
 
     }
 
@@ -37,9 +41,9 @@ public class FabricExceptionsTest {
     public void testBaseException2() throws BaseException {
 
         thrown.expect(BaseException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new BaseException(new BaseException("test"));
+        throw new BaseException(new BaseException(MESSAGE));
 
     }
 
@@ -47,9 +51,9 @@ public class FabricExceptionsTest {
     public void testBaseException3() throws BaseException {
 
         thrown.expect(BaseException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new BaseException(new BaseException("test"));
+        throw new BaseException(new BaseException(MESSAGE));
 
     }
 
@@ -57,9 +61,9 @@ public class FabricExceptionsTest {
     public void testChaincodeEndorsementPolicyParseException1() throws ChaincodeEndorsementPolicyParseException {
 
         thrown.expect(ChaincodeEndorsementPolicyParseException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new ChaincodeEndorsementPolicyParseException("test");
+        throw new ChaincodeEndorsementPolicyParseException(MESSAGE);
 
     }
 
@@ -67,20 +71,20 @@ public class FabricExceptionsTest {
     public void testChaincodeEndorsementPolicyParseException2() throws ChaincodeEndorsementPolicyParseException {
 
         thrown.expect(ChaincodeEndorsementPolicyParseException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new ChaincodeEndorsementPolicyParseException("test",
-                new ChaincodeEndorsementPolicyParseException("test"));
+        throw new ChaincodeEndorsementPolicyParseException(MESSAGE,
+                new ChaincodeEndorsementPolicyParseException(MESSAGE));
 
     }
 
     @Test
     public void testChaincodeException() throws ChaincodeException {
-        BaseException baseException = new BaseException("test");
+        BaseException baseException = new BaseException(MESSAGE);
         thrown.expect(ChaincodeException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new ChaincodeException("test", baseException);
+        throw new ChaincodeException(MESSAGE, baseException);
 
     }
 
@@ -88,9 +92,9 @@ public class FabricExceptionsTest {
     public void testCryptoException1() throws CryptoException {
 
         thrown.expect(CryptoException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new CryptoException("test");
+        throw new CryptoException(MESSAGE);
 
     }
 
@@ -98,9 +102,9 @@ public class FabricExceptionsTest {
     public void testCryptoException2() throws CryptoException {
 
         thrown.expect(CryptoException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new CryptoException("test", new CryptoException("test"));
+        throw new CryptoException(MESSAGE, new CryptoException(MESSAGE));
 
     }
 
@@ -108,9 +112,9 @@ public class FabricExceptionsTest {
     public void testEventHubException1() throws EventHubException {
 
         thrown.expect(EventHubException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new EventHubException("test");
+        throw new EventHubException(MESSAGE);
 
     }
 
@@ -118,9 +122,9 @@ public class FabricExceptionsTest {
     public void testEventHubException2() throws EventHubException {
 
         thrown.expect(EventHubException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new EventHubException(new CryptoException("test"));
+        throw new EventHubException(new CryptoException(MESSAGE));
 
     }
 
@@ -128,9 +132,9 @@ public class FabricExceptionsTest {
     public void testEventHubException3() throws EventHubException {
 
         thrown.expect(EventHubException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new EventHubException("test", new CryptoException("test"));
+        throw new EventHubException(MESSAGE, new CryptoException(MESSAGE));
 
     }
 
@@ -138,9 +142,9 @@ public class FabricExceptionsTest {
     public void testExecuteException1() throws ExecuteException {
 
         thrown.expect(ExecuteException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new ExecuteException("test");
+        throw new ExecuteException(MESSAGE);
 
     }
 
@@ -148,9 +152,9 @@ public class FabricExceptionsTest {
     public void testExecuteException2() throws ExecuteException {
 
         thrown.expect(ExecuteException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new ExecuteException("test", new ExecuteException("test"));
+        throw new ExecuteException(MESSAGE, new ExecuteException(MESSAGE));
 
     }
 
@@ -158,9 +162,9 @@ public class FabricExceptionsTest {
     public void testGetTCertBatchException() throws GetTCertBatchException {
 
         thrown.expect(GetTCertBatchException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new GetTCertBatchException("test", new ExecuteException("test"));
+        throw new GetTCertBatchException(MESSAGE, new ExecuteException(MESSAGE));
 
     }
 
@@ -168,9 +172,9 @@ public class FabricExceptionsTest {
     public void testInvalidArgumentException1() throws InvalidArgumentException {
 
         thrown.expect(InvalidArgumentException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new InvalidArgumentException("test");
+        throw new InvalidArgumentException(MESSAGE);
 
     }
 
@@ -178,9 +182,9 @@ public class FabricExceptionsTest {
     public void testInvalidArgumentException2() throws InvalidArgumentException {
 
         thrown.expect(InvalidArgumentException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new InvalidArgumentException(new InvalidArgumentException("test"));
+        throw new InvalidArgumentException(new InvalidArgumentException(MESSAGE));
 
     }
 
@@ -188,9 +192,9 @@ public class FabricExceptionsTest {
     public void testInvalidArgumentException3() throws InvalidArgumentException {
 
         thrown.expect(InvalidArgumentException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new InvalidArgumentException("test", new InvalidArgumentException("test"));
+        throw new InvalidArgumentException(MESSAGE, new InvalidArgumentException(MESSAGE));
 
     }
 
@@ -198,9 +202,9 @@ public class FabricExceptionsTest {
     public void testInvalidTransactionException1() throws InvalidTransactionException {
 
         thrown.expect(InvalidTransactionException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new InvalidTransactionException("test");
+        throw new InvalidTransactionException(MESSAGE);
 
     }
 
@@ -208,20 +212,20 @@ public class FabricExceptionsTest {
     public void testInvalidTransactionException2() throws InvalidTransactionException {
 
         thrown.expect(InvalidTransactionException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new InvalidTransactionException("test", new InvalidTransactionException("test"));
+        throw new InvalidTransactionException(MESSAGE, new InvalidTransactionException(MESSAGE));
 
     }
 
     @Test
     public void testInvokeException() throws InvokeException {
 
-        BaseException baseException = new BaseException("test");
+        BaseException baseException = new BaseException(MESSAGE);
         thrown.expect(InvokeException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new InvokeException("test", baseException);
+        throw new InvokeException(MESSAGE, baseException);
 
     }
 
@@ -229,9 +233,9 @@ public class FabricExceptionsTest {
     public void testNoAvailableTCertException() throws NoAvailableTCertException {
 
         thrown.expect(NoAvailableTCertException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new NoAvailableTCertException("test");
+        throw new NoAvailableTCertException(MESSAGE);
 
     }
 
@@ -239,9 +243,9 @@ public class FabricExceptionsTest {
     public void testNoValidPeerException() throws NoValidPeerException {
 
         thrown.expect(NoValidPeerException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new NoValidPeerException("test");
+        throw new NoValidPeerException(MESSAGE);
 
     }
 
@@ -249,9 +253,9 @@ public class FabricExceptionsTest {
     public void testPeerException1() throws PeerException {
 
         thrown.expect(PeerException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new PeerException("test");
+        throw new PeerException(MESSAGE);
 
     }
 
@@ -259,9 +263,9 @@ public class FabricExceptionsTest {
     public void testPeerException2() throws PeerException {
 
         thrown.expect(PeerException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new PeerException("test", new PeerException("test"));
+        throw new PeerException(MESSAGE, new PeerException(MESSAGE));
 
     }
 
@@ -269,9 +273,9 @@ public class FabricExceptionsTest {
     public void testProposalException1() throws ProposalException {
 
         thrown.expect(ProposalException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new ProposalException("test");
+        throw new ProposalException(MESSAGE);
 
     }
 
@@ -279,9 +283,9 @@ public class FabricExceptionsTest {
     public void testProposalException2() throws ProposalException {
 
         thrown.expect(ProposalException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new ProposalException(new ProposalException("test"));
+        throw new ProposalException(new ProposalException(MESSAGE));
 
     }
 
@@ -289,46 +293,101 @@ public class FabricExceptionsTest {
     public void testProposalException3() throws ProposalException {
 
         thrown.expect(ProposalException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new ProposalException("test", new ProposalException("test"));
+        throw new ProposalException(MESSAGE, new ProposalException(MESSAGE));
 
     }
 
     @Test
     public void testQueryException() throws QueryException {
-        BaseException baseException = new BaseException("test");
+        BaseException baseException = new BaseException(MESSAGE);
         thrown.expect(QueryException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new QueryException("test", baseException);
+        throw new QueryException(MESSAGE, baseException);
 
     }
 
     @Test
     public void testTransactionException1() throws TransactionException {
         thrown.expect(TransactionException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new TransactionException("test");
+        throw new TransactionException(MESSAGE);
 
     }
 
     @Test
     public void testTransactionException2() throws TransactionException {
         thrown.expect(TransactionException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new TransactionException(new TransactionException("test"));
+        throw new TransactionException(new TransactionException(MESSAGE));
 
     }
 
     @Test
     public void testTransactionException3() throws TransactionException {
         thrown.expect(TransactionException.class);
-        thrown.expectMessage("test");
+        thrown.expectMessage(MESSAGE);
 
-        throw new TransactionException("test", new TransactionException("test"));
+        throw new TransactionException(MESSAGE, new TransactionException(MESSAGE));
 
     }
+
+    @Test
+    public void testTransactionEventException1() throws TransactionEventException {
+        thrown.expect(TransactionException.class);
+        thrown.expectMessage(MESSAGE);
+
+        throw new TransactionEventException(MESSAGE, null);
+
+    }
+
+    @Test
+    public void testTransactionEventException2() throws TransactionEventException {
+
+        TransactionEventException e = new TransactionEventException(MESSAGE, null);
+        Assert.assertNull(e.getTransactionEvent());
+
+    }
+
+    @Test
+    public void testTransactionEventException3() throws TransactionEventException {
+        thrown.expect(TransactionException.class);
+        thrown.expectMessage(MESSAGE);
+
+        throw new TransactionEventException(MESSAGE, null, new TransactionEventException(MESSAGE, null));
+
+    }
+
+    @Test
+    public void testInvalidProtocolBufferRuntimeException1() throws InvalidProtocolBufferRuntimeException {
+        thrown.expect(InvalidProtocolBufferRuntimeException.class);
+        thrown.expectMessage(MESSAGE);
+
+        throw new InvalidProtocolBufferRuntimeException(new InvalidProtocolBufferException(MESSAGE));
+
+    }
+
+    @Test
+    public void testInvalidProtocolBufferRuntimeException2() throws InvalidProtocolBufferRuntimeException {
+        thrown.expect(InvalidProtocolBufferRuntimeException.class);
+        thrown.expectMessage(MESSAGE);
+
+        throw new InvalidProtocolBufferRuntimeException(MESSAGE, new InvalidProtocolBufferException(MESSAGE));
+
+    }
+
+    @Test
+    public void testInvalidProtocolBufferRuntimeException3() throws InvalidProtocolBufferRuntimeException {
+
+        InvalidProtocolBufferException e1 = new InvalidProtocolBufferException(MESSAGE);
+        InvalidProtocolBufferRuntimeException e2 = new InvalidProtocolBufferRuntimeException(MESSAGE, e1);
+
+        Assert.assertEquals(e1, e2.getCause());
+
+    }
+
 }
