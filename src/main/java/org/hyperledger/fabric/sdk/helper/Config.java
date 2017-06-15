@@ -287,7 +287,7 @@ public class Config {
             extraLogLevel = Integer.parseInt(getProperty(EXTRALOGLEVEL));
         }
 
-        return val < extraLogLevel;
+        return val <= extraLogLevel;
 
     }
 }

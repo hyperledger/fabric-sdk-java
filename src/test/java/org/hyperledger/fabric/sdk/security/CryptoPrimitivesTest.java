@@ -20,6 +20,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyStore;
@@ -44,14 +47,19 @@ import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.util.encoders.Hex;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.testutils.TestUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
@@ -63,6 +71,15 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class CryptoPrimitivesTest {
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
+    // Create a temp folder to hold temp files for various file I/O operations
+    // These are automatically deleted when each test completes
+    @Rule
+    public final TemporaryFolder tempFolder = new TemporaryFolder();
+
 
     // run End2EndIT test and copy from first peer ProposalResponse ( fabric at
     // commit level 230f3cc )
@@ -128,6 +145,29 @@ public class CryptoPrimitivesTest {
         crypto.getTrustStore().setKeyEntry("key", key, "123456".toCharArray(), certificates);
         pem.close();
     }
+
+    // Tests initializing with an invalid certificate format
+    @Test
+    public void testInitInvalidCertFormat() throws Exception {
+
+        thrown.expect(CryptoException.class);
+
+        String oldVal = null;
+
+        try {
+            // Set the cert format to something invalid
+            oldVal = TestUtils.setConfigProperty(Config.CERTIFICATE_FORMAT, "abc123");
+
+            CryptoPrimitives crypto = new CryptoPrimitives();
+            crypto.init();
+
+        } finally {
+
+            // Reset the property for subsequent tests
+            TestUtils.setConfigProperty(Config.CERTIFICATE_FORMAT, oldVal);
+        }
+    }
+
 
     @Test
     public void testGetSetProperties() {
@@ -225,10 +265,37 @@ public class CryptoPrimitivesTest {
         }
     }
 
+    @Test
+    public void testSetTrustStoreDuplicateCertUsingFile() {
+        try {
+            // Read the certificate data
+            java.net.URL certUrl = this.getClass().getResource("/ca.crt");
+            String certData = org.apache.commons.io.IOUtils.toString(certUrl, "UTF-8");
+
+            // Write this to a temp file
+            File tempFile = tempFolder.newFile("temp.txt");
+            Path tempPath = Paths.get(tempFile.getAbsolutePath());
+            Files.write(tempPath, certData.getBytes());
+
+            crypto.addCACertificateToTrustStore(tempFile, "ca"); //KeyStore overrides existing cert if same alias
+        } catch (Exception e) {
+            fail("testSetTrustStoreDuplicateCert should not have thrown Exception. Error: " + e.getMessage());
+        }
+    }
+
     @Test (expected = InvalidArgumentException.class)
-    public void testAddCACertificateToTrustStoreNoAlias() throws InvalidArgumentException {
+    public void testAddCACertificateToTrustStoreNullAlias() throws InvalidArgumentException {
         try {
             crypto.addCACertificateToTrustStore(new File("something"), null);
+        } catch (CryptoException e) {
+            fail("testAddCACertificateToTrustStoreNoAlias should not throw CryptoException. Error: " + e.getMessage());
+        }
+    }
+
+    @Test (expected = InvalidArgumentException.class)
+    public void testAddCACertificateToTrustStoreBlankAlias() throws InvalidArgumentException {
+        try {
+            crypto.addCACertificateToTrustStore(new File("something"), "");
         } catch (CryptoException e) {
             fail("testAddCACertificateToTrustStoreNoAlias should not throw CryptoException. Error: " + e.getMessage());
         }
@@ -242,6 +309,26 @@ public class CryptoPrimitivesTest {
             fail("testAddCACertificateToTrustStoreEmptyAlias should not throw CryptoException. Error: " + e.getMessage());
         }
     }
+
+    @Test
+    public void testAddCACertificateToTrustStoreBadStore() throws Exception {
+
+        thrown.expect(CryptoException.class);
+        thrown.expectMessage("Unable to add");
+
+        // Create an uninitialized key store
+        KeyStore tmpKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+
+        // Ensure that crypto is using that store
+        KeyStore saveKeyStore = (KeyStore) TestUtils.setField(crypto, "trustStore", tmpKeyStore);
+
+        try {
+            crypto.addCACertificateToTrustStore(testCACert, "alias");
+        } finally {
+            // Ensure we set it back so that subsequent tests will not be affected
+            TestUtils.setField(crypto, "trustStore", saveKeyStore);
+        }
+   }
 
     @Test (expected = CryptoException.class)
     public void testAddCACertificateToTrustStoreNoFile() throws CryptoException {
@@ -270,9 +357,29 @@ public class CryptoPrimitivesTest {
         }
     }
 
+    // Tests addCACertificateToTrustStore passing a certificate and null for alias
+    @Test
+    public void testAddCACertificateToTrustStoreCertNullAlias() throws Exception {
+
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("You must assign an alias");
+
+        crypto.addCACertificateToTrustStore(testCACert, null);
+    }
+
+    // Tests addCACertificateToTrustStore passing a certificate and an empty string for alias
+    @Test
+    public void testAddCACertificateToTrustStoreCertEmptyAlias() throws Exception {
+
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("You must assign an alias");
+
+        crypto.addCACertificateToTrustStore(testCACert, "");
+    }
+
     @Test (expected = InvalidArgumentException.class)
-    public void testAddCACertsNullInput() throws Exception {
-        crypto.addCACertificateToTrustStore((File) null, null);
+    public void testAddCACertificateToTrustStoreNullFile() throws Exception {
+        crypto.addCACertificateToTrustStore((File) null, "test");
     }
 
     @Test (expected = CryptoException.class)
@@ -370,8 +477,6 @@ public class CryptoPrimitivesTest {
 
     @Test
     public void testValidateInvalidCertificate() throws IOException, CertificateException {
-        BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(invalidPemCert));
-
         assertFalse(crypto.validateCertificate(invalidPemCert));
     }
 
@@ -486,6 +591,17 @@ public class CryptoPrimitivesTest {
         Assert.assertSame(KeyPair.class, crypto.keyGen().getClass());
     }
 
+    // Try to generate a key without initializing crypto
+    @Test
+    public void testKeyGenBadCrypto() throws CryptoException {
+
+        thrown.expect(CryptoException.class);
+        thrown.expectMessage("Unable to generate");
+
+        CryptoPrimitives tmpCrypto = new CryptoPrimitives();
+        tmpCrypto.keyGen();
+    }
+
     @Test
     public void testGenerateCertificateRequest() throws CryptoException, OperatorCreationException {
         KeyPair testKeyPair = crypto.keyGen();
@@ -508,4 +624,28 @@ public class CryptoPrimitivesTest {
 
         Assert.assertTrue(crypto.certificateToDER(pemGenCert).length > 0);
     }
+
+    @Test
+    public void testHashSHA2() throws Exception {
+
+        byte[] input = "TheQuickBrownFox".getBytes(UTF_8);
+        String expectedHash = "cd0b1763383f460e94a2e6f0aefc3749bbeec60db11c12d678c682da679207ad";
+
+        crypto.setHashAlgorithm("SHA2");
+        byte[] hash = crypto.hash(input);
+        Assert.assertEquals(expectedHash, Hex.toHexString(hash));
+    }
+
+    @Test
+    public void testHashSHA3() throws Exception {
+
+        byte[] input = "TheQuickBrownFox".getBytes(UTF_8);
+        String expectedHash = "feb69c5c360a15802de6af23a3f5622da9d96aff2be78c8f188cce57a3549db6";
+
+        crypto.setHashAlgorithm("sha3");
+        byte[] hash = crypto.hash(input);
+        Assert.assertEquals(expectedHash, Hex.toHexString(hash));
+    }
+
+
 }

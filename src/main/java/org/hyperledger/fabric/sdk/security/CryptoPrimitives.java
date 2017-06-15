@@ -249,9 +249,14 @@ public class CryptoPrimitives implements CryptoSuite {
      */
     public void addCACertificateToTrustStore(File caCertPem, String alias) throws CryptoException, InvalidArgumentException {
 
-        if (alias == null || alias.isEmpty()) {
-            throw new InvalidArgumentException("You must assign an alias to a certificate when adding to the trust store.");
+        if (caCertPem == null) {
+            throw new InvalidArgumentException("The certificate cannot be null");
         }
+
+        if (alias == null || alias.isEmpty()) {
+            throw new InvalidArgumentException("You must assign an alias to a certificate when adding to the trust store");
+        }
+
 
         BufferedInputStream bis;
         try {
@@ -304,9 +309,8 @@ public class CryptoPrimitives implements CryptoSuite {
                 addCACertificateToTrustStore(cert, Integer.toString(cert.hashCode()));
             }
         } catch (InvalidArgumentException e) {
-            String emsg = "Unable to add certificate to trust store. Error: " + e.getMessage();
-            logger.error(emsg, e);
-            throw new CryptoException(emsg, e);
+            // Note: This can currently never happen (as cert<>null and alias<>null)
+            throw new CryptoException("Unable to add certificate to trust store. Error: " + e.getMessage(), e);
         }
     }
 
@@ -361,9 +365,6 @@ public class CryptoPrimitives implements CryptoSuite {
 
         try {
             KeyStore keyStore = getTrustStore();
-            if (keyStore == null) {
-                throw new CryptoException("Crypto does not have a trust store. No certificate can be validated", null);
-            }
 
             PKIXParameters parms = new PKIXParameters(keyStore);
             parms.setRevocationEnabled(false);
@@ -708,11 +709,10 @@ public class CryptoPrimitives implements CryptoSuite {
     private Digest getHashDigest() {
         if (this.hashAlgorithm.equalsIgnoreCase("SHA3")) {
             return new SHA3Digest();
-        } else if (this.hashAlgorithm.equalsIgnoreCase("SHA2")) {
+        } else {
+            // Default to SHA2
             return new SHA256Digest();
         }
-
-        return new SHA256Digest(); // default Digest?
     }
 
 //    /**
@@ -795,15 +795,17 @@ public class CryptoPrimitives implements CryptoSuite {
 
     public byte[] certificateToDER(String certificatePEM) {
 
+        byte[] content = null;
+
         try (PemReader pemReader = new PemReader(new StringReader(certificatePEM))) {
             final PemObject pemObject = pemReader.readPemObject();
-            return pemObject.getContent();
+            content = pemObject.getContent();
 
         } catch (IOException e) {
             // best attempt
         }
-        return null;
 
+        return content;
     }
 
 }
