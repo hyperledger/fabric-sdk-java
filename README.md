@@ -45,6 +45,12 @@ from Docker hub.
 
 Later versions of the SDK are NOT guaranteed to work with v1.0.0-beta
 
+The SDK is published to Maven so you can directly use in your application's pom.xml.
+
+[Maven Repository Hyperledger Fabric Java SDK](https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java)
+
+_Make sure you're using docker images at the level of the Fabric that matches with the level of the SDK you're using in your application._
+
 <p &nbsp; />
 <p &nbsp; />
 
