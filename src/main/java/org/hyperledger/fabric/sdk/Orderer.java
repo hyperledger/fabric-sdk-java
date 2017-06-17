@@ -129,12 +129,8 @@ public class Orderer {
         }
 
         try {
-            Ab.BroadcastResponse resp = localOrdererClient.sendTransaction(transaction);
 
-            return resp;
-        } catch (TransactionException e) { //For any error lets start with a fresh connection.
-            ordererClient = null;
-            throw e;
+            return localOrdererClient.sendTransaction(transaction);
         } catch (Throwable t) {
             ordererClient = null;
             throw t;
@@ -165,12 +161,8 @@ public class Orderer {
         }
 
         try {
-            DeliverResponse[] response = localOrdererClient.sendDeliver(transaction);
 
-            return response;
-        } catch (TransactionException e) { //For any error lets start with a fresh connection.
-            ordererClient = null;
-            throw e;
+            return localOrdererClient.sendDeliver(transaction);
         } catch (Throwable t) {
             ordererClient = null;
             throw t;
