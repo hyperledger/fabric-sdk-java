@@ -320,7 +320,12 @@ public class HFCAClient {
             }
 
             JsonObject result = jsonst.getJsonObject("result");
+            if (result == null) {
+                throw new EnrollmentException(format("FabricCA failed enrollment for user %s - response did not contain a result", user));
+            }
+
             Base64.Decoder b64dec = Base64.getDecoder();
+
             String signedPem = new String(b64dec.decode(result.getString("Cert").getBytes(UTF_8)));
             logger.debug(format("[HFCAClient] enroll returned pem:[%s]", signedPem));
 
@@ -525,8 +530,7 @@ public class HFCAClient {
      * @return Body of post returned.
      * @throws Exception
      */
-
-    private String httpPost(String url, String body, UsernamePasswordCredentials credentials) throws Exception {
+    String httpPost(String url, String body, UsernamePasswordCredentials credentials) throws Exception {
         logger.debug(format("httpPost %s, body:%s", url, body));
         CredentialsProvider provider = new BasicCredentialsProvider();
 
@@ -578,7 +582,7 @@ public class HFCAClient {
         return responseBody;
     }
 
-    private JsonObject httpPost(String url, String body, String authHTTPCert) throws Exception {
+    JsonObject httpPost(String url, String body, String authHTTPCert) throws Exception {
 
         HttpPost httpPost = new HttpPost(url);
         logger.debug(format("httpPost %s, body:%s, authHTTPCert: %s", url, body, authHTTPCert));
