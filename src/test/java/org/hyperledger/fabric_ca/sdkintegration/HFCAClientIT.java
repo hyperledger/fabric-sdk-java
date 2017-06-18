@@ -42,7 +42,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.fail;
 
-public class HFCAClientEnrollIT {
+public class HFCAClientIT {
     // public static class MemberServicesFabricCAImplTest {
     private static final String TEST_ADMIN_NAME = "admin";
     private static final String TEST_ADMIN_PW = "adminpw";
