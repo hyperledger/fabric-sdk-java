@@ -353,6 +353,10 @@ public class HFClient {
      *                   grpc ManagedChannelBuilder.  If more than one argument to the method is needed then the
      *                   parameters need to be supplied in an array of Objects.
      *                   </li>
+     *                   <li>
+     *                   ordererWaitTimeMilliSecs Time to wait in milliseconds for the
+     *                   Orderer to accept requests before timing out. The default is two seconds.
+     *                   </li>
      *                   </ul>
      * @return The orderer.
      * @throws InvalidArgumentException

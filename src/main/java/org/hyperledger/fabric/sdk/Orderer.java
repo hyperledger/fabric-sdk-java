@@ -124,7 +124,7 @@ public class Orderer {
         OrdererClient localOrdererClient = ordererClient;
 
         if (localOrdererClient == null || !localOrdererClient.isChannelActive()) {
-            ordererClient = new OrdererClient(this, new Endpoint(url, properties).getChannelBuilder());
+            ordererClient = new OrdererClient(this, new Endpoint(url, properties).getChannelBuilder(), properties);
             localOrdererClient = ordererClient;
         }
 
@@ -156,7 +156,7 @@ public class Orderer {
 
         logger.debug(format("Order.sendDeliver name: %s, url: %s", name, url));
         if (localOrdererClient == null || !localOrdererClient.isChannelActive()) {
-            localOrdererClient = new OrdererClient(this, new Endpoint(url, properties).getChannelBuilder());
+            localOrdererClient = new OrdererClient(this, new Endpoint(url, properties).getChannelBuilder(), properties);
             ordererClient = localOrdererClient;
         }
 
