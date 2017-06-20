@@ -38,9 +38,10 @@ import static org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse.TypeCase.
  */
 class OrdererClient {
     private final String channelName;
-    boolean shutdown = false;
+    private final ManagedChannelBuilder channelBuilder;
+    private boolean shutdown = false;
     private static final Log logger = LogFactory.getLog(OrdererClient.class);
-    private ManagedChannel managedChannel;
+    private ManagedChannel managedChannel = null;
     private final String name;
     private final String url;
 
@@ -48,7 +49,8 @@ class OrdererClient {
      * Construct client for accessing Orderer server using the existing managedChannel.
      */
     OrdererClient(Orderer orderer, ManagedChannelBuilder<?> channelBuilder) {
-        managedChannel = channelBuilder.build();
+
+        this.channelBuilder = channelBuilder;
         name = orderer.getName();
         url = orderer.getUrl();
         channelName = orderer.getChannel().getName();
@@ -87,155 +89,206 @@ class OrdererClient {
     }
 
     Ab.BroadcastResponse sendTransaction(Common.Envelope envelope) throws Exception {
+        StreamObserver<Common.Envelope> nso = null;
 
         if (shutdown) {
             throw new TransactionException("Orderer client is shutdown");
         }
 
-        final CountDownLatch finishLatch = new CountDownLatch(1);
-        AtomicBroadcastGrpc.AtomicBroadcastStub broadcast = AtomicBroadcastGrpc.newStub(managedChannel);
-        AtomicBroadcastGrpc.AtomicBroadcastBlockingStub bsc = AtomicBroadcastGrpc.newBlockingStub(managedChannel);
-        bsc.withDeadlineAfter(2, TimeUnit.MINUTES);
+        ManagedChannel lmanagedChannel = managedChannel;
 
-        final Ab.BroadcastResponse[] ret = new Ab.BroadcastResponse[1];
-        final Throwable[] throwable = new Throwable[] {null};
+        if (lmanagedChannel == null || lmanagedChannel.isTerminated() || lmanagedChannel.isShutdown()) {
 
-        StreamObserver<Ab.BroadcastResponse> so = new StreamObserver<Ab.BroadcastResponse>() {
-            @Override
-            public void onNext(Ab.BroadcastResponse resp) {
-                // logger.info("Got Broadcast response: " + resp);
-                logger.debug("resp status value: " + resp.getStatusValue() + ", resp: " + resp.getStatus());
-                ret[0] = resp;
-                finishLatch.countDown();
+            lmanagedChannel = channelBuilder.build();
+            managedChannel = lmanagedChannel;
 
-            }
-
-            @Override
-            public void onError(Throwable t) {
-                if (!shutdown) {
-                    logger.error(format("Received error on channel %s, orderer %s, url %s, %s",
-                            channelName, name, url, t.getMessage()), t);
-                }
-                throwable[0] = t;
-                finishLatch.countDown();
-            }
-
-            @Override
-            public void onCompleted() {
-                logger.warn("onCompleted");
-                finishLatch.countDown();
-            }
-        };
-
-        StreamObserver<Common.Envelope> nso = broadcast.broadcast(so);
-
-        nso.onNext(envelope);
-        //nso.onCompleted();
+        }
 
         try {
-            if (!finishLatch.await(2, TimeUnit.MINUTES)) {
-                TransactionException ste = new TransactionException("Send transactions failed. Reason:  timeout");
-                logger.error("sendTransaction error " + ste.getMessage(), ste);
-                throw ste;
-            }
-            if (throwable[0] != null) {
-                //get full stack trace
-                TransactionException ste = new TransactionException("Send transactions failed. Reason: " + throwable[0].getMessage(), throwable[0]);
-                logger.error("sendTransaction error " + ste.getMessage(), ste);
-                throw ste;
-            }
-            logger.debug("Done waiting for reply! Got:" + ret[0]);
+            final CountDownLatch finishLatch = new CountDownLatch(1);
+            AtomicBroadcastGrpc.AtomicBroadcastStub broadcast = AtomicBroadcastGrpc.newStub(lmanagedChannel);
 
-        } catch (InterruptedException e) {
-            logger.error(e);
+            final Ab.BroadcastResponse[] ret = new Ab.BroadcastResponse[1];
+            final Throwable[] throwable = new Throwable[] {null};
 
-        }
-
-        return ret[0];
-    }
-
-    public DeliverResponse[] sendDeliver(Common.Envelope envelope) throws TransactionException {
-
-        if (shutdown) {
-            throw new TransactionException("Orderer client is shutdown");
-        }
-
-        final CountDownLatch finishLatch = new CountDownLatch(1);
-        AtomicBroadcastGrpc.AtomicBroadcastStub broadcast = AtomicBroadcastGrpc.newStub(managedChannel);
-        AtomicBroadcastGrpc.AtomicBroadcastBlockingStub bsc = AtomicBroadcastGrpc.newBlockingStub(managedChannel);
-        bsc.withDeadlineAfter(2, TimeUnit.MINUTES);
-
-        // final DeliverResponse[] ret = new DeliverResponse[1];
-        final List<DeliverResponse> retList = new ArrayList<>();
-        final List<Throwable> throwableList = new ArrayList<>();
-        //   ret[0] = null;
-
-        StreamObserver<DeliverResponse> so = new StreamObserver<DeliverResponse>() {
-            boolean done = false;
-
-            @Override
-            public void onNext(DeliverResponse resp) {
-
-                // logger.info("Got Broadcast response: " + resp);
-                logger.debug("resp status value: " + resp.getStatusValue() + ", resp: " + resp.getStatus() + ", type case: " + resp.getTypeCase());
-
-                if (done) {
-                    return;
-                }
-
-                if (resp.getTypeCase() == STATUS) {
-                    done = true;
-                    retList.add(0, resp);
-
+            StreamObserver<Ab.BroadcastResponse> so = new StreamObserver<Ab.BroadcastResponse>() {
+                @Override
+                public void onNext(Ab.BroadcastResponse resp) {
+                    // logger.info("Got Broadcast response: " + resp);
+                    logger.debug("resp status value: " + resp.getStatusValue() + ", resp: " + resp.getStatus());
+                    ret[0] = resp;
                     finishLatch.countDown();
 
-                } else {
-                    retList.add(resp);
                 }
 
-            }
-
-            @Override
-            public void onError(Throwable t) {
-                if (!shutdown) {
-                    logger.error(format("Received error on channel %s, orderer %s, url %s, %s",
-                            channelName, name, url, t.getMessage()), t);
+                @Override
+                public void onError(Throwable t) {
+                    if (!shutdown) {
+                        logger.error(format("Received error on channel %s, orderer %s, url %s, %s",
+                                channelName, name, url, t.getMessage()), t);
+                    }
+                    throwable[0] = t;
+                    finishLatch.countDown();
                 }
-                throwableList.add(t);
-                finishLatch.countDown();
+
+                @Override
+                public void onCompleted() {
+                    finishLatch.countDown();
+                }
+            };
+
+            nso = broadcast.broadcast(so);
+
+            nso.onNext(envelope);
+
+            try {
+                if (!finishLatch.await(2, TimeUnit.MINUTES)) {
+                    TransactionException ste = new TransactionException("Send transactions failed. Reason:  timeout");
+                    logger.error("sendTransaction error " + ste.getMessage(), ste);
+                    throw ste;
+                }
+
+                if (throwable[0] != null) {
+                    //get full stack trace
+                    TransactionException ste = new TransactionException("Send transactions failed. Reason: " + throwable[0].getMessage(), throwable[0]);
+                    logger.error("sendTransaction error " + ste.getMessage(), ste);
+                    throw ste;
+                }
+                logger.debug("Done waiting for reply! Got:" + ret[0]);
+
+            } catch (InterruptedException e) {
+                logger.error(e);
+
             }
 
-            @Override
-            public void onCompleted() {
-                logger.warn("onCompleted");
-                finishLatch.countDown();
-            }
-        };
+            return ret[0];
+        } catch (Throwable t) {
+            managedChannel = null;
+            throw t;
 
-        StreamObserver<Common.Envelope> nso = broadcast.deliver(so);
-        nso.onNext(envelope);
-        //nso.onCompleted();
+        } finally {
+
+            if (null != nso) {
+
+                try {
+                    nso.onCompleted();
+                } catch (Exception e) {  //Best effort only report on debug
+                    logger.debug(format("Exception completing sendTransaction with channel %s,  name %s, url %s %s",
+                            channelName, name, url, e.getMessage()), e);
+                }
+            }
+
+        }
+    }
+
+    DeliverResponse[] sendDeliver(Common.Envelope envelope) throws TransactionException {
+
+        if (shutdown) {
+            throw new TransactionException("Orderer client is shutdown");
+        }
+
+        StreamObserver<Common.Envelope> nso = null;
+
+        ManagedChannel lmanagedChannel = managedChannel;
+
+        if (lmanagedChannel == null || lmanagedChannel.isTerminated() || lmanagedChannel.isShutdown()) {
+
+            lmanagedChannel = channelBuilder.build();
+            managedChannel = lmanagedChannel;
+
+        }
 
         try {
-            if (!finishLatch.await(2, TimeUnit.MINUTES)) {
-                TransactionException ex = new TransactionException("sendDeliver time exceeded for orderer");
-                logger.error(ex.getMessage(), ex);
-                throw ex;
+
+            AtomicBroadcastGrpc.AtomicBroadcastStub broadcast = AtomicBroadcastGrpc.newStub(lmanagedChannel);
+
+            // final DeliverResponse[] ret = new DeliverResponse[1];
+            final List<DeliverResponse> retList = new ArrayList<>();
+            final List<Throwable> throwableList = new ArrayList<>();
+            final CountDownLatch finishLatch = new CountDownLatch(1);
+
+            StreamObserver<DeliverResponse> so = new StreamObserver<DeliverResponse>() {
+                boolean done = false;
+
+                @Override
+                public void onNext(DeliverResponse resp) {
+
+                    // logger.info("Got Broadcast response: " + resp);
+                    logger.debug("resp status value: " + resp.getStatusValue() + ", resp: " + resp.getStatus() + ", type case: " + resp.getTypeCase());
+
+                    if (done) {
+                        return;
+                    }
+
+                    if (resp.getTypeCase() == STATUS) {
+                        done = true;
+                        retList.add(0, resp);
+
+                        finishLatch.countDown();
+
+                    } else {
+                        retList.add(resp);
+                    }
+
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    if (!shutdown) {
+                        logger.error(format("Received error on channel %s, orderer %s, url %s, %s",
+                                channelName, name, url, t.getMessage()), t);
+                    }
+                    throwableList.add(t);
+                    finishLatch.countDown();
+                }
+
+                @Override
+                public void onCompleted() {
+                    logger.warn("onCompleted");
+                    finishLatch.countDown();
+                }
+            };
+
+            nso = broadcast.deliver(so);
+            nso.onNext(envelope);
+            //nso.onCompleted();
+
+            try {
+                if (!finishLatch.await(2, TimeUnit.MINUTES)) {
+                    TransactionException ex = new TransactionException("sendDeliver time exceeded for orderer");
+                    logger.error(ex.getMessage(), ex);
+                    throw ex;
+                }
+                logger.trace("Done waiting for reply!");
+
+            } catch (InterruptedException e) {
+                logger.error(e);
             }
-            logger.trace("Done waiting for reply!");
 
-        } catch (InterruptedException e) {
-            logger.error(e);
+            if (!throwableList.isEmpty()) {
+                Throwable throwable = throwableList.get(0);
+                TransactionException e = new TransactionException(throwable.getMessage(), throwable);
+                logger.error(e.getMessage(), e);
+                throw e;
+            }
+
+            return retList.toArray(new DeliverResponse[retList.size()]);
+        } catch (Throwable t) {
+            managedChannel = null;
+            throw t;
+
+        } finally {
+            if (null != nso) {
+
+                try {
+                    nso.onCompleted();
+                } catch (Exception e) {  //Best effort only report on debug
+                    logger.debug(format("Exception completing sendDeliver with channel %s,  name %s, url %s %s",
+                            channelName, name, url, e.getMessage()), e);
+                }
+
+            }
         }
-
-        if (!throwableList.isEmpty()) {
-            Throwable throwable = throwableList.get(0);
-            TransactionException e = new TransactionException(throwable.getMessage(), throwable);
-            logger.error(e.getMessage(), e);
-            throw e;
-        }
-
-        return retList.toArray(new DeliverResponse[retList.size()]);
     }
 
     boolean isChannelActive() {
