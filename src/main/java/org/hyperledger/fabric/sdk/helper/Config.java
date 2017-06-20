@@ -54,6 +54,8 @@ public class Config {
     public static final String MAX_LOG_STRING_LENGTH = "org.hyperledger.fabric.sdk.log.stringlengthmax";
     public static final String EXTRALOGLEVEL = "org.hyperledger.fabric.sdk.log.extraloglevel";
     public static final String LOGGERLEVEL = "org.hyperledger.fabric.sdk.loglevel";  // ORG_HYPERLEDGER_FABRIC_SDK_LOGLEVEL=TRACE,DEBUG
+    public static final String DIAGNOTISTIC_FILE_DIRECTORY = "org.hyperledger.fabric.sdk.diagnosticFileDir"; //ORG_HYPERLEDGER_FABRIC_SDK_DIAGNOSTICFILEDIR
+
 
     private static Config config;
     private static final Properties sdkProperties = new Properties();
@@ -95,6 +97,8 @@ public class Config {
             defaultProperty(MAX_LOG_STRING_LENGTH, "64");
             defaultProperty(EXTRALOGLEVEL, "0");
             defaultProperty(LOGGERLEVEL, null);
+            defaultProperty(DIAGNOTISTIC_FILE_DIRECTORY, null);
+
 
             final String inLogLevel = sdkProperties.getProperty(LOGGERLEVEL);
 
@@ -290,4 +294,31 @@ public class Config {
         return val <= extraLogLevel;
 
     }
+
+    DiagnosticFileDumper diagnosticFileDumper = null;
+
+    /**
+     * The directory where diagnostic dumps are to be place, null if none should be done.
+     *
+     * @return The directory where diagnostic dumps are to be place, null if none should be done.
+     */
+
+    public DiagnosticFileDumper getDiagnosticFileDumper() {
+
+        if (diagnosticFileDumper != null) {
+            return diagnosticFileDumper;
+        }
+
+        String dd = sdkProperties.getProperty(DIAGNOTISTIC_FILE_DIRECTORY);
+
+        if (dd != null) {
+
+            diagnosticFileDumper = DiagnosticFileDumper.configInstance(new File(dd));
+
+        }
+
+        return diagnosticFileDumper;
+    }
+
+
 }

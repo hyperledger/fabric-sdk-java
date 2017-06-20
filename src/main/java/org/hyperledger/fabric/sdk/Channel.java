@@ -87,6 +87,7 @@ import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
 import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.helper.DiagnosticFileDumper;
 import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.transaction.InstallProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.InstantiateProposalBuilder;
@@ -115,7 +116,11 @@ import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getSignatureHead
 public class Channel {
     private static final Log logger = LogFactory.getLog(Channel.class);
     private static final boolean IS_DEBUG_LEVEL = logger.isDebugEnabled();
+    private static final boolean IS_TRACE_LEVEL = logger.isTraceEnabled();
+
     private static final Config config = Config.getConfig();
+    private static final DiagnosticFileDumper diagnosticFileDumper = IS_TRACE_LEVEL
+            ? config.getDiagnosticFileDumper() : null;
     private static final String SYSTEM_CHANNEL_NAME = "";
 
     // Name of the channel is only meaningful to the client
@@ -1981,6 +1986,13 @@ public class Channel {
         for (Peer peer : peers) {
             logger.debug(format("Channel %s send proposal to peer %s at url %s",
                     name, peer.getName(), peer.getUrl()));
+
+            if (null != diagnosticFileDumper) {
+                logger.trace(format("Sending to channel %s, peer: %s, proposal: %s", name, peer.getName(),
+                        diagnosticFileDumper.createDiagnosticProtobufFile(signedProposal.toByteArray())));
+
+            }
+
             Future<FabricProposalResponse.ProposalResponse> proposalResponseListenableFuture;
             try {
                 proposalResponseListenableFuture = peer.sendProposalAsync(signedProposal);
@@ -2006,6 +2018,11 @@ public class Channel {
                 status = fabricResponse.getResponse().getStatus();
                 logger.debug(format("Channel %s got back from peer %s status: %d, message: %s",
                         name, peerName, status, message));
+                if (null != diagnosticFileDumper) {
+                    logger.trace(format("Got back from channel %s, peer: %s, proposal response: %s", name, peerName,
+                            diagnosticFileDumper.createDiagnosticProtobufFile(fabricResponse.toByteArray())));
+
+                }
             } catch (InterruptedException e) {
                 message = "Sending proposal to " + peerName + " failed because of interruption";
                 logger.error(message, e);
@@ -2155,6 +2172,13 @@ public class Channel {
             for (Orderer orderer : orderers) {
 
                 try {
+
+                    if (null != diagnosticFileDumper) {
+                        logger.trace(format("Sending to channel %s, orderer: %s, transaction: %s", name, orderer.getName(),
+                                diagnosticFileDumper.createDiagnosticProtobufFile(transactionEnvelope.toByteArray())));
+
+                    }
+
                     resp = orderer.sendTransaction(transactionEnvelope);
                     if (resp.getStatus() == Status.SUCCESS) {
 
