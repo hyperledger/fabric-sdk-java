@@ -100,6 +100,7 @@ public class SampleUser implements User, Serializable {
      */
     public void setAffiliation(String affiliation) {
         this.affiliation = affiliation;
+        saveState();
     }
 
     @Override
