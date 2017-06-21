@@ -1,3 +1,39 @@
+## v1.0.0-rc1
+Fri Jun 23 13:21:09 EDT 2017
+
+* [28090b1](https://github.com/hyperledger/fabric-sdk-java/commit/28090b1) FAB-4522 prepare for v1.0.0-rc1 release
+* [6f75a13](https://github.com/hyperledger/fabric-sdk-java/commit/6f75a13) [FAB-4926](https://jira.hyperledger.org/browse/FAB-4926) Modify e2e tests to work with new MSP
+* [31da354](https://github.com/hyperledger/fabric-sdk-java/commit/31da354) FAB-4454 Increase test coverage for HFCAClient
+* [3835d9f](https://github.com/hyperledger/fabric-sdk-java/commit/3835d9f) [FAB-4628](https://jira.hyperledger.org/browse/FAB-4628): Documentation updates
+* [6382c27](https://github.com/hyperledger/fabric-sdk-java/commit/6382c27) [FAB-4881](https://jira.hyperledger.org/browse/FAB-4881)Add saveState method in setAffiliation()
+* [6431a0a](https://github.com/hyperledger/fabric-sdk-java/commit/6431a0a) FAB-4869 remove hardcode orderer wait
+* [eccc738](https://github.com/hyperledger/fabric-sdk-java/commit/eccc738) FAB-4850 Orderer reconnect on errors
+* [fc1d7ce](https://github.com/hyperledger/fabric-sdk-java/commit/fc1d7ce) FAB-4454 Increase IT coverage for HFCAClient
+* [7c87f20](https://github.com/hyperledger/fabric-sdk-java/commit/7c87f20) FAB-4454 Rename HFCAClientEnrollIT.java
+* [ff99ffa](https://github.com/hyperledger/fabric-sdk-java/commit/ff99ffa) FAB-4454 Fix issue with fabric_ca logging
+* [0038654](https://github.com/hyperledger/fabric-sdk-java/commit/0038654) FAB-4628 Documentation updates.
+* [dc6c72c](https://github.com/hyperledger/fabric-sdk-java/commit/dc6c72c) FAB-4596 Improve code coverage
+* [18b2e13](https://github.com/hyperledger/fabric-sdk-java/commit/18b2e13) FAB-4454 Increase test coverage for sdk.security
+* [7ed27f1](https://github.com/hyperledger/fabric-sdk-java/commit/7ed27f1) [FAB-4363](https://jira.hyperledger.org/browse/FAB-4363) Increase fabric-sdk-java code coverage #6
+* [4a872d7](https://github.com/hyperledger/fabric-sdk-java/commit/4a872d7) FAB-4628 Documentation updates.
+* [e412517](https://github.com/hyperledger/fabric-sdk-java/commit/e412517) FAB-4454 Increase test coverage for sdk.exception
+* [8232a06](https://github.com/hyperledger/fabric-sdk-java/commit/8232a06) FAB-4454 Increase junit coverage transaction
+* [53f6955](https://github.com/hyperledger/fabric-sdk-java/commit/53f6955) FAB-4596 Improve code coverage
+* [819afce](https://github.com/hyperledger/fabric-sdk-java/commit/819afce) [FAB-4363](https://jira.hyperledger.org/browse/FAB-4363) Increase fabric-sdk-java code coverage #5
+* [9e3ae8e](https://github.com/hyperledger/fabric-sdk-java/commit/9e3ae8e) FAB-4574 add missing license header
+* [d0f1811](https://github.com/hyperledger/fabric-sdk-java/commit/d0f1811) FAB-4532 Signature algorithm wrong for endorsers
+* [bedc97c](https://github.com/hyperledger/fabric-sdk-java/commit/bedc97c) FAB-4566 Minor code cleanup
+* [9992851](https://github.com/hyperledger/fabric-sdk-java/commit/9992851) FAB-4536 Enable checkstyle for test suite
+* [2aee0bd](https://github.com/hyperledger/fabric-sdk-java/commit/2aee0bd) FAB-4504 Add checkstyle import ordering rules
+* [d86c346](https://github.com/hyperledger/fabric-sdk-java/commit/d86c346) FAB-4454 Remove unused deprecated method
+* [90f4603](https://github.com/hyperledger/fabric-sdk-java/commit/90f4603) FAB-4501-Bad null check channelConfiguration
+* [d032966](https://github.com/hyperledger/fabric-sdk-java/commit/d032966) [FAB-4363](https://jira.hyperledger.org/browse/FAB-4363) Increase fabric-sdk-java code coverage #4
+* [584f456](https://github.com/hyperledger/fabric-sdk-java/commit/584f456) FAB-4454 Increase junit coverage for Config.java
+* [86befc2](https://github.com/hyperledger/fabric-sdk-java/commit/86befc2) FAB-4454 Remove unused and duplicated imports
+* [a405626](https://github.com/hyperledger/fabric-sdk-java/commit/a405626) FAB-4454 Increase junit coverage for helper/Utils
+* [13337b6](https://github.com/hyperledger/fabric-sdk-java/commit/13337b6) [FAB-4258](https://jira.hyperledger.org/browse/FAB-4258) Fix compile warnings for redundant code
+* [8f1fe23](https://github.com/hyperledger/fabric-sdk-java/commit/8f1fe23) FAB-4478 Post beta update
+
 ## v1.0.0-beta
 Thu Jun  8 07:19:18 EDT 2017
 
