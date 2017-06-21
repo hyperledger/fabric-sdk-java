@@ -4,14 +4,14 @@ Welcome to Java SDK for Hyperledger project. The SDK helps facilitate Java appli
   user chaincode, query blocks
  and transactions on the channel, and monitor events on the channel.
 
-THe SDK acts on behave of a particular User which is defined by the embedding application through the implementation
+The SDK acts on behave of a particular User which is defined by the embedding application through the implementation
  of the SDK's `User` interface.
 
 Note, the SDK does ***not*** provide a means of persistence
   for the application defined channels and user artifacts on the client. This is left for the embedding application to best manage.
 
 The SDK also provides a client for Hyperledger's certificate authority.  The SDK is however not dependent on this
-particular implementation of a certificate authority.  Other Certificate authority's maybe use by implementing the
+particular implementation of a certificate authority. Other Certificate authority's maybe used by implementing the
 SDK's `Enrollment` interface.
 
  This provides a summary of steps required to get you started with building and using the Java SDK.
@@ -49,7 +49,7 @@ The SDK is published to Maven so you can directly use in your application's pom.
 
 [Maven Repository Hyperledger Fabric Java SDK](https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java)
 
-_Make sure you're using docker images at the level of the Fabric that matches with the level of the SDK you're using in your application._
+_Make sure you're using docker images at the level of the Fabric that matches the level of the SDK you're using in your application._
 
 <p &nbsp; />
 <p &nbsp; />
@@ -74,7 +74,7 @@ You should use the following commit levels of the Hyperledger projects:
 
  You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
 
- As SDK developement continues, this file will be updated with compatible Hyperledger Fabric and Fabric-ca commit levels.
+ As SDK development continues, this file will be updated with compatible Hyperledger Fabric and Fabric-ca commit levels.
 
  Once you have cloned `fabric` and `fabric-ca`, use the `git reset --hard commitlevel` to set your repositories to the correct commit.
 
@@ -142,7 +142,7 @@ Alternatively, <code> mvn dependency:analyze-report </code> will produce a repor
 The SDK's test cases uses chaincode in the SDK's source tree: `/src/test/fixture`
 
 The SDK's JAR is in `target/fabric-sdk-java-1.0.0-SNAPSHOT.jar` and you will need the additional dependencies listed above.
-When the SDK is published to `Maven` you will be able to simply include it in a your application's `pom.xml`.
+When the SDK is published to `Maven` you will be able to simply include it in your application's `pom.xml`.
 
 Add below code in your `pom.xml` to download fabric-sdk-java-1.0.0-SNAPSHOT
 
@@ -189,7 +189,7 @@ To run the unit tests, please use <code>mvn test</code> or <code>mvn install</co
 You must be running a local peer and orderer to be able to run the unit tests.
 
 ### Running the integration tests
-You must be running local instances of Fabric-ca, Fabric peers and Fabric orderers to be able to run the integration tests. See above for running these services in Vagrant.
+You must be running local instances of Fabric-ca, Fabric peers, and Fabric orderers to be able to run the integration tests. See above for running these services in Vagrant.
 Use this `maven` command to run the integration tests:
  * _mvn failsafe:integration-test -DskipITs=false_
 
@@ -216,7 +216,7 @@ In the directory src/test/fixture/sdkintegration/e2e-2Orgs/channel
 
   ```build/bin/cryptogen generate --config crypto-config.yaml --output=crypto-config```
 
-For ease of assigning ports and mapping of artifacts to physical files, all peers, orderers and fabric-ca are run as Docker containers controlled via a docker-compose configuration file.
+For ease of assigning ports and mapping of artifacts to physical files, all peers, orderers, and fabric-ca are run as Docker containers controlled via a docker-compose configuration file.
 
 The files used by the end to end are:
  * _src/test/fixture/sdkintegration/e2e-2Orgs/channel_  (everything needed to bootstrap the orderer and create the channels)
@@ -237,10 +237,10 @@ We need certificate and key for each of the Orderer and Peers for TLS connection
    * sign the csr with the CA private key to generate a certificate: <code>openssl ca -days 365 -in csr.pem -keyfile {CA's privatekey} -notext -out cert.pem</code>
    * put the resulting cert.pem and key.pem together with the CA's certificate (as the name cacert.pem) in the directory where the docker container can access.
 
-The option -notext in the last openssl command in the above is important. Without the option, the resulting cert.pemmay not work for some Java implementation (e.g. IBM JDK).
+The option -notext in the last openssl command in the above is important. Without the option, the resulting cert.pemmay does not work for some Java implementation (e.g. IBM JDK).
 The certificates and keys for the end-to-end test case are stored in the directory _src/test/fixture/sdkintegration/e2e-2Org/tls/_.
 
-Currently, the pom.xml is set to use netty-tcnative-boringssl for TLS connection to Orderer and Peers, however you can change the pom.xml (uncomment a few lines) to use an alternative TLS connection via ALPN.
+Currently, the pom.xml is set to use netty-tcnative-boringssl for TLS connection to Orderer and Peers, however, you can change the pom.xml (uncomment a few lines) to use an alternative TLS connection via ALPN.
 
 ### Chaincode endorsement policies
 Policies are described in the [Fabric Endorsement Policies document](https://gerrit.hyperledger.org/r/gitweb?p=fabric.git;a=blob;f=docs/endorsement-policies.md;h=1eecf359c12c3f7c1ddc63759a0b5f3141b07f13;hb=HEAD).
@@ -254,13 +254,13 @@ For testing purposes, there are 2 policy files in the _src/test/resources_ direc
   * _policyBitsAdmin_ ( which has policy **AND(DEFAULT.admin)** meaning _1 signature from the DEFAULT MSP admin' is required_ )
   * _policyBitsMember_ ( which has policy **AND(DEFAULT.member)** meaning _1 signature from a member of the DEFAULT MSP is required_ )
 
-and one file in th _src/test/fixture/sdkintegration/e2e-2Orgs/channel_ directory specifically for use in the end to end test scenario
+and one file in the _src/test/fixture/sdkintegration/e2e-2Orgs/channel_ directory specifically for use in the end to end test scenario
   * _members_from_org1_or_2.policy_ ( which has policy **OR(peerOrg1.member, peerOrg2.member)** meaning  _1 signature from a member of either organizations peerOrg1, PeerOrg2 is required_)
 
- Alternatively you can also use ChaincodeEndorsementPolicy class by giving it a YAML file that has the policy defined in it.
+ Alternatively, you can also use ChaincodeEndorsementPolicy class by giving it a YAML file that has the policy defined in it.
  See examples of this in the End2endIT testcases that use _src/test/fixture/sdkintegration/chaincodeendorsementpolicy.yaml_
  The file chaincodeendorsementpolicy.yaml has comments that help understand how to create these policies. The first section
- lists all the signature identities you can use in the policy. Currently only ROLE types are supported.
+ lists all the signature identities you can use in the policy. Currently, only ROLE types are supported.
  The policy section is comprised of `n-of` and `signed-by` elements.  Then n-of (`1-of` `2-of`) require that many (`n`) in that
  section to be true. The `signed-by` references an identity in the identities section.
 
@@ -301,7 +301,7 @@ Keep in mind that you can perform the enrollment process with the membership ser
 
 To address this, remove any stored crypto material from the CA server by following the instructions <a href="https://github.com/hyperledger/fabric/blob/master/docs/Setup/Chaincode-setup.md#removing-temporary-files-when-security-is-enabled">here</a> which typically involves deleting the /var/hyperledger/production directory and restarting the membership services. You will also need to remove any of the crypto tokens stored on the client side by deleting the KeyValStore . That KeyValStore is configurable and is set to ${FSUser.home}/test.properties within the unit tests.
 
-When running the unit tests, you will always need to clean the membership services database, and delete the KeyValStore file, otherwise the unit tests will fail.
+When running the unit tests, you will always need to clean the membership services database and delete the KeyValStore file, otherwise, the unit tests will fail.
 
 **java.security.InvalidKeyException: Illegal key size**
 
@@ -354,4 +354,3 @@ Upload full logs to the JIRA not just where the issue occurred if possible
 
 
 <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
-s
