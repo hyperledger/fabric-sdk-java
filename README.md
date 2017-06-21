@@ -227,6 +227,11 @@ The end to end test case artifacts are stored under the directory _src/test/fixt
 
 ### TLS connection to Orderer and Peers
 
+IBM Java needs the following properties defined to use TLS 1.2 to get an HTTPS connections to Fabric CA.
+```
+-Dcom.ibm.jsse2.overrideDefaultTLS=true   -Dhttps.protocols=TLSv1.2
+```
+
 We need certificate and key for each of the Orderer and Peers for TLS connection. You can generate your certificate and key files with openssl command as follows:
 
  * Set up your own Certificate Authority (CA) for issuing certificates
@@ -247,7 +252,7 @@ You create a policy using a Fabric tool ( an example is shown in [JIRA issue FAB
 and give it to the SDK either as a file or a byte array. The SDK, in turn, will use the policy when it creates chaincode instantiation requests.
 
 
-To input a policy to the SDK, use the [ChaincodeEndorsementPolicy class](https://gerrit.hyperledger.org/r/gitweb?p=fabric-sdk-java.git;a=blob;f=src/main/java/org/hyperledger/fabric/sdk/ChaincodeEndorsementPolicy.java;h=b67b5514b1e26ffac71210a33d788b83ee7cf288;hb=HEAD).
+To input a policy to the SDK, use the **ChaincodeEndorsementPolicy** class.
 
 For testing purposes, there are 2 policy files in the _src/test/resources_ directory
   * _policyBitsAdmin_ ( which has policy **AND(DEFAULT.admin)** meaning _1 signature from the DEFAULT MSP admin' is required_ )
@@ -289,7 +294,7 @@ Go lang chaincode dependencies must be contained in vendor folder.
  For an explanation of this see [Vender folder explanation](https://blog.gopheracademy.com/advent-2015/vendor-folder/)
 
 
-#Basic Troubleshooting
+## Basic Troubleshooting
 **identity or token do not match**
 
 Keep in mind that you can perform the enrollment process with the membership services server only once, as the enrollmentSecret is a one-time-use password. If you have performed a FSUser registration/enrollment with the membership services and subsequently deleted the crypto tokens stored on the client side, the next time you try to enroll, errors similar to the ones below will be seen.
@@ -306,13 +311,13 @@ When running the unit tests, you will always need to clean the membership servic
 
 If you get this error, this means your JDK does not capable of handling unlimited strength crypto algorithms. To fix this issue, You will need to download the JCE libraries for your version of JDK. Please follow the instructions <a href="http://stackoverflow.com/questions/6481627/java-security-illegal-key-size-or-default-parameters">here</a> to download and install the JCE for your version of the JDK.
 
-#Communicating with developers and fellow users.
+## Communicating with developers and fellow users.
  Sign into <a href="https://chat.hyperledger.org/">Hyperledger project's Rocket chat</a>
  For this you will also need a <a href="https://identity.linuxfoundation.org/">Linux Foundation ID</a>
 
  Join the <b>fabric-sdk-java</b> channel.
 
-#Reporting Issues
+## Reporting Issues
 If your issue is with building Fabric development environment please discuss this on rocket.chat's #fabric-dev-env channel.
 
 To report an issue please use: <a href="http://jira.hyperledger.org/">Hyperledger's JIRA</a>.
@@ -330,7 +335,10 @@ JIRA Fields should be:
     <dd>v1.0.0</dd>
 </dl>
 
-Pleases provide as much information that you can with the issue you're experiencing: stack traces  logs.
+Pleases provide as much information that you can with the issue you're experiencing: stack traces logs.
+
+Please provide the output of **java -XshowSettings:properties -version**
+
 Logging for the SDK can be enabled with setting environment variables:
 
 ORG_HYPERLEDGER_FABRIC_SDK_LOGLEVEL=TRACE
