@@ -36,16 +36,15 @@ SDK's `Enrollment` interface.
 <p &nbsp; />
 
 `*************************************************`
-## *v1.0.0-beta*
+## *v1.0.0-rc1*
 
-There is a git tagged v1.0.0-beta [dec17727ddb6b269f8fb30930e10d89bc185225f] release of the SDK where there is no
-need to build the Fabric and Fabric-ca described below.
-The provided docker-compose.yaml for the integration tests should pull beta images
-from Docker hub.
+There is a git tagged v1.0.0-rc1 [f918ecc2237587ba0c0c5b8f820657def36a8835] release of the SDK where there is no
+need to build the Hyperledger Fabric and Hyperledger Fabric CA described below.
+The provided docker-compose.yaml for the integration tests should pull v1.0.0-rc1 tagged images from Docker hub.
 
-Later versions of the SDK are NOT guaranteed to work with v1.0.0-beta
+Later versions of the SDK are NOT guaranteed to work with v1.0.0-rc1 tagged images of Hyperledger Fabric and Hyperledger Fabric CA.
 
-The SDK is published to Maven so you can directly use in your application's pom.xml.
+The v1.0.0-rc1 version of the Hyperledger Fabric Java SDK is published to Maven so you can directly use in your application's pom.xml.
 
 [Maven Repository Hyperledger Fabric Java SDK](https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java)
 
