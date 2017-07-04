@@ -2553,6 +2553,9 @@ public class Channel {
 
                 if (null != l) {
                     l.removeFirstOccurrence(this);
+                    if (l.size() == 0) {
+                        txListeners.remove(txID);
+                    }
                 }
             }
             if (future.isDone()) {
