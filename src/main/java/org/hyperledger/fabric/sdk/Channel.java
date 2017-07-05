@@ -658,7 +658,7 @@ public class Channel {
 
                         DeliverResponse status = deliver[0];
                         logger.debug(format("Channel %s getGenesisBlock deliver status: %d", name, status.getStatusValue()));
-                        if (status.getStatusValue() == 404) {
+                        if (status.getStatusValue() == 404 || status.getStatusValue() == 503) {
                             logger.warn(format("Bad deliver expected status 200  got  %d, Channel %s", status.getStatusValue(), name));
                             // keep trying...
                         } else if (status.getStatusValue() != 200) {
