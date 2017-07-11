@@ -1,3 +1,12 @@
+## v1.0.0
+Tue Jul 11 12:22:02 EDT 2017
+
+* [a5a553a](https://github.com/hyperledger/fabric-sdk-java/commit/a5a553a) FAB-5249 JavaSDK v1.0.0 release
+* [137070b](https://github.com/hyperledger/fabric-sdk-java/commit/137070b) [FAB-5162](https://jira.hyperledger.org/browse/FAB-5162) java-sdk leak memory after long run
+* [92f8dea](https://github.com/hyperledger/fabric-sdk-java/commit/92f8dea) FAB-3963 Resolve licensing issues discovered
+* [0011e7e](https://github.com/hyperledger/fabric-sdk-java/commit/0011e7e) FAB 4840 Link to ChaincodeEndorsementPolicy.java bad
+* [b1d1eca](https://github.com/hyperledger/fabric-sdk-java/commit/b1d1eca) FAB-4526 prepare for rc2 development
+
 ## v1.0.0-rc1
 Fri Jun 23 13:21:09 EDT 2017
 
