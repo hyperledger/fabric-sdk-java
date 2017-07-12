@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
+ *  Copyright 2016,2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -117,7 +117,7 @@ class Endpoint {
                 if (nt == null) {
                     throw new RuntimeException("Property of negotiationType expected");
                 }
-                if (!nt.equals("TLS") && !sslp.equals("plainText")) {
+                if (!nt.equals("TLS") && !nt.equals("plainText")) {
                     throw new RuntimeException("Property of negotiationType has to be either TLS or plainText");
                 }
             }
