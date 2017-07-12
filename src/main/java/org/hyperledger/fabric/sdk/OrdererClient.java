@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 DTCC, Fujitsu Australia Software Technology - All Rights Reserved.
+ *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ import static org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse.TypeCase.
  * Sample client code that makes gRPC calls to the server.
  */
 class OrdererClient {
-    private static final long ORDERER_WAIT_TIME = 2000L;
+    private static final long ORDERER_WAIT_TIME = 3000L;
     private final String channelName;
     private final ManagedChannelBuilder channelBuilder;
     private boolean shutdown = false;
@@ -66,8 +66,15 @@ class OrdererClient {
 
             String ordererWaitTimeMilliSecsString = properties.getProperty("ordererWaitTimeMilliSecs", Long.toString(ORDERER_WAIT_TIME));
 
-            ordererWaitTimeMilliSecs = Long.getLong(ordererWaitTimeMilliSecsString, ORDERER_WAIT_TIME);
+            long tempOrdererWaitTimeMilliSecs = ORDERER_WAIT_TIME;
 
+            try {
+                tempOrdererWaitTimeMilliSecs = Long.parseLong(ordererWaitTimeMilliSecsString);
+            } catch (NumberFormatException e) {
+                logger.warn(format("Orderer %s wait time %s not parsable.", name, ordererWaitTimeMilliSecsString), e);
+            }
+
+            ordererWaitTimeMilliSecs = tempOrdererWaitTimeMilliSecs;
         }
 
 
@@ -160,13 +167,15 @@ class OrdererClient {
 
         try {
             if (!finishLatch.await(ordererWaitTimeMilliSecs, TimeUnit.MILLISECONDS)) {
-                TransactionException ste = new TransactionException("Send transactions failed. Reason:  timeout");
+                TransactionException ste = new TransactionException(format("Channel %s, send transactions failed on orderer %s. Reason:  timeout after %d ms.",
+                        channelName, name, ordererWaitTimeMilliSecs));
                 logger.error("sendTransaction error " + ste.getMessage(), ste);
                 throw ste;
             }
             if (throwable[0] != null) {
                 //get full stack trace
-                TransactionException ste = new TransactionException("Send transactions failed. Reason: " + throwable[0].getMessage(), throwable[0]);
+                TransactionException ste = new TransactionException(format("Channel %s, send transaction failed on orderer %s. Reason: %s",
+                        channelName, name, throwable[0].getMessage()), throwable[0]);
                 logger.error("sendTransaction error " + ste.getMessage(), ste);
                 throw ste;
             }
@@ -271,7 +280,8 @@ class OrdererClient {
 
             try {
                 if (!finishLatch.await(ordererWaitTimeMilliSecs, TimeUnit.MILLISECONDS)) {
-                    TransactionException ex = new TransactionException("sendDeliver time exceeded for orderer");
+                    TransactionException ex = new TransactionException(format(
+                            "Channel %s sendDeliver time exceeded for orderer %s, timed out at %d", channelName, name, ordererWaitTimeMilliSecs));
                     logger.error(ex.getMessage(), ex);
                     throw ex;
                 }
@@ -283,7 +293,8 @@ class OrdererClient {
 
             if (!throwableList.isEmpty()) {
                 Throwable throwable = throwableList.get(0);
-                TransactionException e = new TransactionException(throwable.getMessage(), throwable);
+                TransactionException e = new TransactionException(format(
+                        "Channel %s sendDeliver failed on orderer %s. Reason: %s", channelName, name, throwable.getMessage()), throwable);
                 logger.error(e.getMessage(), e);
                 throw e;
             }
