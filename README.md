@@ -34,11 +34,9 @@ SDK's `Enrollment` interface.
 `*************************************************`
 ## *v1.0.0*
 
-This is git tagged v1.0.0 release of the SDK where there is no
+There is a git tagged v1.0.0 [e976abdc658f212d0c3a80ace4499a5cff4279c6] release of the SDK where there is no
 need to build the Hyperledger Fabric and Hyperledger Fabric CA described below.
 The provided docker-compose.yaml for the integration tests should pull v1.0.0  tagged images from Docker hub.
-
-Later versions of the SDK are NOT guaranteed to work with v1.0.0 tagged images of Hyperledger Fabric and Hyperledger Fabric CA.
 
 The v1.0.0 version of the Hyperledger Fabric Java SDK is published to Maven so you can directly use in your application's pom.xml.
 
@@ -54,7 +52,7 @@ _Make sure you're using docker images at the level of the Fabric that matches th
 
 ## Valid builds of Fabric and Fabric-ca
 
-Hyperledger Fabric v1.1 is currently under active development and the very latest Hyperledger Fabric builds may not work with this sdk.
+Hyperledger Fabric v1.0.1 is currently under active development and the very latest Hyperledger Fabric builds may not work with this sdk.
 You should use the following commit levels of the Hyperledger projects:
 
 <!--
@@ -64,8 +62,8 @@ You should use the following commit levels of the Hyperledger projects:
 
 | Project        | Commit level                               | Date                       |
 |:---------------|:------------------------------------------:|---------------------------:|
-| fabric         | 66655f733435685f47cb3f16674c79f00ee0b123   | Jun 14 04:26:47 2017 +0000 |
-| fabric-ca      | 7555a9b9bc1fded60b74ceee9bc64d3af2d080fb   | Jun  9 16:42:57 2017 +0000 |
+| fabric         | f56a82e36e040e1c1a986edfceac014ba1516571   | Jul 11 12:48:33 2017 -0700 |
+| fabric-ca      | 74f8f4d4c29e45a79a8849efb057dbd8de3ae8d0   | Jul 11 16:43:39 2017 +0200 |
 
  You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
 
@@ -142,19 +140,6 @@ When the SDK is published to `Maven` you will be able to simply include it in yo
 Add below code in your `pom.xml` to download fabric-sdk-java-1.0
 
 ```xml
-
-     <repositories>
-        <repository>
-            <id>nexus-snapshot</id>
-            <url>https://nexus.hyperledger.org/content/repositories/snapshots</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-     </repositories>
 
      <dependencies>
      <dependency>
@@ -328,7 +313,7 @@ JIRA Fields should be:
   <dt>Component</dt>
   <dd>fabric-sdk-java</dd>
   <dt>Fix Versions</dt>
-    <dd>v1.1</dd>
+    <dd>v1.0.1</dd>
 </dl>
 
 Pleases provide as much information that you can with the issue you're experiencing: stack traces logs.
