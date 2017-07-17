@@ -77,7 +77,7 @@ public class BlockEvent extends BlockInfo {
 
     List<TransactionEvent> getTransactionEventsList() {
 
-        ArrayList<TransactionEvent> ret = new ArrayList<TransactionEvent>(getEnvelopCount());
+        ArrayList<TransactionEvent> ret = new ArrayList<TransactionEvent>(getEnvelopeCount());
         for (TransactionEvent transactionEvent : getTransactionEvents()) {
             ret.add(transactionEvent);
         }
@@ -97,7 +97,7 @@ public class BlockEvent extends BlockInfo {
         final int max;
 
         TransactionEventIterator() {
-            max = getEnvelopCount();
+            max = getEnvelopeCount();
 
         }
 

@@ -81,12 +81,12 @@ public class BlockInfo {
     }
 
     /**
-     * getEnvelopCount
+     * getEnvelopeCount
      *
      * @return the number of transactions in this block.
      */
 
-    public int getEnvelopCount() {
+    public int getEnvelopeCount() {
         return block.getData().getDataCount();
     }
 
