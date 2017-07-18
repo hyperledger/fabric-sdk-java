@@ -21,5 +21,9 @@ cd $WD/src/test/fixture/sdkintegration
 ./fabric.sh restart >dockerlogfile.log 2>&1 &
 cd $WD
 sleep 30
+docker images
 docker ps -a
+export ORG_HYPERLEDGER_FABRIC_SDK_DIAGNOSTICFILEDIR=target/diagDump
 mvn clean install -DskipITs=false -Dmaven.test.failure.ignore=false javadoc:javadoc
+docker images
+docker ps -a
