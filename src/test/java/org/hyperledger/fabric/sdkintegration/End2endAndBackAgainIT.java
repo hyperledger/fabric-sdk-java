@@ -26,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
+import org.hyperledger.fabric.protos.common.Configtx;
 import org.hyperledger.fabric.protos.peer.Query.ChaincodeInfo;
 import org.hyperledger.fabric.sdk.BlockEvent;
 import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
@@ -55,6 +56,7 @@ import org.junit.Test;
 
 import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 /**
@@ -514,6 +516,16 @@ public class End2endAndBackAgainIT {
         }
 
         newChannel.initialize();
+
+        //Just see if we can get channelConfiguration. Not required for the rest of scenario but should work.
+        final byte[] channelConfigurationBytes = newChannel.getChannelConfigurationBytes();
+        Configtx.Config channelConfig = Configtx.Config.parseFrom(channelConfigurationBytes);
+        assertNotNull(channelConfig);
+        Configtx.ConfigGroup channelGroup = channelConfig.getChannelGroup();
+        assertNotNull(channelGroup);
+        Map<String, Configtx.ConfigGroup> groupsMap = channelGroup.getGroupsMap();
+        assertNotNull(groupsMap.get("Orderer"));
+        assertNotNull(groupsMap.get("Application"));
 
         //Before return lets see if we have the chaincode on the peers that we expect from End2endIT
         //And if they were instantiated too.

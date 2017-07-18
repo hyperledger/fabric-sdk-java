@@ -822,6 +822,13 @@ public class Channel {
         return msps;
     }
 
+    /**
+     * Provide the Channel's latest raw Configuration Block.
+     *
+     * @return Channel configuration block.
+     * @throws TransactionException
+     */
+
     private Block getConfigurationBlock() throws TransactionException {
 
         logger.debug(format("getConfigurationBlock for channel %s", name));
@@ -869,6 +876,37 @@ public class Channel {
             throw e;
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
+            throw new TransactionException(e);
+        }
+
+    }
+
+    /**
+     * Channel Configuration bytes. Bytes that can be used with configtxlator tool to upgrade the channel.
+     * Convert to Json for editing  with:
+     * {@code
+     *
+     * curl -v   POST --data-binary @fooConfig http://host/protolator/decode/common.Config
+     *
+     * }
+     * See http://hyperledger-fabric.readthedocs.io/en/latest/configtxlator.html
+     *
+     * @return Channel configuration bytes.
+     * @throws TransactionException
+     */
+
+    public byte[] getChannelConfigurationBytes() throws TransactionException {
+        try {
+            final Block configBlock = getConfigurationBlock();
+
+            Envelope envelopeRet = Envelope.parseFrom(configBlock.getData().getData(0));
+
+            Payload payload = Payload.parseFrom(envelopeRet.getPayload());
+
+            ConfigEnvelope configEnvelope = ConfigEnvelope.parseFrom(payload.getData());
+            return configEnvelope.getConfig().toByteArray();
+
+        } catch (Exception e) {
             throw new TransactionException(e);
         }
 
