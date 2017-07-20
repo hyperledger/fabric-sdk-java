@@ -290,7 +290,7 @@ public class TestConfig {
 
         final String domainName = getDomainName(name);
 
-        File cert = Paths.get(getTestChannlePath(), "crypto-config/ordererOrganizations".replace("orderer", type), domainName, type + "s",
+        File cert = Paths.get(getTestChannelPath(), "crypto-config/ordererOrganizations".replace("orderer", type), domainName, type + "s",
                 name, "tls/server.crt").toFile();
         if (!cert.exists()) {
             throw new RuntimeException(String.format("Missing cert file for: %s. Could not find at location: %s", name,
@@ -313,8 +313,7 @@ public class TestConfig {
 
     }
 
-
-    public String getTestChannlePath() {
+    public String getTestChannelPath() {
 
         return "src/test/fixture/sdkintegration/e2e-2Orgs/channel";
 

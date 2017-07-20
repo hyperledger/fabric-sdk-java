@@ -177,9 +177,9 @@ public class End2endIT {
                 // src/test/fixture/sdkintegration/e2e-2Orgs/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/
 
                 SampleUser peerOrgAdmin = sampleStore.getMember(sampleOrgName + "Admin", sampleOrgName, sampleOrg.getMSPID(),
-                        findFileSk(Paths.get(testConfig.getTestChannlePath(), "crypto-config/peerOrganizations/",
+                        Util.findFileSk(Paths.get(testConfig.getTestChannelPath(), "crypto-config/peerOrganizations/",
                                 sampleOrgDomainName, format("/users/Admin@%s/msp/keystore", sampleOrgDomainName)).toFile()),
-                        Paths.get(testConfig.getTestChannlePath(), "crypto-config/peerOrganizations/", sampleOrgDomainName,
+                        Paths.get(testConfig.getTestChannelPath(), "crypto-config/peerOrganizations/", sampleOrgDomainName,
                                 format("/users/Admin@%s/msp/signcerts/Admin@%s-cert.pem", sampleOrgDomainName, sampleOrgDomainName)).toFile());
 
                 sampleOrg.setPeerAdmin(peerOrgAdmin); //A special user that can create channels, join peers and install chaincode
@@ -638,22 +638,6 @@ public class End2endIT {
 //        } catch (InterruptedException e) {
 //            fail("should not have jumped out of sleep mode. No other threads should be running");
 //        }
-    }
-
-    File findFileSk(File directory) {
-
-        File[] matches = directory.listFiles((dir, name) -> name.endsWith("_sk"));
-
-        if (null == matches) {
-            throw new RuntimeException(format("Matches returned null does %s directory exist?", directory.getAbsoluteFile().getName()));
-        }
-
-        if (matches.length != 1) {
-            throw new RuntimeException(format("Expected in %s only 1 sk file but found %d", directory.getAbsoluteFile().getName(), matches.length));
-        }
-
-        return matches[0];
-
     }
 
     private static final Map<String, String> TX_EXPECTED;

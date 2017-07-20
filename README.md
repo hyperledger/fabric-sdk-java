@@ -62,8 +62,8 @@ You should use the following commit levels of the Hyperledger projects:
 
 | Project        | Commit level                               | Date                       |
 |:---------------|:------------------------------------------:|---------------------------:|
-| fabric         | f56a82e36e040e1c1a986edfceac014ba1516571   | Jul 11 12:48:33 2017 -0700 |
-| fabric-ca      | 74f8f4d4c29e45a79a8849efb057dbd8de3ae8d0   | Jul 11 16:43:39 2017 +0200 |
+| fabric         | 3a4b1f2bce86daa86c025a9244a90106a58bb54b   | Jul 22 18:18:25 2017 +0000 |
+| fabric-ca      | bc2b642f4a9ef2dcb393bf7da512ce43e1ec1a68   | Jul 23 03:38:20 2017 -0400 |
 
  You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
 
@@ -111,6 +111,7 @@ environment.  For non Vagrant envrionment, the steps would be the same as below 
   config.vm.network :forwarded_port, guest: 8054, host: 8054
   config.vm.network :forwarded_port, guest: 8056, host: 8056
   config.vm.network :forwarded_port, guest: 8058, host: 8058
+  config.vm.network :forwarded_port, guest: 7059, host: 7059
 
 ```
 
@@ -118,7 +119,7 @@ Add to your Vagrant file a folder for referencing the sdkintegration folder betw
 
   config.vm.synced_folder "..", "/opt/gopath/src/github.com/hyperledger/fabric"</br>
 
-  `config.vm.synced_folder "/home/<<user>>/fabric-sdk-java/src/test/fixture/sdkintegration", "/opt/gopath/src/github.com/hyperledger/fabric/sdkintegration`</br>
+  `config.vm.synced_folder "/home/<<user>>/fabric-sdk-java/src/test/fixture/sdkintegration", "/opt/gopath/src/github.com/hyperledger/fabric/sdkintegration"`</br>
 
   config.vm.synced_folder ENV.fetch('LOCALDEVDIR', ".."), "#{LOCALDEV}"</br>
 

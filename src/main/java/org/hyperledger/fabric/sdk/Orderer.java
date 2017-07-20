@@ -95,6 +95,13 @@ public class Orderer {
         }
 
         this.channel = channel;
+
+    }
+
+    void unsetChannel() {
+
+        channel = null;
+
     }
 
     private Channel channel;

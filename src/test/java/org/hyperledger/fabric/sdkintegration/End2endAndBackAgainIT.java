@@ -136,7 +136,6 @@ public class End2endAndBackAgainIT {
             //Persistence is not part of SDK. Sample file store is for demonstration purposes only!
             //   MUST be replaced with more robust application implementation  (Database, LDAP)
             File sampleStoreFile = new File(System.getProperty("java.io.tmpdir") + "/HFCSampletest.properties");
-            sampleStoreFile.deleteOnExit();
 
             final SampleStore sampleStore = new SampleStore(sampleStoreFile);
 

@@ -147,6 +147,16 @@
             <version>${httpclient.version}</version>
         </dependency>
 
+
+        <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpmime -->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpmime</artifactId>
+            <version>${httpclient.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+
         <!-- https://mvnrepository.com/artifact/org.glassfish/javax.json -->
         <dependency>
             <groupId>org.glassfish</groupId>

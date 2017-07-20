@@ -81,12 +81,18 @@ public class DiagnosticFileDumper implements Runnable {
         return null == directory || !directory.exists() || !directory.isDirectory() || !directory.canWrite();
     }
 
-    public String createDiagnosticFile(byte[] byteString, String prefix, String ext) {
+    public String createDiagnosticFile(byte[] bytes) {
+
+        return createDiagnosticFile(bytes, null, null);
+
+    }
+
+    public String createDiagnosticFile(byte[] bytes, String prefix, String ext) {
         String fileName = "";
         if (cantWrite()) {
             return "Missing dump directory or can not write: " + (dirAbsolutePath);
         }
-        if (null != byteString) {
+        if (null != bytes) {
             if (null == prefix) {
                 prefix = "diagnostic_";
             }
@@ -100,7 +106,7 @@ public class DiagnosticFileDumper implements Runnable {
                     + "_" + counter.addAndGet(1) + "." + ext;
             fileName = fileName.replaceAll("\\:", "-"); // colon is bad for windows.
 
-            new QueEntry(fileName, byteString); //Add to Que let process by async thread.
+            new QueEntry(fileName, bytes); //Add to Que let process by async thread.
 
         }
         return fileName;

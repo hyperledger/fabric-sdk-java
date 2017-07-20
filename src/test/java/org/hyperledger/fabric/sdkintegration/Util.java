@@ -33,12 +33,15 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.hyperledger.fabric.sdk.helper.Utils;
 
+import static java.lang.String.format;
+
 class Util {
 
     /**
      * Private constructor to prevent instantiation.
      */
-    private Util() { }
+    private Util() {
+    }
 
     /**
      * Generate a targz inputstream from source folder.
@@ -89,5 +92,21 @@ class Util {
         }
 
         return new ByteArrayInputStream(bos.toByteArray());
+    }
+
+    public static File findFileSk(File directory) {
+
+        File[] matches = directory.listFiles((dir, name) -> name.endsWith("_sk"));
+
+        if (null == matches) {
+            throw new RuntimeException(format("Matches returned null does %s directory exist?", directory.getAbsoluteFile().getName()));
+        }
+
+        if (matches.length != 1) {
+            throw new RuntimeException(format("Expected in %s only 1 sk file but found %d", directory.getAbsoluteFile().getName(), matches.length));
+        }
+
+        return matches[0];
+
     }
 }

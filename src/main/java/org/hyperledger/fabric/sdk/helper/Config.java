@@ -41,6 +41,8 @@ public class Config {
     public static final String HASH_ALGORITHM = "org.hyperledger.fabric.sdk.hash_algorithm";
     public static final String CACERTS = "org.hyperledger.fabric.sdk.cacerts";
     public static final String PROPOSAL_WAIT_TIME = "org.hyperledger.fabric.sdk.proposal.wait.time";
+    public static final String CHANNEL_CONFIG_WAIT_TIME = "org.hyperledger.fabric.sdk.channelconfig.wait_time";
+    public static final String ORDERER_RETRY_WAIT_TIME = "org.hyperledger.fabric.sdk.orderer_retry.wait_time";
     public static final String PROPOSAL_CONSISTENCY_VALIDATION = "org.hyperledger.fabric.sdk.proposal.consistency_validation";
     public static final String GENESISBLOCK_WAIT_TIME = "org.hyperledger.fabric.sdk.channel.genesisblock_wait_time";
     public static final String ASYMMETRIC_KEY_TYPE = "org.hyperledger.fabric.sdk.crypto.asymmetric_key_type";
@@ -98,6 +100,8 @@ public class Config {
             defaultProperty(EXTRALOGLEVEL, "0");
             defaultProperty(LOGGERLEVEL, null);
             defaultProperty(DIAGNOTISTIC_FILE_DIRECTORY, null);
+            defaultProperty(CHANNEL_CONFIG_WAIT_TIME, "10000");
+            defaultProperty(ORDERER_RETRY_WAIT_TIME, "200");
 
 
             final String inLogLevel = sdkProperties.getProperty(LOGGERLEVEL);
@@ -234,6 +238,24 @@ public class Config {
      */
     public long getGenesisBlockWaitTime() {
         return Long.parseLong(getProperty(GENESISBLOCK_WAIT_TIME));
+    }
+
+    /**
+     * Time to wait for channel to be configured.
+     *
+     * @return
+     */
+    public long getChannelConfigWaitTime() {
+        return Long.parseLong(getProperty(CHANNEL_CONFIG_WAIT_TIME));
+    }
+
+    /**
+     * Time to wait before retrying an operation.
+     *
+     * @return
+     */
+    public long getOrdererRetryWaitTime() {
+        return Long.parseLong(getProperty(ORDERER_RETRY_WAIT_TIME));
     }
 
     public String getAsymmetricKeyType() {

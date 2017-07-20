@@ -451,6 +451,24 @@ public class HFClient {
     }
 
     /**
+     * Get signature for update channel configuration
+     *
+     * @param updateChannelConfiguration
+     * @param signer
+     * @return byte array with the signature
+     * @throws InvalidArgumentException
+     */
+
+    public byte[] getUpdateChannelConfigurationSignature(UpdateChannelConfiguration updateChannelConfiguration, User signer) throws InvalidArgumentException {
+
+        clientCheck();
+
+        Channel systemChannel = Channel.newSystemChannel(this);
+        return systemChannel.getUpdateChannelConfigurationSignature(updateChannelConfiguration, signer);
+
+    }
+
+    /**
      * Send install chaincode request proposal to peers.
      *
      * @param installProposalRequest

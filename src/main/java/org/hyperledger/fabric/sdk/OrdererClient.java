@@ -77,7 +77,6 @@ class OrdererClient {
             ordererWaitTimeMilliSecs = tempOrdererWaitTimeMilliSecs;
         }
 
-
     }
 
     synchronized void shutdown(boolean force) {
@@ -165,21 +164,21 @@ class OrdererClient {
 
             nso.onNext(envelope);
 
-        try {
-            if (!finishLatch.await(ordererWaitTimeMilliSecs, TimeUnit.MILLISECONDS)) {
-                TransactionException ste = new TransactionException(format("Channel %s, send transactions failed on orderer %s. Reason:  timeout after %d ms.",
-                        channelName, name, ordererWaitTimeMilliSecs));
-                logger.error("sendTransaction error " + ste.getMessage(), ste);
-                throw ste;
-            }
-            if (throwable[0] != null) {
-                //get full stack trace
-                TransactionException ste = new TransactionException(format("Channel %s, send transaction failed on orderer %s. Reason: %s",
-                        channelName, name, throwable[0].getMessage()), throwable[0]);
-                logger.error("sendTransaction error " + ste.getMessage(), ste);
-                throw ste;
-            }
-            logger.debug("Done waiting for reply! Got:" + ret[0]);
+            try {
+                if (!finishLatch.await(ordererWaitTimeMilliSecs, TimeUnit.MILLISECONDS)) {
+                    TransactionException ste = new TransactionException(format("Channel %s, send transactions failed on orderer %s. Reason:  timeout after %d ms.",
+                            channelName, name, ordererWaitTimeMilliSecs));
+                    logger.error("sendTransaction error " + ste.getMessage(), ste);
+                    throw ste;
+                }
+                if (throwable[0] != null) {
+                    //get full stack trace
+                    TransactionException ste = new TransactionException(format("Channel %s, send transaction failed on orderer %s. Reason: %s",
+                            channelName, name, throwable[0].getMessage()), throwable[0]);
+                    logger.error("sendTransaction error " + ste.getMessage(), ste);
+                    throw ste;
+                }
+                logger.debug("Done waiting for reply! Got:" + ret[0]);
 
             } catch (InterruptedException e) {
                 logger.error(e);
@@ -269,7 +268,7 @@ class OrdererClient {
 
                 @Override
                 public void onCompleted() {
-                    logger.warn("onCompleted");
+                    logger.trace("onCompleted");
                     finishLatch.countDown();
                 }
             };
