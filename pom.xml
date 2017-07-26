@@ -4,7 +4,7 @@
     <groupId>org.hyperledger.fabric-sdk-java</groupId>
     <artifactId>fabric-sdk-java</artifactId>
     <packaging>jar</packaging>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>${fabric.sdk.java.version}-SNAPSHOT</version>
     <name>fabric-java-sdk</name>
     <description>Java SDK for Hyperledger fabric project</description>
     <url>https://www.hyperledger.org/community/projects</url>
@@ -28,6 +28,7 @@
         <tag>fabric-sdk-java-1.0</tag>
     </scm>
     <properties>
+        <fabric.sdk.java.version>1.0.1</fabric.sdk.java.version>
         <grpc.version>1.5.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
         <bouncycastle.version>1.57</bouncycastle.version>
         <httpclient.version>4.5.3</httpclient.version>
@@ -467,6 +468,38 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>pl.project13.maven</groupId>
+                <artifactId>git-commit-id-plugin</artifactId>
+                <version>2.2.2</version>
+                <executions>
+                    <execution>
+                        <id>get-the-git-infos</id>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                        <phase>validate</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <git-commit-id>${git.commit.id}</git-commit-id>
+                            <git-branch>${git.branch}</git-branch>
+                            <git-commit-time>${git.commit.time}</git-commit-time>
+                            <fabric-sdk-java-version>${fabric.sdk.java.version}</fabric-sdk-java-version>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
     <distributionManagement>
