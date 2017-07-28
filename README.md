@@ -32,13 +32,15 @@ SDK's `Enrollment` interface.
 <p &nbsp; />
 
 `*************************************************`
-## *v1.0.0*
+## *v1.0.1*
 
-There is a git tagged v1.0.0 [e976abdc658f212d0c3a80ace4499a5cff4279c6] release of the SDK where there is no
+This is git tagged v1.0.1 release of the SDK where there is no
 need to build the Hyperledger Fabric and Hyperledger Fabric CA described below.
-The provided docker-compose.yaml for the integration tests should pull v1.0.0  tagged images from Docker hub.
+The provided docker-compose.yaml for the integration tests should pull v1.0.1  tagged images from Docker hub.
 
-The v1.0.0 version of the Hyperledger Fabric Java SDK is published to Maven so you can directly use in your application's pom.xml.
+Later versions of the SDK are NOT guaranteed to work with v1.0.1 tagged images of Hyperledger Fabric and Hyperledger Fabric CA.
+
+The v1.0.1 version of the Hyperledger Fabric Java SDK is published to Maven so you can directly use in your application's pom.xml.
 
 [Maven Repository Hyperledger Fabric Java SDK](https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java)
 
@@ -52,7 +54,7 @@ _Make sure you're using docker images at the level of the Fabric that matches th
 
 ## Valid builds of Fabric and Fabric-ca
 
-Hyperledger Fabric v1.0.1 is currently under active development and the very latest Hyperledger Fabric builds may not work with this sdk.
+Hyperledger Fabric v1.1 is currently under active development and the very latest Hyperledger Fabric builds may not work with this sdk.
 You should use the following commit levels of the Hyperledger projects:
 
 <!--
@@ -146,7 +148,7 @@ Add below code in your `pom.xml` to download fabric-sdk-java-1.0
      <dependency>
             <groupId>org.hyperledger.fabric-sdk-java</groupId>
             <artifactId>fabric-sdk-java</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.1</version>
          </dependency>
      </dependencies>
 ```
@@ -314,7 +316,7 @@ JIRA Fields should be:
   <dt>Component</dt>
   <dd>fabric-sdk-java</dd>
   <dt>Fix Versions</dt>
-    <dd>v1.0.1</dd>
+    <dd>v1.1</dd>
 </dl>
 
 Pleases provide as much information that you can with the issue you're experiencing: stack traces logs.

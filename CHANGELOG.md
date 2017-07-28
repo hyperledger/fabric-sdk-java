@@ -1,3 +1,18 @@
+## v1.0.1\nFri Jul 28 09:24:28 EDT 2017
+
+* [1ddffdf](https://github.com/hyperledger/fabric-sdk-java/commit/1ddffdf) [FAB-5511](https://jira.hyperledger.org/browse/FAB-5511) fixed , Unnecessary code
+* [6878f89](https://github.com/hyperledger/fabric-sdk-java/commit/6878f89) FAB-5477 Jar manifest add attrib identifying build
+* [7640986](https://github.com/hyperledger/fabric-sdk-java/commit/7640986) FAB-5408 Missing channel update method.
+* [946e871](https://github.com/hyperledger/fabric-sdk-java/commit/946e871) FAB-5368 No means to get channel config
+* [83b117c](https://github.com/hyperledger/fabric-sdk-java/commit/83b117c) FAB-5315 Remove unneeded runtime jars update to latest.
+* [8d12ffb](https://github.com/hyperledger/fabric-sdk-java/commit/8d12ffb) FAB-5344 Provide common handling for Seek
+* [c4910c0](https://github.com/hyperledger/fabric-sdk-java/commit/c4910c0) FAB-5312 Dump diagnostic files for logging.
+* [e93d7af](https://github.com/hyperledger/fabric-sdk-java/commit/e93d7af) FAB-5347 Upgrade to new configtx
+* [024c417](https://github.com/hyperledger/fabric-sdk-java/commit/024c417) FAB-5290 Orderer wait time not being set properly
+* [12334a9](https://github.com/hyperledger/fabric-sdk-java/commit/12334a9) FAB-5242 The TLS configuration not working
+* [9d8e225](https://github.com/hyperledger/fabric-sdk-java/commit/9d8e225) [FAB-5178](https://jira.hyperledger.org/browse/FAB-5178) deliver envelope get 503 error
+* [0171c93](https://github.com/hyperledger/fabric-sdk-java/commit/0171c93) FAB-5299 v1.0.1 release start
+
 ## v1.0.0
 Tue Jul 11 12:22:02 EDT 2017
 

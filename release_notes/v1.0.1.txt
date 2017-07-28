@@ -1,0 +1,23 @@
+v1.0.1 July 28, 2017
+-------------------------
+
+Release Notes
+-------------
+Bug fixes, documentation and test coverage improvements.
+Updated the sample application and developer setup documentation.
+
+Known Vulnerabilities
+---------------------
+none
+
+Resolved Vulnerabilities
+------------------------
+none
+
+Known Issues & Workarounds
+--------------------------
+none
+
+Change Log
+----------
+https://github.com/hyperledger/fabric-sdk-java/blob/master/CHANGELOG.md#v1.0.1
