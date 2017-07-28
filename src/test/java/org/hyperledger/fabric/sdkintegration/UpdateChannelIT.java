@@ -128,8 +128,6 @@ public class UpdateChannelIT {
             // Getting foo channels current configuration bytes.
             final byte[] channelConfigurationBytes = fooChannel.getChannelConfigurationBytes();
 
-            HttpClients.createDefault();
-
             HttpClient httpclient = HttpClients.createDefault();
             HttpPost httppost = new HttpPost("http://localhost:7059/protolator/decode/common.Config");
             httppost.setEntity(new ByteArrayEntity(channelConfigurationBytes));
