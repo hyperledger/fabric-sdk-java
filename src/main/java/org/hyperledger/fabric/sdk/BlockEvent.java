@@ -42,6 +42,12 @@ public class BlockEvent extends BlockInfo {
     private final EventHub eventHub;
     private final Event event;
 
+    /**
+     * Raw proto buff event.
+     *
+     * @return Return raw protobuf event.
+     */
+
     public Event getEvent() {
         return event;
     }

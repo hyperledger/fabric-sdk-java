@@ -583,14 +583,7 @@ public class End2endAndBackAgainIT {
 
     ///// NO OP ... leave in case it's needed.
     private void waitOnFabric(int additional) {
-        // wait a few seconds for the peers to catch up with each other via the gossip network.
-        // Another way would be to wait on all the peers event hubs for the event containing the transaction TxID
-//        try {
-//            out("Wait %d milliseconds for peers to sync with each other", gossipWaitTime + additional);
-//            TimeUnit.MILLISECONDS.sleep(gossipWaitTime + additional);
-//        } catch (InterruptedException e) {
-//            fail("should not have jumped out of sleep mode. No other threads should be running");
-//        }
+
     }
 
     private static boolean checkInstalledChaincode(HFClient client, Peer peer, String ccName, String ccPath, String ccVersion) throws InvalidArgumentException, ProposalException {

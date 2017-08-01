@@ -52,11 +52,19 @@ class ChaincodeActionDeserializer {
 
         }
 
-        //TODO events ?
-
-        //     ret.getResponse();
-
         return ret;
+
+    }
+
+    ChaincodeEvent getEvent() {
+
+        ChaincodeAction ca = getChaincodeAction();
+        ByteString eventsBytes = ca.getEvents();
+        if (eventsBytes == null || eventsBytes.isEmpty()) {
+            return null;
+        }
+
+        return new ChaincodeEvent(eventsBytes);
 
     }
 

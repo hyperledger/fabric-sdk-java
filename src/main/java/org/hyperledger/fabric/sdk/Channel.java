@@ -36,6 +36,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -2526,7 +2527,7 @@ public class Channel {
      * Register a block listener.
      *
      * @param listener
-     * @return the UUID handle of the registered block listener.
+     * @return The handle of the registered block listener.
      * @throws InvalidArgumentException if the channel is shutdown.
      */
     public String registerBlockListener(BlockListener listener) throws InvalidArgumentException {
@@ -2537,6 +2538,39 @@ public class Channel {
 
         return new BL(listener).getHandle();
 
+    }
+
+    private static void checkHandle(final String tag, final String handle) throws InvalidArgumentException {
+
+        if (isNullOrEmpty(handle)) {
+            throw new InvalidArgumentException("Handle is invalid.");
+        }
+        if (!handle.startsWith(tag) || !handle.endsWith(tag)) {
+            throw new InvalidArgumentException("Handle is wrong type.");
+        }
+
+    }
+
+    /**
+     * Unregister a block listener.
+     *
+     * @param handle of Block listener to remove.
+     * @return false if not found.
+     * @throws InvalidArgumentException if the channel is shutdown or invalid arguments.
+     */
+    public boolean unRegisterBlockListener(String handle) throws InvalidArgumentException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
+        }
+
+        checkHandle(BLOCK_LISTENER_TAG, handle);
+
+        synchronized (blockListeners) {
+
+            return null != blockListeners.remove(handle);
+
+        }
     }
 
     /**
@@ -2564,9 +2598,6 @@ public class Channel {
             if (event.getEvent().getEventCase() != EventCase.BLOCK) {
                 return false;
             }
-
-//            Block block = event.seekBlock();
-//            final long num = block.getHeader().getNumber();
 
             // May be fed by multiple eventhubs but BlockingQueue.add() is thread-safe
             events.add(event);
@@ -2674,42 +2705,9 @@ public class Channel {
             }
         });
 
-//        Do our own time out. of tasks
-//        cleanUpTask = () -> {
-//
-//
-//            for (;;) {
-//
-//                synchronized (txListeners) {
-//
-//                    for (LinkedList<TL> tll : txListeners.values()) {
-//
-//                        if (tll == null) {
-//                            continue;
-//                        }
-//
-//                        for (TL tl : tll) {
-//                            tl.timedOut();
-//                        }
-//                    }
-//                }
-//
-//
-//                try {
-//                    Thread.sleep(1000);
-//                } catch (InterruptedException e) {
-//                    logger.error(e);
-//
-//                }
-//
-//            }
-//
-//        };
-//
-//
-//        new Thread(cleanUpTask).start();
-//
     }
+
+    private static final String BLOCK_LISTENER_TAG = "BLOCK_LISTENER_HANDLE";
 
     private final LinkedHashMap<String, BL> blockListeners = new LinkedHashMap<>();
 
@@ -2725,7 +2723,7 @@ public class Channel {
 
         BL(BlockListener listener) {
 
-            handle = Utils.generateUUID();
+            handle = BLOCK_LISTENER_TAG + Utils.generateUUID() + BLOCK_LISTENER_TAG;
             logger.debug(format("Channel %s blockListener %s starting", name, handle));
 
             this.listener = listener;
@@ -2792,8 +2790,6 @@ public class Channel {
         final AtomicBoolean fired = new AtomicBoolean(false);
         final CompletableFuture<TransactionEvent> future;
         final Set<EventHub> seenEventHubs = Collections.synchronizedSet(new HashSet<>());
-//        final long createdTime = System.currentTimeMillis();//seconds
-//        final long waitTime;
 
         Set<EventHub> eventReceived(EventHub eventHub) {
 
@@ -2805,11 +2801,6 @@ public class Channel {
         TL(String txID, CompletableFuture<BlockEvent.TransactionEvent> future) {
             this.txID = txID;
             this.future = future;
-//            if (waitTimeSeconds > 0) {
-//                this.waitTime = waitTimeSeconds * 1000;
-//            } else {
-//                this.waitTime = -1;
-//            }
             addListener();
         }
 
@@ -2852,39 +2843,6 @@ public class Channel {
             }
         }
 
-        //KEEP THIS FOR NOW in case in the future we decide we want it.
-
-//        public boolean timedOut() {
-//
-//            if (fired.get()) {
-//                return false;
-//            }
-//            if (waitTime == -1) {
-//                return false;
-//            }
-//
-//            if (createdTime + waitTime > System.currentTimeMillis()) {
-//                return false;
-//            }
-//
-//            LinkedList<TL> l = txListeners.get(txID);
-//            if (null != l) {
-//                l.removeFirstOccurrence(this);
-//            }
-//
-//            logger.debug("timeout:" + txID);
-//
-//            if (fired.getAndSet(true)) {
-//                return false;
-//            }
-//
-//            executorService.execute(() -> {
-//                future.completeExceptionally(new TimeoutException("Transaction " + txID + " timed out."));
-//            });
-//
-//            return true;
-//
-//        }
     }
 
     /**
@@ -2904,6 +2862,185 @@ public class Channel {
 
     }
 
+    ////////////////////////////////////////////////////////////////////////
+    ////////////////  Chaincode Events..  //////////////////////////////////
+
+    private static final String CHAINCODE_EVENTS_TAG = "CHAINCODE_EVENTS_HANDLE";
+
+    private final LinkedHashMap<String, ChaincodeEventListenerEntry> chainCodeListeners = new LinkedHashMap<>();
+
+    private class ChaincodeEventListenerEntry {
+
+        private final Pattern chaincodeIdPattern;
+        private final Pattern eventNamePattern;
+        private final ChaincodeEventListener chaincodeEventListener;
+        private final String handle;
+
+        ChaincodeEventListenerEntry(Pattern chaincodeIdPattern, Pattern eventNamePattern, ChaincodeEventListener chaincodeEventListener) {
+            this.chaincodeIdPattern = chaincodeIdPattern;
+            this.eventNamePattern = eventNamePattern;
+            this.chaincodeEventListener = chaincodeEventListener;
+            this.handle = CHAINCODE_EVENTS_TAG + Utils.generateUUID() + CHAINCODE_EVENTS_TAG;
+
+            synchronized (chainCodeListeners) {
+
+                chainCodeListeners.put(handle, this);
+
+            }
+        }
+
+        boolean isMatch(ChaincodeEvent chaincodeEvent) {
+
+            return chaincodeIdPattern.matcher(chaincodeEvent.getChaincodeId()).matches() && eventNamePattern.matcher(chaincodeEvent.getEventName()).matches();
+
+        }
+
+        void fire(BlockEvent blockEvent, ChaincodeEvent ce) {
+
+            executorService.execute(() -> chaincodeEventListener.received(handle, blockEvent, ce));
+
+        }
+    }
+
+    /**
+     * Register a chaincode event listener. Both chaincodeId pattern AND eventName pattern must match to invoke
+     * the chaincodeEventListener
+     *
+     * @param chaincodeId            Java pattern for chaincode identifier also know as chaincode name. If ma
+     * @param eventName              Java pattern to match the event name.
+     * @param chaincodeEventListener The listener to be invoked if both chaincodeId and eventName pattern matches.
+     * @return Handle to be used to unregister the event listener {@link #unRegisterChaincodeEventListener(String)}
+     * @throws InvalidArgumentException
+     */
+
+    public String registerChaincodeEventListener(Pattern chaincodeId, Pattern eventName, ChaincodeEventListener chaincodeEventListener) throws InvalidArgumentException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
+        }
+
+        if (chaincodeId == null) {
+            throw new InvalidArgumentException("The chaincodeId argument may not be null.");
+        }
+
+        if (eventName == null) {
+            throw new InvalidArgumentException("The eventName argument may not be null.");
+        }
+
+        if (chaincodeEventListener == null) {
+            throw new InvalidArgumentException("The chaincodeEventListener argument may not be null.");
+        }
+
+        ChaincodeEventListenerEntry chaincodeEventListenerEntry = new ChaincodeEventListenerEntry(chaincodeId, eventName, chaincodeEventListener);
+        synchronized (this) {
+            if (null == blh) {
+                blh = registerChaincodeListenerProcessor();
+            }
+        }
+        return chaincodeEventListenerEntry.handle;
+
+    }
+
+    private String blh = null;
+
+    /**
+     * Unregister an existing chaincode event listener.
+     *
+     * @param handle Chaincode event listener handle to be unregistered.
+     * @return True if the chaincode handler was found and removed.
+     * @throws InvalidArgumentException
+     */
+
+    public boolean unRegisterChaincodeEventListener(String handle) throws InvalidArgumentException {
+        boolean ret;
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
+        }
+
+        checkHandle(CHAINCODE_EVENTS_TAG, handle);
+
+        synchronized (chainCodeListeners) {
+            ret = null != chainCodeListeners.remove(handle);
+
+        }
+
+        synchronized (this) {
+            if (null != blh && chainCodeListeners.isEmpty()) {
+
+                unRegisterBlockListener(blh);
+                blh = null;
+            }
+        }
+
+        return ret;
+
+    }
+
+    private String registerChaincodeListenerProcessor() throws InvalidArgumentException {
+        logger.debug(format("Channel %s registerChaincodeListenerProcessor starting", name));
+
+        // Chaincode event listener is internal Block listener for chaincode events.
+
+        return registerBlockListener(blockEvent -> {
+
+            if (chainCodeListeners.isEmpty()) {
+                return;
+            }
+
+            LinkedList<ChaincodeEvent> chaincodeEvents = new LinkedList<>();
+
+            //Find the chaincode events in the transactions.
+
+            for (TransactionEvent transactionEvent : blockEvent.getTransactionEvents()) {
+
+                logger.debug(format("Channel %s got event for transaction %s ", name, transactionEvent.getTransactionID()));
+
+                for (BlockInfo.TransactionEnvelopeInfo.TransactionActionInfo info : transactionEvent.getTransactionActionInfos()) {
+
+                    ChaincodeEvent event = info.getEvent();
+                    if (null != event) {
+                        chaincodeEvents.add(event);
+                    }
+
+                }
+
+            }
+
+            if (!chaincodeEvents.isEmpty()) {
+
+                HashMap<ChaincodeEventListenerEntry, ChaincodeEvent> matches = new HashMap<>(); //Find matches.
+
+                synchronized (chainCodeListeners) {
+
+                    for (ChaincodeEventListenerEntry chaincodeEventListenerEntry : chainCodeListeners.values()) {
+
+                        for (ChaincodeEvent chaincodeEvent : chaincodeEvents) {
+
+                            if (chaincodeEventListenerEntry.isMatch(chaincodeEvent)) {
+
+                                matches.put(chaincodeEventListenerEntry, chaincodeEvent);
+                            }
+
+                        }
+
+                    }
+                }
+
+                //fire events
+                for (Map.Entry<ChaincodeEventListenerEntry, ChaincodeEvent> match : matches.entrySet()) {
+
+                    ChaincodeEventListenerEntry chaincodeEventListenerEntry = match.getKey();
+                    ChaincodeEvent ce = match.getValue();
+                    chaincodeEventListenerEntry.fire(blockEvent, ce);
+
+                }
+
+            }
+
+        });
+    }
+
     /**
      * Shutdown the channel with all resources released.
      *
@@ -2918,8 +3055,12 @@ public class Channel {
 
         initialized = false;
         shutdown = true;
-//        anchorPeers = null;
+
         executorService = null;
+
+        chainCodeListeners.clear();
+
+        blockListeners.clear();
 
         for (EventHub eh : getEventHubs()) {
 
