@@ -41,6 +41,14 @@ function down(){
   docker-compose down;
 }
 
+function stop (){
+  docker-compose stop;
+}
+
+function start (){
+  docker-compose start;
+}
+
 
 for opt in "$@"
 do
@@ -52,6 +60,12 @@ do
         down)
             down
             ;;
+        stop)
+            stop
+            ;;
+        start)
+            start
+            ;;
         clean)
             clean
             ;;
@@ -62,7 +76,7 @@ do
             ;;
 
         *)
-            echo $"Usage: $0 {up|down|clean|restart}"
+            echo $"Usage: $0 {up|down|start|stop|clean|restart}"
             exit 1
 
 esac
