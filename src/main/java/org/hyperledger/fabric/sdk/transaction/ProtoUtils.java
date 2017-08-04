@@ -169,7 +169,6 @@ public final class ProtoUtils {
 
                 try {
                     suite = CryptoSuite.Factory.getCryptoSuite();
-                    suite.init();
                 } catch (Exception e) {
                     //best try.
                 }

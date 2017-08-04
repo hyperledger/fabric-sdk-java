@@ -14,15 +14,8 @@
 
 package org.hyperledger.fabric.sdk.transaction;
 
-
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
-import org.bouncycastle.asn1.ASN1Encodable;
-import org.bouncycastle.asn1.ASN1EncodableVector;
-import org.bouncycastle.asn1.ASN1Primitive;
-import org.bouncycastle.asn1.DEROctetString;
-import org.bouncycastle.asn1.DERSequence;
-import org.bouncycastle.asn1.DERUTF8String;
 import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.User;
@@ -166,33 +159,6 @@ public class TransactionContext {
 
     public boolean getVerify() {
         return verify;
-    }
-
-    /* Implementation of an example ASN .1 structure. * < pre > *MyStructure:: = SEQUENCE
-        { *version INTEGER DEFAULT 0, *created GeneralizedTime, *baseData OCTET STRING, *extraData[0]
-            UTF8String OPTIONAL, *commentData[1] UTF8String OPTIONAL
-        } * <pre > * */
-    public static class MyStructure implements ASN1Encodable {
-
-        public DERUTF8String Mspid = null;
-        private DEROctetString IdBytes = null;
-
-        MyStructure(String mspid, byte[] idbytes) {
-            Mspid = new DERUTF8String(mspid);
-            IdBytes = new DEROctetString(idbytes);
-
-        }
-
-        @Override
-        public ASN1Primitive toASN1Primitive() {
-
-            ASN1EncodableVector asn1EncodableVector = new ASN1EncodableVector();
-            asn1EncodableVector.add(Mspid);
-            asn1EncodableVector.add(IdBytes);
-
-            //  ASN1Sequence asn1Sequence = ASN1Sequence.getInstance();
-            return new DERSequence(asn1EncodableVector);
-        }
     }
 
     public String getChannelID() {

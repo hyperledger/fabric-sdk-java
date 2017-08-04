@@ -41,11 +41,11 @@ import org.hyperledger.fabric.sdk.TestConfigHelper;
 import org.hyperledger.fabric.sdk.UpdateChannelConfiguration;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import static java.lang.String.format;
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -71,20 +71,13 @@ public class UpdateChannelIT {
     public void checkConfig() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, MalformedURLException {
 
         out("\n\n\nRUNNING: UpdateChannelIT\n");
-
-        configHelper.clearConfig();
+        resetConfig();
         configHelper.customizeConfig();
+//        assertEquals(256, Config.getConfig().getSecurityLevel());
 
         testSampleOrgs = testConfig.getIntegrationTestsSampleOrgs();
     }
 
-    @After
-    public void clearConfig() {
-        try {
-            configHelper.clearConfig();
-        } catch (Exception e) {
-        }
-    }
 
     @Test
     public void setup() {

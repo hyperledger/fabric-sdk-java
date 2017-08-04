@@ -18,10 +18,14 @@ import java.security.PrivateKey;
 import java.util.Set;
 
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 
 public class ClientTest {
     private static final String CHANNEL_NAME = "channel1";
@@ -30,6 +34,7 @@ public class ClientTest {
     @BeforeClass
     public static void setupClient() throws Exception {
         try {
+            resetConfig();
             hfclient = TestHFClient.newInstance();
 
         } catch (Exception e) {
@@ -198,6 +203,28 @@ public class ClientTest {
         mockUser.enrollment.privateKey = null;
 
         client.setUserContext(mockUser);
+
+    }
+
+    @Test //(expected = InvalidArgumentException.class)
+    @Ignore
+    public void testCryptoFactory() throws Exception {
+        try {
+            resetConfig();
+            Assert.assertNotNull(Config.getConfig().getDefaultCryptoSuiteFactory());
+
+            HFClient client = HFClient.createNewInstance();
+
+            client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+
+            MockUser mockUser = new MockUser();
+            mockUser.enrollment.privateKey = null;
+
+            client.setUserContext(mockUser);
+        } finally {
+            System.getProperties().remove("org.hyperledger.fabric.sdk.crypto.default_crypto_suite_factory");
+
+        }
 
     }
 

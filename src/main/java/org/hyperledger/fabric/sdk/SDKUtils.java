@@ -47,7 +47,7 @@ public class SDKUtils {
      * @throws IOException
      * @throws InvalidArgumentException
      */
-    public static byte[] calculateBlockHash(long blockNumber, byte[] previousHash, byte[] dataHash) throws IOException, InvalidArgumentException {
+    public static byte[] calculateBlockHash(HFClient client, long blockNumber, byte[] previousHash, byte[] dataHash) throws IOException, InvalidArgumentException {
 
         if (previousHash == null) {
             throw new InvalidArgumentException("previousHash parameter is null.");
@@ -55,9 +55,13 @@ public class SDKUtils {
         if (dataHash == null) {
             throw new InvalidArgumentException("dataHash parameter is null.");
         }
+        if (null == client) {
+            throw new InvalidArgumentException("client parameter is null.");
+        }
 
-        if (null == suite) {
-            suite = CryptoSuite.Factory.getCryptoSuite();
+        CryptoSuite cryptoSuite = client.getCryptoSuite();
+        if (null == client) {
+            throw new InvalidArgumentException("Client crypto suite has not  been set.");
         }
 
         ByteArrayOutputStream s = new ByteArrayOutputStream();
@@ -66,7 +70,7 @@ public class SDKUtils {
         seq.addObject(new DEROctetString(previousHash));
         seq.addObject(new DEROctetString(dataHash));
         seq.close();
-        return suite.hash(s.toByteArray());
+        return cryptoSuite.hash(s.toByteArray());
 
     }
 

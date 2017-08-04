@@ -75,8 +75,6 @@ public class ConfigTest {
         Assert.assertTrue(config.getSecurityLevel() > 0);
         Assert.assertTrue(config.getProposalWaitTime() > 0);
         Assert.assertTrue(config.getGenesisBlockWaitTime() > 0);
-        Assert.assertTrue(config.getSymmetricKeyByteCount() > 0);
-        Assert.assertTrue(config.getMACKeyByteCount() > 0);
 
         Assert.assertTrue(config.maxLogStringLength() > 0);
 
@@ -88,9 +86,6 @@ public class ConfigTest {
         // String params
         Assert.assertNotNull(config.getHashAlgorithm());
         Assert.assertNotNull(config.getAsymmetricKeyType());
-        Assert.assertNotNull(config.getSymmetricKeyType());
-        Assert.assertNotNull(config.getKeyAgreementAlgorithm());
-        Assert.assertNotNull(config.getSymmetricAlgorithm());
         Assert.assertNotNull(config.getSignatureAlgorithm());
         Assert.assertNotNull(config.getCertificateFormat());
     }

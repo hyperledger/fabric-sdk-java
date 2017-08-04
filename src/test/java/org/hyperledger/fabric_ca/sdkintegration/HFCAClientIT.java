@@ -79,7 +79,6 @@ public class HFCAClientIT {
         out("\n\n\nRUNNING: HFCAClientEnrollIT.\n");
 
         crypto = CryptoSuite.Factory.getCryptoSuite();
-        crypto.init();
     }
 
     @Before
@@ -242,7 +241,6 @@ public class HFCAClientIT {
         thrown.expectMessage("Failed to enroll user");
 
         CryptoSuite cryptoSuite = CryptoSuite.Factory.getCryptoSuite();
-        cryptoSuite.init();
 
         // This client does not exist
         String clientName = "test CA client";

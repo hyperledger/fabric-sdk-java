@@ -17,7 +17,6 @@ package org.hyperledger.fabric.sdk.transaction;
 import java.lang.reflect.Constructor;
 
 import com.google.protobuf.ByteString;
-import org.bouncycastle.asn1.ASN1Primitive;
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.TestHFClient;
@@ -30,10 +29,8 @@ import org.junit.rules.TemporaryFolder;
 
 public class TransactionContextTest {
 
-
     public final TemporaryFolder tempFolder = new TemporaryFolder();
     static HFClient hfclient = null;
-
 
     @BeforeClass
     public static void setupClient() {
@@ -79,17 +76,6 @@ public class TransactionContextTest {
         Assert.assertNull(context.signByteStrings(users, new ByteString[0]));
 
     }
-
-    @Test
-    public void testMyStrructure() throws Exception {
-
-        byte[] idBytes = new byte[]{1, 2, 3, 4, 5};
-        TransactionContext.MyStructure my = new TransactionContext.MyStructure("test", idBytes);
-        ASN1Primitive prim = my.toASN1Primitive();
-        Assert.assertNotNull(prim);
-
-    }
-
 
     // ==========================================================================================
     // Helper methods

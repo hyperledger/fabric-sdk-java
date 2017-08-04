@@ -325,7 +325,6 @@ public class HFCAClientTest {
         thrown.expectMessage("Failed to enroll user admin");
 
         CryptoSuite cryptoSuite = CryptoSuite.Factory.getCryptoSuite();
-        cryptoSuite.init();
 
         EnrollmentRequest req = new EnrollmentRequest("profile 1", "label 1", null);
         HFCAClient client = HFCAClient.createNewInstance("client", "http://localhost:99", null);
@@ -341,7 +340,6 @@ public class HFCAClientTest {
         thrown.expectMessage("Failed to enroll user admin");
 
         CryptoSuite cryptoSuite = CryptoSuite.Factory.getCryptoSuite();
-        cryptoSuite.init();
 
         EnrollmentRequest req = new EnrollmentRequest("profile 1", "label 1", null);
         req.setCSR("abc");

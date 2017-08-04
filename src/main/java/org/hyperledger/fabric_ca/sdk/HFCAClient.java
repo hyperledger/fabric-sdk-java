@@ -75,7 +75,6 @@ import org.apache.http.util.EntityUtils;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.x509.AuthorityKeyIdentifier;
 import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.helper.Utils;
@@ -94,7 +93,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 /**
  * HFCAClient Hyperledger Fabric Certificate Authority Client.
  */
-@SuppressWarnings ("deprecation")
+
 public class HFCAClient {
     private static final Log logger = LogFactory.getLog(HFCAClient.class);
     private static final String HFCA_CONTEXT_ROOT = "/api/v1/";
@@ -121,10 +120,7 @@ public class HFCAClient {
 
     private final String caName;
 
-    // TODO require use of CryptoPrimitives since we need the generateCertificateRequests methods
-    // clean this up when we do have multiple implementations of CryptoSuite
-    // see FAB-2628
-    private CryptoPrimitives cryptoPrimitives;
+    private CryptoSuite cryptoSuite;
 
     /**
      * HFCAClient constructor
@@ -198,16 +194,11 @@ public class HFCAClient {
     }
 
     public void setCryptoSuite(CryptoSuite cryptoSuite) {
-        this.cryptoPrimitives = (CryptoPrimitives) cryptoSuite;
-        try {
-            cryptoPrimitives.init();
-        } catch (Exception e) {
-            logger.error(e);
-        }
+        this.cryptoSuite = cryptoSuite;
     }
 
     public CryptoSuite getCryptoSuite() {
-        return cryptoPrimitives;
+        return cryptoSuite;
     }
 
     /**
@@ -222,7 +213,7 @@ public class HFCAClient {
 
     public String register(RegistrationRequest request, User registrar) throws RegistrationException, InvalidArgumentException {
 
-        if (cryptoPrimitives == null) {
+        if (cryptoSuite == null) {
             throw new InvalidArgumentException("Crypto primitives not set.");
         }
 
@@ -292,7 +283,7 @@ public class HFCAClient {
             throw new InvalidArgumentException("enrollment secret is not set");
         }
 
-        if (cryptoPrimitives == null) {
+        if (cryptoSuite == null) {
             throw new InvalidArgumentException("Crypto primitives not set.");
         }
 
@@ -308,15 +299,14 @@ public class HFCAClient {
                 logger.debug("[HFCAClient.enroll] Generating keys...");
 
                 // generate ECDSA keys: signing and encryption keys
-                keypair = cryptoPrimitives.keyGen();
+                keypair = cryptoSuite.keyGen();
 
                 logger.debug("[HFCAClient.enroll] Generating keys...done!");
             }
 
             if (pem == null) {
-                PKCS10CertificationRequest csr = cryptoPrimitives.generateCertificationRequest(user, keypair);
-                pem = cryptoPrimitives.certificationRequestToPEM(csr);
-                req.setCSR(pem);
+                String csr = cryptoSuite.generateCertificationRequest(user, keypair);
+                req.setCSR(csr);
             }
 
             if (caName != null && !caName.isEmpty()) {
@@ -382,7 +372,7 @@ public class HFCAClient {
     public HFCAInfo info() throws InfoException, InvalidArgumentException {
 
         logger.debug(format("info url:%s", url));
-        if (cryptoPrimitives == null) {
+        if (cryptoSuite == null) {
             throw new InvalidArgumentException("Crypto primitives not set.");
         }
 
@@ -454,7 +444,7 @@ public class HFCAClient {
 
     public Enrollment reenroll(User user, EnrollmentRequest req) throws EnrollmentException, InvalidArgumentException {
 
-        if (cryptoPrimitives == null) {
+        if (cryptoSuite == null) {
             throw new InvalidArgumentException("Crypto primitives not set.");
         }
 
@@ -470,14 +460,14 @@ public class HFCAClient {
         try {
             setUpSSL();
 
-            PublicKey publicKey = cryptoPrimitives.bytesToCertificate(user.getEnrollment().getCert()
+            PublicKey publicKey = cryptoSuite.bytesToCertificate(user.getEnrollment().getCert()
                     .getBytes(StandardCharsets.UTF_8)).getPublicKey();
 
             KeyPair keypair = new KeyPair(publicKey, user.getEnrollment().getKey());
 
             // generate CSR
-            PKCS10CertificationRequest csr = cryptoPrimitives.generateCertificationRequest(user.getName(), keypair);
-            String pem = cryptoPrimitives.certificationRequestToPEM(csr);
+
+            String pem = cryptoSuite.generateCertificationRequest(user.getName(), keypair);
 
             // build request body
             req.setCSR(pem);
@@ -520,7 +510,7 @@ public class HFCAClient {
 
     public void revoke(User revoker, Enrollment enrollment, String reason) throws RevocationException, InvalidArgumentException {
 
-        if (cryptoPrimitives == null) {
+        if (cryptoSuite == null) {
             throw new InvalidArgumentException("Crypto primitives not set.");
         }
 
@@ -581,7 +571,7 @@ public class HFCAClient {
 
     public void revoke(User revoker, String revokee, String reason) throws RevocationException, InvalidArgumentException {
 
-        if (cryptoPrimitives == null) {
+        if (cryptoSuite == null) {
             throw new InvalidArgumentException("Crypto primitives not set.");
         }
 
@@ -766,13 +756,24 @@ public class HFCAClient {
         String cert = b64.encodeToString(enrollment.getCert().getBytes(UTF_8));
         body = b64.encodeToString(body.getBytes(UTF_8));
         String signString = body + "." + cert;
-        byte[] signature = cryptoPrimitives.sign(enrollment.getKey(), signString.getBytes(UTF_8));
+        byte[] signature = cryptoSuite.sign(enrollment.getKey(), signString.getBytes(UTF_8));
         return cert + "." + b64.encodeToString(signature);
     }
 
     private Registry<ConnectionSocketFactory> registry = null;
+    //Only use crypto primitives for reuse of its truststore on TLS
+    CryptoPrimitives cryptoPrimitives = null;
 
     private void setUpSSL() throws InvalidArgumentException {
+
+        if (cryptoPrimitives == null) {
+            try {
+                cryptoPrimitives = new CryptoPrimitives();
+                cryptoPrimitives.init();
+            } catch (Exception e) {
+                throw new InvalidArgumentException(e);
+            }
+        }
 
         if (isSSL && null == registry) {
             if (properties.containsKey("pemBytes") && properties.containsKey("pemFile")) {

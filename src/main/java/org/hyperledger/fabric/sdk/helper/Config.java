@@ -16,11 +16,17 @@ package org.hyperledger.fabric.sdk.helper;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.Level;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+import static java.lang.String.format;
 
 /**
  * Config allows for a global config of the toolkit. Central location for all
@@ -37,27 +43,39 @@ public class Config {
 
     private static final String DEFAULT_CONFIG = "config.properties";
     public static final String ORG_HYPERLEDGER_FABRIC_SDK_CONFIGURATION = "org.hyperledger.fabric.sdk.configuration";
-    public static final String SECURITY_LEVEL = "org.hyperledger.fabric.sdk.security_level";
-    public static final String HASH_ALGORITHM = "org.hyperledger.fabric.sdk.hash_algorithm";
+    /**
+     * Timeout settings
+     **/
     public static final String PROPOSAL_WAIT_TIME = "org.hyperledger.fabric.sdk.proposal.wait.time";
     public static final String CHANNEL_CONFIG_WAIT_TIME = "org.hyperledger.fabric.sdk.channelconfig.wait_time";
     public static final String ORDERER_RETRY_WAIT_TIME = "org.hyperledger.fabric.sdk.orderer_retry.wait_time";
     public static final String ORDERER_WAIT_TIME = "org.hyperledger.fabric.sdk.orderer.ordererWaitTimeMilliSecs";
     public static final String EVENTHUB_CONNECTION_WAIT_TIME = "org.hyperledger.fabric.sdk.eventhub_connection.wait_time";
-    public static final String PROPOSAL_CONSISTENCY_VALIDATION = "org.hyperledger.fabric.sdk.proposal.consistency_validation";
     public static final String GENESISBLOCK_WAIT_TIME = "org.hyperledger.fabric.sdk.channel.genesisblock_wait_time";
+    /**
+     * Crypto configuration settings
+     **/
+    public static final String DEFAULT_CRYPTO_SUITE_FACTORY = "org.hyperledger.fabric.sdk.crypto.default_crypto_suite_factory";
+    public static final String SECURITY_LEVEL = "org.hyperledger.fabric.sdk.security_level";
+    public static final String SECURITY_PROVIDER_CLASS_NAME = "org.hyperledger.fabric.sdk.security_provider_class_name";
+    public static final String SECURITY_CURVE_MAPPING = "org.hyperledger.fabric.sdk.security_curve_mapping";
+    public static final String HASH_ALGORITHM = "org.hyperledger.fabric.sdk.hash_algorithm";
     public static final String ASYMMETRIC_KEY_TYPE = "org.hyperledger.fabric.sdk.crypto.asymmetric_key_type";
-    public static final String KEY_AGREEMENT_ALGORITHM = "org.hyperledger.fabric.sdk.crypto.key_agreement_algorithm";
-    public static final String SYMMETRIC_KEY_TYPE = "org.hyperledger.fabric.sdk.crypto.symmetric_key_type";
-    public static final String SYMMETRIC_KEY_BYTE_COUNT = "org.hyperledger.fabric.sdk.crypto.symmetric_key_byte_count";
-    public static final String SYMMETRIC_ALGORITHM = "org.hyperledger.fabric.sdk.crypto.symmetric_algorithm";
-    public static final String MAC_KEY_BYTE_COUNT = "org.hyperledger.fabric.sdk.crypto.mac_key_byte_count";
+
     public static final String CERTIFICATE_FORMAT = "org.hyperledger.fabric.sdk.crypto.certificate_format";
     public static final String SIGNATURE_ALGORITHM = "org.hyperledger.fabric.sdk.crypto.default_signature_algorithm";
+    /**
+     * Logging settings
+     **/
     public static final String MAX_LOG_STRING_LENGTH = "org.hyperledger.fabric.sdk.log.stringlengthmax";
     public static final String EXTRALOGLEVEL = "org.hyperledger.fabric.sdk.log.extraloglevel";
     public static final String LOGGERLEVEL = "org.hyperledger.fabric.sdk.loglevel";  // ORG_HYPERLEDGER_FABRIC_SDK_LOGLEVEL=TRACE,DEBUG
     public static final String DIAGNOTISTIC_FILE_DIRECTORY = "org.hyperledger.fabric.sdk.diagnosticFileDir"; //ORG_HYPERLEDGER_FABRIC_SDK_DIAGNOSTICFILEDIR
+
+    /**
+     * Miscellaneous settings
+     **/
+    public static final String PROPOSAL_CONSISTENCY_VALIDATION = "org.hyperledger.fabric.sdk.proposal.consistency_validation";
 
     private static Config config;
     private static final Properties sdkProperties = new Properties();
@@ -69,39 +87,51 @@ public class Config {
         try {
             loadFile = new File(System.getProperty(ORG_HYPERLEDGER_FABRIC_SDK_CONFIGURATION, DEFAULT_CONFIG))
                     .getAbsoluteFile();
-            logger.debug(String.format("Loading configuration from %s and it is present: %b", loadFile.toString(),
+            logger.debug(format("Loading configuration from %s and it is present: %b", loadFile.toString(),
                     loadFile.exists()));
             configProps = new FileInputStream(loadFile);
             sdkProperties.load(configProps);
 
         } catch (IOException e) {
-            logger.warn(String.format("Failed to load any configuration from: %s. Using toolkit defaults",
+            logger.warn(format("Failed to load any configuration from: %s. Using toolkit defaults",
                     DEFAULT_CONFIG));
         } finally {
 
             // Default values
-            defaultProperty(ASYMMETRIC_KEY_TYPE, "EC");
-            defaultProperty(KEY_AGREEMENT_ALGORITHM, "ECDH");
-            defaultProperty(SYMMETRIC_KEY_TYPE, "AES");
-            defaultProperty(SYMMETRIC_KEY_BYTE_COUNT, "32");
-            defaultProperty(SYMMETRIC_ALGORITHM, "AES/CFB/NoPadding");
-            defaultProperty(MAC_KEY_BYTE_COUNT, "32");
-            defaultProperty(CERTIFICATE_FORMAT, "X.509");
-            defaultProperty(SIGNATURE_ALGORITHM, "SHA256withECDSA");
-            defaultProperty(SECURITY_LEVEL, "256");
-            defaultProperty(HASH_ALGORITHM, "SHA2");
-            defaultProperty(PROPOSAL_CONSISTENCY_VALIDATION, "true");
-
+            /**
+             * Timeout settings
+             **/
             defaultProperty(PROPOSAL_WAIT_TIME, "20000");
-            defaultProperty(GENESISBLOCK_WAIT_TIME, "5000");
-            defaultProperty(MAX_LOG_STRING_LENGTH, "64");
-            defaultProperty(EXTRALOGLEVEL, "0");
-            defaultProperty(LOGGERLEVEL, null);
-            defaultProperty(DIAGNOTISTIC_FILE_DIRECTORY, null);
             defaultProperty(CHANNEL_CONFIG_WAIT_TIME, "15000");
             defaultProperty(ORDERER_RETRY_WAIT_TIME, "200");
             defaultProperty(ORDERER_WAIT_TIME, "3000");
             defaultProperty(EVENTHUB_CONNECTION_WAIT_TIME, "1000");
+            defaultProperty(GENESISBLOCK_WAIT_TIME, "5000");
+
+            /**
+             * Crypto configuration settings
+             **/
+            defaultProperty(DEFAULT_CRYPTO_SUITE_FACTORY, "org.hyperledger.fabric.sdk.security.HLSDKJCryptoSuiteFactory");
+            defaultProperty(SECURITY_LEVEL, "256");
+            defaultProperty(SECURITY_PROVIDER_CLASS_NAME, BouncyCastleProvider.class.getName());
+            defaultProperty(SECURITY_CURVE_MAPPING, "256=secp256r1:384=secp384r1");
+            defaultProperty(HASH_ALGORITHM, "SHA2");
+            defaultProperty(ASYMMETRIC_KEY_TYPE, "EC");
+
+            defaultProperty(CERTIFICATE_FORMAT, "X.509");
+            defaultProperty(SIGNATURE_ALGORITHM, "SHA256withECDSA");
+
+            /**
+             * Logging settings
+             **/
+            defaultProperty(MAX_LOG_STRING_LENGTH, "64");
+            defaultProperty(EXTRALOGLEVEL, "0");
+            defaultProperty(LOGGERLEVEL, null);
+            defaultProperty(DIAGNOTISTIC_FILE_DIRECTORY, null);
+            /**
+             * Miscellaneous settings
+             */
+            defaultProperty(PROPOSAL_CONSISTENCY_VALIDATION, "true");
 
             final String inLogLevel = sdkProperties.getProperty(LOGGERLEVEL);
 
@@ -171,7 +201,7 @@ public class Config {
         String ret = sdkProperties.getProperty(property);
 
         if (null == ret) {
-            logger.warn(String.format("No configuration value found for '%s'", property));
+            logger.warn(format("No configuration value found for '%s'", property));
         }
         return ret;
     }
@@ -208,6 +238,16 @@ public class Config {
     }
 
     /**
+     * Get the configured security provider.
+     * This is the security provider used for the default SDK crypto suite factory.
+     *
+     * @return the security provider.
+     */
+    public String getSecurityProviderClassName() {
+        return getProperty(SECURITY_PROVIDER_CLASS_NAME);
+    }
+
+    /**
      * Get the name of the configured hash algorithm, used for digital signatures.
      *
      * @return the hash algorithm name.
@@ -215,6 +255,51 @@ public class Config {
     public String getHashAlgorithm() {
         return getProperty(HASH_ALGORITHM);
 
+    }
+
+    private Map<Integer, String> curveMapping = null;
+
+    /**
+     * Get a mapping from strength to curve desired.
+     *
+     * @return mapping from strength to curve name to use.
+     */
+    public Map<Integer, String> getSecurityCurveMapping() {
+
+        if (curveMapping == null) {
+
+            curveMapping = parseSecurityCurveMappings(getProperty(SECURITY_CURVE_MAPPING));
+        }
+
+        return Collections.unmodifiableMap(curveMapping);
+    }
+
+    public static Map<Integer, String> parseSecurityCurveMappings(final String property) {
+        Map<Integer, String> lcurveMapping = new HashMap<>(8);
+
+        if (property != null && !property.isEmpty()) { //empty will be caught later.
+
+            String[] cmaps = property.split("[ \t]*:[ \t]*");
+            for (String mape : cmaps) {
+
+                String[] ep = mape.split("[ \t]*=[ \t]*");
+                if (ep.length != 2) {
+                    logger.warn(format("Bad curve mapping for %s in property %s", mape, SECURITY_CURVE_MAPPING));
+                    continue;
+                }
+
+                try {
+                    int parseInt = Integer.parseInt(ep[0]);
+                    lcurveMapping.put(parseInt, ep[1]);
+                } catch (NumberFormatException e) {
+                    logger.warn(format("Bad curve mapping. Integer needed for strength %s for %s in property %s",
+                            ep[0], mape, SECURITY_CURVE_MAPPING));
+                }
+
+            }
+
+        }
+        return lcurveMapping;
     }
 
     /**
@@ -265,32 +350,16 @@ public class Config {
         return getProperty(ASYMMETRIC_KEY_TYPE);
     }
 
-    public String getKeyAgreementAlgorithm() {
-        return getProperty(KEY_AGREEMENT_ALGORITHM);
-    }
-
-    public String getSymmetricKeyType() {
-        return getProperty(SYMMETRIC_KEY_TYPE);
-    }
-
-    public int getSymmetricKeyByteCount() {
-        return Integer.parseInt(getProperty(SYMMETRIC_KEY_BYTE_COUNT));
-    }
-
-    public String getSymmetricAlgorithm() {
-        return getProperty(SYMMETRIC_ALGORITHM);
-    }
-
-    public int getMACKeyByteCount() {
-        return Integer.parseInt(getProperty(MAC_KEY_BYTE_COUNT));
-    }
-
     public String getCertificateFormat() {
         return getProperty(CERTIFICATE_FORMAT);
     }
 
     public String getSignatureAlgorithm() {
         return getProperty(SIGNATURE_ALGORITHM);
+    }
+
+    public String getDefaultCryptoSuiteFactory() {
+        return getProperty(DEFAULT_CRYPTO_SUITE_FACTORY);
     }
 
     public int maxLogStringLength() {

@@ -61,13 +61,13 @@ import org.hyperledger.fabric.sdk.testutils.TestConfig;
 import org.hyperledger.fabric_ca.sdk.HFCAClient;
 import org.hyperledger.fabric_ca.sdk.HFCAInfo;
 import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.BlockInfo.EnvelopeType.TRANSACTION_ENVELOPE;
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -103,7 +103,9 @@ public class End2endIT {
     @Before
     public void checkConfig() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, MalformedURLException, org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException {
         out("\n\n\nRUNNING: End2endIT.\n");
-        configHelper.clearConfig();
+        //   configHelper.clearConfig();
+        //   assertEquals(256, Config.getConfig().getSecurityLevel());
+        resetConfig();
         configHelper.customizeConfig();
 
         testSampleOrgs = testConfig.getIntegrationTestsSampleOrgs();
@@ -116,14 +118,6 @@ public class End2endIT {
             } else {
                 sampleOrg.setCAClient(HFCAClient.createNewInstance(sampleOrg.getCALocation(), sampleOrg.getCAProperties()));
             }
-        }
-    }
-
-    @After
-    public void clearConfig() {
-        try {
-            configHelper.clearConfig();
-        } catch (Exception e) {
         }
     }
 
@@ -228,7 +222,7 @@ public class End2endIT {
             //let bar channel just shutdown so we have both scenarios.
 
             out("\nTraverse the blocks for chain %s ", barChannel.getName());
-            blockWalker(barChannel);
+            blockWalker(client, barChannel);
             out("That's all folks!");
 
         } catch (Exception e) {
@@ -743,7 +737,7 @@ public class End2endIT {
         TX_EXPECTED.put("writeset1", "Missing writeset for channel bar block 1");
     }
 
-    void blockWalker(Channel channel) throws InvalidArgumentException, ProposalException, IOException {
+    void blockWalker(HFClient client, Channel channel) throws InvalidArgumentException, ProposalException, IOException {
         try {
             BlockchainInfo channelInfo = channel.queryBlockchainInfo();
 
@@ -753,7 +747,8 @@ public class End2endIT {
 
                 out("current block number %d has data hash: %s", blockNumber, Hex.encodeHexString(returnedBlock.getDataHash()));
                 out("current block number %d has previous hash id: %s", blockNumber, Hex.encodeHexString(returnedBlock.getPreviousHash()));
-                out("current block number %d has calculated block hash is %s", blockNumber, Hex.encodeHexString(SDKUtils.calculateBlockHash(blockNumber, returnedBlock.getPreviousHash(), returnedBlock.getDataHash())));
+                out("current block number %d has calculated block hash is %s", blockNumber, Hex.encodeHexString(SDKUtils.calculateBlockHash(client,
+                        blockNumber, returnedBlock.getPreviousHash(), returnedBlock.getDataHash())));
 
                 final int envelopeCount = returnedBlock.getEnvelopeCount();
                 assertEquals(1, envelopeCount);

@@ -48,7 +48,9 @@ public class HFClient {
 
     private CryptoSuite cryptoSuite;
 
+
     static {
+
 
         if (null == System.getProperty("org.hyperledger.fabric.sdk.logGRPC")) {
             // Turn this off by default!
@@ -87,15 +89,25 @@ public class HFClient {
     }
 
     public void setCryptoSuite(CryptoSuite cryptoSuite) throws CryptoException, InvalidArgumentException {
-        if (this.cryptoSuite != null) {
+        if (null == cryptoSuite) {
+            throw new InvalidArgumentException("CryptoSuite paramter is null.");
+        }
+        if (this.cryptoSuite != null && cryptoSuite != this.cryptoSuite) {
             throw new InvalidArgumentException("CryptoSuite may only be set once.");
 
         }
+//        if (cryptoSuiteFactory == null) {
+//            cryptoSuiteFactory = cryptoSuite.getCryptoSuiteFactory();
+//        } else {
+//            if (cryptoSuiteFactory != cryptoSuite.getCryptoSuiteFactory()) {
+//                throw new InvalidArgumentException("CryptoSuite is not derivied from cryptosuite factory");
+//            }
+//        }
 
-        cryptoSuite.init();
         this.cryptoSuite = cryptoSuite;
 
     }
+
 
     /**
      * createNewInstance create a new instance of the HFClient
@@ -591,6 +603,7 @@ public class HFClient {
         if (null == cryptoSuite) {
             throw new InvalidArgumentException("No cryptoSuite has been set.");
         }
+
 
         userContextCheck(userContext);
 
