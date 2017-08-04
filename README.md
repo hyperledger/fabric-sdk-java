@@ -1,4 +1,4 @@
-# Java SDK for Hyperledger Fabric 1.0
+# Java SDK for Hyperledger Fabric 1.1
 Welcome to Java SDK for Hyperledger project. The SDK helps facilitate Java applications to manage the lifecycle of
  Hyperledger channels  and user chaincode. The SDK also provides a means to execute
   user chaincode, query blocks
@@ -24,7 +24,6 @@ SDK's `Enrollment` interface.
 * TCerts are not supported: JIRA FAB-1401
 * HSM not supported. JIRA FAB-3137
 * Single Crypto strength 256 JIRA FAB-2564
-* Network configuration updates not supported JIRA FAB-3103
 
 
 
@@ -34,11 +33,11 @@ SDK's `Enrollment` interface.
 `*************************************************`
 ## *v1.0.1*
 
-This is git tagged v1.0.1 release of the SDK where there is no
+### Git v1.0.1
+
+There is a git tagged v1.0.1  release of the SDK where there is no
 need to build the Hyperledger Fabric and Hyperledger Fabric CA described below.
 The provided docker-compose.yaml for the integration tests should pull v1.0.1  tagged images from Docker hub.
-
-Later versions of the SDK are NOT guaranteed to work with v1.0.1 tagged images of Hyperledger Fabric and Hyperledger Fabric CA.
 
 The v1.0.1 version of the Hyperledger Fabric Java SDK is published to Maven so you can directly use in your application's pom.xml.
 
@@ -46,32 +45,32 @@ The v1.0.1 version of the Hyperledger Fabric Java SDK is published to Maven so y
 
 _Make sure you're using docker images at the level of the Fabric that matches the level of the SDK you're using in your application._
 
+### Using the SDK in your application
+
+Add below code in your `pom.xml` to download fabric-sdk-java-1.0.1
+
+```xml
+
+     <dependencies>
+        <dependency>
+            <groupId>org.hyperledger.fabric-sdk-java</groupId>
+            <artifactId>fabric-sdk-java</artifactId>
+            <version>1.0.1</version>
+         </dependency>
+     </dependencies>
+```
+
 <p &nbsp; />
 <p &nbsp; />
 
 `*************************************************`
 
 
-## Valid builds of Fabric and Fabric-ca
+## Latest builds of Fabric and Fabric-ca v1.1.0
 
-Hyperledger Fabric v1.1 is currently under active development and the very latest Hyperledger Fabric builds may not work with this sdk.
-You should use the following commit levels of the Hyperledger projects:
+Hyperledger Fabric v1.1.0 is currently under active development.
 
-<!--
-[comment]: <> (****************************************************************************************************)
-[comment]: <> (*******   src/test/fabric_test_commitlevel.sh tells Jenkins to use the latest commit levels   ******)
--->
-
-| Project        | Commit level                               | Date                       |
-|:---------------|:------------------------------------------:|---------------------------:|
-| fabric         | 3a4b1f2bce86daa86c025a9244a90106a58bb54b   | Jul 22 18:18:25 2017 +0000 |
-| fabric-ca      | bc2b642f4a9ef2dcb393bf7da512ce43e1ec1a68   | Jul 23 03:38:20 2017 -0400 |
-
- You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
-
- As SDK development continues, this file will be updated with compatible Hyperledger Fabric and Fabric-ca commit levels.
-
- Once you have cloned `fabric` and `fabric-ca`, use the `git reset --hard commitlevel` to set your repositories to the correct commit.
+You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
 
 ## Working with the Fabric Vagrant environment
 Vagrant is NOT required if your OS has Docker support and all the requirements needed to build directly in your
@@ -137,21 +136,8 @@ Alternatively, <code> mvn dependency:analyze-report </code> will produce a repor
 ## Using the SDK
 The SDK's test cases uses chaincode in the SDK's source tree: `/src/test/fixture`
 
-The SDK's JAR is in `target/fabric-sdk-java-1.0.0-SNAPSHOT.jar` and you will need the additional dependencies listed above.
-When the SDK is published to `Maven` you will be able to simply include it in your application's `pom.xml`.
+The SDK's JAR is in `target/fabric-sdk-java-1.1.0-SNAPSHOT.jar` and you will need the additional dependencies listed above.
 
-Add below code in your `pom.xml` to download fabric-sdk-java-1.0
-
-```xml
-
-     <dependencies>
-     <dependency>
-            <groupId>org.hyperledger.fabric-sdk-java</groupId>
-            <artifactId>fabric-sdk-java</artifactId>
-            <version>1.0.1</version>
-         </dependency>
-     </dependencies>
-```
 
 ### Compiling
 To build this project, the following dependencies must be met
