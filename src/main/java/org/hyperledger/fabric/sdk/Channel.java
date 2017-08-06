@@ -362,8 +362,14 @@ public class Channel {
 
                     if (duration > CHANNEL_CONFIG_WAIT_TIME) {
                         //waited long enough .. throw an exception
-                        throw new TransactionException(format("Channel %s update error timed out after %d ms. Status value %d. Status %s", name,
-                                duration, statusCode, trxResult.getStatus().name()));
+                        String info = trxResult.getInfo();
+                        if (null == info) {
+                            info = "";
+
+                        }
+
+                        throw new TransactionException(format("Channel %s update error timed out after %d ms. Status value %d. Status %s. %s", name,
+                                duration, statusCode, trxResult.getStatus().name(), info));
                     }
 
                     try {
@@ -375,8 +381,15 @@ public class Channel {
 
                 } else if (200 != statusCode) {
                     // Can't retry.
-                    throw new TransactionException(format("New channel %s error. StatusValue %d. Status %s", name,
-                            statusCode, "" + trxResult.getStatus()));
+
+                    String info = trxResult.getInfo();
+                    if (null == info) {
+                        info = "";
+
+                    }
+
+                    throw new TransactionException(format("New channel %s error. StatusValue %d. Status %s. %s", name,
+                            statusCode, "" + trxResult.getStatus(), info));
                 }
 
             } while (200 != statusCode); // try again
@@ -2378,7 +2391,6 @@ public class Channel {
                     if (null != diagnosticFileDumper) {
                         logger.trace(format("Sending to channel %s, orderer: %s, transaction: %s", name, orderer.getName(),
                                 diagnosticFileDumper.createDiagnosticProtobufFile(transactionEnvelope.toByteArray())));
-
                     }
 
                     resp = orderer.sendTransaction(transactionEnvelope);
@@ -2391,7 +2403,26 @@ public class Channel {
                 } catch (Exception e) {
                     String emsg = format("Channel %s unsuccessful sendTransaction to orderer", name);
                     if (resp != null) {
-                        emsg = format("Channel %s unsuccessful sendTransaction to orderer. Status %s", name, resp.getStatus());
+
+                        StringBuilder respdata = new StringBuilder(400);
+
+                        Status status = resp.getStatus();
+                        if (null != status) {
+                            respdata.append(status.name());
+                            respdata.append("-");
+                            respdata.append(status.getNumber());
+                        }
+
+                        String info = resp.getInfo();
+                        if (null != info && !info.isEmpty()) {
+                            if (respdata.length() > 0) {
+                                respdata.append(", ");
+                            }
+
+                            respdata.append("Additional information: ").append(info);
+
+                        }
+                        emsg = format("Channel %s unsuccessful sendTransaction to orderer.  %s", name, respdata.toString());
                     }
 
                     logger.error(emsg, e);
@@ -2404,7 +2435,28 @@ public class Channel {
                 logger.debug(format("Channel %s successful sent to Orderer transaction id: %s", name, proposalTransactionID));
                 return sret;
             } else {
-                String emsg = format("Channel %s failed to place transaction %s on Orderer. Cause: UNSUCCESSFUL", name, proposalTransactionID);
+                StringBuilder respdata = new StringBuilder(400);
+                if (resp != null) {
+                    Status status = resp.getStatus();
+                    if (null != status) {
+                        respdata.append(status.name());
+                        respdata.append("-");
+                        respdata.append(status.getNumber());
+                    }
+
+                    String info = resp.getInfo();
+                    if (null != info && !info.isEmpty()) {
+                        if (respdata.length() > 0) {
+                            respdata.append(", ");
+                        }
+
+                        respdata.append("Additional information: ").append(info);
+
+                    }
+
+                }
+                String emsg = format("Channel %s failed to place transaction %s on Orderer. Cause: UNSUCCESSFUL. %s",
+                        name, proposalTransactionID, respdata.toString());
                 CompletableFuture<TransactionEvent> ret = new CompletableFuture<>();
                 ret.completeExceptionally(new Exception(emsg));
                 return ret;
