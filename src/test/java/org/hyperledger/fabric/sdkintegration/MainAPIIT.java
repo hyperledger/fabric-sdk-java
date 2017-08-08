@@ -94,7 +94,7 @@ public class MainAPIIT {
 
 
     private SampleUser enrollUser() throws CryptoException, org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException, org.hyperledger.fabric.sdk.exception.InvalidArgumentException, MalformedURLException, EnrollmentException {
-        SampleOrg sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
+        SampleOrg sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg2");
         sampleOrg.setCAClient(HFCAClient.createNewInstance("http://localhost:7054", null));
         HFCAClient ca = sampleOrg.getCAClient();
         final String orgName = sampleOrg.getName();
@@ -110,7 +110,7 @@ public class MainAPIIT {
 
     private Channel createChannel() throws CryptoException, org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException, org.hyperledger.fabric.sdk.exception.InvalidArgumentException, IOException, EnrollmentException, TransactionException {
         SampleUser admin = enrollUser();
-        SampleOrg sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
+        SampleOrg sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg2");
         sampleOrg.addOrdererLocation("orderer.example.com", ORDER_INSTANCE_LOCATION_URL);
         sampleOrg.setCAClient(HFCAClient.createNewInstance("http://localhost:7054", null));
         HFCAClient ca = sampleOrg.getCAClient();
@@ -130,7 +130,6 @@ public class MainAPIIT {
         newChannel.initialize();
         return newChannel;
     }
-
 
 
     private Orderer getOrders(SampleOrg sampleOrg, HFClient hfclient) throws org.hyperledger.fabric.sdk.exception.InvalidArgumentException {
