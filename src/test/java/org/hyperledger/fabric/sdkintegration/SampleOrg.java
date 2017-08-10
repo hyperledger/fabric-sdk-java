@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric_ca.sdk.HFCAClient;
@@ -36,6 +37,7 @@ public class SampleOrg {
     final String name;
     final String mspid;
     HFCAClient caClient;
+    HFClient hfclient;
 
     Map<String, User> userMap = new HashMap<>();
     Map<String, String> peerLocations = new HashMap<>();
@@ -127,10 +129,20 @@ public class SampleOrg {
         return caClient;
     }
 
+    public HFClient getHfclient() {
+        return hfclient;
+    }
+
+    public void setHfclient(HFClient hfclient) {
+        this.hfclient = hfclient;
+    }
+
     public void setCAClient(HFCAClient caClient) {
 
         this.caClient = caClient;
     }
+
+
 
     public String getName() {
         return name;

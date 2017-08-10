@@ -283,7 +283,7 @@ public class TestConfig {
 
         return getEndPointProperties("orderer", name);
 
-   }
+    }
 
 
     private Properties getEndPointProperties(final String type, final String name) {
@@ -314,9 +314,11 @@ public class TestConfig {
     }
 
     public String getTestChannelPath() {
-
         return "src/test/fixture/sdkintegration/e2e-2Orgs/channel";
+    }
 
+    public static String getTestPeerOrgPath() {
+        return "/crypto-config/peerOrganizations/";
     }
 
     private String getDomainName(final String name) {
