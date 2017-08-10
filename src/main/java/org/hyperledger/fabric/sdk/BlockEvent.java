@@ -69,7 +69,13 @@ public class BlockEvent extends BlockInfo {
             super(transactionEnvelopeInfo.getTransactionDeserializer(), index);
         }
 
-        EventHub getEventHub() {
+        /**
+         * The event hub that received this event.
+         *
+         * @return
+         */
+
+        public EventHub getEventHub() {
 
             return BlockEvent.this.getEventHub();
         }

@@ -2327,8 +2327,15 @@ public class Channel {
 
             if (config.getProposalConsistencyValidation()) {
 
-                if (1 != SDKUtils.getProposalConsistencySets(proposalResponses).size()) {
-                    throw new IllegalArgumentException("The proposal responses do not have consistent read write sets");
+                HashSet<ProposalResponse> invalid = new HashSet<>();
+
+                int consistencyGroups = SDKUtils.getProposalConsistencySets(proposalResponses, invalid).size();
+
+                if (consistencyGroups != 1 || !invalid.isEmpty()) {
+                    throw new IllegalArgumentException(format(
+                            "The proposal responses have %d inconsistent groups with %d that are invalid."
+                                    + " Expected all to be consistent and none to be invalid.",
+                            consistencyGroups, invalid.size()));
 
                 }
 
