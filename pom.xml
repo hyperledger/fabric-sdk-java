@@ -36,6 +36,7 @@
         <alpn-boot-version>8.1.7.v20160121</alpn-boot-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jacoco.version>0.7.9</jacoco.version>
+        <org.hyperledger.fabric.sdktest.ITSuite>IntegrationSuite.java</org.hyperledger.fabric.sdktest.ITSuite>
     </properties>
 
     <reporting>
@@ -230,7 +231,7 @@
                 <configuration>
                     <argLine>${failsafeArgLine}</argLine>
                     <includes>
-                        <include>**/IntegrationSuite.java</include>
+                        <include>**/${org.hyperledger.fabric.sdktest.ITSuite}</include>
                     </includes>
                     <skipITs>${skipITs}</skipITs>
                     <!--<argLine>-->
