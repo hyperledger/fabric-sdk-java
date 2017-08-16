@@ -45,6 +45,10 @@ public class ProposalResponse extends ChaincodeResponse {
     }
 
     ProposalResponsePayloadDeserializer getProposalResponsePayloadDeserializer() throws InvalidArgumentException {
+        if (isInvalid()) {
+            throw new InvalidArgumentException("Proposal response is invalid.");
+        }
+
         ProposalResponsePayloadDeserializer ret = null;
 
         if (proposalResponsePayload != null) {
@@ -85,6 +89,10 @@ public class ProposalResponse extends ChaincodeResponse {
 
         if (isVerified()) { // check if this proposalResponse was already verified   by client code
             return isVerified();
+        }
+
+        if (isInvalid()) {
+            this.isVerified = false;
         }
 
         FabricProposalResponse.Endorsement endorsement = this.proposalResponse.getEndorsement();
@@ -195,6 +203,10 @@ public class ProposalResponse extends ChaincodeResponse {
 
     public byte[] getChaincodeActionResponsePayload() throws InvalidArgumentException {
 
+        if (isInvalid()) {
+            throw new InvalidArgumentException("Proposal response is invalid.");
+        }
+
         try {
 
             final ProposalResponsePayloadDeserializer proposalResponsePayloadDeserializer = getProposalResponsePayloadDeserializer();
@@ -218,6 +230,9 @@ public class ProposalResponse extends ChaincodeResponse {
      */
 
     public int getChaincodeActionResponseStatus() throws InvalidArgumentException {
+        if (isInvalid()) {
+            throw new InvalidArgumentException("Proposal response is invalid.");
+        }
 
         try {
 
@@ -240,6 +255,10 @@ public class ProposalResponse extends ChaincodeResponse {
      */
 
     public TxReadWriteSetInfo getChaincodeActionResponseReadWriteSetInfo() throws InvalidArgumentException {
+
+        if (isInvalid()) {
+            throw new InvalidArgumentException("Proposal response is invalid.");
+        }
 
         try {
 

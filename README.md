@@ -18,9 +18,6 @@ SDK's `Enrollment` interface.
  Please note that this is not the API documentation or a tutorial for the SDK, this will
   only help you familiarize to get started with the SDK if you are new in this domain.
 
- The 1.0 sdk is currently under development and the ***API is still subject to change****. It is likely any code depending
- on this 1.0 version `preview` may need updating
- with subsequent updates of the SDK.
 
 ## Known limitations and restrictions
 
@@ -28,7 +25,6 @@ SDK's `Enrollment` interface.
 * HSM not supported. JIRA FAB-3137
 * Single Crypto strength 256 JIRA FAB-2564
 * Network configuration updates not supported JIRA FAB-3103
-* No release/previews to Maven yet. JIRA FAB-648
 
 
 
@@ -36,15 +32,15 @@ SDK's `Enrollment` interface.
 <p &nbsp; />
 
 `*************************************************`
-## *v1.0.0-rc1*
+## *v1.0.1*
 
-There is a git tagged v1.0.0-rc1 [f918ecc2237587ba0c0c5b8f820657def36a8835] release of the SDK where there is no
+This is git tagged v1.0.1 release of the SDK where there is no
 need to build the Hyperledger Fabric and Hyperledger Fabric CA described below.
-The provided docker-compose.yaml for the integration tests should pull v1.0.0-rc1 tagged images from Docker hub.
+The provided docker-compose.yaml for the integration tests should pull v1.0.1  tagged images from Docker hub.
 
-Later versions of the SDK are NOT guaranteed to work with v1.0.0-rc1 tagged images of Hyperledger Fabric and Hyperledger Fabric CA.
+Later versions of the SDK are NOT guaranteed to work with v1.0.1 tagged images of Hyperledger Fabric and Hyperledger Fabric CA.
 
-The v1.0.0-rc1 version of the Hyperledger Fabric Java SDK is published to Maven so you can directly use in your application's pom.xml.
+The v1.0.1 version of the Hyperledger Fabric Java SDK is published to Maven so you can directly use in your application's pom.xml.
 
 [Maven Repository Hyperledger Fabric Java SDK](https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java)
 
@@ -58,7 +54,7 @@ _Make sure you're using docker images at the level of the Fabric that matches th
 
 ## Valid builds of Fabric and Fabric-ca
 
-Hyperledger Fabric v1.0 is currently under active development and the very latest Hyperledger Fabric builds may not work with this sdk.
+Hyperledger Fabric v1.1 is currently under active development and the very latest Hyperledger Fabric builds may not work with this sdk.
 You should use the following commit levels of the Hyperledger projects:
 
 <!--
@@ -68,8 +64,8 @@ You should use the following commit levels of the Hyperledger projects:
 
 | Project        | Commit level                               | Date                       |
 |:---------------|:------------------------------------------:|---------------------------:|
-| fabric         | 66655f733435685f47cb3f16674c79f00ee0b123   | Jun 14 04:26:47 2017 +0000 |
-| fabric-ca      | 7555a9b9bc1fded60b74ceee9bc64d3af2d080fb   | Jun  9 16:42:57 2017 +0000 |
+| fabric         | 3a4b1f2bce86daa86c025a9244a90106a58bb54b   | Jul 22 18:18:25 2017 +0000 |
+| fabric-ca      | bc2b642f4a9ef2dcb393bf7da512ce43e1ec1a68   | Jul 23 03:38:20 2017 -0400 |
 
  You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
 
@@ -117,6 +113,7 @@ environment.  For non Vagrant envrionment, the steps would be the same as below 
   config.vm.network :forwarded_port, guest: 8054, host: 8054
   config.vm.network :forwarded_port, guest: 8056, host: 8056
   config.vm.network :forwarded_port, guest: 8058, host: 8058
+  config.vm.network :forwarded_port, guest: 7059, host: 7059
 
 ```
 
@@ -124,7 +121,7 @@ Add to your Vagrant file a folder for referencing the sdkintegration folder betw
 
   config.vm.synced_folder "..", "/opt/gopath/src/github.com/hyperledger/fabric"</br>
 
-  `config.vm.synced_folder "/home/<<user>>/fabric-sdk-java/src/test/fixture/sdkintegration", "/opt/gopath/src/github.com/hyperledger/fabric/sdkintegration`</br>
+  `config.vm.synced_folder "/home/<<user>>/fabric-sdk-java/src/test/fixture/sdkintegration", "/opt/gopath/src/github.com/hyperledger/fabric/sdkintegration"`</br>
 
   config.vm.synced_folder ENV.fetch('LOCALDEVDIR', ".."), "#{LOCALDEV}"</br>
 
@@ -143,28 +140,15 @@ The SDK's test cases uses chaincode in the SDK's source tree: `/src/test/fixture
 The SDK's JAR is in `target/fabric-sdk-java-1.0.0-SNAPSHOT.jar` and you will need the additional dependencies listed above.
 When the SDK is published to `Maven` you will be able to simply include it in your application's `pom.xml`.
 
-Add below code in your `pom.xml` to download fabric-sdk-java-1.0.0-SNAPSHOT
+Add below code in your `pom.xml` to download fabric-sdk-java-1.0
 
 ```xml
-
-     <repositories>
-        <repository>
-            <id>nexus-snapshot</id>
-            <url>https://nexus.hyperledger.org/content/repositories/snapshots</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-     </repositories>
 
      <dependencies>
      <dependency>
             <groupId>org.hyperledger.fabric-sdk-java</groupId>
             <artifactId>fabric-sdk-java</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.1</version>
          </dependency>
      </dependencies>
 ```
@@ -227,6 +211,11 @@ The end to end test case artifacts are stored under the directory _src/test/fixt
 
 ### TLS connection to Orderer and Peers
 
+IBM Java needs the following properties defined to use TLS 1.2 to get an HTTPS connections to Fabric CA.
+```
+-Dcom.ibm.jsse2.overrideDefaultTLS=true   -Dhttps.protocols=TLSv1.2
+```
+
 We need certificate and key for each of the Orderer and Peers for TLS connection. You can generate your certificate and key files with openssl command as follows:
 
  * Set up your own Certificate Authority (CA) for issuing certificates
@@ -247,7 +236,7 @@ You create a policy using a Fabric tool ( an example is shown in [JIRA issue FAB
 and give it to the SDK either as a file or a byte array. The SDK, in turn, will use the policy when it creates chaincode instantiation requests.
 
 
-To input a policy to the SDK, use the [ChaincodeEndorsementPolicy class](https://gerrit.hyperledger.org/r/gitweb?p=fabric-sdk-java.git;a=blob;f=src/main/java/org/hyperledger/fabric/sdk/ChaincodeEndorsementPolicy.java;h=b67b5514b1e26ffac71210a33d788b83ee7cf288;hb=HEAD).
+To input a policy to the SDK, use the **ChaincodeEndorsementPolicy** class.
 
 For testing purposes, there are 2 policy files in the _src/test/resources_ directory
   * _policyBitsAdmin_ ( which has policy **AND(DEFAULT.admin)** meaning _1 signature from the DEFAULT MSP admin' is required_ )
@@ -289,7 +278,7 @@ Go lang chaincode dependencies must be contained in vendor folder.
  For an explanation of this see [Vender folder explanation](https://blog.gopheracademy.com/advent-2015/vendor-folder/)
 
 
-#Basic Troubleshooting
+## Basic Troubleshooting
 **identity or token do not match**
 
 Keep in mind that you can perform the enrollment process with the membership services server only once, as the enrollmentSecret is a one-time-use password. If you have performed a FSUser registration/enrollment with the membership services and subsequently deleted the crypto tokens stored on the client side, the next time you try to enroll, errors similar to the ones below will be seen.
@@ -306,13 +295,13 @@ When running the unit tests, you will always need to clean the membership servic
 
 If you get this error, this means your JDK does not capable of handling unlimited strength crypto algorithms. To fix this issue, You will need to download the JCE libraries for your version of JDK. Please follow the instructions <a href="http://stackoverflow.com/questions/6481627/java-security-illegal-key-size-or-default-parameters">here</a> to download and install the JCE for your version of the JDK.
 
-#Communicating with developers and fellow users.
+## Communicating with developers and fellow users.
  Sign into <a href="https://chat.hyperledger.org/">Hyperledger project's Rocket chat</a>
  For this you will also need a <a href="https://identity.linuxfoundation.org/">Linux Foundation ID</a>
 
  Join the <b>fabric-sdk-java</b> channel.
 
-#Reporting Issues
+## Reporting Issues
 If your issue is with building Fabric development environment please discuss this on rocket.chat's #fabric-dev-env channel.
 
 To report an issue please use: <a href="http://jira.hyperledger.org/">Hyperledger's JIRA</a>.
@@ -327,10 +316,13 @@ JIRA Fields should be:
   <dt>Component</dt>
   <dd>fabric-sdk-java</dd>
   <dt>Fix Versions</dt>
-    <dd>v1.0.0</dd>
+    <dd>v1.1</dd>
 </dl>
 
-Pleases provide as much information that you can with the issue you're experiencing: stack traces  logs.
+Pleases provide as much information that you can with the issue you're experiencing: stack traces logs.
+
+Please provide the output of **java -XshowSettings:properties -version**
+
 Logging for the SDK can be enabled with setting environment variables:
 
 ORG_HYPERLEDGER_FABRIC_SDK_LOGLEVEL=TRACE

@@ -41,6 +41,9 @@ public class Config {
     public static final String HASH_ALGORITHM = "org.hyperledger.fabric.sdk.hash_algorithm";
     public static final String CACERTS = "org.hyperledger.fabric.sdk.cacerts";
     public static final String PROPOSAL_WAIT_TIME = "org.hyperledger.fabric.sdk.proposal.wait.time";
+    public static final String CHANNEL_CONFIG_WAIT_TIME = "org.hyperledger.fabric.sdk.channelconfig.wait_time";
+    public static final String ORDERER_RETRY_WAIT_TIME = "org.hyperledger.fabric.sdk.orderer_retry.wait_time";
+    public static final String EVENTHUB_CONNECTION_WAIT_TIME = "org.hyperledger.fabric.sdk.eventhub_connection.wait_time";
     public static final String PROPOSAL_CONSISTENCY_VALIDATION = "org.hyperledger.fabric.sdk.proposal.consistency_validation";
     public static final String GENESISBLOCK_WAIT_TIME = "org.hyperledger.fabric.sdk.channel.genesisblock_wait_time";
     public static final String ASYMMETRIC_KEY_TYPE = "org.hyperledger.fabric.sdk.crypto.asymmetric_key_type";
@@ -54,6 +57,7 @@ public class Config {
     public static final String MAX_LOG_STRING_LENGTH = "org.hyperledger.fabric.sdk.log.stringlengthmax";
     public static final String EXTRALOGLEVEL = "org.hyperledger.fabric.sdk.log.extraloglevel";
     public static final String LOGGERLEVEL = "org.hyperledger.fabric.sdk.loglevel";  // ORG_HYPERLEDGER_FABRIC_SDK_LOGLEVEL=TRACE,DEBUG
+    public static final String DIAGNOTISTIC_FILE_DIRECTORY = "org.hyperledger.fabric.sdk.diagnosticFileDir"; //ORG_HYPERLEDGER_FABRIC_SDK_DIAGNOSTICFILEDIR
 
     private static Config config;
     private static final Properties sdkProperties = new Properties();
@@ -95,6 +99,10 @@ public class Config {
             defaultProperty(MAX_LOG_STRING_LENGTH, "64");
             defaultProperty(EXTRALOGLEVEL, "0");
             defaultProperty(LOGGERLEVEL, null);
+            defaultProperty(DIAGNOTISTIC_FILE_DIRECTORY, null);
+            defaultProperty(CHANNEL_CONFIG_WAIT_TIME, "10000");
+            defaultProperty(ORDERER_RETRY_WAIT_TIME, "200");
+            defaultProperty(EVENTHUB_CONNECTION_WAIT_TIME, "1000");
 
             final String inLogLevel = sdkProperties.getProperty(LOGGERLEVEL);
 
@@ -232,6 +240,28 @@ public class Config {
         return Long.parseLong(getProperty(GENESISBLOCK_WAIT_TIME));
     }
 
+    /**
+     * Time to wait for channel to be configured.
+     *
+     * @return
+     */
+    public long getChannelConfigWaitTime() {
+        return Long.parseLong(getProperty(CHANNEL_CONFIG_WAIT_TIME));
+    }
+
+    /**
+     * Time to wait before retrying an operation.
+     *
+     * @return
+     */
+    public long getOrdererRetryWaitTime() {
+        return Long.parseLong(getProperty(ORDERER_RETRY_WAIT_TIME));
+    }
+
+    public long getEventHubConnectionWaitTime() {
+        return Long.parseLong(getProperty(EVENTHUB_CONNECTION_WAIT_TIME));
+    }
+
     public String getAsymmetricKeyType() {
         return getProperty(ASYMMETRIC_KEY_TYPE);
     }
@@ -290,4 +320,30 @@ public class Config {
         return val <= extraLogLevel;
 
     }
+
+    DiagnosticFileDumper diagnosticFileDumper = null;
+
+    /**
+     * The directory where diagnostic dumps are to be place, null if none should be done.
+     *
+     * @return The directory where diagnostic dumps are to be place, null if none should be done.
+     */
+
+    public DiagnosticFileDumper getDiagnosticFileDumper() {
+
+        if (diagnosticFileDumper != null) {
+            return diagnosticFileDumper;
+        }
+
+        String dd = sdkProperties.getProperty(DIAGNOTISTIC_FILE_DIRECTORY);
+
+        if (dd != null) {
+
+            diagnosticFileDumper = DiagnosticFileDumper.configInstance(new File(dd));
+
+        }
+
+        return diagnosticFileDumper;
+    }
+
 }

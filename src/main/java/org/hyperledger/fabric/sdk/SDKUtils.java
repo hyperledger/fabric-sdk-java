@@ -78,7 +78,24 @@ public class SDKUtils {
      * @throws InvalidArgumentException
      */
 
-    public static Collection<Set<ProposalResponse>> getProposalConsistencySets(Collection<ProposalResponse> proposalResponses) throws InvalidArgumentException {
+    public static Collection<Set<ProposalResponse>> getProposalConsistencySets(Collection<ProposalResponse> proposalResponses
+    ) throws InvalidArgumentException {
+
+        return getProposalConsistencySets(proposalResponses, new HashSet<ProposalResponse>());
+
+    }
+
+    /**
+     * Check that the proposals all have consistent read write sets
+     *
+     * @param proposalResponses
+     * @param invalid           proposals that were found to be invalid.
+     * @return A Collection of sets where each set has consistent proposals.
+     * @throws InvalidArgumentException
+     */
+
+    public static Collection<Set<ProposalResponse>> getProposalConsistencySets(Collection<ProposalResponse> proposalResponses,
+                                                                               Set<ProposalResponse> invalid) throws InvalidArgumentException {
 
         if (proposalResponses == null) {
             throw new InvalidArgumentException("proposalResponses collection is null");
@@ -88,16 +105,25 @@ public class SDKUtils {
             throw new InvalidArgumentException("proposalResponses collection is empty");
         }
 
+        if (null == invalid) {
+            throw new InvalidArgumentException("invalid set is null.");
+        }
+
         HashMap<ByteString, Set<ProposalResponse>> ret = new HashMap<>();
 
         for (ProposalResponse proposalResponse : proposalResponses) {
 
-            ByteString rwsetByteString = proposalResponse.getProposalResponsePayloadDeserializer()
-                    .getExtension().getChaincodeAction().getResults();
+            if (proposalResponse.isInvalid() || proposalResponse.getProposalResponse() == null) {
+                invalid.add(proposalResponse);
+            } else {
 
-            Set<ProposalResponse> set = ret.computeIfAbsent(rwsetByteString, k -> new HashSet<>());
+                ByteString rwsetByteString = proposalResponse.getProposalResponsePayloadDeserializer()
+                        .getExtension().getChaincodeAction().getResults();
 
-            set.add(proposalResponse);
+                Set<ProposalResponse> set = ret.computeIfAbsent(rwsetByteString, k -> new HashSet<>());
+
+                set.add(proposalResponse);
+            }
 
         }
 

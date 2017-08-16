@@ -69,7 +69,13 @@ public class BlockEvent extends BlockInfo {
             super(transactionEnvelopeInfo.getTransactionDeserializer(), index);
         }
 
-        EventHub getEventHub() {
+        /**
+         * The event hub that received this event.
+         *
+         * @return
+         */
+
+        public EventHub getEventHub() {
 
             return BlockEvent.this.getEventHub();
         }
@@ -77,7 +83,7 @@ public class BlockEvent extends BlockInfo {
 
     List<TransactionEvent> getTransactionEventsList() {
 
-        ArrayList<TransactionEvent> ret = new ArrayList<TransactionEvent>(getEnvelopCount());
+        ArrayList<TransactionEvent> ret = new ArrayList<TransactionEvent>(getEnvelopeCount());
         for (TransactionEvent transactionEvent : getTransactionEvents()) {
             ret.add(transactionEvent);
         }
@@ -97,7 +103,7 @@ public class BlockEvent extends BlockInfo {
         final int max;
 
         TransactionEventIterator() {
-            max = getEnvelopCount();
+            max = getEnvelopeCount();
 
         }
 

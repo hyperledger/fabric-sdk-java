@@ -177,9 +177,9 @@ public class End2endIT {
                 // src/test/fixture/sdkintegration/e2e-2Orgs/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/
 
                 SampleUser peerOrgAdmin = sampleStore.getMember(sampleOrgName + "Admin", sampleOrgName, sampleOrg.getMSPID(),
-                        findFileSk(Paths.get(testConfig.getTestChannlePath(), "crypto-config/peerOrganizations/",
+                        Util.findFileSk(Paths.get(testConfig.getTestChannelPath(), "crypto-config/peerOrganizations/",
                                 sampleOrgDomainName, format("/users/Admin@%s/msp/keystore", sampleOrgDomainName)).toFile()),
-                        Paths.get(testConfig.getTestChannlePath(), "crypto-config/peerOrganizations/", sampleOrgDomainName,
+                        Paths.get(testConfig.getTestChannelPath(), "crypto-config/peerOrganizations/", sampleOrgDomainName,
                                 format("/users/Admin@%s/msp/signcerts/Admin@%s-cert.pem", sampleOrgDomainName, sampleOrgDomainName)).toFile());
 
                 sampleOrg.setPeerAdmin(peerOrgAdmin); //A special user that can create channels, join peers and install chaincode
@@ -640,22 +640,6 @@ public class End2endIT {
 //        }
     }
 
-    File findFileSk(File directory) {
-
-        File[] matches = directory.listFiles((dir, name) -> name.endsWith("_sk"));
-
-        if (null == matches) {
-            throw new RuntimeException(format("Matches returned null does %s directory exist?", directory.getAbsoluteFile().getName()));
-        }
-
-        if (matches.length != 1) {
-            throw new RuntimeException(format("Expected in %s only 1 sk file but found %d", directory.getAbsoluteFile().getName(), matches.length));
-        }
-
-        return matches[0];
-
-    }
-
     private static final Map<String, String> TX_EXPECTED;
 
     static {
@@ -676,9 +660,9 @@ public class End2endIT {
                 out("current block number %d has previous hash id: %s", blockNumber, Hex.encodeHexString(returnedBlock.getPreviousHash()));
                 out("current block number %d has calculated block hash is %s", blockNumber, Hex.encodeHexString(SDKUtils.calculateBlockHash(blockNumber, returnedBlock.getPreviousHash(), returnedBlock.getDataHash())));
 
-                final int envelopCount = returnedBlock.getEnvelopCount();
-                assertEquals(1, envelopCount);
-                out("current block number %d has %d envelope count:", blockNumber, returnedBlock.getEnvelopCount());
+                final int envelopeCount = returnedBlock.getEnvelopeCount();
+                assertEquals(1, envelopeCount);
+                out("current block number %d has %d envelope count:", blockNumber, returnedBlock.getEnvelopeCount());
                 int i = 0;
                 for (BlockInfo.EnvelopeInfo envelopeInfo : returnedBlock.getEnvelopeInfos()) {
                     ++i;
@@ -733,7 +717,7 @@ public class End2endIT {
                                 out("   Transaction action %d has %d name space read write sets", j, rwsetInfo.getNsRwsetCount());
 
                                 for (TxReadWriteSetInfo.NsRwsetInfo nsRwsetInfo : rwsetInfo.getNsRwsetInfos()) {
-                                    final String namespace = nsRwsetInfo.getNaamespace();
+                                    final String namespace = nsRwsetInfo.getNamespace();
                                     KvRwset.KVRWSet rws = nsRwsetInfo.getRwset();
 
                                     int rs = -1;

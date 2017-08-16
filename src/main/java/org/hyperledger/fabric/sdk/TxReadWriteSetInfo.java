@@ -60,7 +60,7 @@ public class TxReadWriteSetInfo {
             return KvRwset.KVRWSet.parseFrom(nsReadWriteSet.getRwset());
         }
 
-        public String getNaamespace() {
+        public String getNamespace() {
             return nsReadWriteSet.getNamespace();
         }
 

@@ -136,5 +136,12 @@ services:
        - orderer.example.com
        - peer0.org2.example.com
 
+  configtxlator:
+      image: hyperledger/fabric-tools${IMAGE_TAG_FABRIC}
+      ports:
+        - "7059:7059"
+      command: /usr/local/bin/configtxlator start
+      container_name: configtxlator
+
   ccenv:
     image: hyperledger/fabric-ccenv${IMAGE_TAG_FABRIC}

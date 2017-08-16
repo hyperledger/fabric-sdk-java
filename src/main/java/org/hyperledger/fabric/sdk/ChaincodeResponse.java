@@ -41,6 +41,10 @@ public class ChaincodeResponse {
         this.transactionID = transactionID;
     }
 
+    public boolean isInvalid() {
+        return status != Status.SUCCESS;
+    }
+
     public ChaincodeResponse(String transactionID, String chaincodeID, int istatus, String message) {
 
         switch (istatus) {

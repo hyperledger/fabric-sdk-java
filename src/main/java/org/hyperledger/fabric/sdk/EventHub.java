@@ -16,7 +16,9 @@ package org.hyperledger.fabric.sdk;
 
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -32,6 +34,7 @@ import org.hyperledger.fabric.protos.peer.PeerEvents;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.EventHubException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 
 import static java.lang.String.format;
@@ -45,6 +48,8 @@ import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
 
 public class EventHub {
     private static final Log logger = LogFactory.getLog(EventHub.class);
+    private static final Config config = Config.getConfig();
+    private static final long EVENTHUB_CONNECTION_WAIT_TIME = config.getEventHubConnectionWaitTime();
     private final ExecutorService executorService;
 
     private final String url;
@@ -158,18 +163,25 @@ public class EventHub {
     boolean connect() throws EventHubException {
 
         if (transactionContext == null) {
-            throw new EventHubException("Eventhup reconnect failed with no user context");
+            throw new EventHubException("Eventhub reconnect failed with no user context");
         }
 
         return connect(transactionContext);
 
     }
 
+    private StreamObserver<PeerEvents.Event> eventStream = null; // Saved here to avoid potential garbage collection
+
     synchronized boolean connect(final TransactionContext transactionContext) throws EventHubException {
         if (connected) {
             logger.warn(format("%s already connected.", toString()));
             return true;
         }
+        eventStream = null;
+
+        final CountDownLatch finishLatch = new CountDownLatch(1);
+
+        logger.debug(format("EventHub %s is connecting.", name));
 
         lastConnectedAttempt = System.currentTimeMillis();
 
@@ -179,7 +191,7 @@ public class EventHub {
 
         final ArrayList<Throwable> threw = new ArrayList<>();
 
-        StreamObserver<PeerEvents.Event> eventStream = new StreamObserver<PeerEvents.Event>() {
+        final StreamObserver<PeerEvents.Event> eventStreamLocal = new StreamObserver<PeerEvents.Event>() {
             @Override
             public void onNext(PeerEvents.Event event) {
 
@@ -193,12 +205,21 @@ public class EventHub {
                         logger.error(eventHubException.getMessage());
                         threw.add(eventHubException);
                     }
+                } else if (event.getEventCase() == PeerEvents.Event.EventCase.REGISTER) {
+
+                    connected = true;
+                    connectedTime = System.currentTimeMillis();
+                    finishLatch.countDown();
                 }
             }
 
             @Override
             public void onError(Throwable t) {
                 if (shutdown) { //IF we're shutdown don't try anything more.
+                    logger.trace(format("%s was shutdown.", EventHub.this.toString()));
+                    connected = false;
+                    eventStream = null;
+                    finishLatch.countDown();
                     return;
                 }
 
@@ -207,15 +228,18 @@ public class EventHub {
 
                 logger.error(format("%s terminated is %b shutdown is %b has error %s ", EventHub.this.toString(), isTerminated, isChannelShutdown,
                         t.getMessage()), new EventHubException(t));
+                threw.add(t);
+                finishLatch.countDown();
 
                 //              logger.error("Error in stream: " + t.getMessage(), new EventHubException(t));
                 if (t instanceof StatusRuntimeException) {
                     StatusRuntimeException sre = (StatusRuntimeException) t;
                     Status sreStatus = sre.getStatus();
-                    logger.error(format("StatusRuntimeException Status %s.  Description %s ", sreStatus + "", sreStatus.getDescription()));
-                    if (sre.getStatus().getCode() == Status.Code.INTERNAL) {
+                    logger.error(format("%s :StatusRuntimeException Status %s.  Description %s ", EventHub.this, sreStatus + "", sreStatus.getDescription()));
+                    if (sre.getStatus().getCode() == Status.Code.INTERNAL || sre.getStatus().getCode() == Status.Code.UNAVAILABLE) {
 
                         connected = false;
+                        eventStream = null;
                         disconnectedTime = System.currentTimeMillis();
                         try {
                             if (!isChannelShutdown) {
@@ -225,15 +249,15 @@ public class EventHub {
                                 try {
                                     disconnectedHandler.disconnected(EventHub.this);
                                 } catch (Exception e) {
+                                    logger.warn(format("Eventhub %s  %s", EventHub.this.name, e.getMessage()), e);
                                     eventQue.eventError(e);
                                 }
                             }
                         } catch (Exception e) {
-                            logger.warn("Failed shutdown");
+                            logger.warn(format("Eventhub %s Failed shutdown msg:  %s", EventHub.this.name, e.getMessage()), e);
                         }
                     }
                 }
-                threw.add(t);
 
             }
 
@@ -241,29 +265,36 @@ public class EventHub {
             public void onCompleted() {
 
                 logger.warn(format("Stream completed %s", EventHub.this.toString()));
+                finishLatch.countDown();
 
             }
         };
 
-        sender = events.chat(eventStream);
+        sender = events.chat(eventStreamLocal);
         try {
             blockListen(transactionContext);
         } catch (CryptoException e) {
             throw new EventHubException(e);
         }
 
-        logger.info(format("done with connect for %s", EventHub.this.toString()));
+        try {
+            if (!finishLatch.await(EVENTHUB_CONNECTION_WAIT_TIME, TimeUnit.MILLISECONDS)) {
+                EventHubException evh = new EventHubException(format("EventHub %s failed to connect in %s ms.", name, EVENTHUB_CONNECTION_WAIT_TIME));
+                logger.debug(evh.getMessage(), evh);
 
-// Not implemented!
-//        managedChannel.notifyWhenStateChanged(ConnectivityState.CONNECTING, () -> {
-//            logger.info(format("CONNECTING %s", EventHub.this.toString()));
-//        });
-//
-//        managedChannel.notifyWhenStateChanged(ConnectivityState.READY, () -> {
-//            logger.info(format("READY %s", EventHub.this.toString()));
-//        });
+                throw evh;
+            }
+            logger.trace(format("Eventhub %s Done waiting for reply!", name));
+
+        } catch (InterruptedException e) {
+            logger.error(e);
+        }
+
+
 
         if (!threw.isEmpty()) {
+            eventStream = null;
+            connected = false;
             Throwable t = threw.iterator().next();
 
             EventHubException evh = new EventHubException(t.getMessage(), t);
@@ -272,9 +303,13 @@ public class EventHub {
 
         }
 
-        connected = true;
-        connectedTime = System.currentTimeMillis();
-        return true;
+        logger.info(format("Eventhub %s connect is done with connect status: %b ", name, connected));
+
+        if (connected) {
+            eventStream = eventStreamLocal;
+        }
+
+        return connected;
 
     }
 
@@ -322,6 +357,7 @@ public class EventHub {
         connected = false;
         disconnectedHandler = null;
         channel = null;
+        eventStream = null;
         managedChannel.shutdownNow();
     }
 
@@ -374,7 +410,7 @@ public class EventHub {
             executorService.execute(() -> {
 
                 try {
-                    Thread.sleep(3000);
+                    Thread.sleep(500);
 
                     if (eventHub.connect()) {
                         logger.info(format("Successful reconnect %s", eventHub.toString()));
@@ -384,7 +420,7 @@ public class EventHub {
 
                 } catch (Exception e) {
 
-                    logger.debug(format("Failed %s to reconnect.", toString()));
+                    logger.debug(format("Failed %s to reconnect. %s", toString(), e.getMessage()));
 
                 }
 

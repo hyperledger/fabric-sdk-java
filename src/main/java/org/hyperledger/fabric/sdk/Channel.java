@@ -60,7 +60,6 @@ import org.hyperledger.fabric.protos.common.Configtx.ConfigSignature;
 import org.hyperledger.fabric.protos.common.Configtx.ConfigUpdateEnvelope;
 import org.hyperledger.fabric.protos.common.Configtx.ConfigValue;
 import org.hyperledger.fabric.protos.common.Ledger;
-import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.msp.MspConfig;
 import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.orderer.Ab.BroadcastResponse;
@@ -87,6 +86,7 @@ import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
 import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.helper.DiagnosticFileDumper;
 import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.transaction.InstallProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.InstantiateProposalBuilder;
@@ -103,7 +103,6 @@ import org.hyperledger.fabric.sdk.transaction.UpgradeProposalBuilder;
 import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.User.userContextCheck;
 import static org.hyperledger.fabric.sdk.helper.Utils.isNullOrEmpty;
-import static org.hyperledger.fabric.sdk.helper.Utils.toHexString;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createChannelHeader;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getCurrentFabricTimestamp;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getSignatureHeaderAsByteString;
@@ -115,8 +114,15 @@ import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getSignatureHead
 public class Channel {
     private static final Log logger = LogFactory.getLog(Channel.class);
     private static final boolean IS_DEBUG_LEVEL = logger.isDebugEnabled();
+    private static final boolean IS_TRACE_LEVEL = logger.isTraceEnabled();
+
     private static final Config config = Config.getConfig();
+    private static final DiagnosticFileDumper diagnosticFileDumper = IS_TRACE_LEVEL
+            ? config.getDiagnosticFileDumper() : null;
     private static final String SYSTEM_CHANNEL_NAME = "";
+
+    private static final long ORDERER_RETRY_WAIT_TIME = config.getOrdererRetryWaitTime();
+    private static final long CHANNEL_CONFIG_WAIT_TIME = config.getChannelConfigWaitTime();
 
     // Name of the channel is only meaningful to the client
     private final String name;
@@ -158,7 +164,12 @@ public class Channel {
 
         logger.debug(format("Creating new channel %s on the Fabric", name));
 
+        Channel ordererChannel = orderer.getChannel();
+
         try {
+            addOrderer(orderer);
+
+            //-----------------------------------------
             Envelope ccEnvelope = Envelope.parseFrom(channelConfiguration.getChannelConfigurationAsBytes());
 
             final Payload ccPayload = Payload.parseFrom(ccEnvelope.getPayload());
@@ -177,60 +188,199 @@ public class Channel {
                         ccChannelHeader.getChannelId()));
             }
 
-            TransactionContext transactionContext = getTransactionContext();
-
             final ConfigUpdateEnvelope configUpdateEnv = ConfigUpdateEnvelope.parseFrom(ccPayload.getData());
-            final ConfigUpdateEnvelope.Builder configUpdateEnvBuilder = configUpdateEnv.toBuilder();
+            ByteString configUpdate = configUpdateEnv.getConfigUpdate();
 
-            configUpdateEnvBuilder.clearSignatures();
+            sendUpdateChannel(configUpdate.toByteArray(), signers, orderer);
+            //         final ConfigUpdateEnvelope.Builder configUpdateEnvBuilder = configUpdateEnv.toBuilder();
 
-            for (byte[] signer : signers) {
+            //---------------------------------------
 
-                configUpdateEnvBuilder.addSignatures(
-                        ConfigSignature.parseFrom(signer));
+            //          sendUpdateChannel(channelConfiguration, signers, orderer);
 
-            }
-
-            //--------------
-            // Construct Payload Envelope.
-
-            final ByteString sigHeaderByteString = getSignatureHeaderAsByteString(transactionContext);
-
-            final ChannelHeader payloadChannelHeader = ProtoUtils.createChannelHeader(HeaderType.CONFIG_UPDATE,
-                    transactionContext.getTxID(), name, transactionContext.getEpoch(), transactionContext.getFabricTimestamp(), null);
-
-            final Header payloadHeader = Header.newBuilder().setChannelHeader(payloadChannelHeader.toByteString())
-                    .setSignatureHeader(sigHeaderByteString).build();
-
-            final ByteString payloadByteString = Payload.newBuilder()
-                    .setHeader(payloadHeader)
-                    .setData(configUpdateEnvBuilder.build().toByteString())
-                    .build().toByteString();
-
-            ByteString payloadSignature = transactionContext.signByteStrings(payloadByteString);
-
-            if (IS_DEBUG_LEVEL) {
-                logger.debug(format("Sending to orderer payloadSignature: 0x%s ", toHexString(payloadSignature)));
-            }
-
-            Envelope payloadEnv = Envelope.newBuilder()
-                    .setSignature(payloadSignature)
-                    .setPayload(payloadByteString).build();
-
-            orderer.setChannel(this);
-
-            BroadcastResponse trxResult = orderer.sendTransaction(payloadEnv);
-            if (200 != trxResult.getStatusValue()) {
-                throw new TransactionException(format("New channel %s error. StatusValue %d. Status %s", name,
-                        trxResult.getStatusValue(), "" + trxResult.getStatus()));
-            }
-
-            getGenesisBlock(orderer);
+            getGenesisBlock(orderer); // get Genesis block to make sure channel was created.
             if (genesisBlock == null) {
                 throw new TransactionException(format("New channel %s error. Genesis bock returned null", name));
             }
-            addOrderer(orderer);
+
             logger.debug(format("Created new channel %s on the Fabric done.", name));
+        } catch (TransactionException e) {
+
+            orderer.unsetChannel();
+            if (null != ordererChannel) {
+                orderer.setChannel(ordererChannel);
+            }
+
+            logger.error(format("Channel %s error: %s", name, e.getMessage()), e);
+            throw e;
+        } catch (Exception e) {
+            orderer.unsetChannel();
+            if (null != ordererChannel) {
+                orderer.setChannel(ordererChannel);
+            }
+            String msg = format("Channel %s error: %s", name, e.getMessage());
+
+            logger.error(msg, e);
+            throw new TransactionException(msg, e);
+        }
+
+    }
+
+    /**
+     * Update channel with specified channel configuration
+     *
+     * @param updateChannelConfiguration Updated Channel configuration
+     * @param signers                    signers
+     * @throws TransactionException
+     * @throws InvalidArgumentException
+     */
+
+    public void updateChannelConfiguration(UpdateChannelConfiguration updateChannelConfiguration, byte[]... signers) throws TransactionException, InvalidArgumentException {
+
+        updateChannelConfiguration(updateChannelConfiguration, getRandomOrderer(), signers);
+
+    }
+
+    /**
+     * Update channel with specified channel configuration
+     *
+     * @param updateChannelConfiguration Channel configuration
+     * @param signers                    signers
+     * @param orderer                    The specific orderer to use.
+     * @throws TransactionException
+     * @throws InvalidArgumentException
+     */
+
+    public void updateChannelConfiguration(UpdateChannelConfiguration updateChannelConfiguration, Orderer orderer, byte[]... signers) throws TransactionException, InvalidArgumentException {
+
+        checkChannelState();
+
+        checkOrderer(orderer);
+
+        try {
+            final long startLastConfigIndex = getLastConfigIndex(orderer);
+
+            sendUpdateChannel(updateChannelConfiguration.getUpdateChannelConfigurationAsBytes(), signers, orderer);
+
+            long currentLastConfigIndex = -1;
+            final long nanoTimeStart = System.nanoTime();
+
+            //Try to wait to see the channel got updated but don't fail if we don't see it.
+            do {
+                currentLastConfigIndex = getLastConfigIndex(orderer);
+                if (currentLastConfigIndex == startLastConfigIndex) {
+
+                    final long duration = TimeUnit.MILLISECONDS.convert(System.nanoTime() - nanoTimeStart, TimeUnit.NANOSECONDS);
+
+                    if (duration > CHANNEL_CONFIG_WAIT_TIME) {
+                        logger.warn(format("Channel %s did not get updated last config after %d ms", name, duration));
+                        //waited long enough ..
+                        currentLastConfigIndex = startLastConfigIndex; // just bail don't throw exception.
+                    } else {
+
+                        try {
+                            Thread.sleep(ORDERER_RETRY_WAIT_TIME); //try again sleep
+                        } catch (InterruptedException e) {
+                            TransactionException te = new TransactionException("update channel thread Sleep", e);
+                            logger.warn(te.getMessage(), te);
+                        }
+                    }
+
+                }
+
+            } while (currentLastConfigIndex == startLastConfigIndex);
+
+        } catch (TransactionException e) {
+
+            logger.error(format("Channel %s error: %s", name, e.getMessage()), e);
+            throw e;
+        } catch (Exception e) {
+            String msg = format("Channel %s error: %s", name, e.getMessage());
+
+            logger.error(msg, e);
+            throw new TransactionException(msg, e);
+        }
+
+    }
+
+    private void sendUpdateChannel(byte[] configupdate, byte[][] signers, Orderer orderer) throws TransactionException, InvalidArgumentException {
+
+        logger.debug(format("Channel %s sendUpdateChannel", name));
+        checkOrderer(orderer);
+
+        try {
+
+            final long nanoTimeStart = System.nanoTime();
+            int statusCode = 0;
+
+            do {
+
+                //Make sure we have fresh transaction context for each try just to be safe.
+                TransactionContext transactionContext = getTransactionContext();
+
+                ConfigUpdateEnvelope.Builder configUpdateEnvBuilder = ConfigUpdateEnvelope.newBuilder();
+
+                configUpdateEnvBuilder.setConfigUpdate(ByteString.copyFrom(configupdate));
+
+                for (byte[] signer : signers) {
+
+                    configUpdateEnvBuilder.addSignatures(
+                            ConfigSignature.parseFrom(signer));
+
+                }
+
+                //--------------
+                // Construct Payload Envelope.
+
+                final ByteString sigHeaderByteString = getSignatureHeaderAsByteString(transactionContext);
+
+                final ChannelHeader payloadChannelHeader = ProtoUtils.createChannelHeader(HeaderType.CONFIG_UPDATE,
+                        transactionContext.getTxID(), name, transactionContext.getEpoch(), transactionContext.getFabricTimestamp(), null);
+
+                final Header payloadHeader = Header.newBuilder().setChannelHeader(payloadChannelHeader.toByteString())
+                        .setSignatureHeader(sigHeaderByteString).build();
+
+                final ByteString payloadByteString = Payload.newBuilder()
+                        .setHeader(payloadHeader)
+                        .setData(configUpdateEnvBuilder.build().toByteString())
+                        .build().toByteString();
+
+                ByteString payloadSignature = transactionContext.signByteStrings(payloadByteString);
+
+                Envelope payloadEnv = Envelope.newBuilder()
+                        .setSignature(payloadSignature)
+                        .setPayload(payloadByteString).build();
+
+                BroadcastResponse trxResult = orderer.sendTransaction(payloadEnv);
+
+                statusCode = trxResult.getStatusValue();
+
+                logger.debug(format("Channel %s sendUpdateChannel %d", name, statusCode));
+                if (statusCode == 404 || statusCode == 503) {
+                    // these we can retry..
+                    final long duration = TimeUnit.MILLISECONDS.convert(System.nanoTime() - nanoTimeStart, TimeUnit.NANOSECONDS);
+
+                    if (duration > CHANNEL_CONFIG_WAIT_TIME) {
+                        //waited long enough .. throw an exception
+                        throw new TransactionException(format("Channel %s update error timed out after %d ms. Status value %d. Status %s", name,
+                                duration, statusCode, trxResult.getStatus().name()));
+                    }
+
+                    try {
+                        Thread.sleep(ORDERER_RETRY_WAIT_TIME); //try again sleep
+                    } catch (InterruptedException e) {
+                        TransactionException te = new TransactionException("update thread Sleep", e);
+                        logger.warn(te.getMessage(), te);
+                    }
+
+                } else if (200 != statusCode) {
+                    // Can't retry.
+                    throw new TransactionException(format("New channel %s error. StatusValue %d. Status %s", name,
+                            statusCode, "" + trxResult.getStatus()));
+                }
+
+            } while (200 != statusCode); // try again
+
         } catch (TransactionException e) {
 
             logger.error(format("Channel %s error: %s", name, e.getMessage()), e);
@@ -420,7 +570,7 @@ public class Channel {
         logger.debug(format("Channel %s adding orderer%s, url: %s", name, orderer.getName(), orderer.getUrl()));
 
         orderer.setChannel(this);
-        this.orderers.add(orderer);
+        orderers.add(orderer);
         return this;
     }
 
@@ -586,7 +736,7 @@ public class Channel {
         logger.debug(format("Channel %s loadCACertificates completed ", name));
     }
 
-    private Block getGenesisBlock(Orderer order) throws TransactionException {
+    private Block getGenesisBlock(Orderer orderer) throws TransactionException {
         try {
             if (genesisBlock != null) {
                 logger.debug(format("Channel %s getGenesisBlock already present", name));
@@ -595,105 +745,44 @@ public class Channel {
 
                 final long start = System.currentTimeMillis();
 
-                do {
+                SeekSpecified seekSpecified = SeekSpecified.newBuilder()
+                        .setNumber(0)
+                        .build();
+                SeekPosition seekPosition = SeekPosition.newBuilder()
+                        .setSpecified(seekSpecified)
+                        .build();
 
-                    SeekSpecified seekSpecified = SeekSpecified.newBuilder()
-                            .setNumber(0)
-                            .build();
-                    SeekPosition seekPosition = SeekPosition.newBuilder()
-                            .setSpecified(seekSpecified)
-                            .build();
+                SeekSpecified seekStopSpecified = SeekSpecified.newBuilder()
+                        .setNumber(0)
+                        .build();
 
-                    SeekSpecified seekStopSpecified = SeekSpecified.newBuilder()
-                            .setNumber(0)
-                            .build();
+                SeekPosition seekStopPosition = SeekPosition.newBuilder()
+                        .setSpecified(seekStopSpecified)
+                        .build();
 
-                    SeekPosition seekStopPosition = SeekPosition.newBuilder()
-                            .setSpecified(seekStopSpecified)
-                            .build();
+                SeekInfo seekInfo = SeekInfo.newBuilder()
+                        .setStart(seekPosition)
+                        .setStop(seekStopPosition)
+                        .setBehavior(SeekInfo.SeekBehavior.BLOCK_UNTIL_READY)
+                        .build();
 
-                    SeekInfo seekInfo = SeekInfo.newBuilder()
-                            .setStart(seekPosition)
-                            .setStop(seekStopPosition)
-                            .setBehavior(SeekInfo.SeekBehavior.BLOCK_UNTIL_READY)
-                            .build();
+                ArrayList<DeliverResponse> deliverResponses = new ArrayList<>();
 
-                    ChannelHeader deliverChainHeader = createChannelHeader(HeaderType.DELIVER_SEEK_INFO, "4",
-                            name, 0, getCurrentFabricTimestamp(), null);
+                seekBlock(seekInfo, deliverResponses, orderer);
 
-                    String mspid = client.getUserContext().getMspId();
-                    String cert = getEnrollment().getCert();
+                DeliverResponse blockresp = deliverResponses.get(1);
+                Block configBlock = blockresp.getBlock();
+                if (configBlock == null) {
+                    throw new TransactionException(format("In getGenesisBlock newest block for channel %s fetch bad deliver returned null:", name));
+                }
 
-                    Identities.SerializedIdentity identity = Identities.SerializedIdentity.newBuilder()
-                            .setIdBytes(ByteString.copyFromUtf8(cert)).
-                                    setMspid(mspid).build();
+                int dataCount = configBlock.getData().getDataCount();
+                if (dataCount < 1) {
+                    throw new TransactionException(format("In getGenesisBlock bad config block data count %d", dataCount));
+                }
 
-                    SignatureHeader deliverSignatureHeader = SignatureHeader.newBuilder()
-                            .setCreator(identity.toByteString())
-                            .setNonce(ByteString.copyFrom(Utils.generateNonce()))
-                            .build();
+                genesisBlock = blockresp.getBlock();
 
-                    Header deliverHeader = Header.newBuilder()
-                            .setSignatureHeader(deliverSignatureHeader.toByteString())
-                            .setChannelHeader(deliverChainHeader.toByteString())
-                            .build();
-
-                    Payload deliverPayload = Payload.newBuilder()
-                            .setHeader(deliverHeader)
-                            .setData(seekInfo.toByteString())
-                            .build();
-
-                    byte[] deliverPayloadBytes = deliverPayload.toByteArray();
-
-                    Envelope deliverEnvelope = Envelope.newBuilder()
-                            .setSignature(ByteString.copyFrom(client.getCryptoSuite().sign(getEnrollment().getKey(), deliverPayloadBytes)))
-                            .setPayload(ByteString.copyFrom(deliverPayloadBytes))
-                            .build();
-
-                    DeliverResponse[] deliver = order.sendDeliver(deliverEnvelope);
-                    if (deliver.length < 1) {
-                        logger.warn(format("Genesis block for channel %s fetch bad deliver missing status block only got blocks:%d", name, deliver.length));
-                        //odd so lets try again....
-                    } else {
-
-                        DeliverResponse status = deliver[0];
-                        logger.debug(format("Channel %s getGenesisBlock deliver status: %d", name, status.getStatusValue()));
-                        if (status.getStatusValue() == 404) {
-                            logger.warn(format("Bad deliver expected status 200  got  %d, Channel %s", status.getStatusValue(), name));
-                            // keep trying...
-                        } else if (status.getStatusValue() != 200) {
-                            throw new TransactionException(format("Bad deliver expected status 200  got  %d, Channel %s", status.getStatusValue(), name));
-
-                        } else {
-
-                            if (deliver.length < 2) {
-                                logger.warn(format("Genesis block for channel %s fetch bad deliver missing genesis block only got %d:", name, deliver.length));
-                                //odd try again
-                            } else {
-
-                                DeliverResponse blockresp = deliver[1];
-                                genesisBlock = blockresp.getBlock();
-
-                            }
-                        }
-                    }
-
-                    if (genesisBlock == null) {
-                        long now = System.currentTimeMillis();
-
-                        long duration = now - start;
-
-                        if (duration > config.getGenesisBlockWaitTime()) {
-                            throw new TransactionException(format("Getting genesis block time exceeded %s seconds for channel %s", Long.toString(TimeUnit.MILLISECONDS.toSeconds(duration)), name));
-                        }
-                        try {
-                            Thread.sleep(200); //try again
-                        } catch (InterruptedException e) {
-                            TransactionException te = new TransactionException("getGenesisBlock thread Sleep", e);
-                            logger.warn(te.getMessage(), te);
-                        }
-                    }
-                } while (genesisBlock == null);
             }
         } catch (TransactionException e) {
             logger.error(e.getMessage(), e);
@@ -723,6 +812,40 @@ public class Channel {
 
     public boolean isShutdown() {
         return shutdown;
+    }
+
+    public byte[] getUpdateChannelConfigurationSignature(UpdateChannelConfiguration updateChannelConfiguration, User signer) throws InvalidArgumentException {
+
+        userContextCheck(signer);
+
+        if (null == updateChannelConfiguration) {
+
+            throw new InvalidArgumentException("channelConfiguration is null");
+
+        }
+
+        try {
+
+            TransactionContext transactionContext = getTransactionContext(signer);
+
+            final ByteString configUpdate = ByteString.copyFrom(updateChannelConfiguration.getUpdateChannelConfigurationAsBytes());
+
+            ByteString sigHeaderByteString = getSignatureHeaderAsByteString(signer, transactionContext);
+
+            ByteString signatureByteSting = transactionContext.signByteStrings(new User[] {signer},
+                    sigHeaderByteString, configUpdate)[0];
+
+            return ConfigSignature.newBuilder()
+                    .setSignatureHeader(sigHeaderByteString)
+                    .setSignature(signatureByteSting)
+                    .build().toByteArray();
+
+        } catch (Exception e) {
+
+            throw new InvalidArgumentException(e);
+        } finally {
+            logger.debug("finally done");
+        }
     }
 
     /**
@@ -888,6 +1011,13 @@ public class Channel {
         return msps;
     }
 
+    /**
+     * Provide the Channel's latest raw Configuration Block.
+     *
+     * @return Channel configuration block.
+     * @throws TransactionException
+     */
+
     private Block getConfigurationBlock() throws TransactionException {
 
         logger.debug(format("getConfigurationBlock for channel %s", name));
@@ -895,15 +1025,7 @@ public class Channel {
         try {
             Orderer orderer = getRandomOrderer();
 
-            Block latestBlock = getLatestBlock(orderer);
-
-            BlockMetadata blockMetadata = latestBlock.getMetadata();
-
-            Metadata metaData = Metadata.parseFrom(blockMetadata.getMetadata(1));
-
-            LastConfig lastConfig = LastConfig.parseFrom(metaData.getValue());
-
-            long lastConfigIndex = lastConfig.getIndex();
+            long lastConfigIndex = getLastConfigIndex(orderer);
 
             logger.debug(format("Last config index is %d", lastConfigIndex));
 
@@ -940,17 +1062,56 @@ public class Channel {
 
     }
 
+    /**
+     * Channel Configuration bytes. Bytes that can be used with configtxlator tool to upgrade the channel.
+     * Convert to Json for editing  with:
+     * {@code
+     * <p>
+     * curl -v   POST --data-binary @fooConfig http://host/protolator/decode/common.Config
+     * <p>
+     * }
+     * See http://hyperledger-fabric.readthedocs.io/en/latest/configtxlator.html
+     *
+     * @return Channel configuration bytes.
+     * @throws TransactionException
+     */
+
+    public byte[] getChannelConfigurationBytes() throws TransactionException {
+        try {
+            final Block configBlock = getConfigurationBlock();
+
+            Envelope envelopeRet = Envelope.parseFrom(configBlock.getData().getData(0));
+
+            Payload payload = Payload.parseFrom(envelopeRet.getPayload());
+
+            ConfigEnvelope configEnvelope = ConfigEnvelope.parseFrom(payload.getData());
+            return configEnvelope.getConfig().toByteArray();
+
+        } catch (Exception e) {
+            throw new TransactionException(e);
+        }
+
+    }
+
+    private long getLastConfigIndex(Orderer orderer) throws CryptoException, TransactionException, InvalidArgumentException, InvalidProtocolBufferException {
+        Block latestBlock = getLatestBlock(orderer);
+
+        BlockMetadata blockMetadata = latestBlock.getMetadata();
+
+        Metadata metaData = Metadata.parseFrom(blockMetadata.getMetadata(1));
+
+        LastConfig lastConfig = LastConfig.parseFrom(metaData.getValue());
+
+        return lastConfig.getIndex();
+    }
+
     private Block getBlockByNumber(final long number) throws TransactionException {
 
         logger.trace(format("getConfigurationBlock for channel %s", name));
 
         try {
 
-            Orderer orderer = getRandomOrderer();
-
             logger.trace(format("Last config index is %d", number));
-
-            TransactionContext txContext = getTransactionContext();
 
             SeekSpecified seekSpecified = SeekSpecified.newBuilder().setNumber(number).build();
 
@@ -964,64 +1125,26 @@ public class Channel {
                     .setBehavior(SeekInfo.SeekBehavior.BLOCK_UNTIL_READY)
                     .build();
 
-            ChannelHeader seekInfoHeader = createChannelHeader(HeaderType.DELIVER_SEEK_INFO,
-                    txContext.getTxID(), name, txContext.getEpoch(), getCurrentFabricTimestamp(), null);
+            ArrayList<DeliverResponse> deliverResponses = new ArrayList<>();
 
-            SignatureHeader signatureHeader = SignatureHeader.newBuilder()
-                    .setCreator(txContext.getIdentity().toByteString())
-                    .setNonce(txContext.getNonce())
-                    .build();
+            seekBlock(seekInfo, deliverResponses, getRandomOrderer());
 
-            Header seekHeader = Header.newBuilder()
-                    .setSignatureHeader(signatureHeader.toByteString())
-                    .setChannelHeader(seekInfoHeader.toByteString())
-                    .build();
+            DeliverResponse blockresp = deliverResponses.get(1);
 
-            Payload seekPayload = Payload.newBuilder()
-                    .setHeader(seekHeader)
-                    .setData(seekInfo.toByteString())
-                    .build();
-
-            Envelope envelope = Envelope.newBuilder().setSignature(txContext.signByteString(seekPayload.toByteArray()))
-                    .setPayload(seekPayload.toByteString())
-                    .build();
-
-            DeliverResponse[] deliver = orderer.sendDeliver(envelope);
-
-            final Block configBlock;
-            if (deliver.length < 1) {
-                throw new TransactionException(format("newest block for channel %s fetch bad deliver missing status block only got blocks:%d", name, deliver.length));
-
-            } else {
-
-                DeliverResponse status = deliver[0];
-                if (status.getStatusValue() != 200) {
-                    throw new TransactionException(format("Bad newest block expected status 200  got  %d, Channel %s", status.getStatusValue(), name));
-                } else {
-                    if (deliver.length < 2) {
-                        throw new TransactionException(format("newest block for channel %s fetch bad deliver missing genesis block only got %d:", name, deliver.length));
-                    } else {
-
-                        DeliverResponse blockresp = deliver[1];
-                        configBlock = blockresp.getBlock();
-                        if (configBlock == null) {
-                            throw new TransactionException(format("newest block for channel %s fetch bad deliver returned null:", name));
-                        }
-
-                        int dataCount = configBlock.getData().getDataCount();
-                        if (dataCount < 1) {
-                            throw new TransactionException(format("Bad config block data count %d", dataCount));
-                        }
-                    }
-                }
+            Block retBlock = blockresp.getBlock();
+            if (retBlock == null) {
+                throw new TransactionException(format("newest block for channel %s fetch bad deliver returned null:", name));
             }
 
-            //getChannelConfig -  config block number ::%s  -- numberof tx :: %s', block.header.number, block.data.data.length)
+            int dataCount = retBlock.getData().getDataCount();
+            if (dataCount < 1) {
+                throw new TransactionException(format("Bad config block data count %d", dataCount));
+            }
 
-            logger.trace(format("Received latest config block for channel %s, block no:%d, transaction count: %d",
-                    name, configBlock.getHeader().getNumber(), configBlock.getData().getDataCount()));
+            logger.trace(format("Received  block for channel %s, block no:%d, transaction count: %d",
+                    name, retBlock.getHeader().getNumber(), retBlock.getData().getDataCount()));
 
-            return configBlock;
+            return retBlock;
 
         } catch (TransactionException e) {
             logger.error(e.getMessage(), e);
@@ -1033,7 +1156,106 @@ public class Channel {
 
     }
 
-    private Block getLatestBlock(Orderer orderer) throws CryptoException, TransactionException, InvalidArgumentException {
+    private int seekBlock(SeekInfo seekInfo, List<DeliverResponse> deliverResponses, Orderer ordererIn) throws TransactionException {
+
+        logger.trace(format("seekBlock for channel %s", name));
+        final long start = System.currentTimeMillis();
+        @SuppressWarnings ("UnusedAssignment")
+        int statusRC = 404;
+
+        try {
+
+            do {
+
+                statusRC = 404;
+
+                final Orderer orderer = ordererIn != null ? ordererIn : getRandomOrderer();
+
+                TransactionContext txContext = getTransactionContext();
+
+                ChannelHeader seekInfoHeader = createChannelHeader(HeaderType.DELIVER_SEEK_INFO,
+                        txContext.getTxID(), name, txContext.getEpoch(), getCurrentFabricTimestamp(), null);
+
+                SignatureHeader signatureHeader = SignatureHeader.newBuilder()
+                        .setCreator(txContext.getIdentity().toByteString())
+                        .setNonce(txContext.getNonce())
+                        .build();
+
+                Header seekHeader = Header.newBuilder()
+                        .setSignatureHeader(signatureHeader.toByteString())
+                        .setChannelHeader(seekInfoHeader.toByteString())
+                        .build();
+
+                Payload seekPayload = Payload.newBuilder()
+                        .setHeader(seekHeader)
+                        .setData(seekInfo.toByteString())
+                        .build();
+
+                Envelope envelope = Envelope.newBuilder().setSignature(txContext.signByteString(seekPayload.toByteArray()))
+                        .setPayload(seekPayload.toByteString())
+                        .build();
+
+                DeliverResponse[] deliver = orderer.sendDeliver(envelope);
+
+                if (deliver.length < 1) {
+                    logger.warn(format("Genesis block for channel %s fetch bad deliver missing status block only got blocks:%d", name, deliver.length));
+                    //odd so lets try again....
+                    statusRC = 404;
+
+                } else {
+
+                    DeliverResponse status = deliver[0];
+                    statusRC = status.getStatusValue();
+
+                    if (statusRC == 404 || statusRC == 503) { //404 - block not found.  503 - service not available usually means kafka is not ready but starting.
+                        logger.warn(format("Bad deliver expected status 200  got  %d, Channel %s", status.getStatusValue(), name));
+                        // keep trying... else
+                        statusRC = 404;
+
+                    } else if (statusRC != 200) { // Assume for anything other than 200 we have a non retryable situation
+                        throw new TransactionException(format("Bad newest block expected status 200  got  %d, Channel %s", status.getStatusValue(), name));
+                    } else {
+                        if (deliver.length < 2) {
+                            throw new TransactionException(format("Newest block for channel %s fetch bad deliver missing genesis block only got %d:", name, deliver.length));
+                        } else {
+
+                            deliverResponses.addAll(Arrays.asList(deliver));
+                        }
+                    }
+
+                }
+
+                // Not 200 so sleep to try again
+
+                if (200 != statusRC) {
+                    long duration = System.currentTimeMillis() - start;
+
+                    if (duration > config.getGenesisBlockWaitTime()) {
+                        throw new TransactionException(format("Getting block time exceeded %s seconds for channel %s", Long.toString(TimeUnit.MILLISECONDS.toSeconds(duration)), name));
+                    }
+                    try {
+                        Thread.sleep(ORDERER_RETRY_WAIT_TIME); //try again
+                    } catch (InterruptedException e) {
+                        TransactionException te = new TransactionException("seekBlock thread Sleep", e);
+                        logger.warn(te.getMessage(), te);
+                    }
+                }
+
+            } while (statusRC != 200);
+
+        } catch (TransactionException e) {
+            logger.error(e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            throw new TransactionException(e);
+        }
+
+        return statusRC;
+
+    }
+
+    private Block getLatestBlock(Orderer orderer) throws TransactionException {
 
         logger.debug(format("getConfigurationBlock for channel %s", name));
 
@@ -1041,58 +1263,19 @@ public class Channel {
                 .setNewest(Ab.SeekNewest.getDefaultInstance())
                 .build();
 
-        TransactionContext txContext = getTransactionContext();
-
         SeekInfo seekInfo = SeekInfo.newBuilder()
                 .setStart(seekPosition)
                 .setStop(seekPosition)
                 .setBehavior(SeekInfo.SeekBehavior.BLOCK_UNTIL_READY)
                 .build();
 
-        ChannelHeader seekInfoHeader = createChannelHeader(HeaderType.DELIVER_SEEK_INFO,
-                txContext.getTxID(), name, txContext.getEpoch(), getCurrentFabricTimestamp(), null);
+        ArrayList<DeliverResponse> deliverResponses = new ArrayList<>();
 
-        SignatureHeader signatureHeader = SignatureHeader.newBuilder()
-                .setCreator(txContext.getIdentity().toByteString())
-                .setNonce(txContext.getNonce())
-                .build();
+        seekBlock(seekInfo, deliverResponses, orderer);
 
-        Header seekHeader = Header.newBuilder()
-                .setSignatureHeader(signatureHeader.toByteString())
-                .setChannelHeader(seekInfoHeader.toByteString())
-                .build();
+        DeliverResponse blockresp = deliverResponses.get(1);
 
-        Payload seekPayload = Payload.newBuilder()
-                .setHeader(seekHeader)
-                .setData(seekInfo.toByteString())
-                .build();
-
-        Envelope envelope = Envelope.newBuilder().setSignature(txContext.signByteString(seekPayload.toByteArray()))
-                .setPayload(seekPayload.toByteString())
-                .build();
-
-        DeliverResponse[] deliver = orderer.sendDeliver(envelope);
-
-        Block latestBlock;
-        if (deliver.length < 1) {
-            throw new TransactionException(format("newest block for channel %s fetch bad deliver missing status block only got blocks:%d", name, deliver.length));
-
-        } else {
-
-            DeliverResponse status = deliver[0];
-            logger.debug(format("Channel %s getLatestBlock returned status %s", name, status.getStatusValue()));
-            if (status.getStatusValue() != 200) {
-                throw new TransactionException(format("Bad newest block expected status 200  got  %d, Channel %s", status.getStatusValue(), name));
-            } else {
-                if (deliver.length < 2) {
-                    throw new TransactionException(format("newest block for channel %s fetch bad deliver missing genesis block only got %d:", name, deliver.length));
-                } else {
-
-                    DeliverResponse blockresp = deliver[1];
-                    latestBlock = blockresp.getBlock();
-                }
-            }
-        }
+        Block latestBlock = blockresp.getBlock();
 
         if (latestBlock == null) {
             throw new TransactionException(format("newest block for channel %s fetch bad deliver returned null:", name));
@@ -1436,6 +1619,23 @@ public class Channel {
         }
         if (peer.getChannel() != this) {
             throw new InvalidArgumentException("Peer " + peer.getName() + " not set for channel " + name);
+        }
+
+    }
+
+    private void checkOrderer(Orderer orderer) throws InvalidArgumentException {
+
+        if (orderer == null) {
+            throw new InvalidArgumentException("Orderer value is null.");
+        }
+        if (isSystemChannel()) {
+            return; // System owns no Orderers
+        }
+        if (!getOrderers().contains(orderer)) {
+            throw new InvalidArgumentException("Channel " + name + " does not have orderer " + orderer.getName());
+        }
+        if (orderer.getChannel() != this) {
+            throw new InvalidArgumentException("Orderer " + orderer.getName() + " not set for channel " + name);
         }
 
     }
@@ -1965,7 +2165,7 @@ public class Channel {
 
     private Collection<ProposalResponse> sendProposalToPeers(Collection<Peer> peers,
                                                              SignedProposal signedProposal,
-                                                             TransactionContext transactionContext) throws PeerException, InvalidArgumentException, ProposalException {
+                                                             TransactionContext transactionContext) throws InvalidArgumentException, ProposalException {
         checkPeers(peers);
 
         class Pair {
@@ -1981,6 +2181,13 @@ public class Channel {
         for (Peer peer : peers) {
             logger.debug(format("Channel %s send proposal to peer %s at url %s",
                     name, peer.getName(), peer.getUrl()));
+
+            if (null != diagnosticFileDumper) {
+                logger.trace(format("Sending to channel %s, peer: %s, proposal: %s", name, peer.getName(),
+                        diagnosticFileDumper.createDiagnosticProtobufFile(signedProposal.toByteArray())));
+
+            }
+
             Future<FabricProposalResponse.ProposalResponse> proposalResponseListenableFuture;
             try {
                 proposalResponseListenableFuture = peer.sendProposalAsync(signedProposal);
@@ -2006,6 +2213,11 @@ public class Channel {
                 status = fabricResponse.getResponse().getStatus();
                 logger.debug(format("Channel %s got back from peer %s status: %d, message: %s",
                         name, peerName, status, message));
+                if (null != diagnosticFileDumper) {
+                    logger.trace(format("Got back from channel %s, peer: %s, proposal response: %s", name, peerName,
+                            diagnosticFileDumper.createDiagnosticProtobufFile(fabricResponse.toByteArray())));
+
+                }
             } catch (InterruptedException e) {
                 message = "Sending proposal to " + peerName + " failed because of interruption";
                 logger.error(message, e);
@@ -2115,8 +2327,15 @@ public class Channel {
 
             if (config.getProposalConsistencyValidation()) {
 
-                if (1 != SDKUtils.getProposalConsistencySets(proposalResponses).size()) {
-                    throw new IllegalArgumentException("The proposal responses do not have consistent read write sets");
+                HashSet<ProposalResponse> invalid = new HashSet<>();
+
+                int consistencyGroups = SDKUtils.getProposalConsistencySets(proposalResponses, invalid).size();
+
+                if (consistencyGroups != 1 || !invalid.isEmpty()) {
+                    throw new IllegalArgumentException(format(
+                            "The proposal responses have %d inconsistent groups with %d that are invalid."
+                                    + " Expected all to be consistent and none to be invalid.",
+                            consistencyGroups, invalid.size()));
 
                 }
 
@@ -2155,6 +2374,13 @@ public class Channel {
             for (Orderer orderer : orderers) {
 
                 try {
+
+                    if (null != diagnosticFileDumper) {
+                        logger.trace(format("Sending to channel %s, orderer: %s, transaction: %s", name, orderer.getName(),
+                                diagnosticFileDumper.createDiagnosticProtobufFile(transactionEnvelope.toByteArray())));
+
+                    }
+
                     resp = orderer.sendTransaction(transactionEnvelope);
                     if (resp.getStatus() == Status.SUCCESS) {
 
@@ -2287,7 +2513,7 @@ public class Channel {
                 return false;
             }
 
-//            Block block = event.getBlock();
+//            Block block = event.seekBlock();
 //            final long num = block.getHeader().getNumber();
 
             // May be fed by multiple eventhubs but BlockingQueue.add() is thread-safe
@@ -2553,6 +2779,9 @@ public class Channel {
 
                 if (null != l) {
                     l.removeFirstOccurrence(this);
+                    if (l.size() == 0) {
+                        txListeners.remove(txID);
+                    }
                 }
             }
             if (future.isDone()) {
