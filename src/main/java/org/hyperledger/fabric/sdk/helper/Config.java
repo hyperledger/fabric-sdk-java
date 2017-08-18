@@ -100,7 +100,7 @@ public class Config {
             defaultProperty(EXTRALOGLEVEL, "0");
             defaultProperty(LOGGERLEVEL, null);
             defaultProperty(DIAGNOTISTIC_FILE_DIRECTORY, null);
-            defaultProperty(CHANNEL_CONFIG_WAIT_TIME, "10000");
+            defaultProperty(CHANNEL_CONFIG_WAIT_TIME, "15000");
             defaultProperty(ORDERER_RETRY_WAIT_TIME, "200");
             defaultProperty(EVENTHUB_CONNECTION_WAIT_TIME, "1000");
 

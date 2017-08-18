@@ -260,6 +260,8 @@ public class Channel {
 
         try {
             final long startLastConfigIndex = getLastConfigIndex(orderer);
+            logger.trace(format("startLastConfigIndex: %d. Channel config wait time is: %d",
+                    startLastConfigIndex, CHANNEL_CONFIG_WAIT_TIME));
 
             sendUpdateChannel(updateChannelConfiguration.getUpdateChannelConfigurationAsBytes(), signers, orderer);
 
@@ -274,9 +276,10 @@ public class Channel {
                     final long duration = TimeUnit.MILLISECONDS.convert(System.nanoTime() - nanoTimeStart, TimeUnit.NANOSECONDS);
 
                     if (duration > CHANNEL_CONFIG_WAIT_TIME) {
-                        logger.warn(format("Channel %s did not get updated last config after %d ms", name, duration));
+                        logger.warn(format("Channel %s did not get updated last config after %d ms, Config wait time: %d ms. startLastConfigIndex: %d, currentLastConfigIndex: %d ",
+                                name, duration, CHANNEL_CONFIG_WAIT_TIME, startLastConfigIndex, currentLastConfigIndex));
                         //waited long enough ..
-                        currentLastConfigIndex = startLastConfigIndex; // just bail don't throw exception.
+                        currentLastConfigIndex = startLastConfigIndex - 1L; // just bail don't throw exception.
                     } else {
 
                         try {
@@ -288,6 +291,8 @@ public class Channel {
                     }
 
                 }
+
+                logger.trace(format("currentLastConfigIndex: %d", currentLastConfigIndex));
 
             } while (currentLastConfigIndex == startLastConfigIndex);
 
@@ -386,7 +391,6 @@ public class Channel {
                     String info = trxResult.getInfo();
                     if (null == info) {
                         info = "";
-
                     }
 
                     throw new TransactionException(format("New channel %s error. StatusValue %d. Status %s. %s", name,
@@ -1059,7 +1063,11 @@ public class Channel {
                         channelHeader.getChannelId(), name));
             }
 
-            logger.trace(format("Channel %s getConfigurationBlock returned %s", name, String.valueOf(configBlock)));
+            if (null != diagnosticFileDumper) {
+                logger.trace(format("Channel %s getConfigurationBlock returned %s", name,
+                        diagnosticFileDumper.createDiagnosticFile(String.valueOf(configBlock).getBytes())));
+            }
+
             if (!logger.isTraceEnabled()) {
                 logger.debug(format("Channel %s getConfigurationBlock returned", name));
             }
