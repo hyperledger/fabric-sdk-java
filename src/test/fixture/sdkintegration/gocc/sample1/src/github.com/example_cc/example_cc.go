@@ -157,6 +157,9 @@ func (t *SimpleChaincode) move(stub shim.ChaincodeStubInterface, args []string) 
 	}
 
 	if transientMap, err := stub.GetTransient(); err == nil {
+		if transientData, ok := transientMap["event"]; ok {
+			stub.SetEvent("event", transientData)
+		}
 		if transientData, ok := transientMap["result"]; ok {
 			return shim.Success(transientData)
 		}

@@ -321,6 +321,13 @@ public class BlockInfo {
 
             }
 
+            /**
+             * Get read write set for this transaction. Will return null on for Eventhub events.
+             * For eventhub events find the block by block number to get read write set if needed.
+             *
+             * @return Read write set.
+             */
+
             public TxReadWriteSetInfo getTxReadWriteSet() {
 
                 TxReadWriteSet txReadWriteSet = transactionAction.getPayload().getAction().getProposalResponsePayload()
@@ -330,6 +337,19 @@ public class BlockInfo {
                 }
 
                 return new TxReadWriteSetInfo(txReadWriteSet);
+
+            }
+
+            /**
+             * Get chaincode events for this transaction.
+             *
+             * @return A chaincode event if the chaincode set an event otherwise null.
+             */
+
+            public ChaincodeEvent getEvent() {
+
+                return transactionAction.getPayload().getAction().getProposalResponsePayload()
+                        .getExtension().getEvent();
 
             }
 
