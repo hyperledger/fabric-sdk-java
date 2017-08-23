@@ -66,6 +66,17 @@ public class SampleStore {
         return properties.getProperty(name);
     }
 
+    /**
+     * Has the value present.
+     *
+     * @param name
+     * @return true if it's present.
+     */
+    public boolean hasValue(String name) {
+        Properties properties = loadProperties();
+        return properties.containsKey(name);
+    }
+
     private Properties loadProperties() {
         Properties properties = new Properties();
         try (InputStream input = new FileInputStream(file)) {
@@ -105,6 +116,7 @@ public class SampleStore {
 
     /**
      * Get the user with a given name
+     *
      * @param name
      * @param org
      * @return user
@@ -125,7 +137,26 @@ public class SampleStore {
     }
 
     /**
+     * Check if store has user.
+     *
+     * @param name
+     * @param org
+     * @return true if the user exists.
+     */
+    public boolean hasMember(String name, String org) {
+
+        // Try to get the SampleUser state from the cache
+
+        if (members.containsKey(SampleUser.toKeyValStoreName(name, org))) {
+            return true;
+        }
+        return SampleUser.isStored(name, org, this);
+
+    }
+
+    /**
      * Get the user with a given name
+     *
      * @param name
      * @param org
      * @param mspId

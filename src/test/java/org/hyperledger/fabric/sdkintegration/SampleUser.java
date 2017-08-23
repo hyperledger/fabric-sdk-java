@@ -56,6 +56,11 @@ public class SampleUser implements User, Serializable {
 
     }
 
+    static boolean isStored(String name, String org, SampleStore fs) {
+
+        return fs.hasValue(toKeyValStoreName(name, org));
+    }
+
     @Override
     public String getName() {
         return this.name;

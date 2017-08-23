@@ -51,6 +51,12 @@ public class SampleOrg {
 
     private String domainName;
 
+    public String getCAName() {
+        return caName;
+    }
+
+    private String caName;
+
     public SampleOrg(String name, String mspid) {
         this.name = name;
         this.mspid = mspid;
@@ -183,5 +189,9 @@ public class SampleOrg {
 
     public String getDomainName() {
         return domainName;
+    }
+
+    public void setCAName(String caName) {
+        this.caName = caName;
     }
 }

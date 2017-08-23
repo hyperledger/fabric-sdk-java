@@ -59,6 +59,7 @@ import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
 import org.hyperledger.fabric_ca.sdk.HFCAClient;
+import org.hyperledger.fabric_ca.sdk.HFCAInfo;
 import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
 import org.junit.After;
 import org.junit.Before;
@@ -99,7 +100,7 @@ public class End2endIT {
     private Collection<SampleOrg> testSampleOrgs;
 
     @Before
-    public void checkConfig() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, MalformedURLException {
+    public void checkConfig() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, MalformedURLException, org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException {
         out("\n\n\nRUNNING: End2endIT.\n");
         configHelper.clearConfig();
         configHelper.customizeConfig();
@@ -108,7 +109,12 @@ public class End2endIT {
         //Set up hfca for each sample org
 
         for (SampleOrg sampleOrg : testSampleOrgs) {
-            sampleOrg.setCAClient(HFCAClient.createNewInstance(sampleOrg.getCALocation(), sampleOrg.getCAProperties()));
+            String caName = sampleOrg.getCAName(); //Try one of each name and no name.
+            if (caName != null && !caName.isEmpty()) {
+                sampleOrg.setCAClient(HFCAClient.createNewInstance(caName, sampleOrg.getCALocation(), sampleOrg.getCAProperties()));
+            } else {
+                sampleOrg.setCAClient(HFCAClient.createNewInstance(sampleOrg.getCALocation(), sampleOrg.getCAProperties()));
+            }
         }
     }
 
@@ -156,9 +162,18 @@ public class End2endIT {
             for (SampleOrg sampleOrg : testSampleOrgs) {
 
                 HFCAClient ca = sampleOrg.getCAClient();
+
                 final String orgName = sampleOrg.getName();
                 final String mspid = sampleOrg.getMSPID();
                 ca.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+
+                HFCAInfo info = ca.info(); //just check if we connect at all.
+                assertNotNull(info);
+                String infoName = info.getCAName();
+                if (infoName != null && !infoName.isEmpty()) {
+                    assertEquals(ca.getCAName(), infoName);
+                }
+
                 SampleUser admin = sampleStore.getMember(TEST_ADMIN_NAME, orgName);
                 if (!admin.isEnrolled()) {  //Preregistered admin only needs to be enrolled with Fabric caClient.
                     admin.setEnrollment(ca.enroll(admin.getName(), "adminpw"));

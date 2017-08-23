@@ -14,9 +14,12 @@
 
 package org.hyperledger.fabric.sdk;
 
-import java.io.File;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -44,7 +47,6 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
-import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 
 import static org.hyperledger.fabric.sdk.helper.Utils.parseGrpcUrl;
@@ -64,10 +66,10 @@ class Endpoint {
         logger.trace(String.format("Creating endpoint for url %s", url));
         this.url = url;
 
-        String pem = null;
         String cn = null;
         String sslp = null;
         String nt = null;
+        byte[] pemBytes = null;
 
         Properties purl = parseGrpcUrl(url);
         String protocol = purl.getProperty("protocol");
@@ -76,33 +78,42 @@ class Endpoint {
 
         if (properties != null) {
             if ("grpcs".equals(protocol)) {
-                try {
-                    pem = properties.getProperty("pemFile");
-                    cn = properties.getProperty("hostnameOverride");
+                if (properties.containsKey("pemFile") && properties.containsKey("pemBytes")) {
+                    throw new RuntimeException("Properties \"pemBytes\" and \"pemBytes\" can not be both set.");
+                }
+                if (properties.containsKey("pemFile")) {
+                    Path path = Paths.get(properties.getProperty("pemFile"));
+                    try {
+                        pemBytes = Files.readAllBytes(path);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else if (properties.containsKey("pemBytes")) {
+                    pemBytes = (byte[]) properties.get("pemBytes");
+                }
+                if (null != pemBytes) {
+                    try {
+                        cn = properties.getProperty("hostnameOverride");
 
-                    if (cn == null && "true".equals(properties.getProperty("trustServerCertificate"))) {
+                        if (cn == null && "true".equals(properties.getProperty("trustServerCertificate"))) {
+                            final String cnKey = new String(pemBytes, StandardCharsets.UTF_8);
 
-                        File pemF = new File(pem);
-                        final String cnKey = pemF.getAbsolutePath() + pemF.length() + pemF.lastModified();
+                            cn = CN_CACHE.get(cnKey);
+                            if (cn == null) {
+                                CryptoPrimitives cp = new CryptoPrimitives();
 
-                        cn = CN_CACHE.get(cnKey);
-                        if (cn == null) {
-                            Path path = Paths.get(pem);
-                            byte[] data = Files.readAllBytes(path);
+                                X500Name x500name = new JcaX509CertificateHolder((X509Certificate) cp.bytesToCertificate(pemBytes)).getSubject();
+                                RDN rdn = x500name.getRDNs(BCStyle.CN)[0];
+                                cn = IETFUtils.valueToString(rdn.getFirst().getValue());
+                                CN_CACHE.put(cnKey, cn);
+                            }
 
-                            CryptoPrimitives cp = new CryptoPrimitives();
-
-                            X500Name x500name = new JcaX509CertificateHolder((X509Certificate) cp.bytesToCertificate(data)).getSubject();
-                            RDN rdn = x500name.getRDNs(BCStyle.CN)[0];
-                            cn = IETFUtils.valueToString(rdn.getFirst().getValue());
-                            CN_CACHE.put(cnKey, cn);
                         }
+                    } catch (Exception e) {
+                        /// Mostly a development env. just log it.
+                        logger.error("Error getting Subject CN from certificate. Try setting it specifically with hostnameOverride property. " + e.getMessage());
 
                     }
-                } catch (Exception e) {
-                    /// Mostly a development env. just log it.
-                    logger.error("Error getting Subject CN from certificate. Try setting it specifically with hostnameOverride property. " + e.getMessage());
-
                 }
 
                 sslp = properties.getProperty("sslProvider");
@@ -130,7 +141,7 @@ class Endpoint {
                         .usePlaintext(true);
                 addNettyBuilderProps(channelBuilder, properties);
             } else if (protocol.equalsIgnoreCase("grpcs")) {
-                if (Utils.isNullOrEmpty(pem)) {
+                if (pemBytes == null) {
                     // use root certificate
                     this.channelBuilder = NettyChannelBuilder.forAddress(addr, port);
                     addNettyBuilderProps(channelBuilder, properties);
@@ -140,8 +151,9 @@ class Endpoint {
                         SslProvider sslprovider = sslp.equals("openSSL") ? SslProvider.OPENSSL : SslProvider.JDK;
                         NegotiationType ntype = nt.equals("TLS") ? NegotiationType.TLS : NegotiationType.PLAINTEXT;
 
+                        InputStream myInputStream = new ByteArrayInputStream(pemBytes);
                         SslContext sslContext = GrpcSslContexts.forClient()
-                                .trustManager(new File(pem))
+                                .trustManager(myInputStream)
                                 .sslProvider(sslprovider)
                                 .build();
                         this.channelBuilder = NettyChannelBuilder.forAddress(addr, port)

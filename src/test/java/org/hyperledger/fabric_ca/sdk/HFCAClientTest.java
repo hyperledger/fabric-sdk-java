@@ -23,14 +23,12 @@ import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
-import org.hyperledger.fabric.sdk.testutils.TestUtils;
 import org.hyperledger.fabric.sdkintegration.SampleStore;
 import org.hyperledger.fabric.sdkintegration.SampleUser;
 import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric_ca.sdk.exception.RegistrationException;
 import org.hyperledger.fabric_ca.sdk.exception.RevocationException;
-import org.hyperledger.fabric_ca.sdk.helper.Config;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -196,6 +194,7 @@ public class HFCAClientTest {
         regreq.setEnrollmentID(null);
 
         HFCAClient client = HFCAClient.createNewInstance("client", "http://localhost:99", null);
+        client.setCryptoSuite(crypto);
         client.register(regreq, null);
     }
 
@@ -209,6 +208,7 @@ public class HFCAClientTest {
         regreq.setEnrollmentID("");
 
         HFCAClient client = HFCAClient.createNewInstance("client", "http://localhost:99", null);
+        client.setCryptoSuite(crypto);
         client.register(regreq, null);
     }
 
@@ -222,6 +222,7 @@ public class HFCAClientTest {
         regreq.setEnrollmentID("abc");
 
         HFCAClient client = HFCAClient.createNewInstance("client", "http://localhost:99", null);
+        client.setCryptoSuite(crypto);
         client.register(regreq, null);
     }
 
@@ -358,6 +359,7 @@ public class HFCAClientTest {
         thrown.expectMessage("reenrollment user is missing");
 
         HFCAClient client = HFCAClient.createNewInstance("client", "http://localhost:99", null);
+        client.setCryptoSuite(crypto);
         client.reenroll(null);
     }
 
@@ -368,6 +370,7 @@ public class HFCAClientTest {
         thrown.expectMessage("reenrollment user is not a valid user object");
 
         HFCAClient client = HFCAClient.createNewInstance("client", "http://localhost:99", null);
+        client.setCryptoSuite(crypto);
         admin.setEnrollment(null);
         client.reenroll(admin);
     }
@@ -379,6 +382,7 @@ public class HFCAClientTest {
         thrown.expectMessage("Error while revoking cert");
 
         HFCAClient client = HFCAClient.createNewInstance("client", "http://localhost:99", null);
+        client.setCryptoSuite(crypto);
         KeyPair keypair = crypto.keyGen();
         Enrollment enrollment = new HFCAEnrollment(keypair, "abc");
 
@@ -393,6 +397,7 @@ public class HFCAClientTest {
         thrown.expectMessage("revoker is not set");
 
         HFCAClient client = HFCAClient.createNewInstance("client", "http://localhost:99", null);
+        client.setCryptoSuite(crypto);
         KeyPair keypair = crypto.keyGen();
         Enrollment enrollment = new HFCAEnrollment(keypair, "abc");
 
@@ -406,6 +411,7 @@ public class HFCAClientTest {
         thrown.expectMessage("revokee enrollment is not set");
 
         HFCAClient client = HFCAClient.createNewInstance("client", "http://localhost:99", null);
+        client.setCryptoSuite(crypto);
         client.revoke(admin, (Enrollment) null, "keyCompromise");
     }
 
@@ -417,6 +423,7 @@ public class HFCAClientTest {
         thrown.expectMessage("revoker is not set");
 
         HFCAClient client = HFCAClient.createNewInstance("client", "http://localhost:99", null);
+        client.setCryptoSuite(crypto);
         client.revoke(null, admin.getName(), "keyCompromise");
     }
 
@@ -427,6 +434,7 @@ public class HFCAClientTest {
         thrown.expectMessage("revokee user is not set");
 
         HFCAClient client = HFCAClient.createNewInstance("client", "http://localhost:99", null);
+        client.setCryptoSuite(crypto);
         client.revoke(admin, (String) null, "keyCompromise");
     }
 

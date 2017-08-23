@@ -257,14 +257,43 @@ public class CryptoPrimitives implements CryptoSuite {
             throw new InvalidArgumentException("You must assign an alias to a certificate when adding to the trust store");
         }
 
-
         BufferedInputStream bis;
         try {
 
             bis = new BufferedInputStream(new ByteArrayInputStream(FileUtils.readFileToByteArray(caCertPem)));
             Certificate caCert = cf.generateCertificate(bis);
-            this.addCACertificateToTrustStore(caCert, alias);
+            addCACertificateToTrustStore(caCert, alias);
         } catch (CertificateException | IOException e) {
+            throw new CryptoException("Unable to add CA certificate to trust store. Error: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * addCACertificateToTrustStore adds a CA cert to the set of certificates used for signature validation
+     *
+     * @param bytes an X.509 certificate in PEM format in bytes
+     * @param alias an alias associated with the certificate. Used as shorthand for the certificate during crypto operations
+     * @throws CryptoException
+     * @throws InvalidArgumentException
+     */
+    public void addCACertificateToTrustStore(byte[] bytes, String alias) throws CryptoException, InvalidArgumentException {
+
+        if (bytes == null) {
+            throw new InvalidArgumentException("The certificate cannot be null");
+        }
+
+        if (alias == null || alias.isEmpty()) {
+            throw new InvalidArgumentException("You must assign an alias to a certificate when adding to the trust store");
+        }
+
+        BufferedInputStream bis;
+        try {
+
+            bis = new BufferedInputStream(new ByteArrayInputStream(bytes));
+            Certificate caCert = cf.generateCertificate(bis);
+            addCACertificateToTrustStore(caCert, alias);
+
+        } catch (CertificateException e) {
             throw new CryptoException("Unable to add CA certificate to trust store. Error: " + e.getMessage(), e);
         }
     }

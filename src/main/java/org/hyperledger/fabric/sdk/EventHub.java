@@ -303,7 +303,7 @@ public class EventHub {
 
         }
 
-        logger.info(format("Eventhub %s connect is done with connect status: %b ", name, connected));
+        logger.debug(format("Eventhub %s connect is done with connect status: %b ", name, connected));
 
         if (connected) {
             eventStream = eventStreamLocal;

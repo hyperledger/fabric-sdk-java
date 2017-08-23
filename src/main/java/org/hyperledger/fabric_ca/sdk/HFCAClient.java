@@ -39,6 +39,7 @@ import java.util.Properties;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -81,6 +82,7 @@ import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
+import org.hyperledger.fabric_ca.sdk.exception.InfoException;
 import org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric_ca.sdk.exception.RegistrationException;
 import org.hyperledger.fabric_ca.sdk.exception.RevocationException;
@@ -95,19 +97,29 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @SuppressWarnings ("deprecation")
 public class HFCAClient {
     private static final Log logger = LogFactory.getLog(HFCAClient.class);
-    Config config = Config.getConfig(); //Load config so enable logging setting.
     private static final String HFCA_CONTEXT_ROOT = "/api/v1/";
     private static final String HFCA_ENROLL = HFCA_CONTEXT_ROOT + "enroll";
     private static final String HFCA_REGISTER = HFCA_CONTEXT_ROOT + "register";
     private static final String HFCA_REENROLL = HFCA_CONTEXT_ROOT + "reenroll";
     private static final String HFCA_REVOKE = HFCA_CONTEXT_ROOT + "revoke";
+    private static final String HFCA_INFO = HFCA_CONTEXT_ROOT + "cainfo";
 
     static final String FABRIC_CA_REQPROP = "caname";
 
     private final String url;
     private final boolean isSSL;
     private final Properties properties;
-    private final String name;
+
+    /**
+     * The Certificate Authority name.
+     *
+     * @return May return null or empty string for default certificate authority.
+     */
+    public String getCAName() {
+        return caName;
+    }
+
+    private final String caName;
 
     // TODO require use of CryptoPrimitives since we need the generateCertificateRequests methods
     // clean this up when we do have multiple implementations of CryptoSuite
@@ -127,11 +139,11 @@ public class HFCAClient {
      *                   </ul>
      * @throws MalformedURLException
      */
-    HFCAClient(String name, String url, Properties properties) throws MalformedURLException {
+    HFCAClient(String caName, String url, Properties properties) throws MalformedURLException {
         logger.debug(format("new HFCAClient %s", url));
         this.url = url;
 
-        this.name = name; //name may be null
+        this.caName = caName; //name may be null
 
         URL purl = new URL(url);
         final String proto = purl.getProtocol();
@@ -210,6 +222,10 @@ public class HFCAClient {
 
     public String register(RegistrationRequest request, User registrar) throws RegistrationException, InvalidArgumentException {
 
+        if (cryptoPrimitives == null) {
+            throw new InvalidArgumentException("Crypto primitives not set.");
+        }
+
         if (Utils.isNullOrEmpty(request.getEnrollmentID())) {
             throw new InvalidArgumentException("EntrollmentID cannot be null or empty");
         }
@@ -276,6 +292,10 @@ public class HFCAClient {
             throw new InvalidArgumentException("enrollment secret is not set");
         }
 
+        if (cryptoPrimitives == null) {
+            throw new InvalidArgumentException("Crypto primitives not set.");
+        }
+
         setUpSSL();
 
         try {
@@ -299,8 +319,8 @@ public class HFCAClient {
                 req.setCSR(pem);
             }
 
-            if (name != null && !name.isEmpty()) {
-                req.setCAName(name);
+            if (caName != null && !caName.isEmpty()) {
+                req.setCAName(caName);
             }
             String body = req.toJson();
 
@@ -351,6 +371,66 @@ public class HFCAClient {
     }
 
     /**
+     * Return information on the Fabric Certificate Authority.
+     * No credentials are needed for this API.
+     *
+     * @return {@link HFCAInfo}
+     * @throws InfoException
+     * @throws InvalidArgumentException
+     */
+
+    public HFCAInfo info() throws InfoException, InvalidArgumentException {
+
+        logger.debug(format("info url:%s", url));
+        if (cryptoPrimitives == null) {
+            throw new InvalidArgumentException("Crypto primitives not set.");
+        }
+
+        setUpSSL();
+
+        try {
+
+            JsonObjectBuilder factory = Json.createObjectBuilder();
+
+            if (caName != null) {
+                factory.add(HFCAClient.FABRIC_CA_REQPROP, caName);
+            }
+            JsonObject body = factory.build();
+
+            String responseBody = httpPost(url + HFCA_INFO, body.toString(),
+                    (UsernamePasswordCredentials) null);
+
+            logger.debug("response:" + responseBody);
+
+            JsonReader reader = Json.createReader(new StringReader(responseBody));
+            JsonObject jsonst = (JsonObject) reader.read();
+
+            boolean success = jsonst.getBoolean("success");
+            logger.debug(format("[HFCAClient] enroll success:[%s]", success));
+
+            if (!success) {
+                throw new EnrollmentException(format("FabricCA failed info %s", url));
+            }
+
+            JsonObject result = jsonst.getJsonObject("result");
+            if (result == null) {
+                throw new InfoException(format("FabricCA info error  - response did not contain a result url %s", url));
+            }
+
+            String caName = result.getString("CAName");
+            String caChain = result.getString("CAChain");
+
+            return new HFCAInfo(caName, caChain);
+
+        } catch (Exception e) {
+            InfoException ee = new InfoException(format("Url:%s, Failed to get info", url), e);
+            logger.error(e.getMessage(), e);
+            throw ee;
+        }
+
+    }
+
+    /**
      * Re-Enroll the user with member service
      *
      * @param user User to be re-enrolled
@@ -373,6 +453,10 @@ public class HFCAClient {
      */
 
     public Enrollment reenroll(User user, EnrollmentRequest req) throws EnrollmentException, InvalidArgumentException {
+
+        if (cryptoPrimitives == null) {
+            throw new InvalidArgumentException("Crypto primitives not set.");
+        }
 
         if (user == null) {
             throw new InvalidArgumentException("reenrollment user is missing");
@@ -397,8 +481,8 @@ public class HFCAClient {
 
             // build request body
             req.setCSR(pem);
-            if (name != null && !name.isEmpty()) {
-                req.setCAName(name);
+            if (caName != null && !caName.isEmpty()) {
+                req.setCAName(caName);
             }
             String body = req.toJson();
 
@@ -436,6 +520,10 @@ public class HFCAClient {
 
     public void revoke(User revoker, Enrollment enrollment, String reason) throws RevocationException, InvalidArgumentException {
 
+        if (cryptoPrimitives == null) {
+            throw new InvalidArgumentException("Crypto primitives not set.");
+        }
+
         if (enrollment == null) {
             throw new InvalidArgumentException("revokee enrollment is not set");
         }
@@ -463,7 +551,7 @@ public class HFCAClient {
             String aki = DatatypeConverter.printHexBinary(AuthorityKeyIdentifier.getInstance(akiOc.getOctets()).getKeyIdentifier());
 
             // build request body
-            RevocationRequest req = new RevocationRequest(name, null, serial, aki, reason);
+            RevocationRequest req = new RevocationRequest(caName, null, serial, aki, reason);
             String body = req.toJson();
 
             String authHdr = getHTTPAuthCertificate(revoker.getEnrollment(), body);
@@ -493,6 +581,10 @@ public class HFCAClient {
 
     public void revoke(User revoker, String revokee, String reason) throws RevocationException, InvalidArgumentException {
 
+        if (cryptoPrimitives == null) {
+            throw new InvalidArgumentException("Crypto primitives not set.");
+        }
+
         logger.debug(format("revoke revoker: %s, revokee: %s, reason: %s", revoker, revokee, reason));
 
         if (Utils.isNullOrEmpty(revokee)) {
@@ -506,7 +598,7 @@ public class HFCAClient {
             setUpSSL();
 
             // build request body
-            RevocationRequest req = new RevocationRequest(name, revokee, null, null, reason);
+            RevocationRequest req = new RevocationRequest(caName, revokee, null, null, reason);
             String body = req.toJson();
 
             // build auth header
@@ -532,12 +624,16 @@ public class HFCAClient {
      */
     String httpPost(String url, String body, UsernamePasswordCredentials credentials) throws Exception {
         logger.debug(format("httpPost %s, body:%s", url, body));
-        CredentialsProvider provider = new BasicCredentialsProvider();
-
-        provider.setCredentials(AuthScope.ANY, credentials);
 
         final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
-        httpClientBuilder.setDefaultCredentialsProvider(provider);
+        CredentialsProvider provider = null;
+        if (credentials != null) {
+            provider = new BasicCredentialsProvider();
+
+            provider.setCredentials(AuthScope.ANY, credentials);
+            httpClientBuilder.setDefaultCredentialsProvider(provider);
+        }
+
         if (registry != null) {
 
             httpClientBuilder.setConnectionManager(new PoolingHttpClientConnectionManager(registry));
@@ -552,15 +648,31 @@ public class HFCAClient {
 
         HttpHost targetHost = new HttpHost(httpPost.getURI().getHost(), httpPost.getURI().getPort());
 
-        authCache.put(targetHost, new BasicScheme());
+        if (credentials != null) {
+            authCache.put(targetHost, new
+
+                    BasicScheme());
+
+        }
 
         final HttpClientContext context = HttpClientContext.create();
-        context.setCredentialsProvider(provider);
 
-        context.setAuthCache(authCache);
+        if (null != provider) {
+            context.setCredentialsProvider(provider);
+        }
+
+        if (credentials != null) {
+            context.setAuthCache(authCache);
+        }
 
         httpPost.setEntity(new StringEntity(body));
-        httpPost.addHeader(new BasicScheme().authenticate(credentials, httpPost, context));
+        if (credentials != null) {
+            httpPost.addHeader(new
+
+                    BasicScheme().
+
+                    authenticate(credentials, httpPost, context));
+        }
 
         HttpResponse response = client.execute(httpPost, context);
         int status = response.getStatusLine().getStatusCode();
@@ -663,12 +775,25 @@ public class HFCAClient {
     private void setUpSSL() throws InvalidArgumentException {
 
         if (isSSL && null == registry) {
+            if (properties.containsKey("pemBytes") && properties.containsKey("pemFile")) {
+
+                throw new InvalidArgumentException("Properties can not have both \"pemBytes\" and \"pemFile\" specified. ");
+
+            }
             try {
 
-                String pemFile = properties.getProperty("pemFile");
-                if (pemFile != null) {
+                if (properties.containsKey("pemBytes")) {
+                    byte[] pemBytes = (byte[]) properties.get("pemBytes");
 
-                    cryptoPrimitives.addCACertificateToTrustStore(new File(pemFile), pemFile);
+                    cryptoPrimitives.addCACertificateToTrustStore(pemBytes, pemBytes.toString());
+
+                } else {
+                    String pemFile = properties.getProperty("pemFile");
+                    if (pemFile != null) {
+
+                        cryptoPrimitives.addCACertificateToTrustStore(new File(pemFile), pemFile);
+
+                    }
 
                 }
 
