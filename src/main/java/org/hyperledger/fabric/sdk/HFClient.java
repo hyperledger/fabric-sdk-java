@@ -32,6 +32,7 @@ import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
+import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 import static java.lang.String.format;
@@ -109,10 +110,23 @@ public class HFClient {
 
     public Channel newChannel(String name) throws InvalidArgumentException {
         clientCheck();
-        logger.trace("Creating channel :" + name);
-        Channel newChannel = Channel.createNewInstance(name, this);
-        channels.put(name, newChannel);
-        return newChannel;
+        if (Utils.isNullOrEmpty(name)) {
+            throw new InvalidArgumentException("Channel name can not be null or empty string.");
+        }
+
+        synchronized (channels) {
+
+            if (channels.containsKey(name)) {
+                throw new InvalidArgumentException(format("Channel by the name %s already exits", name));
+            }
+            logger.trace("Creating channel :" + name);
+            Channel newChannel = Channel.createNewInstance(name, this);
+
+            channels.put(name, newChannel);
+            return newChannel;
+
+        }
+
     }
 
     /**
@@ -131,10 +145,25 @@ public class HFClient {
     public Channel newChannel(String name, Orderer orderer, ChannelConfiguration channelConfiguration, byte[]... channelConfigurationSignatures) throws TransactionException, InvalidArgumentException {
 
         clientCheck();
-        logger.trace("Creating channel :" + name);
-        Channel newChannel = Channel.createNewInstance(name, this, orderer, channelConfiguration, channelConfigurationSignatures);
-        channels.put(name, newChannel);
-        return newChannel;
+        if (Utils.isNullOrEmpty(name)) {
+            throw new InvalidArgumentException("Channel name can not be null or empty string.");
+        }
+
+        synchronized (channels) {
+
+            if (channels.containsKey(name)) {
+                throw new InvalidArgumentException(format("Channel by the name %s already exits", name));
+            }
+
+            logger.trace("Creating channel :" + name);
+
+            Channel newChannel = Channel.createNewInstance(name, this, orderer, channelConfiguration, channelConfigurationSignatures);
+
+            channels.put(name, newChannel);
+            return newChannel;
+
+        }
+
     }
 
     /**
@@ -500,4 +529,9 @@ public class HFClient {
 
     }
 
+    void removeChannel(Channel channel) {
+        synchronized (channels) {
+            channels.remove(channel.getName());
+        }
+    }
 }

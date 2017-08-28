@@ -339,7 +339,6 @@ public class End2endIT {
                     }
                 }
 
-                SDKUtils.getProposalConsistencySets(responses);
                 //   }
                 out("Received %d install proposal responses. Successful+verified: %d . Failed: %d", numInstallProposal, successful.size(), failed.size());
 
@@ -443,7 +442,9 @@ public class End2endIT {
                     }
 
                     // Check that all the proposals are consistent with each other. We should have only one set
-                    // where all the proposals above are consistent.
+                    // where all the proposals above are consistent. Note the when sending to Orderer this is done automatically.
+                    //  Shown here as an example that applications can invoke and select.
+                    // See org.hyperledger.fabric.sdk.proposal.consistency_validation config property.
                     Collection<Set<ProposalResponse>> proposalConsistencySets = SDKUtils.getProposalConsistencySets(transactionPropResp);
                     if (proposalConsistencySets.size() != 1) {
                         fail(format("Expected only one set of consistent proposal responses but got %d", proposalConsistencySets.size()));

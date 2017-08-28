@@ -45,9 +45,6 @@ import static org.hyperledger.fabric.sdk.testutils.TestUtils.setField;
 
 //CHECKSTYLE.ON: IllegalImport
 
-
-
-
 public class ChannelTest {
     private static HFClient hfclient = null;
     private static Channel shutdownChannel = null;
@@ -395,7 +392,7 @@ public class ChannelTest {
 
         Collection<Peer> peers = Arrays.asList((Peer[]) new Peer[] {hfclient.newPeer("peer2", "grpc://localhost:22")});
 
-        createRunningChannel(peers);
+        createRunningChannel("testChannelBadPeerDoesNotBelong", peers);
 
         channel.sendInstantiationProposal(hfclient.newInstantiationProposalRequest(), peers);
 
@@ -411,7 +408,7 @@ public class ChannelTest {
 
         Peer peer = channel.getPeers().iterator().next();
 
-        final Channel channel2 = createRunningChannel(null);
+        final Channel channel2 = createRunningChannel("testChannelBadPeerDoesNotBelong2", null);
 
         setField(peer, "channel", channel2);
 
@@ -458,8 +455,30 @@ public class ChannelTest {
 
     }
 
+    @Test
+    public void testTwoChannelsSameName() throws Exception {
+
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("Channel by the name testTwoChannelsSameName already exits");
+
+        createRunningChannel("testTwoChannelsSameName", null);
+        createRunningChannel("testTwoChannelsSameName", null);
+
+    }
+
+    static final String CHANNEL_NAME2 = "channel";
+
     public static Channel createRunningChannel(Collection<Peer> peers) throws InvalidArgumentException, NoSuchFieldException, IllegalAccessException {
-        Channel channel = hfclient.newChannel("channel");
+        Channel prevChannel = hfclient.getChannel(CHANNEL_NAME2);
+        if (null != prevChannel) { //cleanup remove default channel.
+            prevChannel.shutdown(false);
+        }
+        return createRunningChannel(CHANNEL_NAME2, peers);
+    }
+
+    public static Channel createRunningChannel(String channelName, Collection<Peer> peers) throws InvalidArgumentException, NoSuchFieldException, IllegalAccessException {
+
+        Channel channel = hfclient.newChannel(channelName);
         if (peers == null) {
             Peer peer = hfclient.newPeer("peer1", "grpc://localhost:22");
             channel.addPeer(peer);
@@ -480,13 +499,13 @@ public class ChannelTest {
     public void testChannelBadPeerDoesNotBelongJoin() throws Exception {
 
         thrown.expect(ProposalException.class);
-        thrown.expectMessage("Can not add peer peer2 to channel channel because it already belongs to channel channel");
+        thrown.expectMessage("Can not add peer peer2 to channel testChannelBadPeerDoesNotBelongJoin because it already belongs to channel testChannelBadPeerDoesNotBelongJoin2");
 
-        final Channel channel = createRunningChannel(null);
+        final Channel channel = createRunningChannel("testChannelBadPeerDoesNotBelongJoin", null);
 
         Collection<Peer> peers = Arrays.asList((Peer[]) new Peer[] {hfclient.newPeer("peer2", "grpc://localhost:22")});
 
-        createRunningChannel(peers);
+        createRunningChannel("testChannelBadPeerDoesNotBelongJoin2", peers);
 
         //Peer joining channel when it belongs to another channel.
 
@@ -527,7 +546,7 @@ public class ChannelTest {
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Can not initialize channel without a client object.");
 
-        final Channel channel = hfclient.newChannel("del");
+        final Channel channel = hfclient.newChannel("testChannelInitNullClient");
         setField(channel, "client", null);
 
         channel.initialize();
@@ -745,6 +764,5 @@ public class ChannelTest {
             }
         }
     }
-
 
 }

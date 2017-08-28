@@ -193,7 +193,7 @@ public class Channel {
             ByteString configUpdate = configUpdateEnv.getConfigUpdate();
 
             sendUpdateChannel(configUpdate.toByteArray(), signers, orderer);
-            //         final ConfigUpdateEnvelope.Builder configUpdateEnvBuilder = configUpdateEnv.toBuilder();
+            //         final ConfigUpdateEnvelope.Builder configUpdateEnvBuilder = configUpdateEnv.toBuilder();`
 
             //---------------------------------------
 
@@ -3070,6 +3070,8 @@ public class Channel {
 
         blockListeners.clear();
 
+        client.removeChannel(this);
+
         for (EventHub eh : getEventHubs()) {
 
             try {
@@ -3100,6 +3102,8 @@ public class Channel {
             eventQueueThread.interrupt();
         }
         eventQueueThread = null;
+
+        client = null;
     }
 
     @Override
