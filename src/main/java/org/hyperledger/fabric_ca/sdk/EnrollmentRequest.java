@@ -19,12 +19,16 @@ import java.io.StringWriter;
 import java.security.KeyPair;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonWriter;
+
+import org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException;
 
 /**
  * An enrollment request is information required to enroll the user with member service.
@@ -34,16 +38,18 @@ public class EnrollmentRequest {
     // A PEM-encoded string containing the CSR (Certificate Signing Request) based on PKCS #10
     private String csr;
     // Comma-separated list of host names to associate with the certificate
-    private Collection<String> hosts;
+    private Collection<String> hosts = new ArrayList<String>();
     // Name of the signing profile to use when issuing the certificate
-    private String profile;
+    private String profile = null;
     // Label used in HSM operations
-    private String label;
+    private String label = null;
     // Key pair for generating certification request
-    private KeyPair keypair;
+    private KeyPair keypair = null;
     // The Certificate Authority's name
     private String caName;
 
+    // Attribute requests. added v1.1
+    private Map<String, AttrReq> attrreqs = new HashMap<>();
     /**
      * The certificate signing request if it's not supplied it will be generated.
      *
@@ -56,11 +62,7 @@ public class EnrollmentRequest {
 
     // Constructor
     public EnrollmentRequest() {
-        this.csr = null;
-        this.hosts = new ArrayList<String>();
-        this.profile = null;
-        this.label = null;
-        this.keypair = null;
+
     }
 
     String getCsr() {
@@ -75,8 +77,6 @@ public class EnrollmentRequest {
      * @param keypair Keypair used to sign or create the certificate if needed.
      */
     public EnrollmentRequest(String profile, String label, KeyPair keypair) {
-        this.csr = null;
-        this.hosts = new ArrayList<String>();
         this.profile = profile;
         this.label = label;
         this.keypair = keypair;
@@ -125,7 +125,7 @@ public class EnrollmentRequest {
     }
 
     public Collection<String> getHosts() {
-        return hosts;
+        return new ArrayList<>(hosts);
     }
 
     public void addHost(String host) {
@@ -136,7 +136,7 @@ public class EnrollmentRequest {
     String toJson() {
         StringWriter stringWriter = new StringWriter();
         JsonWriter jsonWriter = Json.createWriter(new PrintWriter(stringWriter));
-        jsonWriter.writeObject(this.toJsonObject());
+        jsonWriter.writeObject(toJsonObject());
         jsonWriter.close();
         return stringWriter.toString();
     }
@@ -162,6 +162,44 @@ public class EnrollmentRequest {
             factory.add(HFCAClient.FABRIC_CA_REQPROP, caName);
         }
         factory.add("certificate_request", csr);
+
+        if (!attrreqs.isEmpty()) {
+            JsonArrayBuilder ab = Json.createArrayBuilder();
+            for (AttrReq attrReq : attrreqs.values()) {
+                JsonObjectBuilder i = Json.createObjectBuilder();
+                i.add("name", attrReq.name);
+                if (attrReq.require != null) {
+                    i.add("require", attrReq.require);
+                }
+                ab.add(i);
+
+            }
+            factory.add("attr_reqs", ab.build());
+        }
+
         return factory.build();
+    }
+
+    public AttrReq addAttrReq(String name) throws InvalidArgumentException {
+        if (name == null || name.isEmpty()) {
+            throw new InvalidArgumentException("name may not be null or empty.");
+
+        }
+        return new AttrReq(name);
+    }
+
+    public class AttrReq {
+        final String name;
+        Boolean require = null;
+
+        AttrReq(String name) {
+            this.name = name;
+            attrreqs.put(name, this);
+        }
+
+        public AttrReq setRequire(boolean require) {
+            this.require = require;
+            return this;
+        }
     }
 }

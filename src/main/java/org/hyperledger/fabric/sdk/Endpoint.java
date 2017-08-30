@@ -79,7 +79,7 @@ class Endpoint {
         if (properties != null) {
             if ("grpcs".equals(protocol)) {
                 if (properties.containsKey("pemFile") && properties.containsKey("pemBytes")) {
-                    throw new RuntimeException("Properties \"pemBytes\" and \"pemBytes\" can not be both set.");
+                    throw new RuntimeException("Properties \"pemBytes\" and \"pemFile\" can not be both set.");
                 }
                 if (properties.containsKey("pemFile")) {
                     Path path = Paths.get(properties.getProperty("pemFile"));

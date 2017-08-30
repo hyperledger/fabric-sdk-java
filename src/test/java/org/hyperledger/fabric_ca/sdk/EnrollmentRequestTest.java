@@ -15,10 +15,21 @@
 package org.hyperledger.fabric_ca.sdk;
 
 import java.security.KeyPair;
+
+import org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class EnrollmentRequestTest {
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
     private static final String caName = "certsInc";
     private static final String csr = "11436845810603";
     private static final String profile = "test profile";
@@ -31,7 +42,7 @@ public class EnrollmentRequestTest {
         try {
             EnrollmentRequest testEnrollReq = new EnrollmentRequest();
             Assert.assertNull(testEnrollReq.getCsr());
-            Assert.assertTrue(testEnrollReq.getHosts().isEmpty());
+            assertTrue(testEnrollReq.getHosts().isEmpty());
             Assert.assertNull(testEnrollReq.getProfile());
             Assert.assertNull(testEnrollReq.getLabel());
             Assert.assertNull(testEnrollReq.getKeyPair());
@@ -47,7 +58,7 @@ public class EnrollmentRequestTest {
         try {
             EnrollmentRequest testEnrollReq = new EnrollmentRequest(profile, label, keyPair);
             Assert.assertNull(testEnrollReq.getCsr());
-            Assert.assertTrue(testEnrollReq.getHosts().isEmpty());
+            assertTrue(testEnrollReq.getHosts().isEmpty());
             Assert.assertEquals(testEnrollReq.getProfile(), profile);
             Assert.assertEquals(testEnrollReq.getLabel(), label);
             Assert.assertNull(testEnrollReq.getKeyPair());
@@ -65,13 +76,13 @@ public class EnrollmentRequestTest {
             testEnrollReq.addHost("d.com");
             testEnrollReq.setCsr(csr);
             testEnrollReq.setCSR(csr); // Unsure why there are two methods that
-                                       // set csr
+            // set csr
             testEnrollReq.setProfile(profile);
             testEnrollReq.setLabel(label);
             testEnrollReq.setKeyPair(null);
             testEnrollReq.setCAName(caName);
             Assert.assertEquals(testEnrollReq.getCsr(), csr);
-            Assert.assertTrue(testEnrollReq.getHosts().contains("d.com"));
+            assertTrue(testEnrollReq.getHosts().contains("d.com"));
             Assert.assertEquals(testEnrollReq.getProfile(), profile);
             Assert.assertEquals(testEnrollReq.getLabel(), label);
             Assert.assertNull(testEnrollReq.getKeyPair());
@@ -94,10 +105,69 @@ public class EnrollmentRequestTest {
             testEnrollReq.setKeyPair(null);
             testEnrollReq.setCAName(caName);
 
-            Assert.assertTrue(testEnrollReq.toJson().contains(csr));
+            assertTrue(testEnrollReq.toJson().contains(csr));
 
         } catch (Exception e) {
             Assert.fail("Unexpected Exception " + e.getMessage());
         }
     }
+
+    @Test
+    public void testEnrollReqToJsonAttr() throws Exception {
+
+        EnrollmentRequest testEnrollReq = new EnrollmentRequest();
+        testEnrollReq.addHost("d.com");
+        testEnrollReq.setCsr(csr);
+        testEnrollReq.setProfile(profile);
+        testEnrollReq.setLabel(label);
+        testEnrollReq.setKeyPair(null);
+        testEnrollReq.setCAName(caName);
+        testEnrollReq.addAttrReq("foo");
+        testEnrollReq.addAttrReq("foorequired").setRequire(true);
+        testEnrollReq.addAttrReq("foofalse").setRequire(false);
+
+        String s = testEnrollReq.toJson();
+        assertNotNull(s);
+        assertTrue(s.contains("\"attr_reqs\":["));
+        assertTrue(s.contains("\"name\":\"foorequired\",\"require\":true"));
+        assertTrue(s.contains("\"name\":\"foofalse\",\"require\":false"));
+
+    }
+
+    @Test
+    public void testEnrollReqToJsonAttrNotThere() throws Exception {
+
+        EnrollmentRequest testEnrollReq = new EnrollmentRequest();
+        testEnrollReq.addHost("d.com");
+        testEnrollReq.setCsr(csr);
+        testEnrollReq.setProfile(profile);
+        testEnrollReq.setLabel(label);
+        testEnrollReq.setKeyPair(null);
+        testEnrollReq.setCAName(caName);
+
+        String s = testEnrollReq.toJson();
+        assertNotNull(s);
+        assertFalse(s.contains("\"attr_reqs\":["));
+    }
+
+    @Test
+    public void testEnrollReqToJsonAttrNullName() throws Exception {
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("name may not be null or empty.");
+
+        EnrollmentRequest testEnrollReq = new EnrollmentRequest();
+        testEnrollReq.addAttrReq(null);
+
+    }
+
+    @Test
+    public void testEnrollReqToJsonAttrEmptyName() throws Exception {
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("name may not be null or empty.");
+
+        EnrollmentRequest testEnrollReq = new EnrollmentRequest();
+        testEnrollReq.addAttrReq("");
+
+    }
+
 }
