@@ -15,7 +15,6 @@
 package org.hyperledger.fabric.sdk.helper;
 
 import org.apache.log4j.Level;
-
 import org.hyperledger.fabric.sdk.TestConfigHelper;
 import org.junit.After;
 import org.junit.Assert;
@@ -24,7 +23,7 @@ import org.junit.Test;
 
 public class ConfigTest {
 
-    private TestConfigHelper configHelper = new TestConfigHelper();
+    private final TestConfigHelper configHelper = new TestConfigHelper();
     // private String originalHashAlgorithm;
 
     @Before
@@ -94,9 +93,6 @@ public class ConfigTest {
         Assert.assertNotNull(config.getSymmetricAlgorithm());
         Assert.assertNotNull(config.getSignatureAlgorithm());
         Assert.assertNotNull(config.getCertificateFormat());
-
-        // Arrays
-        Assert.assertNotNull(config.getPeerCACerts());
     }
 
     @Test

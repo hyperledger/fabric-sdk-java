@@ -39,10 +39,10 @@ public class Config {
     public static final String ORG_HYPERLEDGER_FABRIC_SDK_CONFIGURATION = "org.hyperledger.fabric.sdk.configuration";
     public static final String SECURITY_LEVEL = "org.hyperledger.fabric.sdk.security_level";
     public static final String HASH_ALGORITHM = "org.hyperledger.fabric.sdk.hash_algorithm";
-    public static final String CACERTS = "org.hyperledger.fabric.sdk.cacerts";
     public static final String PROPOSAL_WAIT_TIME = "org.hyperledger.fabric.sdk.proposal.wait.time";
     public static final String CHANNEL_CONFIG_WAIT_TIME = "org.hyperledger.fabric.sdk.channelconfig.wait_time";
     public static final String ORDERER_RETRY_WAIT_TIME = "org.hyperledger.fabric.sdk.orderer_retry.wait_time";
+    public static final String ORDERER_WAIT_TIME = "org.hyperledger.fabric.sdk.orderer.ordererWaitTimeMilliSecs";
     public static final String EVENTHUB_CONNECTION_WAIT_TIME = "org.hyperledger.fabric.sdk.eventhub_connection.wait_time";
     public static final String PROPOSAL_CONSISTENCY_VALIDATION = "org.hyperledger.fabric.sdk.proposal.consistency_validation";
     public static final String GENESISBLOCK_WAIT_TIME = "org.hyperledger.fabric.sdk.channel.genesisblock_wait_time";
@@ -91,8 +91,6 @@ public class Config {
             defaultProperty(SECURITY_LEVEL, "256");
             defaultProperty(HASH_ALGORITHM, "SHA2");
             defaultProperty(PROPOSAL_CONSISTENCY_VALIDATION, "true");
-            // TODO remove this once we have implemented MSP and get the peer certs from the channel
-            defaultProperty(CACERTS, "/genesisblock/peercacert.pem");
 
             defaultProperty(PROPOSAL_WAIT_TIME, "20000");
             defaultProperty(GENESISBLOCK_WAIT_TIME, "5000");
@@ -102,6 +100,7 @@ public class Config {
             defaultProperty(DIAGNOTISTIC_FILE_DIRECTORY, null);
             defaultProperty(CHANNEL_CONFIG_WAIT_TIME, "15000");
             defaultProperty(ORDERER_RETRY_WAIT_TIME, "200");
+            defaultProperty(ORDERER_WAIT_TIME, "3000");
             defaultProperty(EVENTHUB_CONNECTION_WAIT_TIME, "1000");
 
             final String inLogLevel = sdkProperties.getProperty(LOGGERLEVEL);
@@ -218,10 +217,6 @@ public class Config {
 
     }
 
-    public String[] getPeerCACerts() {
-        return getProperty(CACERTS).split("'");
-    }
-
     /**
      * Get the timeout for a single proposal request to endorser.
      *
@@ -256,6 +251,10 @@ public class Config {
      */
     public long getOrdererRetryWaitTime() {
         return Long.parseLong(getProperty(ORDERER_RETRY_WAIT_TIME));
+    }
+
+    public long getOrdererWaitTime() {
+        return Long.parseLong(getProperty(ORDERER_WAIT_TIME));
     }
 
     public long getEventHubConnectionWaitTime() {

@@ -30,6 +30,7 @@ import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse;
 import org.hyperledger.fabric.protos.orderer.AtomicBroadcastGrpc;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
+import org.hyperledger.fabric.sdk.helper.Config;
 
 import static java.lang.String.format;
 import static org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse.TypeCase.STATUS;
@@ -38,7 +39,8 @@ import static org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse.TypeCase.
  * Sample client code that makes gRPC calls to the server.
  */
 class OrdererClient {
-    private static final long ORDERER_WAIT_TIME = 3000L;
+    private static final Config config = Config.getConfig();
+    private static final long ORDERER_WAIT_TIME = config.getOrdererWaitTime();
     private final String channelName;
     private final ManagedChannelBuilder channelBuilder;
     private boolean shutdown = false;
@@ -280,7 +282,7 @@ class OrdererClient {
             try {
                 if (!finishLatch.await(ordererWaitTimeMilliSecs, TimeUnit.MILLISECONDS)) {
                     TransactionException ex = new TransactionException(format(
-                            "Channel %s sendDeliver time exceeded for orderer %s, timed out at %d", channelName, name, ordererWaitTimeMilliSecs));
+                            "Channel %s sendDeliver time exceeded for orderer %s, timed out at %d ms.", channelName, name, ordererWaitTimeMilliSecs));
                     logger.error(ex.getMessage(), ex);
                     throw ex;
                 }

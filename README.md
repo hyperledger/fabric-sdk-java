@@ -65,6 +65,49 @@ Add below code in your `pom.xml` to download fabric-sdk-java-1.0.1
 
 `*************************************************`
 
+## 1.1.0-SNAPSHOT builds
+Work in progress 1.1.0 SNAPSHOT builds can be used by adding the following to your application's
+pom.xml
+```
+<dependencies>
+
+        <!-- https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java -->
+        <dependency>
+            <groupId>org.hyperledger.fabric-sdk-java</groupId>
+            <artifactId>fabric-sdk-java</artifactId>
+            <version>1.1.0-SNAPSHOT</version>
+        </dependency>
+
+</dependencies>
+```
+
+Add to your maven's setting.xml typically in the .m2 directory under your home directory:
+```
+<profiles>
+      <profile>
+         <id>allow-snapshots</id>
+         <activation>
+            <activeByDefault>true</activeByDefault>
+         </activation>
+         <repositories>
+            <repository>
+               <id>snapshots-repo</id>
+               <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+               <releases>
+                  <enabled>false</enabled>
+               </releases>
+               <snapshots>
+                  <enabled>true</enabled>
+               </snapshots>
+            </repository>
+         </repositories>
+      </profile>
+</profiles>
+```
+
+
+
+
 
 ## Latest builds of Fabric and Fabric-ca v1.1.0
 
@@ -74,7 +117,7 @@ You can clone these projects by going to the [Hyperledger repository](https://ge
 
 ## Working with the Fabric Vagrant environment
 Vagrant is NOT required if your OS has Docker support and all the requirements needed to build directly in your
-environment.  For non Vagrant envrionment, the steps would be the same as below minus those parts involving Vagrant.
+environment.  For non Vagrant environment, the steps would be the same as below minus those parts involving Vagrant.
  Do the following if you want to run the Fabric components ( peer, orderer, fabric-ca ) in Vagrant:
 
   ```
@@ -156,6 +199,10 @@ or
 ### Running the unit tests
 To run the unit tests, please use <code>mvn test</code> or <code>mvn install</code> which will run the unit tests and build the jar file.
 You must be running a local peer and orderer to be able to run the unit tests.
+
+**Many unit tests will test failure condition's resulting in exceptions and stack traces being displayed. This is not an indication of failure!**
+
+**[INFO] BUILD SUCCESS**  **_At the end is usually a very reliable indication that all tests have passed successfully!_**
 
 ### Running the integration tests
 You must be running local instances of Fabric-ca, Fabric peers, and Fabric orderers to be able to run the integration tests. See above for running these services in Vagrant.
@@ -261,10 +308,19 @@ your server(s) hostname(s) and port(s).
 
 ### GO Lang chaincode
 Go lang chaincode dependencies must be contained in vendor folder.
- For an explanation of this see [Vender folder explanation](https://blog.gopheracademy.com/advent-2015/vendor-folder/)
+ For an explanation of this see [Vendor folder explanation](https://blog.gopheracademy.com/advent-2015/vendor-folder/)
 
 
 ## Basic Troubleshooting
+
+**Firewalls, load balancers, network proxies**
+
+These can sometimes silently kill a network connections and prevent them from auto reconnecting. To fix this look at
+adding to Peers, EventHub's and Orderer's connection properties:
+`grpc.NettyChannelBuilderOption.keepAliveTime`, `grpc.NettyChannelBuilderOption.keepAliveTimeout`,
+`grpc.NettyChannelBuilderOption.keepAliveWithoutCalls`. Examples of this are in End2endIT.java
+
+
 **identity or token do not match**
 
 Keep in mind that you can perform the enrollment process with the membership services server only once, as the enrollmentSecret is a one-time-use password. If you have performed a FSUser registration/enrollment with the membership services and subsequently deleted the crypto tokens stored on the client side, the next time you try to enroll, errors similar to the ones below will be seen.

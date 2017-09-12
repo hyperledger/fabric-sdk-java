@@ -4,7 +4,7 @@
     <groupId>org.hyperledger.fabric-sdk-java</groupId>
     <artifactId>fabric-sdk-java</artifactId>
     <packaging>jar</packaging>
-    <version>${fabric.sdk.java.version}-SNAPSHOT</version>
+    <version>1.1.0-SNAPSHOT</version>
     <name>fabric-java-sdk</name>
     <description>Java SDK for Hyperledger fabric project</description>
     <url>https://www.hyperledger.org/community/projects</url>
@@ -28,7 +28,6 @@
         <tag>fabric-sdk-java-1.0</tag>
     </scm>
     <properties>
-        <fabric.sdk.java.version>1.1.0</fabric.sdk.java.version>
         <grpc.version>1.5.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
         <bouncycastle.version>1.57</bouncycastle.version>
         <httpclient.version>4.5.3</httpclient.version>
@@ -37,6 +36,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jacoco.version>0.7.9</jacoco.version>
         <org.hyperledger.fabric.sdktest.ITSuite>IntegrationSuite.java</org.hyperledger.fabric.sdktest.ITSuite>
+        <gpg.executable>gpg2</gpg.executable>
     </properties>
 
     <reporting>
@@ -495,7 +495,7 @@
                             <git-commit-id>${git.commit.id}</git-commit-id>
                             <git-branch>${git.branch}</git-branch>
                             <git-commit-time>${git.commit.time}</git-commit-time>
-                            <fabric-sdk-java-version>${fabric.sdk.java.version}</fabric-sdk-java-version>
+                            <fabric-sdk-java-version>${project.version}</fabric-sdk-java-version>
                         </manifestEntries>
                     </archive>
                 </configuration>
