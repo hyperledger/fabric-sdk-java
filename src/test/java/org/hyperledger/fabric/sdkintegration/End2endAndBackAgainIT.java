@@ -48,6 +48,7 @@ import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
+import org.hyperledger.fabric.sdk.testutils.TestUtils;
 import org.hyperledger.fabric_ca.sdk.HFCAClient;
 import org.junit.After;
 import org.junit.Before;
@@ -55,7 +56,9 @@ import org.junit.Test;
 
 import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -114,6 +117,8 @@ public class End2endAndBackAgainIT {
         }
     }
 
+    SampleStore sampleStore;
+
     @Test
     public void setup() {
 
@@ -132,13 +137,13 @@ public class End2endAndBackAgainIT {
             ////////////////////////////
             //Set up USERS
 
-            //Persistence is not part of SDK. Sample file store is for demonstration purposes only!
-            //   MUST be replaced with more robust application implementation  (Database, LDAP)
+//            //Persistence is not part of SDK. Sample file store is for demonstration purposes only!
+//            //   MUST be replaced with more robust application implementation  (Database, LDAP)
             File sampleStoreFile = new File(System.getProperty("java.io.tmpdir") + "/HFCSampletest.properties");
 
-            final SampleStore sampleStore = new SampleStore(sampleStoreFile);
+            sampleStore = new SampleStore(sampleStoreFile);
 
-            //SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface
+//            //SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface
 
             ////////////////////////////
             // get users for all orgs
@@ -463,37 +468,64 @@ public class End2endAndBackAgainIT {
     }
 
     private Channel reconstructChannel(String name, HFClient client, SampleOrg sampleOrg) throws Exception {
+        out("Reconstructing %s channel", name);
 
         client.setUserContext(sampleOrg.getPeerAdmin());
-        Channel newChannel = client.newChannel(name);
 
-        for (String orderName : sampleOrg.getOrdererNames()) {
-            newChannel.addOrderer(client.newOrderer(orderName, sampleOrg.getOrdererLocation(orderName),
-                    testConfig.getOrdererProperties(orderName)));
-        }
+        Channel newChannel;
 
-        for (String peerName : sampleOrg.getPeerNames()) {
-            String peerLocation = sampleOrg.getPeerLocation(peerName);
-            Peer peer = client.newPeer(peerName, peerLocation, testConfig.getPeerProperties(peerName));
+        if (BAR_CHANNEL_NAME.equals(name)) { // bar channel was stored in samplestore in End2endIT testcase.
 
-            //Query the actual peer for which channels it belongs to and check it belongs to this channel
-            Set<String> channels = client.queryChannels(peer);
-            if (!channels.contains(name)) {
-                throw new AssertionError(format("Peer %s does not appear to belong to channel %s", peerName, name));
+            /**
+             *  sampleStore.getChannel uses {@link HFClient#deSerializeChannel(byte[])}
+             */
+            newChannel = sampleStore.getChannel(client, name);
+
+            out("Retrieved channel %s from sample store.", name);
+
+        } else {
+            // foo channel do manual reconstruction.
+
+            newChannel = client.newChannel(name);
+
+            for (String ordererName : sampleOrg.getOrdererNames()) {
+                newChannel.addOrderer(client.newOrderer(ordererName, sampleOrg.getOrdererLocation(ordererName),
+                        testConfig.getOrdererProperties(ordererName)));
             }
 
-            newChannel.addPeer(peer);
-            sampleOrg.addPeer(peer);
+            for (String peerName : sampleOrg.getPeerNames()) {
+                String peerLocation = sampleOrg.getPeerLocation(peerName);
+                Peer peer = client.newPeer(peerName, peerLocation, testConfig.getPeerProperties(peerName));
+                newChannel.addPeer(peer);
+                sampleOrg.addPeer(peer);
+            }
+
+            for (String eventHubName : sampleOrg.getEventHubNames()) {
+                EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
+                        testConfig.getEventHubProperties(eventHubName));
+                newChannel.addEventHub(eventHub);
+            }
         }
 
-        for (String eventHubName : sampleOrg.getEventHubNames()) {
-            EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
-                    testConfig.getEventHubProperties(eventHubName));
-            newChannel.addEventHub(eventHub);
-        }
+        //Just some sanity check tests
+        assertTrue(newChannel == client.getChannel(name));
+        assertTrue(client == TestUtils.getField(newChannel, "client"));
+        assertEquals(name, newChannel.getName());
+        assertEquals(2, newChannel.getPeers().size());
+        assertEquals(2, newChannel.getEventHubs().size());
+        assertEquals(1, newChannel.getOrderers().size());
+        assertFalse(newChannel.isShutdown());
+        assertFalse(newChannel.isInitialized());
 
         newChannel.initialize();
 
+        //Query the actual peer for which channels it belongs to and check it belongs to this channel
+        for (Peer peer : newChannel.getPeers()) {
+            Set<String> channels = client.queryChannels(peer);
+            if (!channels.contains(name)) {
+                throw new AssertionError(format("Peer %s does not appear to belong to channel %s", peer.getName(), name));
+            }
+        }
         //Just see if we can get channelConfiguration. Not required for the rest of scenario but should work.
         final byte[] channelConfigurationBytes = newChannel.getChannelConfigurationBytes();
         Configtx.Config channelConfig = Configtx.Config.parseFrom(channelConfigurationBytes);
@@ -521,6 +553,8 @@ public class End2endAndBackAgainIT {
             }
 
         }
+
+        out("Finished reconstructing channel %s.", name);
 
         return newChannel;
     }

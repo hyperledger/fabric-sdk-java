@@ -14,6 +14,7 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.io.Serializable;
 import java.util.Properties;
 
 import io.netty.util.internal.StringUtil;
@@ -31,10 +32,11 @@ import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
 /**
  * The Orderer class represents a orderer to which SDK sends deploy, invoke, or query requests.
  */
-public class Orderer {
+public class Orderer implements Serializable {
     private static final Log logger = LogFactory.getLog(Orderer.class);
+    private static final long serialVersionUID = 4281642068914263247L;
     private final Properties properties;
-    private boolean shutdown = false;
+    private transient boolean shutdown = false;
 
     /**
      * Get Orderer properties.
@@ -112,7 +114,7 @@ public class Orderer {
      * @return {Channel} The channel of which this orderer is a member.
      */
     Channel getChannel() {
-        return this.channel;
+        return channel;
     }
 
     /**
@@ -151,7 +153,7 @@ public class Orderer {
 
     }
 
-    private volatile OrdererClient ordererClient = null;
+    private transient volatile OrdererClient ordererClient = null;
 
     DeliverResponse[] sendDeliver(Common.Envelope transaction) throws TransactionException {
 

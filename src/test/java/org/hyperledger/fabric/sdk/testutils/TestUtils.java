@@ -79,5 +79,23 @@ public class TestUtils {
         return oldVal;
     }
 
+    /**
+     * Gets the value of a field on an object
+     *
+     * @param o         The object that contains the field
+     * @param fieldName The name of the field
+     * @return The value of the field
+     */
+    public static Object getField(Object o, String fieldName) {
+
+        try {
+            final Field field = o.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            return field.get(o);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot get value of field " + fieldName, e);
+        }
+    }
+
 
 }

@@ -40,7 +40,11 @@ import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.bouncycastle.util.encoders.Hex;
+import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.Enrollment;
+import org.hyperledger.fabric.sdk.HFClient;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 
 /**
  * A local file-based key value store.
@@ -234,13 +238,11 @@ public class SampleStore {
         private final PrivateKey privateKey;
         private final String certificate;
 
-
-        SampleStoreEnrollement(PrivateKey privateKey, String certificate)  {
-
+        SampleStoreEnrollement(PrivateKey privateKey, String certificate) {
 
             this.certificate = certificate;
 
-            this.privateKey =  privateKey;
+            this.privateKey = privateKey;
         }
 
         @Override
@@ -254,6 +256,24 @@ public class SampleStore {
             return certificate;
         }
 
+    }
+
+    void saveChannel(Channel channel) throws IOException, InvalidArgumentException {
+
+        setValue("channel." + channel.getName(), Hex.toHexString(channel.serializeChannel()));
+
+    }
+
+    Channel getChannel(HFClient client, String name) throws IOException, ClassNotFoundException, InvalidArgumentException {
+        Channel ret = null;
+
+        String channelHex = getValue("channel." + name);
+        if (channelHex != null) {
+
+            ret = client.deSerializeChannel(Hex.decode(channelHex));
+
+        }
+        return ret;
     }
 
 }

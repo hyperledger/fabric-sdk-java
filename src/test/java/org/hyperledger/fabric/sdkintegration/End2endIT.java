@@ -70,6 +70,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.BlockInfo.EnvelopeType.TRANSACTION_ENVELOPE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -214,10 +215,15 @@ public class End2endIT {
             Channel fooChannel = constructChannel(FOO_CHANNEL_NAME, client, sampleOrg);
             runChannel(client, fooChannel, true, sampleOrg, 0);
             fooChannel.shutdown(true); // Force foo channel to shutdown clean up resources.
+            assertNull(client.getChannel(FOO_CHANNEL_NAME));
             out("\n");
 
             sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg2");
             Channel barChannel = constructChannel(BAR_CHANNEL_NAME, client, sampleOrg);
+            /**
+             * sampleStore.saveChannel uses {@link Channel#serializeChannel()}
+             */
+            sampleStore.saveChannel(barChannel);
             runChannel(client, barChannel, true, sampleOrg, 100); //run a newly constructed bar channel with different b value!
             //let bar channel just shutdown so we have both scenarios.
 

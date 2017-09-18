@@ -236,6 +236,11 @@ public class ChannelTest {
             protected void parseConfigBlock() {
 
             }
+
+            @Override
+            protected void loadCACertificates() {
+
+            }
         }
 
         final Channel testChannel = new MockChannel(CHANNEL_NAME, hfclient);

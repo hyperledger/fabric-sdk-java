@@ -14,6 +14,7 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.Properties;
 
@@ -32,13 +33,15 @@ import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
 /**
  * The Peer class represents a peer to which SDK sends deploy, or query proposals requests.
  */
-public class Peer {
+public class Peer implements Serializable {
+
     private static final Log logger = LogFactory.getLog(Peer.class);
-    private volatile EndorserClient endorserClent;
+    private static final long serialVersionUID = -5273194649991828876L;
+    private transient volatile EndorserClient endorserClent;
     private final Properties properties;
     private final String name;
     private final String url;
-    private boolean shutdown = false;
+    private transient boolean shutdown = false;
     private Channel channel;
 
     Peer(String name, String grpcURL, Properties properties) throws InvalidArgumentException {

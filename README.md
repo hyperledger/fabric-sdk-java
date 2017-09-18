@@ -9,6 +9,8 @@ The SDK acts on behave of a particular User which is defined by the embedding ap
 
 Note, the SDK does ***not*** provide a means of persistence
   for the application defined channels and user artifacts on the client. This is left for the embedding application to best manage.
+  Channels may be serialized via Java serialization in the context of a client.
+  Channels deserialized are not in an initialized state.
 
 The SDK also provides a client for Hyperledger's certificate authority.  The SDK is however not dependent on this
 particular implementation of a certificate authority. Other Certificate authority's maybe used by implementing the

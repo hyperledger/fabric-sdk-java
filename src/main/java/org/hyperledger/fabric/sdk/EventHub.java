@@ -14,6 +14,7 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
@@ -46,27 +47,29 @@ import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
  * Feeds Channel event queues with events
  */
 
-public class EventHub {
+public class EventHub implements Serializable {
+    private static final long serialVersionUID = 2882609588201108148L;
     private static final Log logger = LogFactory.getLog(EventHub.class);
     private static final Config config = Config.getConfig();
     private static final long EVENTHUB_CONNECTION_WAIT_TIME = config.getEventHubConnectionWaitTime();
-    private final ExecutorService executorService;
+
+    private final transient ExecutorService executorService;
 
     private final String url;
     private final String name;
     private final Properties properties;
-    private ManagedChannel managedChannel;
-    private boolean connected = false;
-    private EventsGrpc.EventsStub events;
-    private StreamObserver<PeerEvents.SignedEvent> sender;
+    private transient ManagedChannel managedChannel;
+    private transient boolean connected = false;
+    private transient EventsGrpc.EventsStub events;
+    private transient StreamObserver<PeerEvents.SignedEvent> sender;
     /**
      * Event queue for all events from eventhubs in the channel
      */
-    private Channel.ChannelEventQue eventQue;
-    private long connectedTime = 0L; // 0 := never connected
-    private boolean shutdown = false;
+    private transient Channel.ChannelEventQue eventQue;
+    private transient long connectedTime = 0L; // 0 := never connected
+    private transient boolean shutdown = false;
     private Channel channel;
-    private TransactionContext transactionContext;
+    private transient TransactionContext transactionContext;
 
     /**
      * Get disconnected time.
@@ -170,7 +173,7 @@ public class EventHub {
 
     }
 
-    private StreamObserver<PeerEvents.Event> eventStream = null; // Saved here to avoid potential garbage collection
+    private transient StreamObserver<PeerEvents.Event> eventStream = null; // Saved here to avoid potential garbage collection
 
     synchronized boolean connect(final TransactionContext transactionContext) throws EventHubException {
         if (connected) {
@@ -290,8 +293,6 @@ public class EventHub {
             logger.error(e);
         }
 
-
-
         if (!threw.isEmpty()) {
             eventStream = null;
             connected = false;
@@ -393,7 +394,7 @@ public class EventHub {
      * Default reconnect event hub implementation.  Applications are free to replace
      */
 
-    protected EventHubDisconnected disconnectedHandler = new EventHub.EventHubDisconnected() {
+    protected transient EventHubDisconnected disconnectedHandler = new EventHub.EventHubDisconnected() {
         @Override
         public synchronized void disconnected(final EventHub eventHub) throws EventHubException {
             logger.info(format("Detected disconnect %s", eventHub.toString()));
