@@ -151,6 +151,23 @@ public class EnrollmentRequestTest {
     }
 
     @Test
+    public void testEnrollReqToJsonAttrEmpty() throws Exception {
+
+        EnrollmentRequest testEnrollReq = new EnrollmentRequest();
+        testEnrollReq.addHost("d.com");
+        testEnrollReq.setCsr(csr);
+        testEnrollReq.setProfile(profile);
+        testEnrollReq.setLabel(label);
+        testEnrollReq.setKeyPair(null);
+        testEnrollReq.setCAName(caName);
+        testEnrollReq.addAttrReq(); // means empty. force no attributes.
+
+        String s = testEnrollReq.toJson();
+        assertNotNull(s);
+        assertTrue(s.contains("\"attr_reqs\":[]"));
+    }
+
+    @Test
     public void testEnrollReqToJsonAttrNullName() throws Exception {
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("name may not be null or empty.");

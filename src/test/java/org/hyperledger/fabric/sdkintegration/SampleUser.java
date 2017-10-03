@@ -41,7 +41,7 @@ public class SampleUser implements User, Serializable {
     private transient SampleStore keyValStore;
     private String keyValStoreName;
 
-    SampleUser(String name, String org, SampleStore fs) {
+    public SampleUser(String name, String org, SampleStore fs) {
         this.name = name;
 
         this.keyValStore = fs;

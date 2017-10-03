@@ -116,7 +116,7 @@ public class RegistrationRequest {
     public String toJson() {
         StringWriter stringWriter = new StringWriter();
         JsonWriter jsonWriter = Json.createWriter(new PrintWriter(stringWriter));
-        jsonWriter.writeObject(this.toJsonObject());
+        jsonWriter.writeObject(toJsonObject());
         jsonWriter.close();
         return stringWriter.toString();
     }

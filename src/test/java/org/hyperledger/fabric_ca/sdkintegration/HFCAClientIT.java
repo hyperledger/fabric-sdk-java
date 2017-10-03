@@ -20,8 +20,11 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
@@ -44,6 +47,9 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class HFCAClientIT {
@@ -102,6 +108,142 @@ public class HFCAClientIT {
             admin.setEnrollment(client.enroll(admin.getName(), TEST_ADMIN_PW));
         }
 
+    }
+
+    // Tests attributes
+    @Test
+    public void testRegisterAttributes() throws Exception {
+
+        if (testConfig.isRunningAgainstFabric10()) {
+            return; // needs v1.1
+        }
+
+        SampleUser user = new SampleUser("mrAttributes", TEST_ADMIN_ORG, sampleStore);
+
+        RegistrationRequest rr = new RegistrationRequest(user.getName(), TEST_USER1_AFFILIATION);
+        String password = "mrAttributespassword";
+        rr.setSecret(password);
+
+        rr.addAttribute(new Attribute("testattr1", "mrAttributesValue1"));
+        rr.addAttribute(new Attribute("testattr2", "mrAttributesValue2"));
+        rr.addAttribute(new Attribute("testattrDEFAULTATTR", "mrAttributesValueDEFAULTATTR", true));
+        user.setEnrollmentSecret(client.register(rr, admin));
+        if (!user.getEnrollmentSecret().equals(password)) {
+            fail("Secret returned from RegistrationRequest not match : " + user.getEnrollmentSecret());
+        }
+        EnrollmentRequest req = new EnrollmentRequest();
+        req.addAttrReq("testattr2").setRequire(true);
+
+        user.setEnrollment(client.enroll(user.getName(), user.getEnrollmentSecret(), req));
+
+        Enrollment enrollment = user.getEnrollment();
+        String cert = enrollment.getCert();
+        String certdec = getStringCert(cert);
+
+        assertTrue(format("Missing testattr2 in certficate decoded: %s", certdec), certdec.contains("\"testattr2\":\"mrAttributesValue2\""));
+        //Since request had specific attributes don't expect defaults.
+        assertFalse(format("Contains testattrDEFAULTATTR in certificate decoded: %s", certdec), certdec.contains("\"testattrDEFAULTATTR\"")
+                || certdec.contains("\"mrAttributesValueDEFAULTATTR\""));
+        assertFalse(format("Contains testattr1 in certificate decoded: %s", certdec), certdec.contains("\"testattr1\"") || certdec.contains("\"mrAttributesValue1\""));
+
+    }
+
+    /**
+     * Test that we get default attributes.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testRegisterAttributesDefault() throws Exception {
+
+        if (testConfig.isRunningAgainstFabric10()) {
+            return; // needs v1.1
+        }
+
+        SampleUser user = new SampleUser("mrAttributesDefault", TEST_ADMIN_ORG, sampleStore);
+
+        RegistrationRequest rr = new RegistrationRequest(user.getName(), TEST_USER1_AFFILIATION);
+        String password = "mrAttributespassword";
+        rr.setSecret(password);
+
+        rr.addAttribute(new Attribute("testattr1", "mrAttributesValue1"));
+        rr.addAttribute(new Attribute("testattr2", "mrAttributesValue2"));
+        rr.addAttribute(new Attribute("testattrDEFAULTATTR", "mrAttributesValueDEFAULTATTR", true));
+        user.setEnrollmentSecret(client.register(rr, admin));
+        if (!user.getEnrollmentSecret().equals(password)) {
+            fail("Secret returned from RegistrationRequest not match : " + user.getEnrollmentSecret());
+        }
+
+        user.setEnrollment(client.enroll(user.getName(), user.getEnrollmentSecret()));
+
+        Enrollment enrollment = user.getEnrollment();
+        String cert = enrollment.getCert();
+
+        String certdec = getStringCert(cert);
+
+        assertTrue(format("Missing testattrDEFAULTATTR in certficate decoded: %s", certdec), certdec.contains("\"testattrDEFAULTATTR\":\"mrAttributesValueDEFAULTATTR\""));
+        //Since request and no attribute requests at all defaults should be in certificate.
+
+        assertFalse(format("Contains testattr1 in certificate decoded: %s", certdec), certdec.contains("\"testattr1\"") || certdec.contains("\"mrAttributesValue1\""));
+        assertFalse(format("Contains testattr2 in certificate decoded: %s", certdec), certdec.contains("\"testattr2\"") || certdec.contains("\"mrAttributesValue2\""));
+
+    }
+
+    /**
+     * Test that we get no attributes.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testRegisterAttributesNONE() throws Exception {
+
+        SampleUser user = new SampleUser("mrAttributesNone", TEST_ADMIN_ORG, sampleStore);
+
+        RegistrationRequest rr = new RegistrationRequest(user.getName(), TEST_USER1_AFFILIATION);
+        String password = "mrAttributespassword";
+        rr.setSecret(password);
+
+        rr.addAttribute(new Attribute("testattr1", "mrAttributesValue1"));
+        rr.addAttribute(new Attribute("testattr2", "mrAttributesValue2"));
+        rr.addAttribute(new Attribute("testattrDEFAULTATTR", "mrAttributesValueDEFAULTATTR", true));
+        user.setEnrollmentSecret(client.register(rr, admin));
+        if (!user.getEnrollmentSecret().equals(password)) {
+            fail("Secret returned from RegistrationRequest not match : " + user.getEnrollmentSecret());
+        }
+
+        EnrollmentRequest req = new EnrollmentRequest();
+        req.addAttrReq(); // empty ensure no attributes.
+
+        user.setEnrollment(client.enroll(user.getName(), user.getEnrollmentSecret(), req));
+
+        Enrollment enrollment = user.getEnrollment();
+        String cert = enrollment.getCert();
+
+        String certdec = getStringCert(cert);
+
+        assertFalse(format("Contains testattrDEFAULTATTR in certificate decoded: %s", certdec),
+                certdec.contains("\"testattrDEFAULTATTR\"") || certdec.contains("\"mrAttributesValueDEFAULTATTR\""));
+        assertFalse(format("Contains testattr1 in certificate decoded: %s", certdec), certdec.contains("\"testattr1\"") || certdec.contains("\"mrAttributesValue1\""));
+        assertFalse(format("Contains testattr2 in certificate decoded: %s", certdec), certdec.contains("\"testattr2\"") || certdec.contains("\"mrAttributesValue2\""));
+
+    }
+
+    private static final Pattern compile = Pattern.compile("^-----BEGIN CERTIFICATE-----$" + "(.*?)" + "\n-----END CERTIFICATE-----\n", Pattern.DOTALL | Pattern.MULTILINE);
+
+    static String getStringCert(String pemFormat) {
+        String ret = null;
+
+        final Matcher matcher = compile.matcher(pemFormat);
+        if (matcher.matches()) {
+            final String base64part = matcher.group(1).replaceAll("\n", "");
+            Base64.Decoder b64dec = Base64.getDecoder();
+            ret = new String(b64dec.decode(base64part.getBytes(UTF_8)));
+
+        } else {
+            fail("Certificate failed to match expected pattern. Certificate:\n" + pemFormat);
+        }
+
+        return ret;
     }
 
     // Tests re-enrolling a user that has had an enrollment revoked
@@ -406,7 +548,7 @@ public class HFCAClientIT {
             }
             ArrayList<String> subAltList = new ArrayList<>();
             for (List<?> item : altNames) {
-                int type = ((Integer) item.get(0)).intValue();
+                int type = (Integer) item.get(0);
                 if (type == 2) {
                     subAltList.add((String) item.get(1));
                 }

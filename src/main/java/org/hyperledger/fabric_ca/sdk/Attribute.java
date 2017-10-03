@@ -20,26 +20,40 @@ import javax.json.JsonObjectBuilder;
 
 // An attribute name and value which is used when registering a new user
 public class Attribute {
+    private final Boolean ecert;
     private String name;
     private String value;
 
     public Attribute(String name, String value) {
+        this(name, value, null);
+    }
+
+    /**
+     * @param name             Attribute name.
+     * @param value            Attribute value.
+     * @param defaultAttribute Attribute should be included in certificate even if not specified during enrollment.
+     */
+    public Attribute(String name, String value, Boolean defaultAttribute) {
         this.name = name;
         this.value = value;
+        this.ecert = defaultAttribute;
     }
 
     public String getName() {
-        return this.name;
+        return name;
     }
 
     public String getValue() {
-        return this.value;
+        return value;
     }
 
     public JsonObject toJsonObject() {
         JsonObjectBuilder ob = Json.createObjectBuilder();
-        ob.add("name", this.name);
-        ob.add("value", this.value);
+        ob.add("name", name);
+        ob.add("value", value);
+        if (ecert != null) {
+            ob.add("ecert", ecert.booleanValue());
+        }
         return ob.build();
     }
 

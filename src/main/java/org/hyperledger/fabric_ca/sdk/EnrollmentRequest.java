@@ -38,7 +38,7 @@ public class EnrollmentRequest {
     // A PEM-encoded string containing the CSR (Certificate Signing Request) based on PKCS #10
     private String csr;
     // Comma-separated list of host names to associate with the certificate
-    private Collection<String> hosts = new ArrayList<String>();
+    private Collection<String> hosts = new ArrayList<>();
     // Name of the signing profile to use when issuing the certificate
     private String profile = null;
     // Label used in HSM operations
@@ -49,7 +49,8 @@ public class EnrollmentRequest {
     private String caName;
 
     // Attribute requests. added v1.1
-    private Map<String, AttrReq> attrreqs = new HashMap<>();
+    private Map<String, AttrReq> attrreqs = null; //new HashMap<>();
+
     /**
      * The certificate signing request if it's not supplied it will be generated.
      *
@@ -85,11 +86,6 @@ public class EnrollmentRequest {
     KeyPair getKeyPair() {
         return keypair;
     }
-
-    /**
-     * The keypair used to create the certificate request if it's not supplied.
-     * @param keypair
-     */
 
     /**
      * The Key pair to create the signing certificate if not supplied it will be generated.
@@ -163,7 +159,7 @@ public class EnrollmentRequest {
         }
         factory.add("certificate_request", csr);
 
-        if (!attrreqs.isEmpty()) {
+        if (attrreqs != null) {
             JsonArrayBuilder ab = Json.createArrayBuilder();
             for (AttrReq attrReq : attrreqs.values()) {
                 JsonObjectBuilder i = Json.createObjectBuilder();
@@ -180,6 +176,26 @@ public class EnrollmentRequest {
         return factory.build();
     }
 
+    /**
+     * Add attribute request to ensure no attributes are in the certificate - not even default ones.
+     *
+     * @throws InvalidArgumentException
+     */
+    public void addAttrReq() throws InvalidArgumentException {
+        if (attrreqs != null && !attrreqs.isEmpty()) {
+            throw new InvalidArgumentException("Attributes have already been defined.");
+
+        }
+        attrreqs = new HashMap<>();
+    }
+
+    /**
+     * Add attribute to certificate.
+     *
+     * @param name Name of attribute.
+     * @return Attribute added.
+     * @throws InvalidArgumentException
+     */
     public AttrReq addAttrReq(String name) throws InvalidArgumentException {
         if (name == null || name.isEmpty()) {
             throw new InvalidArgumentException("name may not be null or empty.");
@@ -194,6 +210,9 @@ public class EnrollmentRequest {
 
         AttrReq(String name) {
             this.name = name;
+            if (attrreqs == null) {
+                attrreqs = new HashMap<>();
+            }
             attrreqs.put(name, this);
         }
 

@@ -312,6 +312,12 @@ public class TestConfig {
 
     }
 
+    public boolean isRunningAgainstFabric10() {
+
+        return "IntegrationSuiteV1.java".equals(System.getProperty("org.hyperledger.fabric.sdktest.ITSuite"));
+
+    }
+
     private String getDomainName(final String name) {
         int dot = name.indexOf(".");
         if (-1 == dot) {
