@@ -90,31 +90,6 @@ public class BlockInfo {
         return block.getData().getDataCount();
     }
 
-//    /**
-//     * Get transaction info on a specific transaction.
-//     *
-//     * @param index index into the block.
-//     * @return Transaction Info
-//     * @throws InvalidProtocolBufferException
-//     */
-
-//    public TransactionEnvelopeInfo getEnvelopeInfo(int index) throws InvalidProtocolBufferException {
-//
-//        try {
-//            // block.getData(0).getEnvelope().getSignature();
-//
-//            EnvelopeDeserializer.newInstance(block.getBlock().getData().getData(index));
-//
-//            final PayloadDeserializer payload = block.getData(index).getPayload();
-//
-//            return new TransactionEnvelopeInfo(null, payload.getHeader());
-//        } catch (InvalidProtocolBufferRuntimeException e) {
-//            throw (InvalidProtocolBufferException) e.getCause();
-//        }
-//
-//    }
-//
-
     public class EnvelopeInfo {
         private final EnvelopeDeserializer envelopeDeserializer;
         HeaderDeserializer headerDeserializer;
@@ -175,21 +150,28 @@ public class BlockInfo {
 
     }
 
-    public EnvelopeInfo getEnvelopeInfo(int blockIndex) throws InvalidProtocolBufferException {
+    /**
+     * Return a specific envelope in the block by it's index.
+     *
+     * @param envelopeIndex
+     * @return EnvelopeInfo that contains information on the envelope.
+     * @throws InvalidProtocolBufferException
+     */
+
+    public EnvelopeInfo getEnvelopeInfo(int envelopeIndex) throws InvalidProtocolBufferException {
 
         try {
-            // block.getData(0).getEnvelope().getSignature();
 
             EnvelopeInfo ret;
 
-            EnvelopeDeserializer ed = EnvelopeDeserializer.newInstance(block.getBlock().getData().getData(blockIndex), block.getTransActionsMetaData()[blockIndex]);
+            EnvelopeDeserializer ed = EnvelopeDeserializer.newInstance(block.getBlock().getData().getData(envelopeIndex), block.getTransActionsMetaData()[envelopeIndex]);
 
             switch (ed.getType()) {
                 case 3:
-                    ret = new TransactionEnvelopeInfo((EndorserTransactionEnvDeserializer) ed, blockIndex);
+                    ret = new TransactionEnvelopeInfo((EndorserTransactionEnvDeserializer) ed, envelopeIndex);
                     break;
                 default: //just assume base properties.
-                    ret = new EnvelopeInfo(ed, blockIndex);
+                    ret = new EnvelopeInfo(ed, envelopeIndex);
                     break;
 
             }
@@ -201,9 +183,15 @@ public class BlockInfo {
 
     }
 
+    /**
+     * Return and iterable EnvelopeInfo over each Envelope contained in the Block
+     *
+     * @return
+     */
+
     public Iterable<EnvelopeInfo> getEnvelopeInfos() {
 
-        return new TransactionInfoIterable();
+        return new EnvelopeInfoIterable();
     }
 
     public class TransactionEnvelopeInfo extends EnvelopeInfo {
@@ -392,23 +380,11 @@ public class BlockInfo {
 
     }
 
-    /**
-     * Iterable interface over transaction info in the block.
-     *
-     * @return iterator
-     */
-
-    public Iterable<EnvelopeInfo> getTransactionActionInfos() {
-
-        return new TransactionInfoIterable();
-
-    }
-
-    class TransactionInfoIterator implements Iterator<EnvelopeInfo> {
+    class EnvelopeInfoIterator implements Iterator<EnvelopeInfo> {
         int ci = 0;
         final int max;
 
-        TransactionInfoIterator() {
+        EnvelopeInfoIterator() {
             max = block.getData().getDataCount();
 
         }
@@ -431,11 +407,11 @@ public class BlockInfo {
         }
     }
 
-    class TransactionInfoIterable implements Iterable<EnvelopeInfo> {
+    class EnvelopeInfoIterable implements Iterable<EnvelopeInfo> {
 
         @Override
         public Iterator<EnvelopeInfo> iterator() {
-            return new TransactionInfoIterator();
+            return new EnvelopeInfoIterator();
         }
     }
 
