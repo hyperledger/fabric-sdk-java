@@ -281,7 +281,7 @@ public class End2endIT {
 
             //For non foo channel unregister event listener to test events are not called.
             if (!isFooChain) {
-                channel.unRegisterChaincodeEventListener(chaincodeEventListenerHandle);
+                channel.unregisterChaincodeEventListener(chaincodeEventListenerHandle);
                 chaincodeEventListenerHandle = null;
 
             }
@@ -593,7 +593,7 @@ public class End2endIT {
 
             if (chaincodeEventListenerHandle != null) {
 
-                channel.unRegisterChaincodeEventListener(chaincodeEventListenerHandle);
+                channel.unregisterChaincodeEventListener(chaincodeEventListenerHandle);
                 //Should be two. One event in chaincode and two notification for each of the two event hubs
 
                 final int numberEventHubs = channel.getEventHubs().size();

@@ -2588,7 +2588,7 @@ public class Channel implements Serializable {
      * @return false if not found.
      * @throws InvalidArgumentException if the channel is shutdown or invalid arguments.
      */
-    public boolean unRegisterBlockListener(String handle) throws InvalidArgumentException {
+    public boolean unregisterBlockListener(String handle) throws InvalidArgumentException {
 
         if (shutdown) {
             throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
@@ -2939,7 +2939,7 @@ public class Channel implements Serializable {
      * @param chaincodeId            Java pattern for chaincode identifier also know as chaincode name. If ma
      * @param eventName              Java pattern to match the event name.
      * @param chaincodeEventListener The listener to be invoked if both chaincodeId and eventName pattern matches.
-     * @return Handle to be used to unregister the event listener {@link #unRegisterChaincodeEventListener(String)}
+     * @return Handle to be used to unregister the event listener {@link #unregisterChaincodeEventListener(String)}
      * @throws InvalidArgumentException
      */
 
@@ -2981,7 +2981,7 @@ public class Channel implements Serializable {
      * @throws InvalidArgumentException
      */
 
-    public boolean unRegisterChaincodeEventListener(String handle) throws InvalidArgumentException {
+    public boolean unregisterChaincodeEventListener(String handle) throws InvalidArgumentException {
         boolean ret;
 
         if (shutdown) {
@@ -2998,7 +2998,7 @@ public class Channel implements Serializable {
         synchronized (this) {
             if (null != blh && chainCodeListeners.isEmpty()) {
 
-                unRegisterBlockListener(blh);
+                unregisterBlockListener(blh);
                 blh = null;
             }
         }
