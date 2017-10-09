@@ -21,11 +21,16 @@ import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Calendar;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.x509.CertificateList;
+import org.bouncycastle.asn1.x509.TBSCertList;
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
@@ -48,6 +53,7 @@ import org.junit.rules.ExpectedException;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -196,7 +202,6 @@ public class HFCAClientIT {
      */
     @Test
     public void testRegisterAttributesNONE() throws Exception {
-
         SampleUser user = new SampleUser("mrAttributesNone", TEST_ADMIN_ORG, sampleStore);
 
         RegistrationRequest rr = new RegistrationRequest(user.getName(), TEST_USER1_AFFILIATION);
@@ -294,6 +299,10 @@ public class HFCAClientIT {
         thrown.expect(EnrollmentException.class);
         thrown.expectMessage("Failed to re-enroll user");
 
+        Calendar calendar = Calendar.getInstance(); // gets a calendar using the default time zone and locale.
+        calendar.add(Calendar.SECOND, -1);
+        Date revokedTinyBitAgoTime = calendar.getTime(); //avoid any clock skewing.
+
         SampleUser user = getTestUser(TEST_USER1_ORG);
 
         if (!user.isRegistered()) {
@@ -322,11 +331,40 @@ public class HFCAClientIT {
 
         sleepALittle();
 
+        int startedWithRevokes = -1;
+
+        if (!testConfig.isRunningAgainstFabric10()) {
+
+            startedWithRevokes = getRevokes(null).length; //one more after we do this revoke.
+        }
+
         // revoke all enrollment of this user
         client.revoke(admin, user.getName(), "revoke user 3");
+        if (!testConfig.isRunningAgainstFabric10()) {
+
+            final int newRevokes = getRevokes(null).length;
+
+            assertEquals(format("Expected one more revocation %d, but got %d", startedWithRevokes + 1, newRevokes), startedWithRevokes + 1, newRevokes);
+
+            final int revokestinybitago = getRevokes(revokedTinyBitAgoTime).length; //Should be same number when test case was started.
+            assertEquals(format("Expected same revocations %d, but got %d", startedWithRevokes, revokestinybitago), startedWithRevokes, revokestinybitago);
+        }
 
         // trying to reenroll the revoked user should fail with an EnrollmentException
         client.reenroll(user);
+    }
+
+    TBSCertList.CRLEntry[] getRevokes(Date r) throws Exception {
+
+        String crl = client.generateCRL(admin, r, null, null, null);
+
+        Base64.Decoder b64dec = Base64.getDecoder();
+        final byte[] decode = b64dec.decode(crl.getBytes(UTF_8));
+
+        ByteArrayInputStream inStream = new ByteArrayInputStream(decode);
+        ASN1InputStream asnInputStream = new ASN1InputStream(inStream);
+
+        return CertificateList.getInstance(asnInputStream.readObject()).getRevokedCertificates();
     }
 
     @Test
