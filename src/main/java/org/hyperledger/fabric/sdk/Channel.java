@@ -2353,12 +2353,9 @@ public class Channel implements Serializable {
 
     public CompletableFuture<TransactionEvent> sendTransaction(Collection<ProposalResponse> proposalResponses, Collection<Orderer> orderers, User userContext) {
         try {
-
             checkChannelState();
             userContextCheck(userContext);
-
             if (null == proposalResponses) {
-
                 throw new InvalidArgumentException("sendTransaction proposalResponses was null");
             }
 
@@ -2370,9 +2367,7 @@ public class Channel implements Serializable {
             }
 
             if (config.getProposalConsistencyValidation()) {
-
                 HashSet<ProposalResponse> invalid = new HashSet<>();
-
                 int consistencyGroups = SDKUtils.getProposalConsistencySets(proposalResponses, invalid).size();
 
                 if (consistencyGroups != 1 || !invalid.isEmpty()) {
@@ -2409,14 +2404,20 @@ public class Channel implements Serializable {
 
             Envelope transactionEnvelope = createTransactionEnvelope(transactionPayload, userContext);
 
-            CompletableFuture<TransactionEvent> sret = registerTxListener(proposalTransactionID);
-            logger.debug(format("Channel %s sending transaction to orderer(s) with TxID %s ", name, proposalTransactionID));
+            CompletableFuture<TransactionEvent> sret;
+            if (getEventHubs().isEmpty()) { //If there are no eventhubs to complete the future, complete it
+                // immediately but give no transaction event
+                sret = new CompletableFuture<>();
+                sret.complete(null);
+            } else {
+                sret = registerTxListener(proposalTransactionID);
+            }
 
+            logger.debug(format("Channel %s sending transaction to orderer(s) with TxID %s ", name, proposalTransactionID));
             boolean success = false;
 
             BroadcastResponse resp = null;
             for (Orderer orderer : orderers) {
-
                 try {
 
                     if (null != diagnosticFileDumper) {
@@ -2426,10 +2427,8 @@ public class Channel implements Serializable {
 
                     resp = orderer.sendTransaction(transactionEnvelope);
                     if (resp.getStatus() == Status.SUCCESS) {
-
                         success = true;
                         break;
-
                     }
                 } catch (Exception e) {
                     String emsg = format("Channel %s unsuccessful sendTransaction to orderer", name);
