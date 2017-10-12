@@ -61,16 +61,17 @@ import javax.xml.bind.DatatypeConverter;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.DERSequenceGenerator;
 import org.bouncycastle.asn1.x9.ECNamedCurveTable;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.digests.SHA3Digest;
-import org.bouncycastle.crypto.params.ECDomainParameters;
-import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
-import org.bouncycastle.crypto.signers.ECDSASigner;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.ContentSigner;
@@ -599,6 +600,42 @@ public class CryptoPrimitives implements CryptoSuite {
         }
     }
 
+    /**
+     * Decodes an ECDSA signature and returns a two element BigInteger array.
+     *
+     * @param signature ECDSA signature bytes.
+     * @return BigInteger array for the signature's r and s values
+     * @throws Exception
+     */
+    private static BigInteger[] decodeECDSASignature(byte[] signature) throws Exception {
+        ByteArrayInputStream inStream = new ByteArrayInputStream(signature);
+        ASN1InputStream asnInputStream = new ASN1InputStream(inStream);
+        ASN1Primitive asn1 = asnInputStream.readObject();
+
+        BigInteger[] sigs = new BigInteger[2];
+        int count = 0;
+        if (asn1 instanceof ASN1Sequence) {
+            ASN1Sequence asn1Sequence = (ASN1Sequence) asn1;
+            ASN1Encodable[] asn1Encodables = asn1Sequence.toArray();
+            for (ASN1Encodable asn1Encodable : asn1Encodables) {
+                ASN1Primitive asn1Primitive = asn1Encodable.toASN1Primitive();
+                if (asn1Primitive instanceof ASN1Integer) {
+                    ASN1Integer asn1Integer = (ASN1Integer) asn1Primitive;
+                    BigInteger integer = asn1Integer.getValue();
+                    if (count  < 2) {
+                        sigs[count] = integer;
+                    }
+                    count++;
+                }
+            }
+        }
+        if (count != 2) {
+            throw new CryptoException(format("Invalid ECDSA signature. Expected count of 2 but got: %d. Signature is: %s", count,
+                    DatatypeConverter.printHexBinary(signature)));
+        }
+        return sigs;
+    }
+
 
     /**
      * Sign data with the specified elliptic curve private key.
@@ -610,19 +647,16 @@ public class CryptoPrimitives implements CryptoSuite {
      */
     private byte[] ecdsaSignToBytes(ECPrivateKey privateKey, byte[] data) throws CryptoException {
         try {
-            final byte[] encoded = hash(data);
-
             X9ECParameters params = ECNamedCurveTable.getByName(curveName);
             BigInteger curveN = params.getN();
 
-            ECDomainParameters ecParams = new ECDomainParameters(params.getCurve(), params.getG(), curveN,
-                    params.getH());
+            Signature sig = SECURITY_PROVIDER == null ? Signature.getInstance(DEFAULT_SIGNATURE_ALGORITHM) :
+                                                        Signature.getInstance(DEFAULT_SIGNATURE_ALGORITHM, SECURITY_PROVIDER);
+            sig.initSign(privateKey);
+            sig.update(data);
+            byte[] signature = sig.sign();
 
-            ECDSASigner signer = new ECDSASigner();
-
-            ECPrivateKeyParameters privKey = new ECPrivateKeyParameters(privateKey.getS(), ecParams);
-            signer.init(true, privKey);
-            BigInteger[] sigs = signer.generateSignature(encoded);
+            BigInteger[] sigs = decodeECDSASignature(signature);
 
             sigs = preventMalleability(sigs, curveN);
 
