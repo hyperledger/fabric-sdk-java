@@ -85,12 +85,18 @@ import org.bouncycastle.util.io.pem.PemReader;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.helper.DiagnosticFileDumper;
 
 import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.helper.Utils.isNullOrEmpty;
 
 public class CryptoPrimitives implements CryptoSuite {
-    private final Config config = Config.getConfig();
+    private static final Log logger = LogFactory.getLog(CryptoPrimitives.class);
+    private static final Config config = Config.getConfig();
+    private static final boolean IS_TRACE_LEVEL = logger.isTraceEnabled();
+
+    private static final DiagnosticFileDumper diagnosticFileDumper = IS_TRACE_LEVEL
+            ? config.getDiagnosticFileDumper() : null;
 
     private String curveName;
     private CertificateFactory cf;
@@ -111,8 +117,6 @@ public class CryptoPrimitives implements CryptoSuite {
 //    private int SYMMETRIC_KEY_BYTE_COUNT = 32;
 //    private String SYMMETRIC_ALGORITHM = "AES/CFB/NoPadding";
 //    private int MAC_KEY_BYTE_COUNT = 32;
-
-    private static final Log logger = LogFactory.getLog(CryptoPrimitives.class);
 
     public CryptoPrimitives() throws ClassNotFoundException, IllegalAccessException, InstantiationException {
         String securityProviderClassName = config.getSecurityProviderClassName();
@@ -263,11 +267,16 @@ public class CryptoPrimitives implements CryptoSuite {
         }
 
         if (config.extraLogLevel(10)) {
-
-            logger.trace("plaintext in hex: " + DatatypeConverter.printHexBinary(plainText));
-            logger.trace("signature in hex: " + DatatypeConverter.printHexBinary(signature));
-            logger.trace("PEM cert in hex: " + DatatypeConverter.printHexBinary(pemCertificate));
-
+            if (null != diagnosticFileDumper) {
+                StringBuilder sb = new StringBuilder(10000);
+                sb.append("plaintext in hex: " + DatatypeConverter.printHexBinary(plainText));
+                sb.append("\n");
+                sb.append("signature in hex: " + DatatypeConverter.printHexBinary(signature));
+                sb.append("\n");
+                sb.append("PEM cert in hex: " + DatatypeConverter.printHexBinary(pemCertificate));
+                logger.trace("verify :  " +
+                        diagnosticFileDumper.createDiagnosticFile(sb.toString()));
+            }
         }
 
         try {
@@ -421,7 +430,10 @@ public class CryptoPrimitives implements CryptoSuite {
 
         try {
             if (config.extraLogLevel(10)) {
-                logger.trace("Adding cert to trust store. alias:  " + alias + "cert: " + caCert.toString());
+                if (null != diagnosticFileDumper) {
+                    logger.trace("Adding cert to trust store. alias: " + diagnosticFileDumper.createDiagnosticFile(alias + "cert: " + caCert.toString()));
+                }
+
             }
             getTrustStore().setCertificateEntry(alias, caCert);
         } catch (KeyStoreException e) {
@@ -455,12 +467,20 @@ public class CryptoPrimitives implements CryptoSuite {
         if (certificatesBytes == null || certificatesBytes.size() == 0) {
             throw new CryptoException("List of CA certificates is empty. Nothing to load.");
         }
+        StringBuilder sb = new StringBuilder(1000);
         ArrayList<Certificate> certList = new ArrayList<>();
         for (byte[] certBytes : certificatesBytes) {
-            logger.trace("certificate to load:\n" + new String(certBytes));
+            if (null != diagnosticFileDumper) {
+                sb.append("certificate to load:\n" + new String(certBytes));
+
+            }
             certList.add(bytesToCertificate(certBytes));
         }
         loadCACertificates(certList);
+        if (diagnosticFileDumper != null && sb.length() > 1) {
+            logger.trace("loaded certificates: " + diagnosticFileDumper.createDiagnosticFile(sb.toString()));
+
+        }
     }
 
     /**

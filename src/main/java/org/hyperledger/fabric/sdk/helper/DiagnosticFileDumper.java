@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.channels.CompletionHandler;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
@@ -33,7 +34,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Dumps files for diagnostic purposes
- *
  */
 
 public class DiagnosticFileDumper implements Runnable {
@@ -84,6 +84,12 @@ public class DiagnosticFileDumper implements Runnable {
     public String createDiagnosticFile(byte[] bytes) {
 
         return createDiagnosticFile(bytes, null, null);
+
+    }
+
+    public String createDiagnosticFile(String msg) {
+
+        return createDiagnosticFile(msg.getBytes(StandardCharsets.UTF_8), null, null);
 
     }
 

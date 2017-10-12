@@ -24,12 +24,17 @@ import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.helper.DiagnosticFileDumper;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 public class ProposalResponse extends ChaincodeResponse {
 
     private static final Log logger = LogFactory.getLog(ProposalResponse.class);
     private static final Config config = Config.getConfig();
+    private static final boolean IS_TRACE_LEVEL = logger.isTraceEnabled();
+
+    private static final DiagnosticFileDumper diagnosticFileDumper = IS_TRACE_LEVEL
+            ? config.getDiagnosticFileDumper() : null;
 
     private boolean isVerified = false;
 
@@ -105,10 +110,19 @@ public class ProposalResponse extends ChaincodeResponse {
 
             if (config.extraLogLevel(10)) {
 
-                logger.trace("payload TransactionBuilderbytes in hex: " + DatatypeConverter.printHexBinary(proposalResponse.getPayload().toByteArray()));
-                logger.trace("endorser bytes in hex: "
-                        + DatatypeConverter.printHexBinary(endorsement.getEndorser().toByteArray()));
-                logger.trace("plainText bytes in hex: " + DatatypeConverter.printHexBinary(plainText.toByteArray()));
+                if (null != diagnosticFileDumper) {
+                    StringBuilder sb = new StringBuilder(10000);
+                    sb.append("payload TransactionBuilderbytes in hex: " + DatatypeConverter.printHexBinary(proposalResponse.getPayload().toByteArray()));
+                    sb.append("\n");
+                    sb.append("endorser bytes in hex: "
+                            + DatatypeConverter.printHexBinary(endorsement.getEndorser().toByteArray()));
+                    sb.append("\n");
+                    sb.append("plainText bytes in hex: " + DatatypeConverter.printHexBinary(plainText.toByteArray()));
+
+                    logger.trace("payload TransactionBuilderbytes:  " +
+                            diagnosticFileDumper.createDiagnosticFile(sb.toString()));
+                }
+
             }
 
             this.isVerified = crypto.verify(endorser.getIdBytes().toByteArray(), config.getSignatureAlgorithm(),

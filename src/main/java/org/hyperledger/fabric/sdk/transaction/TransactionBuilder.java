@@ -26,11 +26,16 @@ import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 import org.hyperledger.fabric.protos.peer.FabricTransaction;
 import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.helper.DiagnosticFileDumper;
 
 public class TransactionBuilder {
 
     private static final Log logger = LogFactory.getLog(TransactionBuilder.class);
-    Config config = Config.getConfig();
+    private static final Config config = Config.getConfig();
+    private static final boolean IS_TRACE_LEVEL = logger.isTraceEnabled();
+
+    private static final DiagnosticFileDumper diagnosticFileDumper = IS_TRACE_LEVEL
+            ? config.getDiagnosticFileDumper() : null;
     private FabricProposal.Proposal chaincodeProposal;
     private Collection<FabricProposalResponse.Endorsement> endorsements;
     private ByteString proposalResponsePayload;
@@ -83,15 +88,25 @@ public class TransactionBuilder {
         Common.Header header = Common.Header.parseFrom(chaincodeProposal.getHeader());
 
         if (config.extraLogLevel(10)) {
-            logger.trace("transaction header bytes:" + Arrays.toString(header.toByteArray()));
-            logger.trace("transaction header sig bytes:" + Arrays.toString(header.getSignatureHeader().toByteArray()));
+
+            if (null != diagnosticFileDumper) {
+                StringBuilder sb = new StringBuilder(10000);
+                sb.append("transaction header bytes:" + Arrays.toString(header.toByteArray()));
+                sb.append("\n");
+                sb.append("transaction header sig bytes:" + Arrays.toString(header.getSignatureHeader().toByteArray()));
+                logger.trace("transaction header:  " +
+                        diagnosticFileDumper.createDiagnosticFile(sb.toString()));
+            }
         }
 
         transactionActionBuilder.setHeader(header.getSignatureHeader());
 
         FabricTransaction.ChaincodeActionPayload chaincodeActionPayload = chaincodeActionPayloadBuilder.build();
         if (config.extraLogLevel(10)) {
-            logger.trace("transactionActionBuilder.setPayload" + Arrays.toString(chaincodeActionPayload.toByteString().toByteArray()));
+            if (null != diagnosticFileDumper) {
+                logger.trace("transactionActionBuilder.setPayload: " +
+                        diagnosticFileDumper.createDiagnosticFile(Arrays.toString(chaincodeActionPayload.toByteString().toByteArray())));
+            }
         }
         transactionActionBuilder.setPayload(chaincodeActionPayload.toByteString());
 
