@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -35,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.Vector;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -87,6 +87,7 @@ import org.hyperledger.fabric.protos.peer.Query.ChaincodeInfo;
 import org.hyperledger.fabric.protos.peer.Query.ChaincodeQueryResponse;
 import org.hyperledger.fabric.protos.peer.Query.ChannelQueryResponse;
 import org.hyperledger.fabric.sdk.BlockEvent.TransactionEvent;
+import org.hyperledger.fabric.sdk.Peer.PeerRole;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.EventHubException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
@@ -138,7 +139,18 @@ public class Channel implements Serializable {
     private final String name;
 
     // The peers on this channel to which the client can connect
-    final Collection<Peer> peers = new Vector<>();
+    private final Collection<Peer> peers = Collections.synchronizedSet(new HashSet<>());
+    // final Set<Peer> eventingPeers = Collections.synchronizedSet(new HashSet<>());
+
+    private final Map<PeerRole, Set<Peer>> peerRoleSetMap = Collections.synchronizedMap(new HashMap<>());
+
+    {
+        for (Peer.PeerRole peerRole : PeerRole.ALL) {
+
+            peerRoleSetMap.put(peerRole, Collections.synchronizedSet(new HashSet<>()));
+
+        }
+    }
 
     // Temporary variables to control how long to wait for deploy and invoke to complete before
     // emitting events.  This will be removed when the SDK is able to receive events from the
@@ -507,6 +519,66 @@ public class Channel implements Serializable {
      */
     public Channel addPeer(Peer peer) throws InvalidArgumentException {
 
+        return addPeer(peer, PeerOptions.create());
+
+    }
+
+    /**
+     * Options for the peer.
+     * <p>
+     * Note: This code pasted from: https://gerrit.hyperledger.org/r/#/c/13895/ - WIP FAB-6066 Channelservice for events
+     */
+    public static class PeerOptions { // allows for future options with less likelihood of breaking api.
+
+        private EnumSet<PeerRole> peerRoles;
+        private String blockType = "Filter"; // not yet used.
+
+        private PeerOptions() {
+
+        }
+
+        EnumSet<PeerRole> getPeerRoles() {
+            if (peerRoles == null) {
+                return PeerRole.ALL;
+            }
+            return peerRoles;
+        }
+
+        String getBlockType() {
+            return blockType;
+        }
+
+        public PeerOptions setPeerRoles(EnumSet<PeerRole> peerRoles) {
+            this.peerRoles = peerRoles;
+            return this;
+        }
+
+        public PeerOptions addPeerRole(PeerRole peerRole) {
+
+            if (peerRoles == null) {
+                peerRoles = EnumSet.noneOf(PeerRole.class);
+
+            }
+            peerRoles.add(peerRole);
+            return this;
+        }
+
+        public static PeerOptions create() {
+            return new PeerOptions();
+        }
+
+    }
+
+    /**
+     * Add a peer to the channel
+     *
+     * @param peer        The Peer to add.
+     * @param peerOptions see {@link PeerRole}
+     * @return Channel The current channel added.
+     * @throws InvalidArgumentException
+     */
+    public Channel addPeer(Peer peer, PeerOptions peerOptions) throws InvalidArgumentException {
+
         if (shutdown) {
             throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
@@ -515,14 +587,32 @@ public class Channel implements Serializable {
             throw new InvalidArgumentException("Peer is invalid can not be null.");
         }
 
+        if (peer.getChannel() != null && peer.getChannel() != this) {
+            throw new InvalidArgumentException(format("Peer already connected to channel %s", peer.getChannel().getName()));
+        }
+
+        if (null == peerOptions) {
+            throw new InvalidArgumentException("Peer is invalid can not be null.");
+        }
+
         peer.setChannel(this);
 
         peers.add(peer);
 
+        for (Map.Entry<PeerRole, Set<Peer>> peerRole : peerRoleSetMap.entrySet()) {
+            if (peerOptions.getPeerRoles().contains(peerRole.getKey())) {
+                peerRole.getValue().add(peer);
+            }
+        }
         return this;
     }
 
+
     public Channel joinPeer(Peer peer) throws ProposalException {
+        return joinPeer(peer, PeerOptions.create());
+    }
+
+    public Channel joinPeer(Peer peer, PeerOptions peerOptions) throws ProposalException {
 
         logger.debug(format("Channel %s joining peer %s, url: %s", name, peer.getName(), peer.getUrl()));
 
@@ -558,7 +648,7 @@ public class Channel implements Serializable {
             SignedProposal signedProposal = getSignedProposal(transactionContext, joinProposal);
             logger.debug("Got signed proposal.");
 
-            addPeer(peer); //need to add peer.
+            addPeer(peer, peerOptions); //need to add peer.
 
             Collection<ProposalResponse> resp = sendProposalToPeers(new ArrayList<>(Collections.singletonList(peer)),
                     signedProposal, transactionContext);
@@ -568,25 +658,31 @@ public class Channel implements Serializable {
             if (pro.getStatus() == ProposalResponse.Status.SUCCESS) {
                 logger.info(format("Peer %s joined into channel %s", peer.getName(), name));
             } else {
-                peers.remove(peer);
-                peer.unsetChannel();
+                removePeer(peer);
                 throw new ProposalException(format("Join peer to channel %s failed.  Status %s, details: %s",
                         name, pro.getStatus().toString(), pro.getMessage()));
 
             }
         } catch (ProposalException e) {
-            peers.remove(peer);
-            peer.unsetChannel();
+            removePeer(peer);
             logger.error(e);
             throw e;
         } catch (Exception e) {
             peers.remove(peer);
-            peer.unsetChannel();
             logger.error(e);
             throw new ProposalException(e.getMessage(), e);
         }
 
         return this;
+    }
+
+    private void removePeer(Peer peer) {
+        peers.remove(peer);
+
+        for (Set<Peer> peerRoleSet : peerRoleSetMap.values()) {
+            peerRoleSet.remove(peer);
+        }
+        peer.unsetChannel();
     }
 
     /**
@@ -646,6 +742,21 @@ public class Channel implements Serializable {
      */
     public Collection<Peer> getPeers() {
         return Collections.unmodifiableCollection(peers);
+    }
+
+    /**
+     * Get the peers for this channel.
+     *
+     * @return the peers.
+     */
+    public Collection<Peer> getPeers(EnumSet<PeerRole> roles) {
+
+        Set<Peer> ret = new HashSet<>(getPeers().size());
+
+        for (PeerRole peerRole : roles) {
+            ret.addAll(peerRoleSetMap.get(peerRole));
+        }
+        return Collections.unmodifiableCollection(ret);
     }
 
     /**
@@ -2155,10 +2266,11 @@ public class Channel implements Serializable {
      * @throws InvalidArgumentException
      * @throws ProposalException
      */
-
     public Collection<ProposalResponse> queryByChaincode(QueryByChaincodeRequest queryByChaincodeRequest) throws InvalidArgumentException, ProposalException {
-        return sendProposal(queryByChaincodeRequest, peers);
+        return queryByChaincode(queryByChaincodeRequest, peers);
     }
+
+
 
     /**
      * Send Query proposal

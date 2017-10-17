@@ -55,6 +55,7 @@ import org.junit.rules.ExpectedException;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -92,6 +93,8 @@ public class HFCAClientIT {
     @BeforeClass
     public static void init() throws Exception {
         out("\n\n\nRUNNING: HFCAClientEnrollIT.\n");
+
+        resetConfig();
 
         crypto = CryptoSuite.Factory.getCryptoSuite();
     }

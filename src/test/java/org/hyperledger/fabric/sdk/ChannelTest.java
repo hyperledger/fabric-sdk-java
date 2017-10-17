@@ -464,7 +464,7 @@ public class ChannelTest {
     public void testTwoChannelsSameName() throws Exception {
 
         thrown.expect(InvalidArgumentException.class);
-        thrown.expectMessage("Channel by the name testTwoChannelsSameName already exits");
+        thrown.expectMessage("Channel by the name testTwoChannelsSameName already exists");
 
         createRunningChannel("testTwoChannelsSameName", null);
         createRunningChannel("testTwoChannelsSameName", null);

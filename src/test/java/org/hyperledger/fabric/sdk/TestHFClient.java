@@ -34,6 +34,13 @@ public class TestHFClient {
 
     public static HFClient newInstance() throws Exception {
 
+        HFClient hfclient = HFClient.createNewInstance();
+        setupClient(hfclient);
+
+        return hfclient;
+    }
+
+    public static void setupClient(HFClient hfclient) throws Exception {
 
         File tempFile = File.createTempFile("teststore", "properties");
         tempFile.deleteOnExit();
@@ -52,45 +59,8 @@ public class TestHFClient {
                 new File("src/test/fixture/sdkintegration/e2e-2Orgs/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/Admin@org1.example.com-cert.pem"));
         someTestUSER.setMspId("testMSPID?");
 
-        HFClient hfclient = HFClient.createNewInstance();
         hfclient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
-
-//        someTestUSER.setEnrollment(new Enrollment() {
-//            @Override
-//            public PrivateKey getKey() {
-//                return new PrivateKey() {
-//                    private static final long serialVersionUID = -7506317638561401152L;
-//
-//                    @Override
-//                    public String getAlgorithm() {
-//                        return "algorithm?";
-//                    }
-//
-//                    @Override
-//                    public String getFormat() {
-//                        return "format?";
-//                    }
-//
-//                    @Override
-//                    public byte[] getEncoded() {
-//                        return new byte[0];
-//                    }
-//                };
-//            }
-//
-//            @Override
-//            public String getCert() {
-//                return "fakecert?";
-//            }
-//
-//        });
         hfclient.setUserContext(someTestUSER);
-
-
-        new TestHFClient(tempFile, hfclient);
-
-        return hfclient;
-
     }
 
     static File findFileSk(String directorys) {

@@ -318,6 +318,19 @@ public class TestConfig {
 
     }
 
+    /**
+     * Returns the appropriate Network Config YAML file based on whether TLS is currently
+     * enabled or not
+     *
+     * @return The appropriate Network Config YAML file
+     */
+    public File getTestNetworkConfigFileYAML() {
+        String fname = runningTLS ? "network-config-tls.yaml" : "network-config.yaml";
+        String pname = "src/test/fixture/sdkintegration/e2e-2Orgs/channel/" + fname;
+        return new File(pname);
+    }
+
+
     private String getDomainName(final String name) {
         int dot = name.indexOf(".");
         if (-1 == dot) {

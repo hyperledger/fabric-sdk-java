@@ -15,6 +15,7 @@ import org.junit.runners.Suite;
         End2endIT.class,
         End2endAndBackAgainIT.class,
         UpdateChannelIT.class,
+        NetworkConfigIT.class,
         HFCAClientIT.class
 })
 public class IntegrationSuite {
