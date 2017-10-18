@@ -123,14 +123,14 @@ public class EnrollmentRequestTest {
         testEnrollReq.setKeyPair(null);
         testEnrollReq.setCAName(caName);
         testEnrollReq.addAttrReq("foo");
-        testEnrollReq.addAttrReq("foorequired").setRequire(true);
-        testEnrollReq.addAttrReq("foofalse").setRequire(false);
+        testEnrollReq.addAttrReq("foorequired").setOptional(false);
+        testEnrollReq.addAttrReq("foofalse").setOptional(true);
 
         String s = testEnrollReq.toJson();
         assertNotNull(s);
         assertTrue(s.contains("\"attr_reqs\":["));
-        assertTrue(s.contains("\"name\":\"foorequired\",\"require\":true"));
-        assertTrue(s.contains("\"name\":\"foofalse\",\"require\":false"));
+        assertTrue(s.contains("\"name\":\"foorequired\",\"optional\":false"));
+        assertTrue(s.contains("\"name\":\"foofalse\",\"optional\":true"));
 
     }
 

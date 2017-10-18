@@ -164,8 +164,8 @@ public class EnrollmentRequest {
             for (AttrReq attrReq : attrreqs.values()) {
                 JsonObjectBuilder i = Json.createObjectBuilder();
                 i.add("name", attrReq.name);
-                if (attrReq.require != null) {
-                    i.add("require", attrReq.require);
+                if (attrReq.optional != null) {
+                    i.add("optional", attrReq.optional);
                 }
                 ab.add(i);
 
@@ -206,7 +206,7 @@ public class EnrollmentRequest {
 
     public class AttrReq {
         final String name;
-        Boolean require = null;
+        Boolean optional = null;
 
         AttrReq(String name) {
             this.name = name;
@@ -216,8 +216,8 @@ public class EnrollmentRequest {
             attrreqs.put(name, this);
         }
 
-        public AttrReq setRequire(boolean require) {
-            this.require = require;
+        public AttrReq setOptional(boolean optional) {
+            this.optional = optional;
             return this;
         }
     }

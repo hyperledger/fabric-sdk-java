@@ -132,7 +132,7 @@ public class HFCAClientIT {
             fail("Secret returned from RegistrationRequest not match : " + user.getEnrollmentSecret());
         }
         EnrollmentRequest req = new EnrollmentRequest();
-        req.addAttrReq("testattr2").setRequire(true);
+        req.addAttrReq("testattr2").setOptional(false);
 
         user.setEnrollment(client.enroll(user.getName(), user.getEnrollmentSecret(), req));
 
