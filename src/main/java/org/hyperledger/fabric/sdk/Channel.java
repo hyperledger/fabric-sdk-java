@@ -3051,7 +3051,17 @@ public class Channel implements Serializable {
 
             if (!chaincodeEvents.isEmpty()) {
 
-                HashMap<ChaincodeEventListenerEntry, ChaincodeEvent> matches = new HashMap<>(); //Find matches.
+                class MatchPair {
+                    final ChaincodeEventListenerEntry eventListener;
+                    final ChaincodeEvent event;
+
+                    MatchPair(ChaincodeEventListenerEntry eventListener, ChaincodeEvent event) {
+                        this.eventListener = eventListener;
+                        this.event = event;
+                    }
+                }
+
+                List<MatchPair> matches = new LinkedList<>(); //Find matches.
 
                 synchronized (chainCodeListeners) {
 
@@ -3061,7 +3071,7 @@ public class Channel implements Serializable {
 
                             if (chaincodeEventListenerEntry.isMatch(chaincodeEvent)) {
 
-                                matches.put(chaincodeEventListenerEntry, chaincodeEvent);
+                                matches.add(new MatchPair(chaincodeEventListenerEntry, chaincodeEvent));
                             }
 
                         }
@@ -3070,10 +3080,10 @@ public class Channel implements Serializable {
                 }
 
                 //fire events
-                for (Map.Entry<ChaincodeEventListenerEntry, ChaincodeEvent> match : matches.entrySet()) {
+                for (MatchPair match : matches) {
 
-                    ChaincodeEventListenerEntry chaincodeEventListenerEntry = match.getKey();
-                    ChaincodeEvent ce = match.getValue();
+                    ChaincodeEventListenerEntry chaincodeEventListenerEntry = match.eventListener;
+                    ChaincodeEvent ce = match.event;
                     chaincodeEventListenerEntry.fire(blockEvent, ce);
 
                 }
