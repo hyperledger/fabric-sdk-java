@@ -18,7 +18,9 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
@@ -33,14 +35,18 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.text.SimpleDateFormat;
 import java.util.Base64;
+import java.util.Date;
 import java.util.Properties;
+import java.util.TimeZone;
 
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
+import javax.json.JsonWriter;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
@@ -81,6 +87,7 @@ import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
+import org.hyperledger.fabric_ca.sdk.exception.GenerateCRLException;
 import org.hyperledger.fabric_ca.sdk.exception.InfoException;
 import org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric_ca.sdk.exception.RegistrationException;
@@ -102,6 +109,7 @@ public class HFCAClient {
     private static final String HFCA_REENROLL = HFCA_CONTEXT_ROOT + "reenroll";
     private static final String HFCA_REVOKE = HFCA_CONTEXT_ROOT + "revoke";
     private static final String HFCA_INFO = HFCA_CONTEXT_ROOT + "cainfo";
+    private static final String HFCA_GENCRL = HFCA_CONTEXT_ROOT + "gencrl";
 
     static final String FABRIC_CA_REQPROP = "caname";
 
@@ -601,6 +609,81 @@ public class HFCAClient {
             logger.error(e.getMessage(), e);
             throw new RevocationException("Error while revoking the user. " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Generate certificate revocation list.
+     *
+     * @param registrar     admin user configured in CA-server
+     * @param revokedBefore Restrict certificates returned to revoked before this date if not null.
+     * @param revokedAfter  Restrict certificates returned to revoked after this date if not null.
+     * @param expireBefore  Restrict certificates returned to expired before this date if not null.
+     * @param expireAfter   Restrict certificates returned to expired after this date if not null.
+     * @throws InvalidArgumentException
+     */
+
+    public String generateCRL(User registrar, Date revokedBefore, Date revokedAfter, Date expireBefore, Date expireAfter)
+            throws InvalidArgumentException, GenerateCRLException {
+
+        if (cryptoSuite == null) {
+            throw new InvalidArgumentException("Crypto primitives not set.");
+        }
+
+        if (registrar == null) {
+            throw new InvalidArgumentException("registrar is not set");
+        }
+
+        try {
+            setUpSSL();
+
+            //---------------------------------------
+            JsonObjectBuilder factory = Json.createObjectBuilder();
+            if (revokedBefore != null) {
+                factory.add("revokedBefore", toJson(revokedBefore));
+            }
+            if (revokedAfter != null) {
+                factory.add("revokedAfter", toJson(revokedAfter));
+            }
+            if (expireBefore != null) {
+                factory.add("expireBefore", toJson(expireBefore));
+            }
+            if (expireAfter != null) {
+                factory.add("expireAfter", toJson(expireAfter));
+            }
+            if (caName != null) {
+                factory.add(HFCAClient.FABRIC_CA_REQPROP, caName);
+            }
+
+            JsonObject jsonObject = factory.build();
+
+            StringWriter stringWriter = new StringWriter();
+            JsonWriter jsonWriter = Json.createWriter(new PrintWriter(stringWriter));
+            jsonWriter.writeObject(jsonObject);
+            jsonWriter.close();
+            String body = stringWriter.toString();
+
+            //---------------------------------------
+
+            // build auth header
+            String authHdr = getHTTPAuthCertificate(registrar.getEnrollment(), body);
+
+            // send revoke request
+            JsonObject ret = httpPost(url + HFCA_GENCRL, body, authHdr);
+
+            return ret.getString("CRL");
+
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            throw new GenerateCRLException(e.getMessage(), e);
+        }
+    }
+
+    private String toJson(Date date) {
+        final TimeZone utc = TimeZone.getTimeZone("UTC");
+
+        SimpleDateFormat tformat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+        tformat.setTimeZone(utc);
+        return tformat.format(date);
     }
 
     /**
