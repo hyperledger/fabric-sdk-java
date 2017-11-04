@@ -104,7 +104,7 @@ public class Config {
             defaultProperty(PROPOSAL_WAIT_TIME, "20000");
             defaultProperty(CHANNEL_CONFIG_WAIT_TIME, "15000");
             defaultProperty(ORDERER_RETRY_WAIT_TIME, "200");
-            defaultProperty(ORDERER_WAIT_TIME, "3000");
+            defaultProperty(ORDERER_WAIT_TIME, "10000");
             defaultProperty(EVENTHUB_CONNECTION_WAIT_TIME, "1000");
             defaultProperty(GENESISBLOCK_WAIT_TIME, "5000");
 
