@@ -48,9 +48,7 @@ public class HFClient {
 
     private CryptoSuite cryptoSuite;
 
-
     static {
-
 
         if (null == System.getProperty("org.hyperledger.fabric.sdk.logGRPC")) {
             // Turn this off by default!
@@ -96,18 +94,17 @@ public class HFClient {
             throw new InvalidArgumentException("CryptoSuite may only be set once.");
 
         }
-//        if (cryptoSuiteFactory == null) {
-//            cryptoSuiteFactory = cryptoSuite.getCryptoSuiteFactory();
-//        } else {
-//            if (cryptoSuiteFactory != cryptoSuite.getCryptoSuiteFactory()) {
-//                throw new InvalidArgumentException("CryptoSuite is not derivied from cryptosuite factory");
-//            }
-//        }
+        //        if (cryptoSuiteFactory == null) {
+        //            cryptoSuiteFactory = cryptoSuite.getCryptoSuiteFactory();
+        //        } else {
+        //            if (cryptoSuiteFactory != cryptoSuite.getCryptoSuiteFactory()) {
+        //                throw new InvalidArgumentException("CryptoSuite is not derivied from cryptosuite factory");
+        //            }
+        //        }
 
         this.cryptoSuite = cryptoSuite;
 
     }
-
 
     /**
      * createNewInstance create a new instance of the HFClient
@@ -160,7 +157,8 @@ public class HFClient {
      * @throws InvalidArgumentException
      */
 
-    public Channel newChannel(String name, Orderer orderer, ChannelConfiguration channelConfiguration, byte[]... channelConfigurationSignatures) throws TransactionException, InvalidArgumentException {
+    public Channel newChannel(String name, Orderer orderer, ChannelConfiguration channelConfiguration,
+            byte[]... channelConfigurationSignatures) throws TransactionException, InvalidArgumentException {
 
         clientCheck();
         if (Utils.isNullOrEmpty(name)) {
@@ -175,7 +173,8 @@ public class HFClient {
 
             logger.trace("Creating channel :" + name);
 
-            Channel newChannel = Channel.createNewInstance(name, this, orderer, channelConfiguration, channelConfigurationSignatures);
+            Channel newChannel = Channel.createNewInstance(name, this, orderer, channelConfiguration,
+                    channelConfigurationSignatures);
 
             channels.put(name, newChannel);
             return newChannel;
@@ -213,7 +212,8 @@ public class HFClient {
      * @throws InvalidArgumentException
      */
 
-    public Channel deSerializeChannel(byte[] channelBytes) throws IOException, ClassNotFoundException, InvalidArgumentException {
+    public Channel deSerializeChannel(byte[] channelBytes)
+            throws IOException, ClassNotFoundException, InvalidArgumentException {
 
         Channel channel;
         ObjectInputStream in = null;
@@ -260,6 +260,10 @@ public class HFClient {
      *                   useful in development to get past default server hostname verification during
      *                   TLS handshake, when the server host name does not match the certificate.
      *                   </li>
+     *                   <li>clientKeyFile - File location for private key pem for mutual TLS</li>
+     *                   <li>clientCertFile - File location for x509 pem certificate for mutual TLS</li>
+     *                   <li>clientKeyBytes - Private key pem bytes for mutual TLS</li>
+     *                   <li>clientCertBytes - x509 pem certificate bytes for mutual TLS</li>
      *                   <li>hostnameOverride - Specify the certificates CN -- for development only.
      *                   <li>sslProvider - Specify the SSL provider, openSSL or JDK.</li>
      *                   <li>negotiationType - Specify the type of negotiation, TLS or plainText.</li>
@@ -365,7 +369,8 @@ public class HFClient {
         userContextCheck(userContext);
         this.userContext = userContext;
 
-        logger.debug(format("Setting user context to MSPID: %s user: %s", userContext.getMspId(), userContext.getName()));
+        logger.debug(
+                format("Setting user context to MSPID: %s user: %s", userContext.getMspId(), userContext.getName()));
 
     }
 
@@ -384,6 +389,8 @@ public class HFClient {
      *                   useful in development to get past default server hostname verification during
      *                   TLS handshake, when the server host name does not match the certificate.
      *                   </li>
+     *                   <li>clientKeyFile - File location for PKCS8-encoded private key pem for mutual TLS</li>
+     *                   <li>clientCertFile - File location for x509 pem certificate for mutual TLS</li>
      *                   <li>hostnameOverride - Specify the certificates CN -- for development only.
      *                   <li>sslProvider - Specify the SSL provider, openSSL or JDK.</li>
      *                   <li>negotiationType - Specify the type of negotiation, TLS or plainText.</li>
@@ -449,6 +456,10 @@ public class HFClient {
      *                   useful in development to get past default server hostname verification during
      *                   TLS handshake, when the server host name does not match the certificate.
      *                   </li>
+     *                   <li>clientKeyFile - File location for private key pem for mutual TLS</li>
+     *                   <li>clientCertFile - File location for x509 pem certificate for mutual TLS</li>
+     *                   <li>clientKeyBytes - Private key pem bytes for mutual TLS</li>
+     *                   <li>clientCertBytes - x509 pem certificate bytes for mutual TLS</li>
      *                   <li>sslProvider - Specify the SSL provider, openSSL or JDK.</li>
      *                   <li>negotiationType - Specify the type of negotiation, TLS or plainText.</li>
      *                   <li>hostnameOverride - Specify the certificates CN -- for development only.
@@ -500,7 +511,7 @@ public class HFClient {
 
             return systemChannel.queryChannels(peer);
         } catch (InvalidArgumentException e) {
-            throw e;  //dont log
+            throw e; //dont log
         } catch (ProposalException e) {
             logger.error(format("queryChannels for peer %s failed." + e.getMessage(), peer.getName()), e);
             throw e;
@@ -549,7 +560,8 @@ public class HFClient {
      * @throws InvalidArgumentException
      */
 
-    public byte[] getChannelConfigurationSignature(ChannelConfiguration channelConfiguration, User signer) throws InvalidArgumentException {
+    public byte[] getChannelConfigurationSignature(ChannelConfiguration channelConfiguration, User signer)
+            throws InvalidArgumentException {
 
         clientCheck();
 
@@ -567,7 +579,8 @@ public class HFClient {
      * @throws InvalidArgumentException
      */
 
-    public byte[] getUpdateChannelConfigurationSignature(UpdateChannelConfiguration updateChannelConfiguration, User signer) throws InvalidArgumentException {
+    public byte[] getUpdateChannelConfigurationSignature(UpdateChannelConfiguration updateChannelConfiguration,
+            User signer) throws InvalidArgumentException {
 
         clientCheck();
 
@@ -586,8 +599,8 @@ public class HFClient {
      * @throws ProposalException
      */
 
-    public Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest, Collection<Peer> peers)
-            throws ProposalException, InvalidArgumentException {
+    public Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest,
+            Collection<Peer> peers) throws ProposalException, InvalidArgumentException {
 
         clientCheck();
 
@@ -603,7 +616,6 @@ public class HFClient {
         if (null == cryptoSuite) {
             throw new InvalidArgumentException("No cryptoSuite has been set.");
         }
-
 
         userContextCheck(userContext);
 

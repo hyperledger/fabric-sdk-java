@@ -14,6 +14,8 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 import org.junit.Assert;
@@ -123,5 +125,168 @@ public class EndpointTest {
         testprops.setProperty("negotiationType", "TLS");
 
         Assert.assertSame(new Endpoint("grpcs://localhost:594", testprops).getClass(), Endpoint.class);
+    }
+
+    @Test
+    public void testNullPropertyClientKeyFile() {
+        thrown.expect(RuntimeException.class);
+        thrown.expectMessage("Properties \"clientKeyFile\" and \"clientCertFile\" must both be set or both be null");
+
+        Properties testprops = new Properties();
+        testprops.setProperty("trustServerCertificate", "true");
+        testprops.setProperty("pemFile", System.getProperty("user.dir") + "/src/test/resources/keypair-signed.crt");
+        testprops.setProperty("sslProvider", "openSSL");
+        testprops.setProperty("hostnameOverride", "override");
+        testprops.setProperty("negotiationType", "TLS");
+        testprops.setProperty("clientCertFile", "clientCertFile");
+
+        new Endpoint("grpcs://localhost:594", testprops);
+    }
+
+    @Test
+    public void testNullPropertyClientKeyBytes() {
+        thrown.expect(RuntimeException.class);
+        thrown.expectMessage("Properties \"clientKeyBytes\" and \"clientCertBytes\" must both be set or both be null");
+
+        Properties testprops = new Properties();
+        testprops.setProperty("trustServerCertificate", "true");
+        testprops.setProperty("pemFile", System.getProperty("user.dir") + "/src/test/resources/keypair-signed.crt");
+        testprops.setProperty("sslProvider", "openSSL");
+        testprops.setProperty("hostnameOverride", "override");
+        testprops.setProperty("negotiationType", "TLS");
+        testprops.put("clientCertBytes", new byte[100]);
+
+        new Endpoint("grpcs://localhost:594", testprops);
+    }
+
+    @Test
+    public void testNullPropertyClientCertFile() {
+        thrown.expect(RuntimeException.class);
+        thrown.expectMessage("Properties \"clientKeyFile\" and \"clientCertFile\" must both be set or both be null");
+
+        Properties testprops = new Properties();
+        testprops.setProperty("trustServerCertificate", "true");
+        testprops.setProperty("pemFile", System.getProperty("user.dir") + "/src/test/resources/keypair-signed.crt");
+        testprops.setProperty("sslProvider", "openSSL");
+        testprops.setProperty("hostnameOverride", "override");
+        testprops.setProperty("negotiationType", "TLS");
+        testprops.setProperty("clientKeyFile", "clientKeyFile");
+
+        new Endpoint("grpcs://localhost:594", testprops);
+    }
+
+    @Test
+    public void testNullPropertyClientCertBytes() {
+        thrown.expect(RuntimeException.class);
+        thrown.expectMessage("Properties \"clientKeyBytes\" and \"clientCertBytes\" must both be set or both be null");
+
+        Properties testprops = new Properties();
+        testprops.setProperty("trustServerCertificate", "true");
+        testprops.setProperty("pemFile", System.getProperty("user.dir") + "/src/test/resources/keypair-signed.crt");
+        testprops.setProperty("sslProvider", "openSSL");
+        testprops.setProperty("hostnameOverride", "override");
+        testprops.setProperty("negotiationType", "TLS");
+        testprops.put("clientKeyBytes", new byte[100]);
+
+        new Endpoint("grpcs://localhost:594", testprops);
+    }
+
+    @Test
+    public void testBadClientKeyFile() {
+        thrown.expect(RuntimeException.class);
+        thrown.expectMessage("Failed to parse TLS client key and/or cert");
+
+        Properties testprops = new Properties();
+        testprops.setProperty("trustServerCertificate", "true");
+        testprops.setProperty("pemFile", System.getProperty("user.dir") + "/src/test/resources/keypair-signed.crt");
+        testprops.setProperty("sslProvider", "openSSL");
+        testprops.setProperty("hostnameOverride", "override");
+        testprops.setProperty("negotiationType", "TLS");
+        testprops.setProperty("clientKeyFile", System.getProperty("user.dir") + "/src/test/resources/bad-ca.crt");
+        testprops.setProperty("clientCertFile", System.getProperty("user.dir") + "/src/test/resources/tls-client.crt");
+
+        new Endpoint("grpcs://localhost:594", testprops);
+    }
+
+    @Test
+    public void testBadClientCertFile() {
+        thrown.expect(RuntimeException.class);
+        thrown.expectMessage("Failed to parse TLS client key and/or cert");
+
+        Properties testprops = new Properties();
+        testprops.setProperty("trustServerCertificate", "true");
+        testprops.setProperty("pemFile", System.getProperty("user.dir") + "/src/test/resources/keypair-signed.crt");
+        testprops.setProperty("sslProvider", "openSSL");
+        testprops.setProperty("hostnameOverride", "override");
+        testprops.setProperty("negotiationType", "TLS");
+        testprops.setProperty("clientKeyFile", System.getProperty("user.dir") + "/src/test/resources/tls-client.key");
+        testprops.setProperty("clientCertFile", System.getProperty("user.dir") + "/src/test/resources/bad-ca.crt");
+
+        new Endpoint("grpcs://localhost:594", testprops);
+    }
+
+    @Test
+    public void testClientTLSInvalidProperties() {
+        Properties testprops = new Properties();
+        testprops.setProperty("trustServerCertificate", "true");
+        testprops.setProperty("pemFile", System.getProperty("user.dir") + "/src/test/resources/keypair-signed.crt");
+        testprops.setProperty("sslProvider", "openSSL");
+        testprops.setProperty("hostnameOverride", "override");
+        testprops.setProperty("negotiationType", "TLS");
+
+        testprops.setProperty("clientKeyFile", System.getProperty("user.dir") + "/src/test/resources/tls-client.key");
+        testprops.put("clientKeyBytes", new byte[100]);
+        try {
+            new Endpoint("grpcs://localhost:594", testprops);
+        } catch (RuntimeException e) {
+            Assert.assertEquals("Properties \"clientKeyFile\" and \"clientKeyBytes\" must cannot both be set", e.getMessage());
+        }
+
+        testprops.remove("clientKeyFile");
+        testprops.remove("clientKeyBytes");
+        testprops.setProperty("clientCertFile", System.getProperty("user.dir") + "/src/test/resources/tls-client.crt");
+        testprops.put("clientCertBytes", new byte[100]);
+        try {
+            new Endpoint("grpcs://localhost:594", testprops);
+        } catch (RuntimeException e) {
+            Assert.assertEquals("Properties \"clientCertFile\" and \"clientCertBytes\" must cannot both be set", e.getMessage());
+        }
+
+        testprops.remove("clientCertFile");
+        testprops.put("clientKeyBytes", new byte[100]);
+        testprops.put("clientCertBytes", new byte[100]);
+        try {
+            new Endpoint("grpcs://localhost:594", testprops);
+        } catch (RuntimeException e) {
+            Assert.assertEquals("Failed to parse TLS client key and/or certificate", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testClientTLSProperties() {
+
+        Properties testprops = new Properties();
+
+        testprops.setProperty("trustServerCertificate", "true");
+        testprops.setProperty("pemFile", System.getProperty("user.dir") + "/src/test/resources/keypair-signed.crt");
+        testprops.setProperty("sslProvider", "openSSL");
+        testprops.setProperty("hostnameOverride", "override");
+        testprops.setProperty("negotiationType", "TLS");
+        testprops.setProperty("clientKeyFile", System.getProperty("user.dir") + "/src/test/resources/tls-client.key");
+        testprops.setProperty("clientCertFile", System.getProperty("user.dir") + "/src/test/resources/tls-client.crt");
+        new Endpoint("grpcs://localhost:594", testprops);
+
+        byte[] ckb = null, ccb = null;
+        try {
+            ckb = Files.readAllBytes(Paths.get(System.getProperty("user.dir") + "/src/test/resources/tls-client.key"));
+            ccb = Files.readAllBytes(Paths.get(System.getProperty("user.dir") + "/src/test/resources/tls-client.crt"));
+        } catch (Exception e) {
+            Assert.fail("failed to read tls client key or cert: " + e.toString());
+        }
+        testprops.remove("clientKeyFile");
+        testprops.remove("clientCertFile");
+        testprops.put("clientKeyBytes", ckb);
+        testprops.put("clientCertBytes", ccb);
+        new Endpoint("grpcs://localhost:594", testprops);
     }
 }

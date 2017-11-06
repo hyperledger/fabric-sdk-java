@@ -73,6 +73,9 @@ import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.digests.SHA3Digest;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -256,6 +259,27 @@ public class CryptoPrimitives implements CryptoSuite {
 
         return ret;
 
+    }
+
+     /**
+     * Return PrivateKey  from pem bytes.
+     *
+     * @param pemKey pem-encoded private key
+     * @return
+     */
+    public PrivateKey bytesToPrivateKey(byte[] pemKey) throws CryptoException {
+        PrivateKey pk = null;
+        CryptoException ce = null;
+
+        try {
+            PEMParser pem = new PEMParser(new StringReader(new String(pemKey)));
+            PEMKeyPair kp = (PEMKeyPair) pem.readObject();
+            pk = new JcaPEMKeyConverter().getPrivateKey(kp.getPrivateKeyInfo());
+        } catch (Exception e) {
+            throw new CryptoException("Failed to convert private key bytes", e);
+        }
+
+        return pk;
     }
 
     @Override

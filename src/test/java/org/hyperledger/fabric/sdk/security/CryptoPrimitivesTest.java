@@ -490,6 +490,26 @@ public class CryptoPrimitivesTest {
         crypto.bytesToCertificate(null);
     }
 
+    @Test (expected = CryptoException.class)
+    public void testBytesToPrivateKeyInvalidBytes() throws CryptoException {
+        crypto.bytesToPrivateKey(INVALID_PEM_CERT.getBytes());
+    }
+
+    @Test (expected = CryptoException.class)
+    public void testBytesToPrivateKeyNullBytes() throws CryptoException {
+        crypto.bytesToPrivateKey(null);
+    }
+
+    @Test
+    public void testBytesToPrivateKey() {
+        try {
+            byte[] bytes = Files.readAllBytes(Paths.get(System.getProperty("user.dir") + "/src/test/resources/tls-client.key"));
+            PrivateKey pk = crypto.bytesToPrivateKey(bytes);
+        } catch (Exception e) {
+            Assert.fail("failed to parse private key bytes: " + e.toString());
+        }
+    }
+
     @Test
     public void testValidateNotSignedCertificate() {
         try {
