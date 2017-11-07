@@ -34,19 +34,41 @@ public class RegistrationRequest {
     // The enrollment ID of the user
     private String enrollmentID;
     // Type of identity
-    private String type;
+    private String type = "user";
     // Optional secret
     private String secret;
     // Maximum number of enrollments with the secret
-    private int maxEnrollments;
+    private Integer maxEnrollments = null;
     // Affiliation for a user
     private String affiliation;
     // Array of attribute names and values
-    private Collection<Attribute> attrs;
+    private Collection<Attribute> attrs = new ArrayList<Attribute>();
 
     private String caName;
 
     // Constructor
+
+    /**
+     * Register user with certificate authority
+     *
+     * @param id The id of the user to register.
+     * @throws Exception
+     */
+    public RegistrationRequest(String id) throws Exception {
+        if (id == null) {
+            throw new Exception("id may not be null");
+        }
+        this.enrollmentID = id;
+
+    }
+
+    /**
+     * Register user with certificate authority
+     *
+     * @param id          The id of the user to register.
+     * @param affiliation The user's affiliation.
+     * @throws Exception
+     */
     public RegistrationRequest(String id, String affiliation) throws Exception {
         if (id == null) {
             throw new Exception("id may not be null");
@@ -54,10 +76,10 @@ public class RegistrationRequest {
         if (affiliation == null) {
             throw new Exception("affiliation may not be null");
         }
+
         this.enrollmentID = id;
         this.affiliation = affiliation;
-        this.type = "user";
-        this.attrs = new ArrayList<Attribute>();
+
     }
 
     public String getEnrollmentID() {
@@ -76,7 +98,7 @@ public class RegistrationRequest {
         this.secret = secret;
     }
 
-    public int getMaxEnrollments() {
+    public Integer getMaxEnrollments() {
         return maxEnrollments;
     }
 
@@ -113,7 +135,7 @@ public class RegistrationRequest {
     }
 
     // Convert the registration request to a JSON string
-    public String toJson() {
+    String toJson() {
         StringWriter stringWriter = new StringWriter();
         JsonWriter jsonWriter = Json.createWriter(new PrintWriter(stringWriter));
         jsonWriter.writeObject(toJsonObject());
@@ -122,15 +144,21 @@ public class RegistrationRequest {
     }
 
     // Convert the registration request to a JSON object
-    public JsonObject toJsonObject() {
+    JsonObject toJsonObject() {
         JsonObjectBuilder ob = Json.createObjectBuilder();
         ob.add("id", enrollmentID);
         ob.add("type", type);
         if (this.secret != null) {
             ob.add("secret", secret);
         }
-        ob.add("max_enrollments", maxEnrollments);
-        ob.add("affiliation", affiliation);
+        if (null != maxEnrollments) {
+
+            ob.add("max_enrollments", maxEnrollments);
+        }
+        if (affiliation != null) {
+            ob.add("affiliation", affiliation);
+        }
+
         JsonArrayBuilder ab = Json.createArrayBuilder();
         for (Attribute attr : attrs) {
             ab.add(attr.toJsonObject());

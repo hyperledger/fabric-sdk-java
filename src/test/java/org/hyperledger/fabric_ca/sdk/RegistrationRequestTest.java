@@ -14,6 +14,8 @@
 
 package org.hyperledger.fabric_ca.sdk;
 
+import javax.json.JsonObject;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -35,9 +37,38 @@ public class RegistrationRequestTest {
             RegistrationRequest testRegisterReq = new RegistrationRequest(regID, regAffiliation);
             Assert.assertEquals(testRegisterReq.getEnrollmentID(), regID);
             Assert.assertEquals(testRegisterReq.getType(), regType);
-            Assert.assertEquals(testRegisterReq.getMaxEnrollments(), 0);
+            Assert.assertEquals(testRegisterReq.getMaxEnrollments(), null);
             Assert.assertEquals(testRegisterReq.getAffiliation(), regAffiliation);
             Assert.assertTrue(testRegisterReq.getAttributes().isEmpty());
+
+            JsonObject jo = testRegisterReq.toJsonObject();
+
+            Assert.assertEquals(jo.getString("affiliation"), regAffiliation);
+            Assert.assertFalse(jo.containsKey("max_enrollments"));
+            Assert.assertEquals(regID, jo.getString("id"));
+
+        } catch (Exception e) {
+            Assert.fail("Unexpected Exception " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testNewInstanceNoAffiliation() {
+
+        try {
+            RegistrationRequest testRegisterReq = new RegistrationRequest(regID);
+            testRegisterReq.setMaxEnrollments(3);
+
+            Assert.assertEquals(regID, testRegisterReq.getEnrollmentID());
+            Assert.assertEquals(regType, testRegisterReq.getType());
+            Assert.assertEquals(new Integer(3), testRegisterReq.getMaxEnrollments());
+            Assert.assertEquals(null, testRegisterReq.getAffiliation());
+            Assert.assertTrue(testRegisterReq.getAttributes().isEmpty());
+
+            JsonObject jo = testRegisterReq.toJsonObject();
+            Assert.assertFalse(jo.containsKey("affiliation"));
+            Assert.assertEquals(3, jo.getInt("max_enrollments"));
+            Assert.assertEquals(regID, jo.getString("id"));
 
         } catch (Exception e) {
             Assert.fail("Unexpected Exception " + e.getMessage());
