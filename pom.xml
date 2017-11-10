@@ -192,6 +192,11 @@
             <version>1.20</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.miracl.milagro.amcl</groupId>
+            <artifactId>milagro-crypto-java</artifactId>
+            <version>0.1.0</version>
+        </dependency>
     </dependencies>
 
 
