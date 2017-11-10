@@ -17,17 +17,17 @@ option java_package = "org.hyperledger.fabric.protos.idemix";
 // ECP is an elliptic curve point specified by its coordinates
 // ECP corresponds to an element of the first group (G1)
 message ECP {
-    bytes x = 1;
-    bytes y = 2;
+	bytes x = 1;
+	bytes y = 2;
 }
 
 // ECP2 is an elliptic curve point specified by its coordinates
 // ECP2 corresponds to an element of the second group (G2)
 message ECP2 {
-    bytes xa = 1;
-    bytes xb = 2;
-    bytes ya = 3;
-    bytes yb = 4;
+	bytes xa = 1;
+	bytes xb = 2;
+	bytes ya = 3;
+	bytes yb = 4;
 }
 
 // IssuerPublicKey specifies an issuer public key that consists of
@@ -36,35 +36,35 @@ message ECP2 {
 // proof_c, proof_s compose a zero-knowledge proof of knowledge of the secret key
 // hash is a hash of the public key appended to it
 message IssuerPublicKey {
-    repeated string attribute_names = 1;
-    ECP h_sk = 2;
-    ECP h_rand = 3;
-    repeated ECP h_attrs = 4;
-    ECP2 w = 5;
-    ECP bar_g1 = 6;
-    ECP bar_g2 = 7;
-    bytes proof_c = 8;
-    bytes proof_s = 9;
-    bytes hash = 10;
+	repeated string attribute_names = 1;
+	ECP h_sk = 2;
+	ECP h_rand = 3;
+	repeated ECP h_attrs = 4;
+	ECP2 w = 5;
+	ECP bar_g1 = 6;
+	ECP bar_g2 = 7;
+	bytes proof_c = 8;
+	bytes proof_s = 9;
+	bytes hash = 10;
 }
 
 // IssuerKey specifies an issuer key pair that consists of
 // ISk - the issuer secret key and
 // IssuerPublicKey - the issuer public key
 message IssuerKey {
-    bytes isk = 1;
-    IssuerPublicKey ipk = 2;
+	bytes isk = 1;
+	IssuerPublicKey ipk = 2;
 }
 
 // Credential specifies a credential object that consists of
 // a, b, e, s - signature value
 // attrs - attribute values
 message Credential {
-    ECP a = 1;
-    ECP b = 2;
-    bytes e = 3;
-    bytes s = 4;
-    repeated bytes attrs = 5;
+	ECP a = 1;
+	ECP b = 2;
+	bytes e = 3;
+	bytes s = 4;
+	repeated bytes attrs = 5;
 }
 
 // CredRequest specifies a credential request object that consists of
@@ -73,10 +73,10 @@ message Credential {
 // proof_c, proof_s - a zero-knowledge proof of knowledge of the
 // user secret inside Nym
 message CredRequest {
-    ECP nym = 1;
-    bytes issuer_nonce = 2;
-    bytes proof_c = 3;
-    bytes proof_s = 4;
+	ECP nym = 1;
+	bytes issuer_nonce = 2;
+	bytes proof_c = 3;
+	bytes proof_s = 4;
 }
 
 // Signature specifies a signature object that consists of
@@ -102,13 +102,23 @@ message Signature {
     ECP2 revocation_epoch_pk = 14;
     bytes revocation_pk_sig = 15;
     int64 epoch = 16;
-    NonRevocationProof non_revocation_proof = 17;
+	NonRevocationProof non_revocation_proof = 17;
 }
 
 // NonRevocationProof contains proof that the credential is not revoked
 message NonRevocationProof {
     int32 revocation_alg = 1;
     bytes non_revocation_proof = 2;
+}
+
+// PlainSigNonRevokedProof is a non-revoked proof for the plain signature-based revocation algorithm.
+// It proves that the revocation authority placed a weak Boneh-Boyen signature (ia.cr/2009/221) on its revocation handle,
+// using the zero knowledge proof from Camenisch, Drijvers, Hajny: "Scalable Revocation Scheme for Anonymous Credentials
+// Based on n-times Unlinkable Proofs"
+message PlainSigNonRevokedProof {
+    ECP sigma_prime = 1;
+    ECP sigma_bar = 2;
+    bytes proof_s_r = 3;
 }
 
 // NymSignature specifies a signature object that signs a message
@@ -128,18 +138,32 @@ message NymSignature {
 }
 
 message CredentialRevocationInformation {
-    // epoch contains the epoch (time window) in which this CRI is valid
-    int64 epoch = 1;
+	// epoch contains the epoch (time window) in which this CRI is valid
+	int64 epoch = 1;
 
-    // epoch_pk is the public key that is used by the revocation authority in this epoch
-    ECP2 epoch_pk = 2;
+	// epoch_pk is the public key that is used by the revocation authority in this epoch
+	ECP2 epoch_pk = 2;
 
-    // epoch_pk_sig is a signature on the EpochPK valid under the revocation authority's long term key
-    bytes epoch_pk_sig = 3;
+	// epoch_pk_sig is a signature on the EpochPK valid under the revocation authority's long term key
+	bytes epoch_pk_sig = 3;
 
-    // revocation_alg denotes which revocation algorithm is used
-    int32 revocation_alg = 4;
+	// revocation_alg denotes which revocation algorithm is used
+	int32 revocation_alg = 4;
 
-    // revocation_data contains data specific to the revocation algorithm used
-    bytes revocation_data = 5;
+	// revocation_data contains data specific to the revocation algorithm used
+	bytes revocation_data = 5;
+}
+
+// PlainSigRevocationData holds the algorithm-specific data for the plain signature-based revocation algorithm
+message PlainSigRevocationData {
+    // sigantures contains a list of signed revocation handles
+    repeated MessageSignature signatures = 1;
+}
+
+message MessageSignature {
+    // revocation_handle is the revocation handle signed
+    bytes revocation_handle = 1;
+
+    // rh_signature is the signature on the revocation handle
+    ECP rh_signature = 2;
 }

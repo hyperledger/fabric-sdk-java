@@ -207,6 +207,13 @@
             <version>1.23</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.miracl.milagro.amcl/milagro-crypto-java -->
+        <dependency>
+            <groupId>org.miracl.milagro.amcl</groupId>
+            <artifactId>milagro-crypto-java</artifactId>
+            <version>0.4.0</version>
+        </dependency>
+
     </dependencies>
 
 
@@ -308,7 +315,7 @@
                 <version>2.10.4</version>
                 <configuration>
                     <excludePackageNames>
-                        org.hyperledger.fabric_ca.sdk.helper:org.hyperledger.fabric.protos.*:org.hyperledger.fabric.sdk.helper:org.hyperledger.fabric.sdk.transaction:org.hyperledger.fabric.sdk.security
+                        org.hyperledger.fabric_ca.sdk.helper:org.hyperledger.fabric.protos.*:org.hyperledger.fabric.sdk.helper:org.hyperledger.fabric.sdk.transaction:org.hyperledger.fabric.sdk.security:org.hyperledger.fabric.sdk.idemix
                     </excludePackageNames>
                     <show>public</show>
                     <doctitle>Hyperledger Fabric Java SDK</doctitle>
