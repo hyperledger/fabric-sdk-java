@@ -271,10 +271,13 @@ public class End2endIT {
 
                         chaincodeEvents.add(new ChaincodeEventCapture(handle, blockEvent, chaincodeEvent));
 
-                        out("RECEIVED Chaincode event with handle: %s, chhaincode Id: %s, chaincode event name: %s, "
+                        out("RECEIVED Chaincode event with handle: %s, chaincode Id: %s, chaincode event name: %s, "
+                                        + "block timestamp: %s, "
                                         + "transaction id: %s, event payload: \"%s\", from eventhub: %s",
                                 handle, chaincodeEvent.getChaincodeId(),
-                                chaincodeEvent.getEventName(), chaincodeEvent.getTxId(),
+                                chaincodeEvent.getEventName(),
+                                blockEvent.getTimestamp() == null ? "<na>" : blockEvent.getTimestamp().toString(),
+                                chaincodeEvent.getTxId(),
                                 new String(chaincodeEvent.getPayload()), blockEvent.getEventHub().toString());
 
                     });

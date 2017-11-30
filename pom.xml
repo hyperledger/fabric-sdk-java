@@ -28,9 +28,9 @@
         <tag>fabric-sdk-java-1.0</tag>
     </scm>
     <properties>
-        <grpc.version>1.7.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
+        <grpc.version>1.8.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
         <bouncycastle.version>1.58</bouncycastle.version>
-        <httpclient.version>4.5.3</httpclient.version>
+        <httpclient.version>4.5.4</httpclient.version>
         <skipITs>true</skipITs>
         <alpn-boot-version>8.1.7.v20160121</alpn-boot-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

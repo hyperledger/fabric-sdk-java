@@ -36,6 +36,7 @@ import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.EventHubException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.transaction.ProtoUtils;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 
 import static java.lang.String.format;
@@ -322,6 +323,7 @@ public class EventHub implements Serializable {
                 .addEvents(PeerEvents.Interest.newBuilder().setEventType(PeerEvents.EventType.BLOCK).build()).build();
         ByteString blockEventByteString = PeerEvents.Event.newBuilder().setRegister(register)
                 .setCreator(transactionContext.getIdentity().toByteString())
+                .setTimestamp(ProtoUtils.getCurrentFabricTimestamp())
                 .build().toByteString();
         PeerEvents.SignedEvent signedBlockEvent = PeerEvents.SignedEvent.newBuilder()
                 .setEventBytes(blockEventByteString)

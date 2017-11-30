@@ -13,6 +13,7 @@
  */
 package org.hyperledger.fabric.sdk.transaction;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -146,7 +147,6 @@ public final class ProtoUtils {
 
     }
 
-
     // static CryptoSuite suite = null;
 
     public static ByteString getSignatureHeaderAsByteString(TransactionContext transactionContext) {
@@ -208,18 +208,20 @@ public final class ProtoUtils {
     }
 
     public static Timestamp getCurrentFabricTimestamp() {
-
-        final long millis = System.currentTimeMillis();
-
-        return Timestamp.newBuilder().setSeconds(millis / 1000)
-                .setNanos((int) ((millis % 1000) * 1000000)).build();
-
+        Instant time = Instant.now();
+        return Timestamp.newBuilder().setSeconds(time.getEpochSecond())
+                .setNanos(time.getNano()).build();
     }
 
     public static Date getDateFromTimestamp(Timestamp timestamp) {
-
         return new Date(Timestamps.toMillis(timestamp));
+    }
 
+    static Timestamp getTimestampFromDate(Date date) {
+
+        long millis = date.getTime();
+        return Timestamp.newBuilder().setSeconds(millis / 1000)
+                .setNanos((int) ((millis % 1000) * 1000000)).build();
     }
 
     /**

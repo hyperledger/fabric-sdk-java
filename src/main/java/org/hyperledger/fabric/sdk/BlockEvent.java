@@ -14,13 +14,16 @@
 package org.hyperledger.fabric.sdk;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Timestamp;
 import org.hyperledger.fabric.protos.common.Common.Block;
 import org.hyperledger.fabric.protos.peer.PeerEvents.Event;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
+import org.hyperledger.fabric.sdk.transaction.ProtoUtils;
 
 /**
  * A wrapper for the Block returned in an Event
@@ -63,6 +66,19 @@ public class BlockEvent extends BlockInfo {
         super(event.getBlock());
         this.eventHub = eventHub;
         this.event = event;
+    }
+
+    public Date getTimestamp() {
+
+        Date ret = null;
+
+        Timestamp timestamp = event.getTimestamp();
+        if (null != timestamp) {
+            ret = ProtoUtils.getDateFromTimestamp(timestamp);
+        }
+
+        return ret;
+
     }
 
     TransactionEvent getTransactionEvent(int index) throws InvalidProtocolBufferException {

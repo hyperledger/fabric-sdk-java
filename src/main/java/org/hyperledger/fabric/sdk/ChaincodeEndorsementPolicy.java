@@ -154,16 +154,14 @@ public class ChaincodeEndorsementPolicy {
             }
             final Map<?, ?> roleMap = (Map<?, ?>) role;
 
-            Object name = (roleMap).get("name");
+            Object nameObj = (roleMap).get("name");
 
-            if (!(name instanceof String)) {
-                throw new ChaincodeEndorsementPolicyParseException(format("In identities with key %s name expected String in role got %s ", key, name == null ? "null" : name.getClass().getName()));
+            if (!(nameObj instanceof String)) {
+                throw new ChaincodeEndorsementPolicyParseException(format("In identities with key %s name expected String in role got %s ",
+                        key, nameObj == null ? "null" : nameObj.getClass().getName()));
             }
-            if (!"member".equals(name) && !"admin".equals(name)) {
-
-                throw new ChaincodeEndorsementPolicyParseException(format("In identities with key %s name expected member or admin  in role got %s ", key, name));
-            }
-
+            String name = (String) nameObj;
+            name = name.trim();
             Object mspId = roleMap.get("mspId");
 
             if (!(mspId instanceof String)) {
@@ -176,7 +174,29 @@ public class ChaincodeEndorsementPolicy {
 
             }
 
-            MSPRole mspRole = MSPRole.newBuilder().setRole(name.equals("member") ? MSPRole.MSPRoleType.MEMBER : MSPRole.MSPRoleType.ADMIN)
+            MSPRole.MSPRoleType mspRoleType;
+
+            switch (name) {
+                case "member":
+                    mspRoleType = MSPRole.MSPRoleType.MEMBER;
+                    break;
+                case "admin":
+                    mspRoleType = MSPRole.MSPRoleType.ADMIN;
+                    break;
+                case "client":
+                    mspRoleType = MSPRole.MSPRoleType.CLIENT;
+                    break;
+                case "peer":
+                    mspRoleType = MSPRole.MSPRoleType.PEER;
+                    break;
+                case "orderer":
+                    mspRoleType = MSPRole.MSPRoleType.ORDERER;
+                    break;
+                default:
+                    throw new ChaincodeEndorsementPolicyParseException(format("In identities with key %s name expected member, admin, client, peer or orderer  in role got %s ", key, name));
+            }
+
+            MSPRole mspRole = MSPRole.newBuilder().setRole(mspRoleType)
                     .setMspIdentifier((String) mspId).build();
 
             MSPPrincipal principal = MSPPrincipal.newBuilder()
