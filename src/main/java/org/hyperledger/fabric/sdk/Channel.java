@@ -3071,7 +3071,7 @@ public class Channel implements Serializable {
                     }
                 }
 
-                List<MatchPair> matches = new LinkedList<>(); //Find matches.
+                List<MatchPair> matches = new LinkedList<MatchPair>(); //Find matches.
 
                 synchronized (chainCodeListeners) {
 

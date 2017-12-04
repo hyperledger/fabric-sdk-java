@@ -58,6 +58,10 @@
         <property name="checkFormat" value="$1"/>
     </module>
 
+    <module name="SuppressionFilter">
+        <property name="file" value="suppressions.xml" />
+    </module>
+
     <module name="TreeWalker">
 
         <!-- Required for SuppressionCommentFilter module -->

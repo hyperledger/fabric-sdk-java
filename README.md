@@ -312,6 +312,9 @@ your server(s) hostname(s) and port(s).
 Go lang chaincode dependencies must be contained in vendor folder.
  For an explanation of this see [Vendor folder explanation](https://blog.gopheracademy.com/advent-2015/vendor-folder/)
 
+### Setting Up Eclipse
+
+To get started using the Fabric Java SDK with Eclipse, refer to the instructions at: ./docs/EclipseSetup.md
 
 ## Basic Troubleshooting
 

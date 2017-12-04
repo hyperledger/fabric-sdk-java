@@ -52,6 +52,10 @@
                         </reports>
                     </reportSet>
                 </reportSets>
+                <configuration>
+                    <suppressionsLocation>suppressions.xml</suppressionsLocation>
+                    <suppressionsFileExpression>checkstyle.suppressions.file</suppressionsFileExpression>
+                </configuration>
             </plugin>
             <!-- https://mvnrepository.com/artifact/org.jacoco/jacoco-maven-plugin -->
             <plugin>
@@ -461,7 +465,6 @@
                                 <echo message="Creating diagnostic dump output directory"/>
                                 <mkdir dir="./target/diagDump"/>
                             </tasks>
-
                         </configuration>
                         <goals>
                             <goal>run</goal>
@@ -500,7 +503,6 @@
                     </archive>
                 </configuration>
             </plugin>
-
         </plugins>
     </build>
     <distributionManagement>
