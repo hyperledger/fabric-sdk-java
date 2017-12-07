@@ -55,6 +55,7 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -354,9 +355,145 @@ public class HFCAClientIT {
         client.reenroll(user);
     }
 
+    // Tests attempting to revoke a user with Null reason
+    @Test
+    public void testUserRevokeNullReason() throws Exception {
+
+        thrown.expect(EnrollmentException.class);
+        thrown.expectMessage("Failed to re-enroll user");
+
+        Calendar calendar = Calendar.getInstance(); // gets a calendar using the default time zone and locale.
+        calendar.add(Calendar.SECOND, -1);
+        Date revokedTinyBitAgoTime = calendar.getTime(); //avoid any clock skewing.
+
+        SampleUser user = getTestUser(TEST_USER1_ORG);
+
+        if (!user.isRegistered()) {
+            RegistrationRequest rr = new RegistrationRequest(user.getName(), TEST_USER1_AFFILIATION);
+            String password = "testUserRevoke";
+            rr.setSecret(password);
+            rr.addAttribute(new Attribute("user.role", "department lead"));
+            rr.addAttribute(new Attribute("hf.revoker", "true"));
+            user.setEnrollmentSecret(client.register(rr, admin)); // Admin can register other users.
+            if (!user.getEnrollmentSecret().equals(password)) {
+                fail("Secret returned from RegistrationRequest not match : " + user.getEnrollmentSecret());
+            }
+        }
+
+        sleepALittle();
+
+        if (!user.isEnrolled()) {
+            EnrollmentRequest req = new EnrollmentRequest("profile 2", "label 2", null);
+            req.addHost("example3.ibm.com");
+            user.setEnrollment(client.enroll(user.getName(), user.getEnrollmentSecret(), req));
+
+            // verify
+            String cert = user.getEnrollment().getCert();
+            verifyOptions(cert, req);
+        }
+
+        sleepALittle();
+
+        int startedWithRevokes = -1;
+
+        if (!testConfig.isRunningAgainstFabric10()) {
+
+            startedWithRevokes = getRevokes(null).length; //one more after we do this revoke.
+        }
+
+        // revoke all enrollment of this user
+        client.revoke(admin, user.getName(), null);
+        if (!testConfig.isRunningAgainstFabric10()) {
+            final int newRevokes = getRevokes(null).length;
+
+            assertEquals(format("Expected one more revocation %d, but got %d", startedWithRevokes + 1, newRevokes), startedWithRevokes + 1, newRevokes);
+        }
+
+        // trying to reenroll the revoked user should fail with an EnrollmentException
+        client.reenroll(user);
+    }
+
+    // Tests revoking a user with genCRL using the revoke API
+    @Test
+    public void testUserRevokeGenCRL() throws Exception {
+
+        if (testConfig.isRunningAgainstFabric10()) {
+            return; // needs v1.1
+        }
+
+        thrown.expect(EnrollmentException.class);
+        thrown.expectMessage("Failed to re-enroll user");
+
+        Calendar calendar = Calendar.getInstance(); // gets a calendar using the default time zone and locale.
+        calendar.add(Calendar.SECOND, -1);
+        Date revokedTinyBitAgoTime = calendar.getTime(); //avoid any clock skewing.
+
+        SampleUser user1 = getTestUser(TEST_USER1_ORG);
+        SampleUser user2 = getTestUser(TEST_USER1_ORG);
+
+        SampleUser[] users = new SampleUser[]{user1, user2};
+
+        for (SampleUser user : users) {
+            if (!user.isRegistered()) {
+                RegistrationRequest rr = new RegistrationRequest(user.getName(), TEST_USER1_AFFILIATION);
+                String password = "testUserRevoke";
+                rr.setSecret(password);
+                rr.addAttribute(new Attribute("user.role", "department lead"));
+                rr.addAttribute(new Attribute("hf.revoker", "true"));
+                user.setEnrollmentSecret(client.register(rr, admin)); // Admin can register other users.
+                if (!user.getEnrollmentSecret().equals(password)) {
+                    fail("Secret returned from RegistrationRequest not match : " + user.getEnrollmentSecret());
+                }
+            }
+
+            sleepALittle();
+
+            if (!user.isEnrolled()) {
+                EnrollmentRequest req = new EnrollmentRequest("profile 2", "label 2", null);
+                req.addHost("example3.ibm.com");
+                user.setEnrollment(client.enroll(user.getName(), user.getEnrollmentSecret(), req));
+
+                // verify
+                String cert = user.getEnrollment().getCert();
+                verifyOptions(cert, req);
+             }
+        }
+
+        sleepALittle();
+
+        int startedWithRevokes = -1;
+
+        startedWithRevokes = getRevokes(null).length; //one more after we do this revoke.
+
+        // revoke all enrollment of this user and request back a CRL
+        String crl = client.revoke(admin, user1.getName(), null, true);
+        assertNotNull("Failed to get CRL using the Revoke API", crl);
+
+        final int newRevokes = getRevokes(null).length;
+
+        assertEquals(format("Expected one more revocation %d, but got %d", startedWithRevokes + 1, newRevokes), startedWithRevokes + 1, newRevokes);
+
+        final int crlLength = parseCRL(crl).length;
+
+        assertEquals(format("The number of revokes %d does not equal the number of revoked certificates (%d) in crl", newRevokes, crlLength), newRevokes, crlLength);
+
+        // trying to reenroll the revoked user should fail with an EnrollmentException
+        client.reenroll(user1);
+
+        String crl2 = client.revoke(admin, user2.getName(), null, false);
+        assertEquals("CRL not requested, CRL should be empty", "", crl2);
+
+    }
+
+
     TBSCertList.CRLEntry[] getRevokes(Date r) throws Exception {
 
         String crl = client.generateCRL(admin, r, null, null, null);
+
+        return parseCRL(crl);
+    }
+
+    TBSCertList.CRLEntry[] parseCRL(String crl) throws Exception {
 
         Base64.Decoder b64dec = Base64.getDecoder();
         final byte[] decode = b64dec.decode(crl.getBytes(UTF_8));
@@ -433,17 +570,6 @@ public class HFCAClientIT {
         clientWithName.enroll(admin.getName(), TEST_ADMIN_PW);
     }
 
-    // revoke1: revoke(User revoker, Enrollment enrollment, String reason)
-    @Test
-    public void testRevoke1NullReason() throws Exception {
-
-        thrown.expect(RevocationException.class);
-        thrown.expectMessage("cannot be null");
-
-        SampleUser user = getEnrolledUser(TEST_ADMIN_ORG);
-        client.revoke(admin, user.getEnrollment(), null);
-    }
-
     // revoke2: revoke(User revoker, String revokee, String reason)
     @Test
     public void testRevoke2UnknownUser() throws Exception {
@@ -452,16 +578,6 @@ public class HFCAClientIT {
         thrown.expectMessage("Error while revoking");
 
         client.revoke(admin, "unknownUser", "remove user2");
-    }
-
-    @Test
-    public void testRevoke2NullReason() throws Exception {
-
-        thrown.expect(RevocationException.class);
-        thrown.expectMessage("cannot be null");
-
-        SampleUser user = getEnrolledUser(TEST_ADMIN_ORG);
-        client.revoke(admin, user.getName(), null);
     }
 
     @Test

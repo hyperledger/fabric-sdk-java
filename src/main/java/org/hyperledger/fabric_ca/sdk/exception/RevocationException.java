@@ -20,4 +20,8 @@ public class RevocationException extends BaseException {
         super(message, parent);
     }
 
+    public RevocationException(String message) {
+        super(message);
+    }
+
 }

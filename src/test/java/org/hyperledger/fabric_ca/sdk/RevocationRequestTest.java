@@ -23,17 +23,19 @@ public class RevocationRequestTest {
     private static final String revSerialNmbr = "987654321";
     private static final String revAKI = "123456789";
     private static final String revReason = "compromised";
+    private static final Boolean revGenCRL = true;
 
     @Test
     public void testNewInstance() {
 
         try {
             RevocationRequest testRevocationReq = new RevocationRequest(revCAName, revEnrollmentID, revSerialNmbr,
-                    revAKI, revReason);
+                    revAKI, revReason, revGenCRL);
             Assert.assertEquals(testRevocationReq.getUser(), revEnrollmentID);
             Assert.assertEquals(testRevocationReq.getSerial(), revSerialNmbr);
             Assert.assertEquals(testRevocationReq.getAki(), revAKI);
             Assert.assertEquals(testRevocationReq.getReason(), revReason);
+            Assert.assertEquals(testRevocationReq.getGenCRL(), revGenCRL);
 
         } catch (Exception e) {
             Assert.fail("Unexpected Exception " + e.getMessage());
