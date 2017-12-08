@@ -40,9 +40,12 @@ import org.hyperledger.fabric.sdkintegration.SampleUser;
 import org.hyperledger.fabric_ca.sdk.Attribute;
 import org.hyperledger.fabric_ca.sdk.EnrollmentRequest;
 import org.hyperledger.fabric_ca.sdk.HFCAClient;
+import org.hyperledger.fabric_ca.sdk.HFCAIdentity;
 import org.hyperledger.fabric_ca.sdk.MockHFCAClient;
 import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
 import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
+import org.hyperledger.fabric_ca.sdk.exception.IdentityException;
+import org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric_ca.sdk.exception.RevocationException;
 import org.hyperledger.fabric_ca.sdk.helper.Config;
 import org.junit.Before;
@@ -55,9 +58,11 @@ import org.junit.rules.ExpectedException;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.setField;
 import static org.hyperledger.fabric_ca.sdk.HFCAClient.DEFAULT_PROFILE_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -73,6 +78,7 @@ public class HFCAClientIT {
     private static final String TEST_USER1_ORG = "Org2";
     private static final String TEST_USER1_AFFILIATION = "org1.department1";
     private static final String TEST_WITH_INTEGRATION_ORG = "peerOrg1";
+    private static final String TEST_WITH_INTEGRATION_ORG2 = "peerOrg2";
 
     private SampleStore sampleStore;
     private HFCAClient client;
@@ -315,7 +321,7 @@ public class HFCAClientIT {
             String password = "testUserRevoke";
             rr.setSecret(password);
             rr.addAttribute(new Attribute("user.role", "department lead"));
-            rr.addAttribute(new Attribute("hf.revoker", "true"));
+            rr.addAttribute(new Attribute(HFCAClient.HFCA_ATTRIBUTE_HFREVOKER, "true"));
             user.setEnrollmentSecret(client.register(rr, admin)); // Admin can register other users.
             if (!user.getEnrollmentSecret().equals(password)) {
                 fail("Secret returned from RegistrationRequest not match : " + user.getEnrollmentSecret());
@@ -375,7 +381,7 @@ public class HFCAClientIT {
             String password = "testUserRevoke";
             rr.setSecret(password);
             rr.addAttribute(new Attribute("user.role", "department lead"));
-            rr.addAttribute(new Attribute("hf.revoker", "true"));
+            rr.addAttribute(new Attribute(HFCAClient.HFCA_ATTRIBUTE_HFREVOKER, "true"));
             user.setEnrollmentSecret(client.register(rr, admin)); // Admin can register other users.
             if (!user.getEnrollmentSecret().equals(password)) {
                 fail("Secret returned from RegistrationRequest not match : " + user.getEnrollmentSecret());
@@ -441,7 +447,7 @@ public class HFCAClientIT {
                 String password = "testUserRevoke";
                 rr.setSecret(password);
                 rr.addAttribute(new Attribute("user.role", "department lead"));
-                rr.addAttribute(new Attribute("hf.revoker", "true"));
+                rr.addAttribute(new Attribute(HFCAClient.HFCA_ATTRIBUTE_HFREVOKER, "true"));
                 user.setEnrollmentSecret(client.register(rr, admin)); // Admin can register other users.
                 if (!user.getEnrollmentSecret().equals(password)) {
                     fail("Secret returned from RegistrationRequest not match : " + user.getEnrollmentSecret());
@@ -503,6 +509,152 @@ public class HFCAClientIT {
         X509CRLHolder holder = (X509CRLHolder) pem.readObject();
 
         return holder.toASN1Structure().getRevokedCertificates();
+    }
+
+    // Tests getting an identity
+    @Test
+    public void testCreateAndGetIdentity() throws Exception {
+
+        if (testConfig.isRunningAgainstFabric10()) {
+            return; // needs v1.1
+        }
+
+        HFCAIdentity ident = getIdentityReq("testuser1", HFCAClient.HFCA_TYPE_PEER);
+        ident.create(admin);
+
+        HFCAIdentity identGet = client.newHFCAIdentity(ident.getEnrollmentId());
+        identGet.read(admin);
+        assertEquals("Incorrect response for id", ident.getEnrollmentId(), identGet.getEnrollmentId());
+        assertEquals("Incorrect response for type", ident.getType(), identGet.getType());
+        assertEquals("Incorrect response for affiliation", ident.getAffiliation(), identGet.getAffiliation());
+        assertEquals("Incorrect response for max enrollments", ident.getMaxEnrollments(), identGet.getMaxEnrollments());
+
+        Collection<Attribute> attrs = identGet.getAttributes();
+        Boolean found = false;
+        for (Attribute attr : attrs) {
+            if (attr.getName().equals("testattr1")) {
+                 found = true;
+                 break;
+            }
+        }
+
+        if (!found) {
+            fail("Incorrect response for attribute");
+        }
+    }
+
+    // Tests getting an identity that does not exist
+    @Test
+    public void testGetIdentityNotExist() throws Exception {
+        if (testConfig.isRunningAgainstFabric10()) {
+            return; // needs v1.1
+        }
+
+        setField(client, "statusCode", 405);
+        HFCAIdentity ident = client.newHFCAIdentity("fakeUser");
+        int statusCode = ident.read(admin);
+        if (statusCode != 404) {
+            fail("Incorrect status code return for an identity that is not found, should have returned 404 and not thrown an excpetion");
+        }
+        setField(client, "statusCode", 400);
+    }
+
+    // Tests getting all identities for a caller
+    @Test
+    public void testGetAllIdentity() throws Exception {
+        if (testConfig.isRunningAgainstFabric10()) {
+            return; // needs v1.1
+        }
+
+        HFCAIdentity ident = getIdentityReq("testuser2", HFCAClient.HFCA_TYPE_CLIENT);
+        ident.create(admin);
+
+        Collection<HFCAIdentity> foundIdentities = client.getHFCAIdentities(admin);
+        String[] expectedIdenities = new String[]{"testuser2", "admin"};
+        Integer found = 0;
+
+        for (HFCAIdentity id : foundIdentities) {
+            for (String name : expectedIdenities) {
+                if (id.getEnrollmentId().equals(name)) {
+                    found++;
+                }
+            }
+        }
+
+        if (found != 2) {
+            fail("Failed to get the correct number of identities");
+        }
+
+    }
+
+    // Tests modifying an identity
+    @Test
+    public void testModifyIdentity() throws Exception {
+
+        if (testConfig.isRunningAgainstFabric10()) {
+            return; // needs v1.1
+        }
+
+        HFCAIdentity ident = getIdentityReq("testuser3", HFCAClient.HFCA_TYPE_ORDERER);
+        ident.create(admin);
+        assertEquals("Incorrect response for type", "orderer", ident.getType());
+        assertNotEquals("Incorrect value for max enrollments", ident.getMaxEnrollments(), new Integer(5));
+
+        ident.setMaxEnrollments(5);
+        ident.update(admin);
+        assertEquals("Incorrect value for max enrollments", ident.getMaxEnrollments(), new Integer(5));
+
+        ident.setMaxEnrollments(100);
+        ident.read(admin);
+        assertEquals("Incorrect value for max enrollments", new Integer(5), ident.getMaxEnrollments());
+    }
+
+    // Tests deleting an identity
+    @Test
+    public void testDeleteIdentity() throws Exception {
+
+        if (testConfig.isRunningAgainstFabric10()) {
+            return; // needs v1.1
+        }
+
+        thrown.expect(IdentityException.class);
+        thrown.expectMessage("Failed to get User");
+
+        SampleUser user = new SampleUser("testuser4", TEST_ADMIN_ORG, sampleStore);
+
+        HFCAIdentity ident = client.newHFCAIdentity(user.getName());
+
+        ident.create(admin);
+        ident.delete(admin);
+        ident.read(admin);
+    }
+
+    // Tests deleting an identity on CA that does not allow identity removal
+    @Test
+    public void testDeleteIdentityNotAllowed() throws Exception {
+
+        if (testConfig.isRunningAgainstFabric10()) {
+            return; // needs v1.1
+        }
+
+        thrown.expectMessage("Identity removal is disabled");
+        SampleUser user = new SampleUser("testuser5", "org2", sampleStore);
+
+        HFCAClient client2 = HFCAClient.createNewInstance(
+                testConfig.getIntegrationTestsSampleOrg(TEST_WITH_INTEGRATION_ORG2).getCALocation(),
+                testConfig.getIntegrationTestsSampleOrg(TEST_WITH_INTEGRATION_ORG2).getCAProperties());
+        client2.setCryptoSuite(crypto);
+
+        // SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface
+        SampleUser admin2 = sampleStore.getMember(TEST_ADMIN_NAME, "org2");
+        if (!admin2.isEnrolled()) { // Preregistered admin only needs to be enrolled with Fabric CA.
+            admin2.setEnrollment(client2.enroll(admin.getName(), TEST_ADMIN_PW));
+        }
+
+        HFCAIdentity ident = client2.newHFCAIdentity(user.getName());
+
+        ident.create(admin2);
+        ident.delete(admin2);
     }
 
     @Test
@@ -739,6 +891,21 @@ public class HFCAClientIT {
         }
         user.setEnrollment(client.enroll(user.getName(), user.getEnrollmentSecret()));
         return user;
+    }
+
+    private HFCAIdentity getIdentityReq(String enrollmentID, String type) throws InvalidArgumentException {
+        String password = "password";
+
+        HFCAIdentity ident = client.newHFCAIdentity(enrollmentID);
+        ident.setSecret(password);
+        ident.setAffiliation(TEST_USER1_AFFILIATION);
+        ident.setMaxEnrollments(1);
+        ident.setType(type);
+
+        Collection<Attribute> attributes = new ArrayList<Attribute>();
+        attributes.add(new Attribute("testattr1", "valueattr1"));
+        ident.setAttributes(attributes);
+        return ident;
     }
 
     private void sleepALittle() {
