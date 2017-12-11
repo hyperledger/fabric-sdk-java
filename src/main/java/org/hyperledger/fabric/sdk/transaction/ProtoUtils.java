@@ -23,10 +23,16 @@ import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Timestamps;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.common.Common.ChannelHeader;
+import org.hyperledger.fabric.protos.common.Common.Envelope;
 import org.hyperledger.fabric.protos.common.Common.HeaderType;
+import org.hyperledger.fabric.protos.common.Common.Payload;
 import org.hyperledger.fabric.protos.common.Common.SignatureHeader;
 import org.hyperledger.fabric.protos.msp.Identities;
+import org.hyperledger.fabric.protos.orderer.Ab.SeekInfo;
+import org.hyperledger.fabric.protos.orderer.Ab.SeekInfo.SeekBehavior;
+import org.hyperledger.fabric.protos.orderer.Ab.SeekPosition;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeDeploymentSpec;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInput;
@@ -34,6 +40,7 @@ import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type;
 import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeHeaderExtension;
 import org.hyperledger.fabric.sdk.User;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
@@ -42,10 +49,22 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.helper.Utils.logString;
 import static org.hyperledger.fabric.sdk.helper.Utils.toHexString;
 
+/**
+ * Internal use only, not a public API.
+ */
 public final class ProtoUtils {
 
     private static final Log logger = LogFactory.getLog(ProtoUtils.class);
     private static final boolean isDebugLevel = logger.isDebugEnabled();
+    public static CryptoSuite suite;
+
+    /**
+     * Private constructor to prevent instantiation.
+     */
+    private ProtoUtils() {
+    }
+
+    // static CryptoSuite suite = null;
 
     /**
      * createChannelHeader create chainHeader
@@ -147,14 +166,10 @@ public final class ProtoUtils {
 
     }
 
-    // static CryptoSuite suite = null;
-
     public static ByteString getSignatureHeaderAsByteString(TransactionContext transactionContext) {
 
         return getSignatureHeaderAsByteString(transactionContext.getUser(), transactionContext);
     }
-
-    public static CryptoSuite suite;
 
     public static ByteString getSignatureHeaderAsByteString(User user, TransactionContext transactionContext) {
 
@@ -224,10 +239,42 @@ public final class ProtoUtils {
                 .setNanos((int) ((millis % 1000) * 1000000)).build();
     }
 
-    /**
-     * Private constructor to prevent instantiation.
-     */
-    private ProtoUtils() {
+    public static Envelope createSeekInfoEnvelope(TransactionContext transactionContext, SeekInfo seekInfo) throws CryptoException {
+
+        ChannelHeader seekInfoHeader = createChannelHeader(Common.HeaderType.DELIVER_SEEK_INFO,
+                transactionContext.getTxID(), transactionContext.getChannelID(), transactionContext.getEpoch(),
+                transactionContext.getFabricTimestamp(), null);
+
+        SignatureHeader signatureHeader = SignatureHeader.newBuilder()
+                .setCreator(transactionContext.getIdentity().toByteString())
+                .setNonce(transactionContext.getNonce())
+                .build();
+
+        Common.Header seekHeader = Common.Header.newBuilder()
+                .setSignatureHeader(signatureHeader.toByteString())
+                .setChannelHeader(seekInfoHeader.toByteString())
+                .build();
+
+        Payload seekPayload = Payload.newBuilder()
+                .setHeader(seekHeader)
+                .setData(seekInfo.toByteString())
+                .build();
+
+        return Envelope.newBuilder().setSignature(transactionContext.signByteString(seekPayload.toByteArray()))
+                .setPayload(seekPayload.toByteString())
+                .build();
+
     }
 
+    public static Envelope createSeekInfoEnvelope(TransactionContext transactionContext, SeekPosition startPosition,
+                                                  SeekPosition stopPosition,
+                                                  SeekBehavior seekBehavior) throws CryptoException {
+
+        return createSeekInfoEnvelope(transactionContext, SeekInfo.newBuilder()
+                .setStart(startPosition)
+                .setStop(stopPosition)
+                .setBehavior(seekBehavior)
+                .build());
+
+    }
 }

@@ -15,28 +15,39 @@
 package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.hyperledger.fabric.protos.common.Configtx;
 import org.hyperledger.fabric.protos.peer.Query.ChaincodeInfo;
 import org.hyperledger.fabric.sdk.BlockEvent;
+import org.hyperledger.fabric.sdk.BlockchainInfo;
 import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
 import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.ChaincodeResponse.Status;
 import org.hyperledger.fabric.sdk.Channel;
+import org.hyperledger.fabric.sdk.Channel.PeerOptions;
 import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.InstallProposalRequest;
 import org.hyperledger.fabric.sdk.Peer;
+import org.hyperledger.fabric.sdk.Peer.PeerRole;
 import org.hyperledger.fabric.sdk.ProposalResponse;
 import org.hyperledger.fabric.sdk.QueryByChaincodeRequest;
 import org.hyperledger.fabric.sdk.TestConfigHelper;
@@ -46,6 +57,7 @@ import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
+import org.hyperledger.fabric.sdk.exception.TransactionException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
 import org.hyperledger.fabric.sdk.testutils.TestUtils;
@@ -54,10 +66,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -67,6 +81,7 @@ import static org.junit.Assert.fail;
 public class End2endAndBackAgainIT {
 
     private static final TestConfig testConfig = TestConfig.getConfig();
+    private static final boolean IS_FABRIC_V10 = testConfig.isRunningAgainstFabric10();
     private static final String TEST_ADMIN_NAME = "admin";
     private static final String TESTUSER_1_NAME = "user1";
     private static final String TEST_FIXTURES_PATH = "src/test/fixture";
@@ -75,22 +90,73 @@ public class End2endAndBackAgainIT {
     private static final String CHAIN_CODE_PATH = "github.com/example_cc";
     private static final String CHAIN_CODE_VERSION = "1";
     private static final String CHAIN_CODE_VERSION_11 = "11";
-
+    private static final String FOO_CHANNEL_NAME = "foo";
+    private static final String BAR_CHANNEL_NAME = "bar";
     final ChaincodeID chaincodeID = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
             .setVersion(CHAIN_CODE_VERSION)
             .setPath(CHAIN_CODE_PATH).build();
     final ChaincodeID chaincodeID_11 = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
             .setVersion(CHAIN_CODE_VERSION_11)
             .setPath(CHAIN_CODE_PATH).build();
-
-    private static final String FOO_CHANNEL_NAME = "foo";
-    private static final String BAR_CHANNEL_NAME = "bar";
-
-    String testTxID = null;  // save the CC invoke TxID and use in queries
-
     private final TestConfigHelper configHelper = new TestConfigHelper();
-
+    String testTxID = null;  // save the CC invoke TxID and use in queries
+    SampleStore sampleStore;
     private Collection<SampleOrg> testSampleOrgs;
+
+//    @After
+//    public void clearConfig() {
+//        try {
+// //           configHelper.clearConfig();
+//        } catch (Exception e) {
+//        }
+//    }
+
+    private static boolean checkInstalledChaincode(HFClient client, Peer peer, String ccName, String ccPath, String ccVersion) throws InvalidArgumentException, ProposalException {
+
+        out("Checking installed chaincode: %s, at version: %s, on peer: %s", ccName, ccVersion, peer.getName());
+        List<ChaincodeInfo> ccinfoList = client.queryInstalledChaincodes(peer);
+
+        boolean found = false;
+
+        for (ChaincodeInfo ccifo : ccinfoList) {
+
+            found = ccName.equals(ccifo.getName()) && ccPath.equals(ccifo.getPath()) && ccVersion.equals(ccifo.getVersion());
+            if (found) {
+                break;
+            }
+
+        }
+
+        return found;
+    }
+
+    private static boolean checkInstantiatedChaincode(Channel channel, Peer peer, String ccName, String ccPath, String ccVersion) throws InvalidArgumentException, ProposalException {
+        out("Checking instantiated chaincode: %s, at version: %s, on peer: %s", ccName, ccVersion, peer.getName());
+        List<ChaincodeInfo> ccinfoList = channel.queryInstantiatedChaincodes(peer);
+
+        boolean found = false;
+
+        for (ChaincodeInfo ccifo : ccinfoList) {
+            found = ccName.equals(ccifo.getName()) && ccPath.equals(ccifo.getPath()) && ccVersion.equals(ccifo.getVersion());
+            if (found) {
+                break;
+            }
+
+        }
+
+        return found;
+    }
+
+    static void out(String format, Object... args) {
+
+        System.err.flush();
+        System.out.flush();
+
+        System.out.println(format(format, args));
+        System.err.flush();
+        System.out.flush();
+
+    }
 
     @Before
     public void checkConfig() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, MalformedURLException {
@@ -110,16 +176,6 @@ public class End2endAndBackAgainIT {
             sampleOrg.setCAClient(HFCAClient.createNewInstance(caURL, null));
         }
     }
-
-//    @After
-//    public void clearConfig() {
-//        try {
-// //           configHelper.clearConfig();
-//        } catch (Exception e) {
-//        }
-//    }
-
-    SampleStore sampleStore;
 
     @Test
     public void setup() {
@@ -174,7 +230,25 @@ public class End2endAndBackAgainIT {
             sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg2");
             Channel barChannel = reconstructChannel(BAR_CHANNEL_NAME, client, sampleOrg);
             runChannel(client, barChannel, sampleOrg, 100); //run a newly constructed foo channel with different b value!
-            barChannel.shutdown(true);
+
+            if (!testConfig.isRunningAgainstFabric10()) { //Peer eventing service support started with v1.1
+
+                // Now test replay feature of V1.1 peer eventing services.
+                byte[] replayChannelBytes = barChannel.serializeChannel();
+                barChannel.shutdown(true);
+                Channel replayChannel = client.deSerializeChannel(replayChannelBytes);
+
+                testPeerServiceEventingReplay(client, replayChannel, 0L, -1L);
+
+                //Now do it again starting at block 1
+                replayChannel = client.deSerializeChannel(replayChannelBytes);
+                testPeerServiceEventingReplay(client, replayChannel, 1L, -1L);
+
+                //Now do it again starting at block 2 to 3
+                replayChannel = client.deSerializeChannel(replayChannelBytes);
+                testPeerServiceEventingReplay(client, replayChannel, 2L, 3L);
+
+            }
 
             out("That's all folks!");
 
@@ -195,8 +269,6 @@ public class End2endAndBackAgainIT {
             final boolean changeContext = BAR_CHANNEL_NAME.equals(channel.getName());
 
             out("Running Channel %s with a delta %d", channelName, delta);
-            channel.setTransactionWaitTime(testConfig.getTransactionWaitTime());
-            channel.setDeployWaitTime(testConfig.getDeployWaitTime());
 
             ////////////////////////////
             // Send Query Proposal to all peers see if it's what we expect from end of End2endIT
@@ -426,7 +498,8 @@ public class End2endAndBackAgainIT {
             TransactionProposalRequest transactionProposalRequest = client.newTransactionProposalRequest();
             transactionProposalRequest.setChaincodeID(chaincodeID);
             transactionProposalRequest.setFcn("invoke");
-            transactionProposalRequest.setArgs(new String[] {"move", "a", "b", moveAmount});
+            transactionProposalRequest.setArgs(new byte[][] {"move".getBytes(UTF_8), //test using bytes .. end2end uses Strings.
+                    "a".getBytes(UTF_8), "b".getBytes(UTF_8), moveAmount.getBytes(UTF_8)});
             transactionProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
             if (user != null) { // specific user use that
                 transactionProposalRequest.setUserContext(user);
@@ -483,6 +556,13 @@ public class End2endAndBackAgainIT {
              */
             newChannel = sampleStore.getChannel(client, name);
 
+            if (!IS_FABRIC_V10) {
+                // Make sure there is one of each type peer at the very least. see End2end for how peers were constructed.
+                assertFalse(newChannel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).isEmpty());
+                assertFalse(newChannel.getPeers(PeerRole.NO_EVENT_SOURCE).isEmpty());
+
+            }
+            assertEquals(2, newChannel.getEventHubs().size());
             out("Retrieved channel %s from sample store.", name);
 
         } else {
@@ -497,16 +577,34 @@ public class End2endAndBackAgainIT {
 
             for (String peerName : sampleOrg.getPeerNames()) {
                 String peerLocation = sampleOrg.getPeerLocation(peerName);
-                Peer peer = client.newPeer(peerName, peerLocation, testConfig.getPeerProperties(peerName));
-                newChannel.addPeer(peer);
-                sampleOrg.addPeer(peer);
+                Properties peerProperties = testConfig.getPeerProperties(peerName);
+                Peer peer = client.newPeer(peerName, peerLocation, peerProperties);
+                newChannel.addPeer(peer, IS_FABRIC_V10 ?
+                        PeerOptions.create().setPeerRoles(PeerRole.NO_EVENT_SOURCE) : PeerOptions.create());
             }
 
-            for (String eventHubName : sampleOrg.getEventHubNames()) {
-                EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
-                        testConfig.getEventHubProperties(eventHubName));
-                newChannel.addEventHub(eventHub);
+            //For testing mix it up. For v1.1 use just peer eventing service for foo channel.
+            if (IS_FABRIC_V10) {
+                //Should have no peers with event sources.
+                assertTrue(newChannel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).isEmpty());
+                //Should have two peers with all roles but event source.
+                assertEquals(2, newChannel.getPeers(PeerRole.NO_EVENT_SOURCE).size());
+                for (String eventHubName : sampleOrg.getEventHubNames()) {
+                    EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
+                            testConfig.getEventHubProperties(eventHubName));
+                    newChannel.addEventHub(eventHub);
+                }
+            } else {
+                //Peers should have all roles. Do some sanity checks that they do.
+
+                //Should have two peers with event sources.
+                assertEquals(2, newChannel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).size());
+                //Check some other roles too..
+                assertEquals(2, newChannel.getPeers(EnumSet.of(PeerRole.CHAINCODE_QUERY, PeerRole.LEDGER_QUERY)).size());
+                assertEquals(2, newChannel.getPeers(PeerRole.ALL).size());  //really same as newChannel.getPeers()
             }
+
+            assertEquals(IS_FABRIC_V10 ? sampleOrg.getEventHubNames().size() : 0, newChannel.getEventHubs().size());
         }
 
         //Just some sanity check tests
@@ -514,12 +612,30 @@ public class End2endAndBackAgainIT {
         assertTrue(client == TestUtils.getField(newChannel, "client"));
         assertEquals(name, newChannel.getName());
         assertEquals(2, newChannel.getPeers().size());
-        assertEquals(2, newChannel.getEventHubs().size());
         assertEquals(1, newChannel.getOrderers().size());
         assertFalse(newChannel.isShutdown());
         assertFalse(newChannel.isInitialized());
+        byte[] serializedChannelBytes = newChannel.serializeChannel();
 
+        //Just checks if channel can be serialized and deserialized .. otherwise this is just a waste :)
+        // Get channel back.
+
+        newChannel.shutdown(true);
+        newChannel = client.deSerializeChannel(serializedChannelBytes);
+
+        assertEquals(2, newChannel.getPeers().size());
+
+        assertEquals(1, newChannel.getOrderers().size());
+
+        assertNotNull(client.getChannel(name));
+        assertEquals(newChannel, client.getChannel(name));
+        assertFalse(newChannel.isInitialized());
+        assertFalse(newChannel.isShutdown());
         newChannel.initialize();
+        assertTrue(newChannel.isInitialized());
+        assertFalse(newChannel.isShutdown());
+
+        //Begin tests with de-serialized channel.
 
         //Query the actual peer for which channels it belongs to and check it belongs to this channel
         for (Peer peer : newChannel.getPeers()) {
@@ -528,14 +644,21 @@ public class End2endAndBackAgainIT {
                 throw new AssertionError(format("Peer %s does not appear to belong to channel %s", peer.getName(), name));
             }
         }
+
         //Just see if we can get channelConfiguration. Not required for the rest of scenario but should work.
         final byte[] channelConfigurationBytes = newChannel.getChannelConfigurationBytes();
         Configtx.Config channelConfig = Configtx.Config.parseFrom(channelConfigurationBytes);
+
         assertNotNull(channelConfig);
+
         Configtx.ConfigGroup channelGroup = channelConfig.getChannelGroup();
+
         assertNotNull(channelGroup);
+
         Map<String, Configtx.ConfigGroup> groupsMap = channelGroup.getGroupsMap();
+
         assertNotNull(groupsMap.get("Orderer"));
+
         assertNotNull(groupsMap.get("Application"));
 
         //Before return lets see if we have the chaincode on the peers that we expect from End2endIT
@@ -561,11 +684,119 @@ public class End2endAndBackAgainIT {
         return newChannel;
     }
 
+    /**
+     * This code test the replay feature of the new peer event services.
+     * Instead of the default of starting the eventing peer to retrieve the newest block it sets it
+     * retrieve starting from the start parameter.
+     *
+     * @param client
+     * @param replayTestChannel
+     * @throws IOException
+     * @throws InvalidArgumentException
+     * @throws TransactionException
+     * @throws InterruptedException
+     * @throws ExecutionException
+     * @throws TimeoutException
+     * @throws ProposalException
+     */
+
+    void testPeerServiceEventingReplay(HFClient client, Channel replayTestChannel, final long start, final long stop) throws InvalidArgumentException, TransactionException, InterruptedException, ExecutionException, TimeoutException, ProposalException {
+
+        if (testConfig.isRunningAgainstFabric10()) {
+            return; // not supported for v1.0
+        }
+
+        assertFalse(replayTestChannel.isInitialized()); //not yet intialized
+        assertFalse(replayTestChannel.isShutdown()); // not yet shutdown.
+
+        //Remove all peers just have one ledger peer and one eventing peer.
+        List<Peer> savedPeers = new ArrayList<>(replayTestChannel.getPeers());
+        for (Peer peer : savedPeers) {
+            replayTestChannel.removePeer(peer);
+        }
+        assertTrue(savedPeers.size() > 1); //need at least two
+        final Peer eventingPeer = savedPeers.remove(0);
+        Peer ledgerPeer = savedPeers.remove(0);
+
+        assertTrue(replayTestChannel.getPeers().isEmpty()); // no more peers.
+        assertTrue(replayTestChannel.getPeers(EnumSet.of(PeerRole.CHAINCODE_QUERY, PeerRole.ENDORSING_PEER)).isEmpty()); // just checking :)
+        assertTrue(replayTestChannel.getPeers(EnumSet.of(PeerRole.LEDGER_QUERY)).isEmpty()); // just checking
+
+        assertNotNull(client.getChannel(replayTestChannel.getName())); // should be known by client.
+
+        if (-1L == stop) { //the height of the blockchain
+
+            replayTestChannel.addPeer(eventingPeer, PeerOptions.create().setPeerRoles(EnumSet.of(PeerRole.EVENT_SOURCE))
+                    .startEvents(start)); // Eventing peer start getting blocks from block 0
+        } else {
+            replayTestChannel.addPeer(eventingPeer, PeerOptions.create().setPeerRoles(EnumSet.of(PeerRole.EVENT_SOURCE))
+                    .startEvents(start).stopEvents(stop)); // Eventing peer start getting blocks from block 0
+
+        }
+        replayTestChannel.addPeer(ledgerPeer, PeerOptions.create().setPeerRoles(EnumSet.of(PeerRole.LEDGER_QUERY)));
+
+        CompletableFuture<Long> done = new CompletableFuture<>(); // future to set when done.
+        // some variable used by the block listener being set up.
+        final AtomicLong bcount = new AtomicLong(0);
+        final AtomicLong stopValue = new AtomicLong(stop == -1L ? Long.MAX_VALUE : stop);
+        final Channel finalChannel = replayTestChannel;
+
+        final Map<Long, BlockEvent> blockEvents = Collections.synchronizedMap(new HashMap<>(100));
+
+        final String blockListenerHandle = replayTestChannel.registerBlockListener(blockEvent -> { // register a block listener
+
+            try {
+                final long blockNumber = blockEvent.getBlockNumber();
+                BlockEvent seen = blockEvents.put(blockNumber, blockEvent);
+                assertNull(format("Block number %d seen twice", blockNumber), seen);
+                final long count = bcount.getAndIncrement(); //count starts with 0 not 1 !
+
+                out("Block count: %d, block number: %d  received from peer: %s", count, blockNumber, blockEvent.getPeer().getName());
+
+                if (count == 0 && stop == -1L) {
+                    final BlockchainInfo blockchainInfo = finalChannel.queryBlockchainInfo();
+
+                    long lh = blockchainInfo.getHeight();
+                    stopValue.set(lh - 1L);  // blocks 0L 9L are on chain height 10 .. stop on 9
+                    //  out("height: %d", lh);
+                    if (bcount.get() + start > stopValue.longValue()) { // test with latest count.
+                        done.complete(bcount.get()); // report back latest count.
+                    }
+
+                } else {
+                    if (bcount.longValue() + start > stopValue.longValue()) {
+                        done.complete(count);
+                    }
+                }
+            } catch (AssertionError | Exception e) {
+                e.printStackTrace();
+                done.completeExceptionally(e);
+            }
+
+        });
+        replayTestChannel.initialize(); // start it all up.
+        done.get(30, TimeUnit.SECONDS); // give a timeout here.
+        Thread.sleep(1000); // sleep a little to see if more blocks trickle in .. they should not
+        replayTestChannel.unregisterBlockListener(blockListenerHandle);
+
+        final long expectNumber = stopValue.longValue() - start + 1L; // Start 2 and stop is 3  expect 2
+
+        assertEquals(format("Didn't get number we expected %d but got %d block events. Start: %d, end: %d, height: %d",
+                expectNumber, blockEvents.size(), start, stop, stopValue.longValue()), expectNumber, blockEvents.size());
+
+        for (long i = stopValue.longValue(); i >= start; i--) { //make sure all are there.
+            final BlockEvent blockEvent = blockEvents.get(i);
+            assertNotNull(format("Missing block event for block number %d. Start= %d", i, start), blockEvent);
+        }
+
+        replayTestChannel.shutdown(true); //all done.
+    }
+
     private void queryChaincodeForExpectedValue(HFClient client, Channel channel, final String expect, ChaincodeID chaincodeID) {
 
         out("Now query chaincode on channel %s for the value of b expecting to see: %s", channel.getName(), expect);
         QueryByChaincodeRequest queryByChaincodeRequest = client.newQueryProposalRequest();
-        queryByChaincodeRequest.setArgs(new String[] {"query", "b"});
+        queryByChaincodeRequest.setArgs("query".getBytes(UTF_8), "b".getBytes(UTF_8)); // test using bytes as args. End2end uses Strings.
         queryByChaincodeRequest.setFcn("invoke");
         queryByChaincodeRequest.setChaincodeID(chaincodeID);
 
@@ -585,7 +816,8 @@ public class End2endAndBackAgainIT {
             } else {
                 String payload = proposalResponse.getProposalResponse().getResponse().getPayload().toStringUtf8();
                 out("Query payload of b from peer %s returned %s", proposalResponse.getPeer().getName(), payload);
-                assertEquals(payload, expect);
+                assertEquals(format("Failed compare on channel %s chaincode id %s expected value:'%s', but got:'%s'",
+                        channel.getName(), chaincodeID, expect, payload), expect, payload);
             }
         }
     }
@@ -597,53 +829,6 @@ public class End2endAndBackAgainIT {
 
     ///// NO OP ... leave in case it's needed.
     private void waitOnFabric(int additional) {
-
-    }
-
-    private static boolean checkInstalledChaincode(HFClient client, Peer peer, String ccName, String ccPath, String ccVersion) throws InvalidArgumentException, ProposalException {
-
-        out("Checking installed chaincode: %s, at version: %s, on peer: %s", ccName, ccVersion, peer.getName());
-        List<ChaincodeInfo> ccinfoList = client.queryInstalledChaincodes(peer);
-
-        boolean found = false;
-
-        for (ChaincodeInfo ccifo : ccinfoList) {
-
-            found = ccName.equals(ccifo.getName()) && ccPath.equals(ccifo.getPath()) && ccVersion.equals(ccifo.getVersion());
-            if (found) {
-                break;
-            }
-
-        }
-
-        return found;
-    }
-
-    private static boolean checkInstantiatedChaincode(Channel channel, Peer peer, String ccName, String ccPath, String ccVersion) throws InvalidArgumentException, ProposalException {
-        out("Checking instantiated chaincode: %s, at version: %s, on peer: %s", ccName, ccVersion, peer.getName());
-        List<ChaincodeInfo> ccinfoList = channel.queryInstantiatedChaincodes(peer);
-
-        boolean found = false;
-
-        for (ChaincodeInfo ccifo : ccinfoList) {
-            found = ccName.equals(ccifo.getName()) && ccPath.equals(ccifo.getPath()) && ccVersion.equals(ccifo.getVersion());
-            if (found) {
-                break;
-            }
-
-        }
-
-        return found;
-    }
-
-    static void out(String format, Object... args) {
-
-        System.err.flush();
-        System.out.flush();
-
-        System.out.println(format(format, args));
-        System.err.flush();
-        System.out.flush();
 
     }
 

@@ -246,7 +246,7 @@ public class ChannelTest {
         final Channel testChannel = new MockChannel(CHANNEL_NAME, hfclient);
         final Peer peer = hfclient.newPeer("peer_", "grpc://localhost:7051");
 
-        testChannel.addPeer(peer);
+        testChannel.addPeer(peer, Channel.PeerOptions.create().setPeerRoles(Peer.PeerRole.NO_EVENT_SOURCE));
         Assert.assertFalse(testChannel.isInitialized());
         testChannel.initialize();
         Assert.assertTrue(testChannel.isInitialized());

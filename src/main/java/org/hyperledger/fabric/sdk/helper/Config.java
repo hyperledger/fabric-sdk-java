@@ -48,6 +48,7 @@ public class Config {
      **/
     public static final String PROPOSAL_WAIT_TIME = "org.hyperledger.fabric.sdk.proposal.wait.time";
     public static final String CHANNEL_CONFIG_WAIT_TIME = "org.hyperledger.fabric.sdk.channelconfig.wait_time";
+    public static final String TRANSACTION_CLEANUP_UP_TIMEOUT_WAIT_TIME = "org.hyperledger.fabric.sdk.client.transaction_cleanup_up_timeout_wait_time";
     public static final String ORDERER_RETRY_WAIT_TIME = "org.hyperledger.fabric.sdk.orderer_retry.wait_time";
     public static final String ORDERER_WAIT_TIME = "org.hyperledger.fabric.sdk.orderer.ordererWaitTimeMilliSecs";
     public static final String EVENTHUB_CONNECTION_WAIT_TIME = "org.hyperledger.fabric.sdk.eventhub_connection.wait_time";
@@ -107,6 +108,12 @@ public class Config {
             defaultProperty(ORDERER_WAIT_TIME, "10000");
             defaultProperty(EVENTHUB_CONNECTION_WAIT_TIME, "1000");
             defaultProperty(GENESISBLOCK_WAIT_TIME, "5000");
+            /**
+             * This will NOT complete any transaction futures time out and must be kept WELL above any expected future timeout
+             * for transactions sent to the Orderer. For internal cleanup only.
+             */
+
+            defaultProperty(TRANSACTION_CLEANUP_UP_TIMEOUT_WAIT_TIME, "600000"); //10 min.
 
             /**
              * Crypto configuration settings
@@ -137,9 +144,9 @@ public class Config {
 
             if (null != inLogLevel) {
 
-                org.apache.log4j.Level setTo = null;
+                org.apache.log4j.Level setTo;
 
-                switch (inLogLevel) {
+                switch (inLogLevel.toUpperCase()) {
 
                     case "TRACE":
                         setTo = org.apache.log4j.Level.TRACE;
@@ -378,7 +385,7 @@ public class Config {
 
     }
 
-    public int extraLogLevel = -1;
+    private int extraLogLevel = -1;
 
     public boolean extraLogLevel(int val) {
         if (extraLogLevel == -1) {
@@ -414,4 +421,13 @@ public class Config {
         return diagnosticFileDumper;
     }
 
+    /**
+     * This does NOT trigger futures time out and must be kept WELL above any expected future timeout
+     * for transactions sent to the Orderer
+     *
+     * @return
+     */
+    public long getTransactionListenerCleanUpTimeout() {
+        return Long.parseLong(getProperty(TRANSACTION_CLEANUP_UP_TIMEOUT_WAIT_TIME));
+    }
 }

@@ -182,8 +182,6 @@ public class NetworkConfigIT {
         final String channelName = channel.getName();
 
         out("Running testUpdate1 - Channel %s", channelName);
-        channel.setTransactionWaitTime(testConfig.getTransactionWaitTime());
-        channel.setDeployWaitTime(testConfig.getDeployWaitTime());
 
         int moveAmount = 5;
         String originalVal = queryChaincodeForCurrentValue(client, channel, chaincodeID);
@@ -345,9 +343,6 @@ public class NetworkConfigIT {
 
             final String channelName = channel.getName();
             out("deployChaincode - channelName = " + channelName);
-
-            channel.setTransactionWaitTime(testConfig.getTransactionWaitTime());
-            channel.setDeployWaitTime(testConfig.getDeployWaitTime());
 
             Collection<Orderer> orderers = channel.getOrderers();
             Collection<ProposalResponse> responses;

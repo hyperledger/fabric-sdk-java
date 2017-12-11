@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.bouncycastle.asn1.x509.CertificateList;
 import org.bouncycastle.asn1.x509.TBSCertList;
 import org.bouncycastle.cert.X509CRLHolder;
 import org.bouncycastle.openssl.PEMParser;
@@ -306,7 +305,6 @@ public class HFCAClientIT {
         thrown.expectMessage("Failed to re-enroll user");
 
         Calendar calendar = Calendar.getInstance(); // gets a calendar using the default time zone and locale.
-        calendar.add(Calendar.SECOND, -1);
         Date revokedTinyBitAgoTime = calendar.getTime(); //avoid any clock skewing.
 
         SampleUser user = getTestUser(TEST_USER1_ORG);
@@ -323,8 +321,6 @@ public class HFCAClientIT {
             }
         }
 
-        sleepALittle();
-
         if (!user.isEnrolled()) {
             EnrollmentRequest req = new EnrollmentRequest("profile 2", "label 2", null);
             req.addHost("example3.ibm.com");
@@ -335,13 +331,12 @@ public class HFCAClientIT {
             verifyOptions(cert, req);
         }
 
-        sleepALittle();
-
         int startedWithRevokes = -1;
 
         if (!testConfig.isRunningAgainstFabric10()) {
 
             startedWithRevokes = getRevokes(null).length; //one more after we do this revoke.
+            Thread.sleep(1000); //prevent clock skewing. make sure we request started with revokes.
         }
 
         // revoke all enrollment of this user
@@ -352,6 +347,7 @@ public class HFCAClientIT {
 
             assertEquals(format("Expected one more revocation %d, but got %d", startedWithRevokes + 1, newRevokes), startedWithRevokes + 1, newRevokes);
 
+            // see if we can get right number of revokes that we started with by specifying the time: revokedTinyBitAgoTime
             final int revokestinybitago = getRevokes(revokedTinyBitAgoTime).length; //Should be same number when test case was started.
             assertEquals(format("Expected same revocations %d, but got %d", startedWithRevokes, revokestinybitago), startedWithRevokes, revokestinybitago);
         }
@@ -436,7 +432,7 @@ public class HFCAClientIT {
         SampleUser user1 = getTestUser(TEST_USER1_ORG);
         SampleUser user2 = getTestUser(TEST_USER1_ORG);
 
-        SampleUser[] users = new SampleUser[]{user1, user2};
+        SampleUser[] users = new SampleUser[] {user1, user2};
 
         for (SampleUser user : users) {
             if (!user.isRegistered()) {
@@ -461,7 +457,7 @@ public class HFCAClientIT {
                 // verify
                 String cert = user.getEnrollment().getCert();
                 verifyOptions(cert, req);
-             }
+            }
         }
 
         sleepALittle();
@@ -489,7 +485,6 @@ public class HFCAClientIT {
         assertEquals("CRL not requested, CRL should be empty", "", crl2);
 
     }
-
 
     TBSCertList.CRLEntry[] getRevokes(Date r) throws Exception {
 

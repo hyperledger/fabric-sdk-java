@@ -25,6 +25,7 @@ import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 /**
+ * Internal class, not an public API.
  * A transaction context emits events 'submitted', 'complete', and 'error'.
  * Each transaction context uses exactly one tcert.
  */
@@ -33,22 +34,15 @@ public class TransactionContext {
     //    private static final Log logger = LogFactory.getLog(TransactionContext.class);
     //TODO right now the server does not care need to figure out
     private final ByteString nonce = ByteString.copyFrom(Utils.generateNonce());
-
-    private boolean verify = true;
-
-    public CryptoSuite getCryptoPrimitives() {
-        return cryptoPrimitives;
-    }
-
     private final CryptoSuite cryptoPrimitives;
     private final User user;
     private final Channel channel;
-
     private final String txID;
-
+    private final Identities.SerializedIdentity identity;
+    Timestamp currentTimeStamp = null;
+    private boolean verify = true;
     //private List<String> attrs;
     private long proposalWaitTime = config.getProposalWaitTime();
-    private final Identities.SerializedIdentity identity;
 
     public TransactionContext(Channel channel, User user, CryptoSuite cryptoPrimitives) {
 
@@ -73,6 +67,10 @@ public class TransactionContext {
 
     }
 
+    public CryptoSuite getCryptoPrimitives() {
+        return cryptoPrimitives;
+    }
+
     public Identities.SerializedIdentity getIdentity() {
 
         return identity;
@@ -90,15 +88,6 @@ public class TransactionContext {
      */
     public User getUser() {
         return user;
-    }
-
-    /**
-     * Get the channel with which this transaction context is associated.
-     *
-     * @return The channel
-     */
-    public Channel getChannel() {
-        return this.channel;
     }
 
     /**
@@ -120,6 +109,15 @@ public class TransactionContext {
     //}
 
     /**
+     * Get the channel with which this transaction context is associated.
+     *
+     * @return The channel
+     */
+    public Channel getChannel() {
+        return this.channel;
+    }
+
+    /**
      * Gets the timeout for a single proposal request to endorser in milliseconds.
      *
      * @return the timeout for a single proposal request to endorser in milliseconds
@@ -136,8 +134,6 @@ public class TransactionContext {
     public void setProposalWaitTime(long proposalWaitTime) {
         this.proposalWaitTime = proposalWaitTime;
     }
-
-    Timestamp currentTimeStamp = null;
 
     public Timestamp getFabricTimestamp() {
         if (currentTimeStamp == null) {
@@ -221,6 +217,12 @@ public class TransactionContext {
             ret[++i] = ByteString.copyFrom(cryptoPrimitives.sign(user.getEnrollment().getKey(), signbytes));
         }
         return ret;
+    }
+
+    public TransactionContext retryTransactionSameContext() {
+
+        return new TransactionContext(channel, user, cryptoPrimitives);
+
     }
 
 }  // end TransactionContext

@@ -47,7 +47,7 @@ public class PeerTest {
     public void testGetName() {
         Assert.assertTrue(peer != null);
         try {
-            peer = new Peer(PEER_NAME, "grpc://localhost:4", null);
+            peer = hfclient.newPeer(PEER_NAME, "grpc://localhost:4");
             Assert.assertEquals(PEER_NAME, peer.getName());
         } catch (InvalidArgumentException e) {
             Assert.fail("Unexpected Exeception " + e.getMessage());
@@ -57,13 +57,13 @@ public class PeerTest {
 
     @Test(expected = InvalidArgumentException.class)
     public void testSetNullName() throws InvalidArgumentException {
-        peer = new Peer(null, "grpc://localhost:4", null);
+        peer = hfclient.newPeer(null, "grpc://localhost:4");
         Assert.fail("expected set null name to throw exception.");
     }
 
     @Test(expected = InvalidArgumentException.class)
     public void testSetEmptyName() throws InvalidArgumentException {
-        peer = new Peer("", "grpc://localhost:4", null);
+        peer = hfclient.newPeer("", "grpc://localhost:4");
         Assert.fail("expected set empty name to throw exception.");
     }
 

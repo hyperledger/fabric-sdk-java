@@ -43,6 +43,11 @@ public final class ChaincodeID {
 
     }
 
+    @Override
+    public String toString() {
+        return "ChaincodeID(" + getName() + ":" + getPath() + ":" + getVersion() + ")";
+    }
+
     /**
      * Build a new ChaincodeID
      */

@@ -177,7 +177,7 @@ public class TransactionRequest {
         return args;
     }
 
-    public TransactionRequest setArgs(String[] args) {
+    public TransactionRequest setArgs(String... args) {
 
         this.args = new ArrayList<>(Arrays.asList(args));
         return this;
@@ -200,6 +200,19 @@ public class TransactionRequest {
 
     public TransactionRequest setArgs(ArrayList<String> args) {
         this.args = args;
+        return this;
+    }
+
+    public TransactionRequest setArgs(byte[]... args) {
+
+        ArrayList<byte[]> argBytes = new ArrayList<>(args.length);
+
+        for (byte[] b : args) {
+            argBytes.add(b);
+
+        }
+
+        this.argBytes = argBytes;
         return this;
     }
 

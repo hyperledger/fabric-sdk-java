@@ -14,16 +14,14 @@
 package org.hyperledger.fabric.sdk;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.Timestamp;
 import org.hyperledger.fabric.protos.common.Common.Block;
+import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.peer.PeerEvents.Event;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
-import org.hyperledger.fabric.sdk.transaction.ProtoUtils;
 
 /**
  * A wrapper for the Block returned in an Event
@@ -31,29 +29,12 @@ import org.hyperledger.fabric.sdk.transaction.ProtoUtils;
  * @see Block
  */
 public class BlockEvent extends BlockInfo {
+
 //    private static final Log logger = LogFactory.getLog(BlockEvent.class);
 
-    /**
-     * Get the Event Hub that received the event.
-     *
-     * @return an Event Hub.
-     */
-    public EventHub getEventHub() {
-        return eventHub;
-    }
-
     private final EventHub eventHub;
+    private final Peer peer;
     private final Event event;
-
-    /**
-     * Raw proto buff event.
-     *
-     * @return Return raw protobuf event.
-     */
-
-    public Event getEvent() {
-        return event;
-    }
 
     /**
      * creates a BlockEvent object by parsing the input Block and retrieving its constituent Transactions
@@ -65,42 +46,56 @@ public class BlockEvent extends BlockInfo {
     BlockEvent(EventHub eventHub, Event event) throws InvalidProtocolBufferException {
         super(event.getBlock());
         this.eventHub = eventHub;
+        this.peer = null;
         this.event = event;
     }
 
-    public Date getTimestamp() {
+    BlockEvent(Peer peer, Ab.DeliverResponse resp) {
+        super(resp.getBlock());
 
-        Date ret = null;
+        eventHub = null;
+        this.peer = peer;
+        this.event = null;
 
-        Timestamp timestamp = event.getTimestamp();
-        if (null != timestamp) {
-            ret = ProtoUtils.getDateFromTimestamp(timestamp);
-        }
+    }
 
-        return ret;
+    /**
+     * Get the Event Hub that received the event.
+     *
+     * @return an Event Hub. Maybe null if new peer eventing services is being used.
+     * @deprecated Use new peer eventing services
+     */
+    public EventHub getEventHub() {
+        return eventHub;
+    }
 
+    /**
+     * The Peer that received this event.
+     *
+     * @return Peer that received this event. Maybe null if source is legacy event hub.
+     */
+    public Peer getPeer() {
+        return peer;
+    }
+
+//    /**
+//     * Raw proto buff event.
+//     *
+//     * @return Return raw protobuf event.
+//     */
+//
+//    public Event getEvent() {
+//        return event;
+//    }
+
+    boolean isBlockEvent() {
+
+        return event == null || event.getEventCase() == Event.EventCase.BLOCK;
     }
 
     TransactionEvent getTransactionEvent(int index) throws InvalidProtocolBufferException {
 
         return new TransactionEvent((TransactionEnvelopeInfo) getEnvelopeInfo(index), index);
-    }
-
-    public class TransactionEvent extends TransactionEnvelopeInfo {
-        TransactionEvent(TransactionEnvelopeInfo transactionEnvelopeInfo, int index) {
-            super(transactionEnvelopeInfo.getTransactionDeserializer(), index);
-        }
-
-        /**
-         * The event hub that received this event.
-         *
-         * @return
-         */
-
-        public EventHub getEventHub() {
-
-            return BlockEvent.this.getEventHub();
-        }
     }
 
     List<TransactionEvent> getTransactionEventsList() {
@@ -120,9 +115,38 @@ public class BlockEvent extends BlockInfo {
 
     }
 
+    public class TransactionEvent extends TransactionEnvelopeInfo {
+        TransactionEvent(TransactionEnvelopeInfo transactionEnvelopeInfo, int index) {
+            super(transactionEnvelopeInfo.getTransactionDeserializer(), index);
+        }
+
+        /**
+         * The event hub that received this event.
+         *
+         * @return May return null if peer eventing service detected the event.
+         * @deprecated use new peer eventing services {@link #getPeer()}
+         */
+
+        public EventHub getEventHub() {
+
+            return BlockEvent.this.getEventHub();
+        }
+
+        /**
+         * The peer that received this event.
+         *
+         * @return May return null if deprecated eventhubs are still being used, otherwise return the peer.
+         */
+
+        public Peer getPeer() {
+
+            return BlockEvent.this.getPeer();
+        }
+    }
+
     class TransactionEventIterator implements Iterator<TransactionEvent> {
-        int ci = 0;
         final int max;
+        int ci = 0;
 
         TransactionEventIterator() {
             max = getEnvelopeCount();

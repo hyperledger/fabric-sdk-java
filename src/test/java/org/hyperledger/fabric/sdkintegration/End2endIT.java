@@ -20,6 +20,7 @@ import java.net.MalformedURLException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -38,6 +39,7 @@ import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
 import org.hyperledger.fabric.sdk.ChaincodeEvent;
 import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.Channel;
+import org.hyperledger.fabric.sdk.Channel.PeerOptions;
 import org.hyperledger.fabric.sdk.ChannelConfiguration;
 import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
@@ -45,6 +47,7 @@ import org.hyperledger.fabric.sdk.InstallProposalRequest;
 import org.hyperledger.fabric.sdk.InstantiateProposalRequest;
 import org.hyperledger.fabric.sdk.Orderer;
 import org.hyperledger.fabric.sdk.Peer;
+import org.hyperledger.fabric.sdk.Peer.PeerRole;
 import org.hyperledger.fabric.sdk.ProposalResponse;
 import org.hyperledger.fabric.sdk.QueryByChaincodeRequest;
 import org.hyperledger.fabric.sdk.SDKUtils;
@@ -69,6 +72,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.BlockInfo.EnvelopeType.TRANSACTION_ENVELOPE;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -93,12 +97,43 @@ public class End2endIT {
 
     private static final byte[] EXPECTED_EVENT_DATA = "!".getBytes(UTF_8);
     private static final String EXPECTED_EVENT_NAME = "event";
+    private static final Map<String, String> TX_EXPECTED;
 
-    String testTxID = null;  // save the CC invoke TxID and use in queries
+    static {
+        TX_EXPECTED = new HashMap<>();
+        TX_EXPECTED.put("readset1", "Missing readset for channel bar block 1");
+        TX_EXPECTED.put("writeset1", "Missing writeset for channel bar block 1");
+    }
 
     private final TestConfigHelper configHelper = new TestConfigHelper();
-
+    String testTxID = null;  // save the CC invoke TxID and use in queries
     private Collection<SampleOrg> testSampleOrgs;
+
+    static void out(String format, Object... args) {
+
+        System.err.flush();
+        System.out.flush();
+
+        System.out.println(format(format, args));
+        System.err.flush();
+        System.out.flush();
+
+    }
+    //CHECKSTYLE.ON: Method length is 320 lines (max allowed is 150).
+
+    static String printableString(final String string) {
+        int maxLogStringLength = 64;
+        if (string == null || string.length() == 0) {
+            return string;
+        }
+
+        String ret = string.replaceAll("[^\\p{Print}]", "?");
+
+        ret = ret.substring(0, Math.min(ret.length(), maxLogStringLength)) + (ret.length() > maxLogStringLength ? "..." : "");
+
+        return ret;
+
+    }
 
     @Before
     public void checkConfig() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, MalformedURLException, org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException {
@@ -208,7 +243,9 @@ public class End2endIT {
             SampleOrg sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
             Channel fooChannel = constructChannel(FOO_CHANNEL_NAME, client, sampleOrg);
             runChannel(client, fooChannel, true, sampleOrg, 0);
+
             fooChannel.shutdown(true); // Force foo channel to shutdown clean up resources.
+
             assertNull(client.getChannel(FOO_CHANNEL_NAME));
             out("\n");
 
@@ -254,8 +291,6 @@ public class End2endIT {
             final String channelName = channel.getName();
             boolean isFooChain = FOO_CHANNEL_NAME.equals(channelName);
             out("Running channel %s", channelName);
-            channel.setTransactionWaitTime(testConfig.getTransactionWaitTime());
-            channel.setDeployWaitTime(testConfig.getDeployWaitTime());
 
             Collection<Orderer> orderers = channel.getOrderers();
             final ChaincodeID chaincodeID;
@@ -271,14 +306,13 @@ public class End2endIT {
 
                         chaincodeEvents.add(new ChaincodeEventCapture(handle, blockEvent, chaincodeEvent));
 
+                        String es = blockEvent.getPeer() != null ? blockEvent.getPeer().getName() : blockEvent.getEventHub().getName();
                         out("RECEIVED Chaincode event with handle: %s, chaincode Id: %s, chaincode event name: %s, "
-                                        + "block timestamp: %s, "
                                         + "transaction id: %s, event payload: \"%s\", from eventhub: %s",
                                 handle, chaincodeEvent.getChaincodeId(),
                                 chaincodeEvent.getEventName(),
-                                blockEvent.getTimestamp() == null ? "<na>" : blockEvent.getTimestamp().toString(),
                                 chaincodeEvent.getTxId(),
-                                new String(chaincodeEvent.getPayload()), blockEvent.getEventHub().toString());
+                                new String(chaincodeEvent.getPayload()), es);
 
                     });
 
@@ -329,9 +363,9 @@ public class End2endIT {
                 //    Set<String> orgs = orgPeers.keySet();
                 //   for (SampleOrg org : testSampleOrgs) {
 
-                Set<Peer> peersFromOrg = sampleOrg.getPeers();
-                numInstallProposal = numInstallProposal + peersFromOrg.size();
-                responses = client.sendInstallProposal(installProposalRequest, peersFromOrg);
+                Collection<Peer> peers = channel.getPeers();
+                numInstallProposal = numInstallProposal + peers.size();
+                responses = client.sendInstallProposal(installProposalRequest, peers);
 
                 for (ProposalResponse response : responses) {
                     if (response.getStatus() == ProposalResponse.Status.SUCCESS) {
@@ -422,7 +456,7 @@ public class End2endIT {
                     transactionProposalRequest.setChaincodeID(chaincodeID);
                     transactionProposalRequest.setFcn("invoke");
                     transactionProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
-                    transactionProposalRequest.setArgs(new String[] {"move", "a", "b", "100"});
+                    transactionProposalRequest.setArgs("move", "a", "b", "100");
 
                     Map<String, byte[]> tm2 = new HashMap<>();
                     tm2.put("HyperLedgerFabric", "TransactionProposalRequest:JavaSDK".getBytes(UTF_8)); //Just some extra junk in transient map
@@ -558,7 +592,7 @@ public class End2endIT {
 
             // We can only send channel queries to peers that are in the same org as the SDK user context
             // Get the peers from the current org being used and pick one randomly to send the queries to.
-            Set<Peer> peerSet = sampleOrg.getPeers();
+            //  Set<Peer> peerSet = sampleOrg.getPeers();
             //  Peer queryPeer = peerSet.iterator().next();
             //   out("Using peer %s for channel queries", queryPeer.getName());
 
@@ -599,17 +633,18 @@ public class End2endIT {
                 channel.unregisterChaincodeEventListener(chaincodeEventListenerHandle);
                 //Should be two. One event in chaincode and two notification for each of the two event hubs
 
-                final int numberEventHubs = channel.getEventHubs().size();
+                final int numberEventsExpected = channel.getEventHubs().size() +
+                        channel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).size();
                 //just make sure we get the notifications.
                 for (int i = 15; i > 0; --i) {
-                    if (chaincodeEvents.size() == numberEventHubs) {
+                    if (chaincodeEvents.size() == numberEventsExpected) {
                         break;
                     } else {
                         Thread.sleep(90); // wait for the events.
                     }
 
                 }
-                assertEquals(numberEventHubs, chaincodeEvents.size());
+                assertEquals(numberEventsExpected, chaincodeEvents.size());
 
                 for (ChaincodeEventCapture chaincodeEventCapture : chaincodeEvents) {
                     assertEquals(chaincodeEventListenerHandle, chaincodeEventCapture.handle);
@@ -620,7 +655,7 @@ public class End2endIT {
 
                     BlockEvent blockEvent = chaincodeEventCapture.blockEvent;
                     assertEquals(channelName, blockEvent.getChannelId());
-                    assertTrue(channel.getEventHubs().contains(blockEvent.getEventHub()));
+                    //   assertTrue(channel.getEventHubs().contains(blockEvent.getEventHub()));
 
                 }
 
@@ -636,7 +671,6 @@ public class End2endIT {
             fail("Test failed with error : " + e.getMessage());
         }
     }
-    //CHECKSTYLE.ON: Method length is 320 lines (max allowed is 150).
 
     private Channel constructChannel(String name, HFClient client, SampleOrg sampleOrg) throws Exception {
         ////////////////////////////
@@ -645,6 +679,9 @@ public class End2endIT {
 
         out("Constructing channel %s", name);
 
+        //boolean doPeerEventing = false;
+        boolean doPeerEventing = !testConfig.isRunningAgainstFabric10() && BAR_CHANNEL_NAME.equals(name);
+//        boolean doPeerEventing = !testConfig.isRunningAgainstFabric10() && FOO_CHANNEL_NAME.equals(name);
         //Only peer Admin org
         client.setUserContext(sampleOrg.getPeerAdmin());
 
@@ -676,6 +713,7 @@ public class End2endIT {
 
         out("Created channel %s", name);
 
+        boolean everyother = true; //test with both cases when doing peer eventing.
         for (String peerName : sampleOrg.getPeerNames()) {
             String peerLocation = sampleOrg.getPeerLocation(peerName);
 
@@ -687,9 +725,19 @@ public class End2endIT {
             peerProperties.put("grpc.NettyChannelBuilderOption.maxInboundMessageSize", 9000000);
 
             Peer peer = client.newPeer(peerName, peerLocation, peerProperties);
-            newChannel.joinPeer(peer);
+            if (doPeerEventing && everyother) {
+                newChannel.joinPeer(peer); //Default is all roles.
+            } else {
+                newChannel.joinPeer(peer, PeerOptions.create().setPeerRoles(PeerRole.NO_EVENT_SOURCE));
+            }
             out("Peer %s joined channel %s", peerName, name);
-            sampleOrg.addPeer(peer);
+            everyother = !everyother;
+        }
+        //just for testing ...
+        if (doPeerEventing) {
+            // Make sure there is one of each type peer at the very least.
+            assertFalse(newChannel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).isEmpty());
+            assertFalse(newChannel.getPeers(PeerRole.NO_EVENT_SOURCE).isEmpty());
         }
 
         for (Orderer orderer : orderers) { //add remaining orderers if any.
@@ -712,32 +760,17 @@ public class End2endIT {
 
         out("Finished initialization channel %s", name);
 
-        return newChannel;
+        //Just checks if channel can be serialized and deserialized .. otherwise this is just a waste :)
+        byte[] serializedChannelBytes = newChannel.serializeChannel();
+        newChannel.shutdown(true);
 
-    }
-
-    static void out(String format, Object... args) {
-
-        System.err.flush();
-        System.out.flush();
-
-        System.out.println(format(format, args));
-        System.err.flush();
-        System.out.flush();
+        return client.deSerializeChannel(serializedChannelBytes).initialize();
 
     }
 
     private void waitOnFabric(int additional) {
         //NOOP today
 
-    }
-
-    private static final Map<String, String> TX_EXPECTED;
-
-    static {
-        TX_EXPECTED = new HashMap<>();
-        TX_EXPECTED.put("readset1", "Missing readset for channel bar block 1");
-        TX_EXPECTED.put("writeset1", "Missing writeset for channel bar block 1");
     }
 
     void blockWalker(HFClient client, Channel channel) throws InvalidArgumentException, ProposalException, IOException {
@@ -886,20 +919,6 @@ public class End2endIT {
         } catch (InvalidProtocolBufferRuntimeException e) {
             throw e.getCause();
         }
-    }
-
-    static String printableString(final String string) {
-        int maxLogStringLength = 64;
-        if (string == null || string.length() == 0) {
-            return string;
-        }
-
-        String ret = string.replaceAll("[^\\p{Print}]", "?");
-
-        ret = ret.substring(0, Math.min(ret.length(), maxLogStringLength)) + (ret.length() > maxLogStringLength ? "..." : "");
-
-        return ret;
-
     }
 
 }
