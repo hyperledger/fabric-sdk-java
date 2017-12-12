@@ -23,6 +23,7 @@ import javax.json.JsonObject;
 import javax.json.JsonReader;
 
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException;
 
@@ -47,12 +48,12 @@ public class MockHFCAClient extends HFCAClient {
     }
 
     @Override
-    JsonObject httpPost(String url, String body, String authHTTPCert) throws Exception {
+    JsonObject httpPost(String url, String body, User admin) throws Exception {
 
         JsonObject response;
 
         if (httpPostResponse == null) {
-            response = super.httpPost(url, body, authHTTPCert);
+            response = super.httpPost(url, body, admin);
         } else {
             JsonReader reader = Json.createReader(new StringReader(httpPostResponse));
             response = (JsonObject) reader.read();

@@ -17,6 +17,7 @@ package org.hyperledger.fabric.sdk.helper;
 import org.apache.log4j.Level;
 import org.hyperledger.fabric.sdk.TestConfigHelper;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,6 +38,13 @@ public class ConfigTest {
         // reset Config after each test. We do not want to interfere with the
         // next test or the next test suite
         configHelper.clearConfig();
+    }
+
+    @AfterClass
+    public static final void tearclassdown() throws Exception {
+        TestConfigHelper sconfigHelper = new TestConfigHelper();
+        sconfigHelper.clearConfig();
+        Config.getConfig();
     }
 
     // Tests that Config.getConfig properly loads a value from a system property

@@ -21,8 +21,8 @@ import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdkintegration.SampleStore;
 import org.hyperledger.fabric.sdkintegration.SampleUser;
+import org.hyperledger.fabric_ca.sdk.exception.AffiliationException;
 import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
-import org.hyperledger.fabric_ca.sdk.exception.IdentityException;
 import org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException;
 import org.junit.Assert;
 import org.junit.Before;
@@ -31,7 +31,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-public class HFCAIdentityTest {
+public class HFCAAffiliationTest {
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -50,7 +50,7 @@ public class HFCAIdentityTest {
             crypto = new CryptoPrimitives();
             crypto.init();
         } catch (Exception e) {
-            throw new RuntimeException("HFCAIdentityTest.setupBeforeClass failed!", e);
+            throw new RuntimeException("HFCAAffiliationTest.setupBeforeClass failed!", e);
         }
     }
 
@@ -75,83 +75,123 @@ public class HFCAIdentityTest {
 
         HFCAClient client = HFCAClient.createNewInstance("http://localhost:99", null);
         client.setCryptoSuite(crypto);
-        HFCAIdentity ident = client.newHFCAIdentity("testid");
+        HFCAAffiliation aff = client.newHFCAAffiliation("org1");
 
-        Assert.assertNotNull(ident);
-        Assert.assertSame(HFCAIdentity.class, ident.getClass());
-        Assert.assertEquals(ident.getEnrollmentId(), "testid");
+        Assert.assertNotNull(aff);
+        Assert.assertSame(HFCAAffiliation.class, aff.getClass());
     }
 
     @Test
     public void testHFCAIdentityCryptoNull() throws Exception {
 
         thrown.expect(InvalidArgumentException.class);
-        thrown.expectMessage("Client's crypto primitives not set");
+        thrown.expectMessage("Crypto primitives not set");
 
         HFCAClient client = HFCAClient.createNewInstance("http://localhost:99", null);
         client.setCryptoSuite(null);
-        HFCAIdentity ident = client.newHFCAIdentity("testid");
+        client.newHFCAAffiliation("org1");
     }
 
     @Test
     public void testHFCAIdentityIDNull() throws Exception {
 
         thrown.expect(InvalidArgumentException.class);
-        thrown.expectMessage("EnrollmentID cannot be null or empty");
+        thrown.expectMessage("Affiliation name cannot be null or empty");
 
         HFCAClient client = HFCAClient.createNewInstance("http://localhost:99", null);
-        HFCAIdentity ident = client.newHFCAIdentity(null);
+        client.newHFCAAffiliation(null);
     }
 
     @Test
-    public void getIdentityNoServerResponse() throws Exception {
+    public void testBadAffiliationNameSpace() throws Exception {
 
-        thrown.expect(IdentityException.class);
-        thrown.expectMessage("Error while getting user");
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("Affiliation name cannot contain an empty space or tab");
+
+        HFCAClient client = HFCAClient.createNewInstance("http://localhost:99", null);
+        client.newHFCAAffiliation("foo. .bar");
+    }
+
+    @Test
+    public void testBadAffiliationNameStartingDot() throws Exception {
+
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("Affiliation name cannot start with a dot '.'");
+
+        HFCAClient client = HFCAClient.createNewInstance("http://localhost:99", null);
+        client.newHFCAAffiliation(".foo");
+    }
+
+    @Test
+    public void testBadAffiliationNameEndingDot() throws Exception {
+
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("Affiliation name cannot end with a dot '.'");
+
+        HFCAClient client = HFCAClient.createNewInstance("http://localhost:99", null);
+        client.newHFCAAffiliation("foo.");
+    }
+
+    @Test
+    public void testBadAffiliationNameMultipleDots() throws Exception {
+
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("Affiliation name cannot contain multiple consecutive dots '.'");
+
+        HFCAClient client = HFCAClient.createNewInstance("http://localhost:99", null);
+        client.newHFCAAffiliation("foo...bar");
+    }
+
+    @Test
+    public void getAffiliationNoServerResponse() throws Exception {
+
+        thrown.expect(AffiliationException.class);
+        thrown.expectMessage("Error while getting affiliation");
 
         HFCAClient client = HFCAClient.createNewInstance("http://localhost:99", null);
         client.setCryptoSuite(crypto);
 
-        HFCAIdentity ident = client.newHFCAIdentity("testuser1");
-        ident.read(admin);
+        HFCAAffiliation aff = client.newHFCAAffiliation("neworg1");
+        aff.read(admin);
     }
 
     @Test
-    public void createIdentityNoServerResponse() throws Exception {
+    public void createAffiliationNoServerResponse() throws Exception {
 
-        thrown.expect(IdentityException.class);
-        thrown.expectMessage("Error while creating user");
+        thrown.expect(AffiliationException.class);
+        thrown.expectMessage("Error while creating affiliation");
 
         HFCAClient client = HFCAClient.createNewInstance("http://localhost:99", null);
         client.setCryptoSuite(crypto);
 
-        HFCAIdentity ident = client.newHFCAIdentity("testuser1");
-        ident.create(admin);
+        HFCAAffiliation aff = client.newHFCAAffiliation("neworg1");
+        aff.create(admin);
     }
 
     @Test
-    public void updateIdentityNoServerResponse() throws Exception {
+    public void updateAffiliationNoServerResponse() throws Exception {
 
-        thrown.expect(IdentityException.class);
-        thrown.expectMessage("Error while updating user");
+        thrown.expect(AffiliationException.class);
+        thrown.expectMessage("Error while updating affiliation");
 
         HFCAClient client = HFCAClient.createNewInstance("http://localhost:99", null);
         client.setCryptoSuite(crypto);
 
-        HFCAIdentity ident = client.newHFCAIdentity("testuser1");
-        ident.update(admin);
+        HFCAAffiliation aff = client.newHFCAAffiliation("neworg1");
+        aff.setUpdateName("neworg1");
+        aff.update(admin);
     }
 
     @Test
-    public void deleteIdentityNoServerResponse() throws Exception {
+    public void deleteAffiliationNoServerResponse() throws Exception {
 
-        thrown.expect(IdentityException.class);
-        thrown.expectMessage("Error while deleting user");
+        thrown.expect(AffiliationException.class);
+        thrown.expectMessage("Error while deleting affiliation");
 
         HFCAClient client = HFCAClient.createNewInstance("http://localhost:99", null);
         client.setCryptoSuite(crypto);
 
-        HFCAIdentity ident = client.newHFCAIdentity("testuser1");
-        ident.delete(admin);
+        HFCAAffiliation aff = client.newHFCAAffiliation("neworg1");
+        aff.delete(admin);
     }
 }

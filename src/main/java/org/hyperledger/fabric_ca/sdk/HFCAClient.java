@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.TimeZone;
@@ -96,6 +97,8 @@ import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
+import org.hyperledger.fabric_ca.sdk.HFCAAffiliation.HFCAAffiliationResp;
+import org.hyperledger.fabric_ca.sdk.exception.AffiliationException;
 import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric_ca.sdk.exception.GenerateCRLException;
 import org.hyperledger.fabric_ca.sdk.exception.HTTPException;
@@ -315,8 +318,7 @@ public class HFCAClient {
 
         try {
             String body = request.toJson();
-            String authHdr = getHTTPAuthCertificate(registrar.getEnrollment(), body);
-            JsonObject resp = httpPost(url + HFCA_REGISTER, body, authHdr);
+            JsonObject resp = httpPost(url + HFCA_REGISTER, body, registrar);
             String secret = resp.getString("secret");
             if (secret == null) {
                 throw new Exception("secret was not found in response");
@@ -562,8 +564,7 @@ public class HFCAClient {
             String body = req.toJson();
 
             // build authentication header
-            String authHdr = getHTTPAuthCertificate(user.getEnrollment(), body);
-            JsonObject result = httpPost(url + HFCA_REENROLL, body, authHdr);
+            JsonObject result = httpPost(url + HFCA_REENROLL, body, user);
 
             // get new cert from response
             Base64.Decoder b64dec = Base64.getDecoder();
@@ -648,10 +649,8 @@ public class HFCAClient {
             RevocationRequest req = new RevocationRequest(caName, null, serial, aki, reason, genCRL);
             String body = req.toJson();
 
-            String authHdr = getHTTPAuthCertificate(revoker.getEnrollment(), body);
-
             // send revoke request
-            JsonObject resp = httpPost(url + HFCA_REVOKE, body, authHdr);
+            JsonObject resp = httpPost(url + HFCA_REVOKE, body, revoker);
             logger.debug("revoke done");
 
             if (genCRL) {
@@ -725,11 +724,8 @@ public class HFCAClient {
             RevocationRequest req = new RevocationRequest(caName, revokee, null, null, reason, genCRL);
             String body = req.toJson();
 
-            // build auth header
-            String authHdr = getHTTPAuthCertificate(revoker.getEnrollment(), body);
-
             // send revoke request
-            JsonObject resp = httpPost(url + HFCA_REVOKE, body, authHdr);
+            JsonObject resp = httpPost(url + HFCA_REVOKE, body, revoker);
 
             logger.debug(format("revoke revokee: %s done.", revokee));
 
@@ -802,11 +798,8 @@ public class HFCAClient {
 
             //---------------------------------------
 
-            // build auth header
-            String authHdr = getHTTPAuthCertificate(registrar.getEnrollment(), body);
-
             // send revoke request
-            JsonObject ret = httpPost(url + HFCA_GENCRL, body, authHdr);
+            JsonObject ret = httpPost(url + HFCA_GENCRL, body, registrar);
 
             return ret.getString("CRL");
 
@@ -845,8 +838,7 @@ public class HFCAClient {
         logger.debug(format("identity  url: %s, registrar: %s", url, registrar.getName()));
 
         try {
-            String authHdr = getHTTPAuthCertificate(registrar.getEnrollment(), "");
-            JsonObject result = httpGet(HFCAIdentity.HFCA_IDENTITY, authHdr);
+            JsonObject result = httpGet(HFCAIdentity.HFCA_IDENTITY, registrar);
 
             Collection<HFCAIdentity> allIdentities = new ArrayList<HFCAIdentity>();
 
@@ -875,6 +867,54 @@ public class HFCAClient {
 
     }
 
+    /**
+     * @param name Name of the affiliation
+     * @return HFCAAffiliation object
+     * @throws InvalidArgumentException Invalid (null) argument specified
+     */
+    public HFCAAffiliation newHFCAAffiliation(String name) throws InvalidArgumentException {
+        return new HFCAAffiliation(name, this);
+    }
+
+    /**
+     * gets all affiliations that the registrar is allowed to see
+     *
+     * @param registrar The identity of the registrar (i.e. who is performing the registration).
+     * @return The affiliations that were requested
+     * @throws AffiliationException    if getting all affiliations fails
+     * @throws InvalidArgumentException
+     */
+
+    public HFCAAffiliation getHFCAAffiliations(User registrar) throws AffiliationException, InvalidArgumentException {
+        if (cryptoSuite == null) {
+            throw new InvalidArgumentException("Crypto primitives not set.");
+        }
+
+        if (registrar == null) {
+            throw new InvalidArgumentException("Registrar should be a valid member");
+        }
+
+        logger.debug(format("affiliations  url: %s, registrar: %s", url, registrar.getName()));
+
+        try {
+            JsonObject result = httpGet(HFCAAffiliation.HFCA_AFFILIATION, registrar);
+            HFCAAffiliation affiliations = new HFCAAffiliation(result);
+
+            logger.debug(format("affiliations  url: %s, registrar: %s done.", url, registrar));
+            return affiliations;
+        } catch (HTTPException e) {
+            String msg = format("[HTTP Status Code: %d] - Error while getting all affiliations from url '%s': %s", e.getStatusCode(), url, e.getMessage());
+            AffiliationException affiliationException = new AffiliationException(msg, e);
+            logger.error(msg);
+            throw affiliationException;
+        } catch (Exception e) {
+            String msg = format("Error while getting all affiliations from url '%s': %s", url, e.getMessage());
+            AffiliationException affiliationException = new AffiliationException(msg, e);
+            logger.error(msg);
+            throw affiliationException;
+        }
+
+    }
 
     private String toJson(Date date) {
         final TimeZone utc = TimeZone.getTimeZone("UTC");
@@ -965,8 +1005,8 @@ public class HFCAClient {
         return responseBody;
     }
 
-    JsonObject httpPost(String url, String body, String authHTTPCert) throws Exception {
-
+    JsonObject httpPost(String url, String body, User registrar) throws Exception {
+        String authHTTPCert = getHTTPAuthCertificate(registrar.getEnrollment(), body);
         HttpPost httpPost = new HttpPost(url);
         logger.debug(format("httpPost %s, body:%s, authHTTPCert: %s", url, body, authHTTPCert));
 
@@ -985,8 +1025,8 @@ public class HFCAClient {
         return getResult(response, body, "POST");
     }
 
-    JsonObject httpGet(String url, String authHTTPCert) throws Exception {
-
+    JsonObject httpGet(String url, User registrar) throws Exception {
+        String authHTTPCert = getHTTPAuthCertificate(registrar.getEnrollment(), "");
         url = getURL(url);
         HttpGet httpGet = new HttpGet(url);
         logger.debug(format("httpGet %s, authHTTPCert: %s", url, authHTTPCert));
@@ -1005,8 +1045,8 @@ public class HFCAClient {
         return getResult(response, "", "GET");
     }
 
-    JsonObject httpPut(String url, String body, String authHTTPCert) throws Exception {
-
+    JsonObject httpPut(String url, String body, User registrar) throws Exception {
+        String authHTTPCert = getHTTPAuthCertificate(registrar.getEnrollment(), body);
         HttpPut httpPut = new HttpPut(url);
         logger.debug(format("httpPutt %s, body:%s, authHTTPCert: %s", url, body, authHTTPCert));
 
@@ -1025,8 +1065,8 @@ public class HFCAClient {
         return getResult(response, body, "PUT");
     }
 
-    JsonObject httpDelete(String url, String authHTTPCert) throws Exception {
-
+    JsonObject httpDelete(String url, User registrar) throws Exception {
+        String authHTTPCert = getHTTPAuthCertificate(registrar.getEnrollment(), "");
         HttpDelete httpDelete = new HttpDelete(url);
         logger.debug(format("httpPut %s, authHTTPCert: %s", url, authHTTPCert));
 
@@ -1250,5 +1290,28 @@ public class HFCAClient {
         return uri.build().toURL().toString();
     }
 
+     String getURL(String endpoint, Map<String, String> queryMap) throws URISyntaxException, MalformedURLException, InvalidArgumentException {
+        setUpSSL();
+        String url = this.url + endpoint;
+        URIBuilder uri = new URIBuilder(url);
+        if (caName != null) {
+            uri.addParameter("ca", caName);
+        }
+        if (queryMap != null) {
+            for (Map.Entry<String, String> param : queryMap.entrySet()) {
+                 uri.addParameter(param.getKey(), param.getValue());
+            }
+        }
+        return uri.build().toURL().toString();
+    }
+
+     // Convert the identity request to a JSON string
+     String toJson(JsonObject toJsonFunc) {
+         StringWriter stringWriter = new StringWriter();
+         JsonWriter jsonWriter = Json.createWriter(new PrintWriter(stringWriter));
+         jsonWriter.writeObject(toJsonFunc);
+         jsonWriter.close();
+         return stringWriter.toString();
+     }
 }
 
