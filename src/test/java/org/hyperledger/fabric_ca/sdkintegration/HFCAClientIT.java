@@ -15,6 +15,7 @@ package org.hyperledger.fabric_ca.sdkintegration;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.StringReader;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
@@ -28,9 +29,10 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.x509.CertificateList;
 import org.bouncycastle.asn1.x509.TBSCertList;
+import org.bouncycastle.cert.X509CRLHolder;
+import org.bouncycastle.openssl.PEMParser;
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
@@ -498,10 +500,10 @@ public class HFCAClientIT {
         Base64.Decoder b64dec = Base64.getDecoder();
         final byte[] decode = b64dec.decode(crl.getBytes(UTF_8));
 
-        ByteArrayInputStream inStream = new ByteArrayInputStream(decode);
-        ASN1InputStream asnInputStream = new ASN1InputStream(inStream);
+        PEMParser pem = new PEMParser(new StringReader(new String(decode)));
+        X509CRLHolder holder = (X509CRLHolder) pem.readObject();
 
-        return CertificateList.getInstance(asnInputStream.readObject()).getRevokedCertificates();
+        return holder.toASN1Structure().getRevokedCertificates();
     }
 
     @Test
