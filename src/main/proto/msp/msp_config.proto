@@ -8,6 +8,7 @@ syntax = "proto3";
 
 option go_package = "github.com/hyperledger/fabric/protos/msp";
 option java_package = "org.hyperledger.fabric.protos.msp";
+option java_outer_classname = "MspConfig";
 
 package msp;
 
@@ -196,7 +197,7 @@ message FabricOUIdentifier {
 // that does not contain any of the specified OU will be considered invalid.
 message FabricNodeOUs {
     // If true then an msp identity that does not contain any of the specified OU will be considered invalid.
-    bool enable = 1;
+    bool   enable = 1;
 
     // OU Identifier of the clients
     FabricOUIdentifier client_ou_identifier = 2;

@@ -87,7 +87,7 @@ public class IdemixCredential {
      *
      * @param proto a protobuf representation of a credential
      */
-    IdemixCredential(Idemix.Credential proto) {
+    public IdemixCredential(Idemix.Credential proto) {
         if (proto == null) {
             throw new IllegalArgumentException("Cannot create idemix credential from null input");
         }
@@ -118,7 +118,7 @@ public class IdemixCredential {
         return S;
     }
 
-    byte[][] getAttrs() {
+    public byte[][] getAttrs() {
         return Attrs;
     }
 
@@ -129,7 +129,7 @@ public class IdemixCredential {
      * @param ipk the public key of the issuer
      * @return true iff valid
      */
-    boolean verify(BIG sk, IdemixIssuerPublicKey ipk) {
+    public boolean verify(BIG sk, IdemixIssuerPublicKey ipk) {
         if (ipk == null || Attrs.length != ipk.getAttributeNames().length) {
             return false;
         }

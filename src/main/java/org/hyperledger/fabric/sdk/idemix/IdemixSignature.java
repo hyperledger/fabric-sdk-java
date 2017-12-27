@@ -69,7 +69,7 @@ public class IdemixSignature {
      * @param rhIndex    the index of the attribute that represents the revocation handle
      * @param cri        the credential revocation information that allows the signer to prove non-revocation
      */
-    IdemixSignature(IdemixCredential c, BIG sk, IdemixPseudonym pseudonym, IdemixIssuerPublicKey ipk, boolean[] disclosure, byte[] msg, int rhIndex, Idemix.CredentialRevocationInformation cri) {
+    public IdemixSignature(IdemixCredential c, BIG sk, IdemixPseudonym pseudonym, IdemixIssuerPublicKey ipk, boolean[] disclosure, byte[] msg, int rhIndex, Idemix.CredentialRevocationInformation cri) {
         if (c == null || sk == null || pseudonym == null || pseudonym.getNym() == null || pseudonym.getRandNym() == null || ipk == null || disclosure == null || msg == null || cri == null) {
             throw new IllegalArgumentException("Cannot construct idemix signature from null input");
         }
@@ -197,7 +197,7 @@ public class IdemixSignature {
      *
      * @param proto a protobuf object representing an IdemixSignature
      */
-    IdemixSignature(Idemix.Signature proto) {
+    public IdemixSignature(Idemix.Signature proto) {
         if (proto == null) {
             throw new IllegalArgumentException("Cannot construct idemix signature from null input");
         }
@@ -236,7 +236,7 @@ public class IdemixSignature {
      * @param epoch           monotonically increasing counter representing a time window
      * @return true iff valid
      */
-    boolean verify(boolean[] disclosure, IdemixIssuerPublicKey ipk, byte[] msg, BIG[] attributeValues, int rhIndex, PublicKey revPk, int epoch) throws CryptoException {
+    public boolean verify(boolean[] disclosure, IdemixIssuerPublicKey ipk, byte[] msg, BIG[] attributeValues, int rhIndex, PublicKey revPk, int epoch) throws CryptoException {
         if (disclosure == null || ipk == null || msg == null || attributeValues == null || attributeValues.length != ipk.getAttributeNames().length || disclosure.length != ipk.getAttributeNames().length) {
             return false;
         }
@@ -349,7 +349,7 @@ public class IdemixSignature {
      *
      * @return a protobuf object representing this IdemixSignature
      */
-    Idemix.Signature toProto() {
+    public Idemix.Signature toProto() {
         Idemix.Signature.Builder builder = Idemix.Signature.newBuilder()
                 .setAPrime(IdemixUtils.transformToProto(aPrime))
                 .setABar(IdemixUtils.transformToProto(aBar))

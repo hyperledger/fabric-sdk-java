@@ -35,7 +35,7 @@ public class IdemixPseudonym {
      * @param sk  the secret key of the user
      * @param ipk the public key of the issuer
      */
-     IdemixPseudonym(BIG sk, IdemixIssuerPublicKey ipk) {
+     public IdemixPseudonym(BIG sk, IdemixIssuerPublicKey ipk) {
         if (sk == null || ipk == null) {
             throw new IllegalArgumentException("Cannot construct idemix pseudonym from null input");
         }
@@ -47,7 +47,7 @@ public class IdemixPseudonym {
     /**
      * @return the value of the pseudonym as an ECP
      */
-     ECP getNym() {
+     public ECP getNym() {
         return Nym;
     }
 

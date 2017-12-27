@@ -52,7 +52,6 @@ public final class IdemixUtils {
     static final FP12 genGT = PAIR.fexp(PAIR.ate(genG2, genG1));
     static final BIG GROUP_ORDER = new BIG(ROM.CURVE_Order);
     static final int FIELD_BYTES = BIG.MODBYTES;
-    private static final RAND RNG = getRand();
 
     private IdemixUtils() {
         // private constructor as there shouldn't be instances of this utility class
@@ -95,7 +94,7 @@ public final class IdemixUtils {
      * @param data the data to be hashed
      * @return a BIG in 0, ..., GROUP_ORDER-1 that is the hash of the data
      */
-     static BIG hashModOrder(byte[] data) {
+     public static BIG hashModOrder(byte[] data) {
         HASH256 hash = new HASH256();
         for (byte b : data) {
             hash.process(b);
@@ -115,7 +114,7 @@ public final class IdemixUtils {
      * @param big the BIG to turn into bytes
      * @return a byte array representation of the BIG
      */
-     static byte[] bigToBytes(BIG big) {
+     public static byte[] bigToBytes(BIG big) {
         byte[] ret = new byte[IdemixUtils.FIELD_BYTES];
         big.toBytes(ret);
         return ret;
@@ -256,7 +255,7 @@ public final class IdemixUtils {
      * @param m the modulus
      * @return Returns a+b (mod m)
      */
-    public static BIG modAdd(BIG a, BIG b, BIG m) {
+    static BIG modAdd(BIG a, BIG b, BIG m) {
         BIG c = a.plus(b);
         c.mod(m);
         return c;
@@ -270,7 +269,7 @@ public final class IdemixUtils {
      * @param m the modulus
      * @return returns a-b (mod m)
      */
-    public static BIG modSub(BIG a, BIG b, BIG m) {
+    static BIG modSub(BIG a, BIG b, BIG m) {
         return modAdd(a, BIG.modneg(b, m), m);
     }
 }

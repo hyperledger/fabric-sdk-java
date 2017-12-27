@@ -122,7 +122,7 @@ public class IdemixIssuerPublicKey {
      *
      * @param proto a protobuf representation of an issuer public key
      */
-     IdemixIssuerPublicKey(Idemix.IssuerPublicKey proto) {
+     public IdemixIssuerPublicKey(Idemix.IssuerPublicKey proto) {
         // check for bad input
         if (proto == null) {
             throw new IllegalArgumentException("Cannot create IdemixIssuerPublicKey from null input");
@@ -160,7 +160,7 @@ public class IdemixIssuerPublicKey {
      *
      * @return true iff valid
      */
-     boolean check() {
+     public boolean check() {
         // check formalities of IdemixIssuerPublicKey
         if (AttributeNames == null || Hsk == null || HRand == null || HAttrs == null
                 || BarG1 == null || BarG1.is_infinity() || BarG2 == null
@@ -221,7 +221,7 @@ public class IdemixIssuerPublicKey {
     /**
      * @return The names of the attributes certified with this issuer public key
      */
-     String[] getAttributeNames() {
+     public String[] getAttributeNames() {
         return AttributeNames;
     }
 
@@ -244,7 +244,7 @@ public class IdemixIssuerPublicKey {
     /**
      * @return A digest of this issuer public key
      */
-     byte[] getHash() {
+     public byte[] getHash() {
         return Hash;
     }
 }

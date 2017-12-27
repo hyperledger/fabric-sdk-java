@@ -43,7 +43,7 @@ public class IdemixPseudonymSignature {
      * @param ipk       the issuer public key
      * @param msg       the message to be signed
      */
-     IdemixPseudonymSignature(BIG sk, IdemixPseudonym pseudonym, IdemixIssuerPublicKey ipk, byte[] msg) {
+     public IdemixPseudonymSignature(BIG sk, IdemixPseudonym pseudonym, IdemixIssuerPublicKey ipk, byte[] msg) {
         if (sk == null || pseudonym == null || pseudonym.getNym() == null || pseudonym.getRandNym() == null || ipk == null || msg == null) {
             throw new IllegalArgumentException("Cannot create IdemixPseudonymSignature from null input");
         }
@@ -84,7 +84,7 @@ public class IdemixPseudonymSignature {
      *
      * @param proto a protobuf object representing an IdemixPseudonymSignature
      */
-     IdemixPseudonymSignature(Idemix.NymSignature proto) {
+     public IdemixPseudonymSignature(Idemix.NymSignature proto) {
         if (proto == null) {
             throw new IllegalArgumentException("Cannot create idemix nym signature from null input");
         }
@@ -102,7 +102,7 @@ public class IdemixPseudonymSignature {
      * @param msg the message that should be signed in this signature
      * @return true iff valid
      */
-     boolean verify(ECP nym, IdemixIssuerPublicKey ipk, byte[] msg) {
+     public boolean verify(ECP nym, IdemixIssuerPublicKey ipk, byte[] msg) {
         if (nym == null || ipk == null || msg == null) {
             return false;
         }
@@ -131,7 +131,7 @@ public class IdemixPseudonymSignature {
     /**
      * @return A proto object representing this IdemixPseudonymSignature
      */
-     Idemix.NymSignature toProto() {
+     public Idemix.NymSignature toProto() {
         return Idemix.NymSignature.newBuilder()
                 .setProofC(ByteString.copyFrom(IdemixUtils.bigToBytes(proofC)))
                 .setProofSSk(ByteString.copyFrom(IdemixUtils.bigToBytes(proofSSk)))
