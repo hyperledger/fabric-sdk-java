@@ -11,6 +11,7 @@ Note, the SDK does ***not*** provide a means of persistence
   for the application defined channels and user artifacts on the client. This is left for the embedding application to best manage.
   Channels may be serialized via Java serialization in the context of a client.
   Channels deserialized are not in an initialized state.
+  Applications need to handle migration of serialzed files between versions.
 
 The SDK also provides a client for Hyperledger's certificate authority.  The SDK is however not dependent on this
 particular implementation of a certificate authority. Other Certificate authority's maybe used by implementing the
@@ -214,6 +215,14 @@ Use this `maven` command to run the integration tests:
 ### End to end test scenario
 The _src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java_ integration test is an example of installing, instantiating, invoking and querying a chaincode.
 It constructs the Hyperledger channel, deploys the `GO` chaincode, invokes the chaincode to do a transfer amount operation and queries the resulting blockchain world state.
+
+The _src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java_  Shows recreating the channel objects created in End2endIT.java and
+upgrading chaincode and invoking the up graded chaincode.
+
+Between End2endIT.java and End2endAndBackAgainIT.java this code shows almost all that the SDK can do.
+ To learn the SDK you must have some understanding first of the Fabric. Then  it's best to study these two integrations tests  and better yet work with them in a debugger to follow the code. ( *a live demo* )
+ Then once you understand them you can cut and paste from there to your own application. ( _the code is done for you!_ )
+
 
 This test is a reworked version of the Fabric [e2e_cli example](https://github.com/hyperledger/fabric/tree/master/examples/e2e_cli) to demonstrate the features of the SDK.
 To better understand blockchain and Fabric concepts, we recommend you install and run the _e2e_cli_ example.
