@@ -39,7 +39,6 @@ import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
 import org.hyperledger.fabric.sdk.ChaincodeEvent;
 import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.Channel;
-import org.hyperledger.fabric.sdk.Channel.PeerOptions;
 import org.hyperledger.fabric.sdk.ChannelConfiguration;
 import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
@@ -70,6 +69,7 @@ import org.junit.Test;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.BlockInfo.EnvelopeType.TRANSACTION_ENVELOPE;
+import static org.hyperledger.fabric.sdk.Channel.PeerOptions.createPeerOptions;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -726,9 +726,10 @@ public class End2endIT {
 
             Peer peer = client.newPeer(peerName, peerLocation, peerProperties);
             if (doPeerEventing && everyother) {
-                newChannel.joinPeer(peer); //Default is all roles.
+                newChannel.joinPeer(peer, createPeerOptions()); //Default is all roles.
             } else {
-                newChannel.joinPeer(peer, PeerOptions.create().setPeerRoles(PeerRole.NO_EVENT_SOURCE));
+                // Set peer to not be all roles but eventing.
+                newChannel.joinPeer(peer, createPeerOptions().setPeerRoles(PeerRole.NO_EVENT_SOURCE));
             }
             out("Peer %s joined channel %s", peerName, name);
             everyother = !everyother;

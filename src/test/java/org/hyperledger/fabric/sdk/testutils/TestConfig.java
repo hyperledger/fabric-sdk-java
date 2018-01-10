@@ -87,7 +87,7 @@ public class TestConfig {
 
             // Default values
 
-            defaultProperty(INVOKEWAITTIME, "100000");
+            defaultProperty(INVOKEWAITTIME, "120");
             defaultProperty(DEPLOYWAITTIME, "120000");
             defaultProperty(PROPOSALWAITTIME, "120000");
 

@@ -561,7 +561,7 @@ public class Channel implements Serializable {
      */
     public Channel addPeer(Peer peer) throws InvalidArgumentException {
 
-        return addPeer(peer, PeerOptions.create());
+        return addPeer(peer, PeerOptions.createPeerOptions());
 
     }
 
@@ -615,7 +615,7 @@ public class Channel implements Serializable {
      */
 
     public Channel joinPeer(Peer peer) throws ProposalException {
-        return joinPeer(peer, PeerOptions.create());
+        return joinPeer(peer, PeerOptions.createPeerOptions());
     }
 
     private Collection<Peer> getEventingPeers() {
@@ -644,8 +644,7 @@ public class Channel implements Serializable {
     }
 
     /**
-     *
-     * @param peer the peer to join the channel.
+     * @param peer        the peer to join the channel.
      * @param peerOptions see {@link PeerOptions}
      * @return
      * @throws ProposalException
@@ -852,7 +851,7 @@ public class Channel implements Serializable {
     /**
      * Set peerOptions in the channel that has not be initialized yet.
      *
-     * @param peer the peer to set options on.
+     * @param peer        the peer to set options on.
      * @param peerOptions see {@link PeerOptions}
      * @return old options.
      */
@@ -1040,6 +1039,7 @@ public class Channel implements Serializable {
 
     /**
      * Is the channel shutdown.
+     *
      * @return return true if the channel is shutdown.
      */
     public boolean isShutdown() {
@@ -1048,6 +1048,7 @@ public class Channel implements Serializable {
 
     /**
      * Get signed byes of the update channel.
+     *
      * @param updateChannelConfiguration
      * @param signer
      * @return
@@ -2404,8 +2405,8 @@ public class Channel implements Serializable {
 
     /**
      * Send transaction to one of a specified set of orderers with the specified user context.
-     *  IF there are no event hubs or eventing peers this future returns immediately completed
-     *  indicating that orderer has accepted the transaction only.
+     * IF there are no event hubs or eventing peers this future returns immediately completed
+     * indicating that orderer has accepted the transaction only.
      *
      * @param proposalResponses
      * @param orderers
@@ -3145,21 +3146,53 @@ public class Channel implements Serializable {
         private static final long serialVersionUID = -6906605662806520793L;
 
         protected EnumSet<PeerRole> peerRoles;
-        //      protected String blockType = "Filter"; // not yet used.
         protected Boolean newest = true;
         protected Long startEvents;
         protected Long stopEvents = Long.MAX_VALUE;
+        protected boolean registerEventsForFilteredBlocks = false;
 
         /**
-         * Get newest block on startup.
+         * Is the peer eventing service registered for filtered blocks
+         *
+         * @return true if filtered blocks will be returned by the peer eventing service.
+         */
+        public boolean isRegisterEventsForFilteredBlocks() {
+            return registerEventsForFilteredBlocks;
+        }
+
+        /**
+         * Register the peer eventing services to return filtered blocks.
+         *
+         * @return the PeerOptions instance.
+         */
+
+        public PeerOptions registerEventsForFilteredBlocks() {
+            registerEventsForFilteredBlocks = true;
+            return this;
+        }
+
+        /**
+         * Register the peer eventing services to return full event blocks.
+         *
+         * @return the PeerOptions instance.
+         */
+
+        public PeerOptions registerEventsForBlocks() {
+            registerEventsForFilteredBlocks = false;
+            return this;
+        }
+
+        /**
+         * Get newest block on startup of peer eventing service.
+         *
          * @return
          */
-        Boolean getNewest() {
+        public Boolean getNewest() {
             return newest;
         }
 
         /**
-         * The block number to start getting.
+         * The block number to start getting events from on start up of the peer eventing service..
          *
          * @return the start number
          */
@@ -3169,7 +3202,7 @@ public class Channel implements Serializable {
         }
 
         /**
-         * The stopping block number.
+         * The stopping block number when the peer eventing service will stop sending blocks.
          *
          * @return the stop block number.
          */
@@ -3184,10 +3217,11 @@ public class Channel implements Serializable {
 
         /**
          * Create an instance of PeerOptions.
+         *
          * @return the PeerOptions instance.
          */
 
-        public static PeerOptions create() {
+        public static PeerOptions createPeerOptions() {
             return new PeerOptions();
         }
 
@@ -3206,6 +3240,7 @@ public class Channel implements Serializable {
 
         /**
          * Set the roles this peer will have on the chain it will added or joined.
+         *
          * @param peerRoles {@link PeerRole}
          * @return This PeerOptions.
          */
@@ -3217,6 +3252,7 @@ public class Channel implements Serializable {
 
         /**
          * Add to the roles this peer will have on the chain it will added or joined.
+         *
          * @param peerRole see {@link PeerRole}
          * @return This PeerOptions.
          */
@@ -3233,6 +3269,7 @@ public class Channel implements Serializable {
 
         /**
          * Set the block number the eventing peer will start relieving events.
+         *
          * @param start The staring block number.
          * @return This PeerOptions.
          */
@@ -3246,6 +3283,7 @@ public class Channel implements Serializable {
         /**
          * This is the default. It will start retrieving events with the newest. Note this is not the
          * next block that is added to the chain  but the current block on the chain.
+         *
          * @return This PeerOptions.
          */
 
@@ -3258,6 +3296,7 @@ public class Channel implements Serializable {
 
         /**
          * The block number to stop sending events.
+         *
          * @param stop the number to stop sending events.
          * @return This PeerOptions.
          */
@@ -3268,6 +3307,7 @@ public class Channel implements Serializable {
 
         /**
          * Clone.
+         *
          * @return return a duplicate of this instance.
          */
 

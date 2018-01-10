@@ -55,37 +55,37 @@ public class PeerTest {
 
     }
 
-    @Test(expected = InvalidArgumentException.class)
+    @Test (expected = InvalidArgumentException.class)
     public void testSetNullName() throws InvalidArgumentException {
         peer = hfclient.newPeer(null, "grpc://localhost:4");
         Assert.fail("expected set null name to throw exception.");
     }
 
-    @Test(expected = InvalidArgumentException.class)
+    @Test (expected = InvalidArgumentException.class)
     public void testSetEmptyName() throws InvalidArgumentException {
         peer = hfclient.newPeer("", "grpc://localhost:4");
         Assert.fail("expected set empty name to throw exception.");
     }
 
-    @Test(expected = PeerException.class)
+    @Test (expected = PeerException.class)
     public void testSendNullProposal() throws PeerException, InvalidArgumentException {
         peer.sendProposal(null);
         Assert.fail("Expected null proposal to throw exception.");
     }
 
-    @Test(expected = PeerException.class)
+    @Test (expected = PeerException.class)
     public void testSendNullChannel() throws InvalidArgumentException, PeerException {
         Peer badpeer = hfclient.newPeer("badpeer", "grpc://localhost:7051");
         badpeer.sendProposal(FabricProposal.SignedProposal.newBuilder().build());
         Assert.fail("Expected peer with no channel throw exception");
     }
 
-    @Test(expected = PeerException.class)
+    @Test (expected = PeerException.class)
     public void testSendAsyncNullProposal() throws PeerException, InvalidArgumentException {
         peer.sendProposalAsync(null);
     }
 
-    @Test(expected = InvalidArgumentException.class)
+    @Test (expected = InvalidArgumentException.class)
     public void testBadURL() throws InvalidArgumentException {
         hfclient.newPeer(PEER_NAME, " ");
         Assert.fail("Expected peer with no channel throw exception");

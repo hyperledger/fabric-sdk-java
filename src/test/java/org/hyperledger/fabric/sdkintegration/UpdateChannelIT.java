@@ -35,7 +35,6 @@ import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.hyperledger.fabric.sdk.Channel;
-import org.hyperledger.fabric.sdk.Channel.PeerOptions;
 import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.Peer;
@@ -47,6 +46,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static java.lang.String.format;
+import static org.hyperledger.fabric.sdk.Channel.PeerOptions.createPeerOptions;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -242,7 +242,7 @@ public class UpdateChannelIT {
                 throw new AssertionError(format("Peer %s does not appear to belong to channel %s", peerName, name));
             }
 
-            newChannel.addPeer(peer, PeerOptions.create().setPeerRoles(EnumSet.of(Peer.PeerRole.CHAINCODE_QUERY,
+            newChannel.addPeer(peer, createPeerOptions().setPeerRoles(EnumSet.of(Peer.PeerRole.CHAINCODE_QUERY,
                     Peer.PeerRole.ENDORSING_PEER, Peer.PeerRole.LEDGER_QUERY)));
         }
 

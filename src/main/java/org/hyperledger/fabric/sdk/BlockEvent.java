@@ -19,7 +19,7 @@ import java.util.List;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.hyperledger.fabric.protos.common.Common.Block;
-import org.hyperledger.fabric.protos.orderer.Ab;
+import org.hyperledger.fabric.protos.peer.PeerEvents;
 import org.hyperledger.fabric.protos.peer.PeerEvents.Event;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
 
@@ -29,7 +29,6 @@ import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeExceptio
  * @see Block
  */
 public class BlockEvent extends BlockInfo {
-
 //    private static final Log logger = LogFactory.getLog(BlockEvent.class);
 
     private final EventHub eventHub;
@@ -50,9 +49,8 @@ public class BlockEvent extends BlockInfo {
         this.event = event;
     }
 
-    BlockEvent(Peer peer, Ab.DeliverResponse resp) {
-        super(resp.getBlock());
-
+    BlockEvent(Peer peer, PeerEvents.DeliverResponse resp) {
+        super(resp);
         eventHub = null;
         this.peer = peer;
         this.event = null;
@@ -89,35 +87,26 @@ public class BlockEvent extends BlockInfo {
 //    }
 
     boolean isBlockEvent() {
+        if (peer != null) {
+            return true; //peer always returns Block type events;
+        }
 
-        return event == null || event.getEventCase() == Event.EventCase.BLOCK;
+        return event != null && event.getEventCase() == PeerEvents.Event.EventCase.BLOCK;
     }
 
     TransactionEvent getTransactionEvent(int index) throws InvalidProtocolBufferException {
 
-        return new TransactionEvent((TransactionEnvelopeInfo) getEnvelopeInfo(index), index);
-    }
-
-    List<TransactionEvent> getTransactionEventsList() {
-
-        ArrayList<TransactionEvent> ret = new ArrayList<TransactionEvent>(getEnvelopeCount());
-        for (TransactionEvent transactionEvent : getTransactionEvents()) {
-            ret.add(transactionEvent);
-        }
-
-        return ret;
-
-    }
-
-    public Iterable<TransactionEvent> getTransactionEvents() {
-
-        return new TransactionEventIterable();
-
+        return isFiltered() ? new TransactionEvent(getEnvelopeInfo(index).filteredTx) :
+                new TransactionEvent((TransactionEnvelopeInfo) getEnvelopeInfo(index));
     }
 
     public class TransactionEvent extends TransactionEnvelopeInfo {
-        TransactionEvent(TransactionEnvelopeInfo transactionEnvelopeInfo, int index) {
-            super(transactionEnvelopeInfo.getTransactionDeserializer(), index);
+        TransactionEvent(TransactionEnvelopeInfo transactionEnvelopeInfo) {
+            super(transactionEnvelopeInfo.getTransactionDeserializer());
+        }
+
+        TransactionEvent(PeerEvents.FilteredTransaction filteredTransaction) {
+            super(filteredTransaction);
         }
 
         /**
@@ -142,6 +131,23 @@ public class BlockEvent extends BlockInfo {
 
             return BlockEvent.this.getPeer();
         }
+    }
+
+    List<TransactionEvent> getTransactionEventsList() {
+
+        ArrayList<TransactionEvent> ret = new ArrayList<TransactionEvent>(getEnvelopeCount());
+        for (TransactionEvent transactionEvent : getTransactionEvents()) {
+            ret.add(transactionEvent);
+        }
+
+        return ret;
+
+    }
+
+    public Iterable<TransactionEvent> getTransactionEvents() {
+
+        return new TransactionEventIterable();
+
     }
 
     class TransactionEventIterator implements Iterator<TransactionEvent> {

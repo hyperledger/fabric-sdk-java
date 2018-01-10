@@ -567,7 +567,7 @@ public class NetworkConfig {
                     }
 
                     // Set the various roles
-                    PeerOptions peerOptions = PeerOptions.create();
+                    PeerOptions peerOptions = PeerOptions.createPeerOptions();
                     setPeerRole(channelName, peerOptions, jsonPeer, PeerRole.ENDORSING_PEER);
                     setPeerRole(channelName, peerOptions, jsonPeer, PeerRole.CHAINCODE_QUERY);
                     setPeerRole(channelName, peerOptions, jsonPeer, PeerRole.LEDGER_QUERY);

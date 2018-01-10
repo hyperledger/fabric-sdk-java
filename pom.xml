@@ -29,7 +29,7 @@
     </scm>
     <properties>
         <grpc.version>1.8.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
-        <bouncycastle.version>1.58</bouncycastle.version>
+        <bouncycastle.version>1.59</bouncycastle.version>
         <httpclient.version>4.5.4</httpclient.version>
         <skipITs>true</skipITs>
         <alpn-boot-version>8.1.7.v20160121</alpn-boot-version>
@@ -102,7 +102,7 @@
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <version>3.5.0</version>
+            <version>3.5.1</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk15on -->
         <dependency>

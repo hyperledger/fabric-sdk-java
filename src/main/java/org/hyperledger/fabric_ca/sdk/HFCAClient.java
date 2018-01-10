@@ -102,6 +102,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 
 public class HFCAClient {
+    /**
+     * Default profile name.
+     */
+    public static final String DEFAULT_PROFILE_NAME = "";
     private static final Log logger = LogFactory.getLog(HFCAClient.class);
     private static final String HFCA_CONTEXT_ROOT = "/api/v1/";
     private static final String HFCA_ENROLL = HFCA_CONTEXT_ROOT + "enroll";

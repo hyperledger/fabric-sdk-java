@@ -27,15 +27,14 @@ option go_package = "github.com/hyperledger/fabric/protos/peer";
 
 package protos;
 
-
 //----Event objects----
 
 enum EventType {
-        REGISTER = 0;
-        BLOCK = 1;
-	CHAINCODE = 2;
-	REJECTION = 3;
-        FILTEREDBLOCK = 4;
+    REGISTER = 0;
+    BLOCK = 1;
+    CHAINCODE = 2;
+    REJECTION = 3;
+    FILTEREDBLOCK = 4;
 }
 
 //ChaincodeReg is used for registering chaincode Interests
@@ -81,7 +80,6 @@ message Unregister {
 message FilteredBlock {
     string channel_id = 1;
     uint64 number = 2; // The position in the blockchain
-    common.HeaderType type = 3;
     repeated FilteredTransaction filtered_tx = 4;
 }
 
@@ -89,13 +87,22 @@ message FilteredBlock {
 //within a block.
 message FilteredTransaction {
     string txid = 1;
-    TxValidationCode tx_validation_code = 2;
-    repeated FilteredAction filtered_action = 3;
+    common.HeaderType type = 2;
+    TxValidationCode tx_validation_code = 3;
+    oneof Data {
+        FilteredTransactionActions transaction_actions = 4;
+    }
 }
 
-//FilteredAction is a minimal set of information about an action within a
+// FilteredTransactionActions is a wrapper for array of TransactionAction
+// message from regular block
+message FilteredTransactionActions {
+    repeated FilteredChaincodeAction chaincode_actions = 1;
+}
+
+//FilteredChaincodeAction is a minimal set of information about an action within a
 //transaction.
-message FilteredAction {
+message FilteredChaincodeAction {
     ChaincodeEvent ccEvent = 1;
 }
 
@@ -129,10 +136,35 @@ message Event {
     bytes creator = 6;
     // Timestamp of the client - used to mitigate replay attacks
     google.protobuf.Timestamp timestamp = 8;
+
+    // If mutual TLS is employed, this represents
+    // the hash of the client's TLS certificate
+    bytes tls_cert_hash = 9;
 }
 
 // Interface exported by the events server
 service Events {
     // event chatting using Event
-    rpc Chat(stream SignedEvent) returns (stream Event) {}
+    rpc Chat (stream SignedEvent) returns (stream Event) {
+    }
+}
+
+// DeliverResponse
+message DeliverResponse {
+    oneof Type {
+        common.Status status = 1;
+        common.Block block = 2;
+        FilteredBlock filtered_block = 3;
+    }
+}
+
+service Deliver {
+    // deliver first requires an Envelope of type ab.DELIVER_SEEK_INFO with Payload data as a marshaled orderer.SeekInfo message,
+    // then a stream of block replies is received.
+    rpc Deliver (stream common.Envelope) returns (stream DeliverResponse) {
+    }
+    // deliver first requires an Envelope of type ab.DELIVER_SEEK_INFO with Payload data as a marshaled orderer.SeekInfo message,
+    // then a stream of **filtered** block replies is received.
+    rpc DeliverFiltered (stream common.Envelope) returns (stream DeliverResponse) {
+    }
 }

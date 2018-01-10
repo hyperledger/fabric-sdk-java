@@ -153,7 +153,7 @@ public class Peer implements Serializable {
      */
     public String getUrl() {
 
-        return this.url;
+        return url;
     }
 
     /**

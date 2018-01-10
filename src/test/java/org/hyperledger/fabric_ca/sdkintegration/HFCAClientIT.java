@@ -55,6 +55,7 @@ import org.junit.rules.ExpectedException;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
+import static org.hyperledger.fabric_ca.sdk.HFCAClient.DEFAULT_PROFILE_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -278,7 +279,7 @@ public class HFCAClientIT {
         sleepALittle();
 
         // get another enrollment
-        EnrollmentRequest req = new EnrollmentRequest("profile 1", "label 1", null);
+        EnrollmentRequest req = new EnrollmentRequest(DEFAULT_PROFILE_NAME, "label 1", null);
         req.addHost("example1.ibm.com");
         req.addHost("example2.ibm.com");
         Enrollment tmpEnroll = client.reenroll(user, req);
@@ -322,7 +323,7 @@ public class HFCAClientIT {
         }
 
         if (!user.isEnrolled()) {
-            EnrollmentRequest req = new EnrollmentRequest("profile 2", "label 2", null);
+            EnrollmentRequest req = new EnrollmentRequest(DEFAULT_PROFILE_NAME, "label 2", null);
             req.addHost("example3.ibm.com");
             user.setEnrollment(client.enroll(user.getName(), user.getEnrollmentSecret(), req));
 
@@ -384,7 +385,7 @@ public class HFCAClientIT {
         sleepALittle();
 
         if (!user.isEnrolled()) {
-            EnrollmentRequest req = new EnrollmentRequest("profile 2", "label 2", null);
+            EnrollmentRequest req = new EnrollmentRequest(DEFAULT_PROFILE_NAME, "label 2", null);
             req.addHost("example3.ibm.com");
             user.setEnrollment(client.enroll(user.getName(), user.getEnrollmentSecret(), req));
 
@@ -450,7 +451,7 @@ public class HFCAClientIT {
             sleepALittle();
 
             if (!user.isEnrolled()) {
-                EnrollmentRequest req = new EnrollmentRequest("profile 2", "label 2", null);
+                EnrollmentRequest req = new EnrollmentRequest(DEFAULT_PROFILE_NAME, "label 2", null);
                 req.addHost("example3.ibm.com");
                 user.setEnrollment(client.enroll(user.getName(), user.getEnrollmentSecret(), req));
 
@@ -512,7 +513,7 @@ public class HFCAClientIT {
 
         SampleUser user = getEnrolledUser(TEST_ADMIN_ORG);
 
-        EnrollmentRequest req = new EnrollmentRequest("profile 1", "label 1", null);
+        EnrollmentRequest req = new EnrollmentRequest(DEFAULT_PROFILE_NAME, "label 1", null);
         req.setCsr("test");
         client.enroll(user.getName(), user.getEnrollmentSecret(), req);
     }

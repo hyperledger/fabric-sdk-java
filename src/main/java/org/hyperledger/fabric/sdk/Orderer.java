@@ -36,7 +36,32 @@ public class Orderer implements Serializable {
     private static final Log logger = LogFactory.getLog(Orderer.class);
     private static final long serialVersionUID = 4281642068914263247L;
     private final Properties properties;
+    private final String name;
+    private final String url;
     private transient boolean shutdown = false;
+    private Channel channel;
+    private transient volatile OrdererClient ordererClient = null;
+
+    Orderer(String name, String url, Properties properties) throws InvalidArgumentException {
+
+        if (StringUtil.isNullOrEmpty(name)) {
+            throw new InvalidArgumentException("Invalid name for orderer");
+        }
+        Exception e = checkGrpcUrl(url);
+        if (e != null) {
+            throw new InvalidArgumentException(e);
+        }
+
+        this.name = name;
+        this.url = url;
+        this.properties = properties == null ? null : (Properties) properties.clone(); //keep our own copy.
+
+    }
+
+    static Orderer createNewInstance(String name, String url, Properties properties) throws InvalidArgumentException {
+        return new Orderer(name, url, properties);
+
+    }
 
     /**
      * Get Orderer properties.
@@ -58,25 +83,6 @@ public class Orderer implements Serializable {
         return name;
     }
 
-    private final String name;
-    private final String url;
-
-    Orderer(String name, String url, Properties properties) throws InvalidArgumentException {
-
-        if (StringUtil.isNullOrEmpty(name)) {
-            throw new InvalidArgumentException("Invalid name for orderer");
-        }
-        Exception e = checkGrpcUrl(url);
-        if (e != null) {
-            throw new InvalidArgumentException(e);
-        }
-
-        this.name = name;
-        this.url = url;
-        this.properties = properties == null ? null : (Properties) properties.clone(); //keep our own copy.
-
-    }
-
     /**
      * getUrl - the Grpc url of the Orderer
      *
@@ -84,6 +90,21 @@ public class Orderer implements Serializable {
      */
     public String getUrl() {
         return url;
+    }
+
+    void unsetChannel() {
+
+        channel = null;
+
+    }
+
+    /**
+     * Get the channel of which this orderer is a member.
+     *
+     * @return {Channel} The channel of which this orderer is a member.
+     */
+    Channel getChannel() {
+        return channel;
     }
 
     void setChannel(Channel channel) throws InvalidArgumentException {
@@ -98,23 +119,6 @@ public class Orderer implements Serializable {
 
         this.channel = channel;
 
-    }
-
-    void unsetChannel() {
-
-        channel = null;
-
-    }
-
-    private Channel channel;
-
-    /**
-     * Get the channel of which this orderer is a member.
-     *
-     * @return {Channel} The channel of which this orderer is a member.
-     */
-    Channel getChannel() {
-        return channel;
     }
 
     /**
@@ -148,13 +152,6 @@ public class Orderer implements Serializable {
 
     }
 
-    static Orderer createNewInstance(String name, String url, Properties properties) throws InvalidArgumentException {
-        return new Orderer(name, url, properties);
-
-    }
-
-    private transient volatile OrdererClient ordererClient = null;
-
     DeliverResponse[] sendDeliver(Common.Envelope transaction) throws TransactionException {
 
         if (shutdown) {
@@ -184,21 +181,20 @@ public class Orderer implements Serializable {
         if (shutdown) {
             return;
         }
+        shutdown = true;
+        channel = null;
+
         if (ordererClient != null) {
             OrdererClient torderClientDeliver = ordererClient;
             ordererClient = null;
             torderClientDeliver.shutdown(force);
-
         }
-
-        shutdown = true;
-        channel = null;
 
     }
 
     @Override
     protected void finalize() throws Throwable {
-        super.finalize();
         shutdown(true);
+        super.finalize();
     }
 } // end Orderer
