@@ -190,6 +190,8 @@ public class UpdateChannelIT {
 
             //Let's add some additional verification...
 
+            client.setUserContext(sampleOrg.getPeerAdmin());
+
             final byte[] modChannelBytes = fooChannel.getChannelConfigurationBytes();
 
             //Now decode the new channel config bytes to json...
