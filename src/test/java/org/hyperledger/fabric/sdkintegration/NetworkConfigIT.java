@@ -76,7 +76,6 @@ import static org.junit.Assert.fail;
  * <p>
  * It first examines the "foo" channel and checks that CHAIN_CODE_NAME has been instantiated on the channel,
  * and if not it deploys the chaincode with that name.
- *
  */
 public class NetworkConfigIT {
 
@@ -98,8 +97,6 @@ public class NetworkConfigIT {
 
     private static NetworkConfig networkConfig;
 
-
-
     @BeforeClass
     public static void doMainSetup() throws Exception {
         out("\n\n\nRUNNING: NetworkConfigIT.\n");
@@ -108,12 +105,11 @@ public class NetworkConfigIT {
         configHelper.customizeConfig();
 
         // Use the appropriate TLS/non-TLS network config file
-        networkConfig =  NetworkConfig.fromYamlFile(testConfig.getTestNetworkConfigFileYAML());
+        networkConfig = NetworkConfig.fromYamlFile(testConfig.getTestNetworkConfigFileYAML());
 
         // Ensure the chaincode required for these tests is deployed
         deployChaincodeIfRequired();
     }
-
 
     // Determines whether or not the chaincode has been deployed and deploys it if necessary
     private static void deployChaincodeIfRequired() throws Exception {
@@ -146,7 +142,6 @@ public class NetworkConfigIT {
         return client;
     }
 
-
     private static User getAdminUser(String orgName) throws Exception {
 
         NetworkConfig.UserInfo userInfo = networkConfig.getPeerAdmin(orgName);
@@ -154,7 +149,6 @@ public class NetworkConfigIT {
 
         String userName = userInfo.getEnrollId();
         String mspId = userInfo.getMspId();
-
 
         PrivateKey privateKey = userInfo.getPrivateKey();
         String signedCert = userInfo.getSignedCert();
@@ -164,8 +158,6 @@ public class NetworkConfigIT {
 
         return admin;
     }
-
-
 
     @Test
     public void testUpdate1() throws Exception {
@@ -177,7 +169,6 @@ public class NetworkConfigIT {
         final ChaincodeID chaincodeID = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
                 .setVersion(CHAIN_CODE_VERSION)
                 .setPath(CHAIN_CODE_PATH).build();
-
 
         final String channelName = channel.getName();
 
@@ -232,7 +223,6 @@ public class NetworkConfigIT {
 
         out("testUpdate1 - done");
     }
-
 
     private static void queryChaincodeForExpectedValue(HFClient client, Channel channel, final String expect, ChaincodeID chaincodeID) {
 
@@ -333,7 +323,6 @@ public class NetworkConfigIT {
         return channel.sendTransaction(successful);
     }
 
-
     private static ChaincodeID deployChaincode(HFClient client, Channel channel, String ccName, String ccPath, String ccVersion) throws Exception {
 
         out("deployChaincode - enter");
@@ -385,8 +374,6 @@ public class NetworkConfigIT {
                 }
             }
 
-            SDKUtils.getProposalConsistencySets(responses);
-            //   }
             out("Received %d install proposal responses. Successful+verified: %d . Failed: %d", numInstallProposal, successful.size(), failed.size());
 
             if (failed.size() > 0) {
@@ -452,7 +439,6 @@ public class NetworkConfigIT {
             assertTrue(event.isValid()); // must be valid to be here.
             out("Finished instantiate transaction with transaction id %s", event.getTransactionID());
 
-
         } catch (Exception e) {
             e.printStackTrace();
             out("Caught an exception running channel %s", channel.getName());
@@ -461,8 +447,6 @@ public class NetworkConfigIT {
 
         return chaincodeID;
     }
-
-
 
     private static Channel constructChannel(HFClient client, String channelName) throws Exception {
 
@@ -474,7 +458,6 @@ public class NetworkConfigIT {
 
         return newChannel.initialize();
     }
-
 
     // Determines if the specified chaincode has been instantiated on the channel
     private static boolean checkInstantiatedChaincode(Channel channel, Peer peer, String ccName, String ccPath, String ccVersion) throws InvalidArgumentException, ProposalException {
@@ -494,7 +477,6 @@ public class NetworkConfigIT {
         return found;
     }
 
-
     private static void out(String format, Object... args) {
 
         System.err.flush();
@@ -505,6 +487,5 @@ public class NetworkConfigIT {
         System.out.flush();
 
     }
-
 
 }

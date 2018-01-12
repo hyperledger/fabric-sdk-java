@@ -30,6 +30,8 @@ import org.bouncycastle.asn1.DERSequenceGenerator;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
+import static java.lang.String.format;
+
 public class SDKUtils {
     private SDKUtils() {
 
@@ -117,18 +119,22 @@ public class SDKUtils {
 
         for (ProposalResponse proposalResponse : proposalResponses) {
 
-            if (proposalResponse.isInvalid() || proposalResponse.getProposalResponse() == null) {
+            if (proposalResponse.isInvalid()) {
                 invalid.add(proposalResponse);
             } else {
+                // payload bytes is what's being signed over so it must be consistent.
+                final ByteString payloadBytes = proposalResponse.getPayloadBytes();
 
-                ByteString rwsetByteString = proposalResponse.getProposalResponsePayloadDeserializer()
-                        .getExtension().getChaincodeAction().getResults();
-
-                Set<ProposalResponse> set = ret.computeIfAbsent(rwsetByteString, k -> new HashSet<>());
-
+                if (payloadBytes == null) {
+                    throw new InvalidArgumentException(format("proposalResponse.getPayloadBytes() was null from peer: %s.",
+                            proposalResponse.getPeer()));
+                } else if (payloadBytes.isEmpty()) {
+                    throw new InvalidArgumentException(format("proposalResponse.getPayloadBytes() was empty from peer: %s.",
+                            proposalResponse.getPeer()));
+                }
+                Set<ProposalResponse> set = ret.computeIfAbsent(payloadBytes, k -> new HashSet<>());
                 set.add(proposalResponse);
             }
-
         }
 
         return ret.values();

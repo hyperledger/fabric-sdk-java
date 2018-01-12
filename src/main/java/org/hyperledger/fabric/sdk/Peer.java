@@ -362,4 +362,9 @@ public class Peer implements Serializable {
         }
     }
 
+    @Override
+    public String toString() {
+        return "Peer " + name + " url: " + url;
+
+    }
 } // end Peer

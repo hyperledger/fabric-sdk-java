@@ -75,6 +75,11 @@ public class ProposalResponse extends ChaincodeResponse {
 
     }
 
+    ByteString getPayloadBytes() {
+        return proposalResponse.getPayload();
+
+    }
+
     public boolean isVerified() {
         return isVerified;
     }
