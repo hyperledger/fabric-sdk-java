@@ -28,9 +28,9 @@
         <tag>fabric-sdk-java-1.0</tag>
     </scm>
     <properties>
-        <grpc.version>1.8.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
+        <grpc.version>1.9.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
         <bouncycastle.version>1.59</bouncycastle.version>
-        <httpclient.version>4.5.4</httpclient.version>
+        <httpclient.version>4.5.5</httpclient.version>
         <skipITs>true</skipITs>
         <alpn-boot-version>8.1.7.v20160121</alpn-boot-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -96,7 +96,7 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-codec-http2</artifactId>
-            <version>4.1.19.Final</version>
+            <version>4.1.20.Final</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java -->
         <dependency>

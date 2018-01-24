@@ -146,7 +146,7 @@ public class BlockInfo {
      */
 
     public int getEnvelopeCount() {
-        return isFiltered() ? filteredBlock.getFilteredTxCount() : block.getData().getDataCount();
+        return isFiltered() ? filteredBlock.getFilteredTransactionsCount() : block.getData().getDataCount();
     }
 
     public class EnvelopeInfo {
@@ -267,12 +267,12 @@ public class BlockInfo {
 
             if (isFiltered()) {
 
-                switch (filteredBlock.getFilteredTx(envelopeIndex).getType().getNumber()) {
+                switch (filteredBlock.getFilteredTransactions(envelopeIndex).getType().getNumber()) {
                     case Common.HeaderType.ENDORSER_TRANSACTION_VALUE:
-                        ret = new TransactionEnvelopeInfo(this.filteredBlock.getFilteredTx(envelopeIndex));
+                        ret = new TransactionEnvelopeInfo(this.filteredBlock.getFilteredTransactions(envelopeIndex));
                         break;
                     default: //just assume base properties.
-                        ret = new EnvelopeInfo(this.filteredBlock.getFilteredTx(envelopeIndex));
+                        ret = new EnvelopeInfo(this.filteredBlock.getFilteredTransactions(envelopeIndex));
                         break;
                 }
 
@@ -497,7 +497,7 @@ public class BlockInfo {
             public ChaincodeEvent getEvent() {
                 if (isFiltered()) {
                     final PeerEvents.FilteredChaincodeAction chaincodeActions = filteredAction;
-                    return new ChaincodeEvent(chaincodeActions.getCcEvent().toByteString());
+                    return new ChaincodeEvent(chaincodeActions.getChaincodeEvent().toByteString());
                 }
 
                 return transactionAction.getPayload().getAction().getProposalResponsePayload()
@@ -554,7 +554,7 @@ public class BlockInfo {
         final int max;
 
         EnvelopeInfoIterator() {
-            max = isFiltered() ? filteredBlock.getFilteredTxCount() : block.getData().getDataCount();
+            max = isFiltered() ? filteredBlock.getFilteredTransactionsCount() : block.getData().getDataCount();
 
         }
 
