@@ -16,9 +16,6 @@
 
 package org.hyperledger.fabric_ca.sdk;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -28,7 +25,6 @@ import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.json.JsonWriter;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -36,7 +32,6 @@ import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric_ca.sdk.exception.AffiliationException;
 import org.hyperledger.fabric_ca.sdk.exception.HTTPException;
-import org.hyperledger.fabric_ca.sdk.exception.IdentityException;
 import org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException;
 
 import static java.lang.String.format;
@@ -521,7 +516,7 @@ public class HFCAAffiliation {
     /**
      * Validate affiliation name for proper formatting
      *
-     * @param url the string to test.
+     * @param name the string to test.
      * @throws InvalidArgumentException
      */
     void validateAffiliationNames(String name) throws InvalidArgumentException {
@@ -542,7 +537,7 @@ public class HFCAAffiliation {
     /**
      * Validate affiliation name for proper formatting
      *
-     * @param url the string to test.
+     * @param name the string to test.
      * @throws InvalidArgumentException
      */
     void validateSingleAffiliationName(String name) throws InvalidArgumentException {

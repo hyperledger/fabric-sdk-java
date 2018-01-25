@@ -26,23 +26,23 @@ SDK's `Enrollment` interface.
 
 * TCerts are not supported: JIRA FAB-1401
 * HSM not supported. JIRA FAB-3137
-* Single Crypto strength 256 JIRA FAB-2564
-
-
 
 <p &nbsp; />
 <p &nbsp; />
 
 `*************************************************`
-## *v1.0.1*
+## *v1.1.0-alpha*
 
-### Git v1.0.1
+## v1.1 release notes
+Please review the [v1.1 release notes](./docs/release_v1.1.0_notes.md) to familarize yourself with changes since v1.0 sdk release
 
-There is a git tagged v1.0.1  release of the SDK where there is no
+### Git v1.1.0-alpha
+
+There is a git tagged v1.1.0-alpha  release of the SDK where there is no
 need to build the Hyperledger Fabric and Hyperledger Fabric CA described below.
-The provided docker-compose.yaml for the integration tests should pull v1.0.1  tagged images from Docker hub.
+The provided docker-compose.yaml for the integration tests should pull v1.1.0-alpha  tagged images from Docker hub.
 
-The v1.0.1 version of the Hyperledger Fabric Java SDK is published to Maven so you can directly use in your application's pom.xml.
+The v1.1.0-alpha version of the Hyperledger Fabric Java SDK is published to Maven so you can directly use in your application's pom.xml.
 
 [Maven Repository Hyperledger Fabric Java SDK](https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java)
 
@@ -50,7 +50,7 @@ _Make sure you're using docker images at the level of the Fabric that matches th
 
 ### Using the SDK in your application
 
-Add below code in your `pom.xml` to download fabric-sdk-java-1.0.1
+Add below code in your `pom.xml` to download fabric-sdk-java-1.1.0-alpha
 
 ```xml
 
@@ -58,7 +58,7 @@ Add below code in your `pom.xml` to download fabric-sdk-java-1.0.1
         <dependency>
             <groupId>org.hyperledger.fabric-sdk-java</groupId>
             <artifactId>fabric-sdk-java</artifactId>
-            <version>1.0.1</version>
+            <version>1.1.0-alpha</version>
          </dependency>
      </dependencies>
 ```
@@ -182,7 +182,7 @@ Alternatively, <code> mvn dependency:analyze-report </code> will produce a repor
 ## Using the SDK
 The SDK's test cases uses chaincode in the SDK's source tree: `/src/test/fixture`
 
-The SDK's JAR is in `target/fabric-sdk-java-1.1.0-SNAPSHOT.jar` and you will need the additional dependencies listed above.
+The SDK's JAR is in `target/fabric-sdk-java-1.1.0-alpha.jar` and you will need the additional dependencies listed above.
 
 
 ### Compiling

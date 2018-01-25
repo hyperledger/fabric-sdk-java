@@ -27,9 +27,14 @@ export IMAGE_TAG_FABRIC=:x86_64-1.0.0
 export IMAGE_TAG_FABRIC_CA=:x86_64-1.0.0
 else
 export ORG_HYPERLEDGER_FABRIC_SDKTEST_ITSUITE=""
-export IMAGE_TAG_FABRIC=:latest
-export IMAGE_TAG_FABRIC_CA=:latest
+#unset to use what's in docker's .env file.
+unset IMAGE_TAG_FABRIC
+unset IMAGE_TAG_FABRIC_CA
 fi
+
+echo "environment:--------------------"
+env
+echo "environment:--------------------"
 
 cd $WD/src/test/fixture/sdkintegration
 ./fabric.sh restart >dockerlogfile.log 2>&1 &
