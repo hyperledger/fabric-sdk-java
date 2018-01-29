@@ -182,7 +182,7 @@ Alternatively, <code> mvn dependency:analyze-report </code> will produce a repor
 ## Using the SDK
 The SDK's test cases uses chaincode in the SDK's source tree: `/src/test/fixture`
 
-The SDK's JAR is in `target/fabric-sdk-java-1.1.0-alpha.jar` and you will need the additional dependencies listed above.
+The SDK's JAR is in `target/fabric-sdk-java-1.1.0-SNAPSHOT.jar` and you will need the additional dependencies listed above.
 
 
 ### Compiling
