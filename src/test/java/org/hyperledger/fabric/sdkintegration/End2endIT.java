@@ -16,8 +16,10 @@ package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.nio.file.Paths;
+import java.security.PrivateKey;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -31,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.commons.codec.binary.Hex;
+import org.bouncycastle.openssl.PEMWriter;
 import org.hyperledger.fabric.protos.ledger.rwset.kvrwset.KvRwset;
 import org.hyperledger.fabric.sdk.BlockEvent;
 import org.hyperledger.fabric.sdk.BlockInfo;
@@ -40,6 +43,7 @@ import org.hyperledger.fabric.sdk.ChaincodeEvent;
 import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.ChannelConfiguration;
+import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.InstallProposalRequest;
@@ -60,6 +64,7 @@ import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
+import org.hyperledger.fabric_ca.sdk.EnrollmentRequest;
 import org.hyperledger.fabric_ca.sdk.HFCAClient;
 import org.hyperledger.fabric_ca.sdk.HFCAInfo;
 import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
@@ -156,6 +161,8 @@ public class End2endIT {
         }
     }
 
+    Map<String, Properties> clientTLSProperties = new HashMap<>();
+
     @Test
     public void setup() {
 
@@ -196,6 +203,26 @@ public class End2endIT {
                 final String orgName = sampleOrg.getName();
                 final String mspid = sampleOrg.getMSPID();
                 ca.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+
+                if (testConfig.isRunningFabricTLS()) {
+                    //This shows how to get a client TLS certificate from Fabric CA
+                    // we will use one client TLS certificate for orderer peers etc.
+                    final EnrollmentRequest enrollmentRequestTLS = new EnrollmentRequest();
+                    enrollmentRequestTLS.addHost("localhost");
+                    enrollmentRequestTLS.setProfile("tls");
+                    final Enrollment enroll = ca.enroll("admin", "adminpw", enrollmentRequestTLS);
+                    final String tlsCertPEM = enroll.getCert();
+                    final String tlsKeyPEM = getPEMStringFromPrivateKey(enroll.getKey());
+
+                    final Properties tlsProperties = new Properties();
+
+                    tlsProperties.put("clientKeyBytes", tlsKeyPEM.getBytes(UTF_8));
+                    tlsProperties.put("clientCertBytes", tlsCertPEM.getBytes(UTF_8));
+                    clientTLSProperties.put(sampleOrg.getName(), tlsProperties);
+                    //Save in samplestore for follow on tests.
+                    sampleStore.storeClientPEMTLCertificate(sampleOrg, tlsCertPEM);
+                    sampleStore.storeClientPEMTLSKey(sampleOrg, tlsKeyPEM);
+                }
 
                 HFCAInfo info = ca.info(); //just check if we connect at all.
                 assertNotNull(info);
@@ -274,6 +301,17 @@ public class End2endIT {
             fail(e.getMessage());
         }
 
+    }
+
+    static String getPEMStringFromPrivateKey(PrivateKey privateKey) throws IOException {
+        StringWriter pemStrWriter = new StringWriter();
+        PEMWriter pemWriter = new PEMWriter(pemStrWriter);
+
+        pemWriter.writeObject(privateKey);
+
+        pemWriter.close();
+
+        return pemStrWriter.toString();
     }
 
     //CHECKSTYLE.OFF: Method length is 320 lines (max allowed is 150).
@@ -703,6 +741,10 @@ public class End2endIT {
             ordererProperties.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {8L, TimeUnit.SECONDS});
             ordererProperties.put("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls", new Object[] {true});
 
+            if (!clientTLSProperties.isEmpty()) {
+                ordererProperties.putAll(clientTLSProperties.get(sampleOrg.getName()));
+            }
+
             orderers.add(client.newOrderer(orderName, sampleOrg.getOrdererLocation(orderName),
                     ordererProperties));
         }
@@ -727,6 +769,11 @@ public class End2endIT {
             if (peerProperties == null) {
                 peerProperties = new Properties();
             }
+
+            if (!clientTLSProperties.isEmpty()) {
+                peerProperties.putAll(clientTLSProperties.get(sampleOrg.getName()));
+            }
+
             //Example of setting specific options on grpc's NettyChannelBuilder
             peerProperties.put("grpc.NettyChannelBuilderOption.maxInboundMessageSize", 9000000);
 
@@ -757,6 +804,10 @@ public class End2endIT {
 
             eventHubProperties.put("grpc.NettyChannelBuilderOption.keepAliveTime", new Object[] {5L, TimeUnit.MINUTES});
             eventHubProperties.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {8L, TimeUnit.SECONDS});
+
+            if (!clientTLSProperties.isEmpty()) {
+                eventHubProperties.putAll(clientTLSProperties.get(sampleOrg.getName()));
+            }
 
             EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
                     eventHubProperties);

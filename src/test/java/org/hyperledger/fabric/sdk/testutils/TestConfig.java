@@ -65,6 +65,11 @@ public class TestConfig {
     private static final Properties sdkProperties = new Properties();
     private final boolean runningTLS;
     private final boolean runningFabricCATLS;
+
+    public boolean isRunningFabricTLS() {
+        return runningFabricTLS;
+    }
+
     private final boolean runningFabricTLS;
     private static final HashMap<String, SampleOrg> sampleOrgs = new HashMap<>();
 

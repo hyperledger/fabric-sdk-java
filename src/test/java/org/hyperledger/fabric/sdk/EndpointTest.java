@@ -194,7 +194,7 @@ public class EndpointTest {
     @Test
     public void testBadClientKeyFile() {
         thrown.expect(RuntimeException.class);
-        thrown.expectMessage("Failed to parse TLS client key and/or cert");
+        thrown.expectMessage("Failed to parse TLS client private key");
 
         Properties testprops = new Properties();
         testprops.setProperty("trustServerCertificate", "true");
@@ -211,7 +211,7 @@ public class EndpointTest {
     @Test
     public void testBadClientCertFile() {
         thrown.expect(RuntimeException.class);
-        thrown.expectMessage("Failed to parse TLS client key and/or cert");
+        thrown.expectMessage("Failed to parse TLS client certificate");
 
         Properties testprops = new Properties();
         testprops.setProperty("trustServerCertificate", "true");
@@ -258,7 +258,7 @@ public class EndpointTest {
         try {
             new Endpoint("grpcs://localhost:594", testprops);
         } catch (RuntimeException e) {
-            Assert.assertEquals("Failed to parse TLS client key and/or certificate", e.getMessage());
+            Assert.assertEquals("Failed to parse TLS client private key", e.getMessage());
         }
     }
 

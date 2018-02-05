@@ -41,6 +41,7 @@ import io.grpc.netty.NegotiationType;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslProvider;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.x500.RDN;
@@ -48,12 +49,9 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
-import org.bouncycastle.openssl.PEMKeyPair;
-import org.bouncycastle.openssl.PEMParser;
-import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
-
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
+
 import static org.hyperledger.fabric.sdk.helper.Utils.parseGrpcUrl;
 
 class Endpoint {
@@ -146,12 +144,19 @@ class Endpoint {
                         throw new RuntimeException("Properties \"clientKeyBytes\" and \"clientCertBytes\" must both be set or both be null");
                     }
                 }
+
                 if ((ckb != null) && (ccb != null)) {
+                    String what = "private key";
                     try {
+                        logger.trace("client TLS private key bytes size:" + ckb.length);
                         clientKey = cp.bytesToPrivateKey(ckb);
+                        logger.trace("converted TLS key.");
+                        what = "certificate";
+                        logger.trace("client TLS certificate bytes:" + Hex.encodeHexString(ccb));
                         clientCert = new X509Certificate[] {(X509Certificate) cp.bytesToCertificate(ccb)};
+                        logger.trace("converted client TLS certificate.");
                     } catch (CryptoException e) {
-                        throw new RuntimeException("Failed to parse TLS client key and/or certificate", e);
+                        throw new RuntimeException("Failed to parse TLS client " + what, e);
                     }
                 }
 

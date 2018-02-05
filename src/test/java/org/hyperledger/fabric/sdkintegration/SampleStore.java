@@ -276,4 +276,28 @@ public class SampleStore {
         return ret;
     }
 
+    public void storeClientPEMTLSKey(SampleOrg sampleOrg, String key) {
+
+        setValue("clientPEMTLSKey." + sampleOrg.getName(), key);
+
+    }
+
+    public String getClientPEMTLSKey(SampleOrg sampleOrg) {
+
+        return getValue("clientPEMTLSKey." + sampleOrg.getName());
+
+    }
+
+    public void storeClientPEMTLCertificate(SampleOrg sampleOrg, String certificate) {
+
+        setValue("clientPEMTLSCertificate." + sampleOrg.getName(), certificate);
+
+    }
+
+    public String getClientPEMTLSCertificate(SampleOrg sampleOrg) {
+
+        return getValue("clientPEMTLSCertificate." + sampleOrg.getName());
+
+    }
+
 }

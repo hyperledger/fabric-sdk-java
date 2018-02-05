@@ -582,11 +582,25 @@ public class End2endAndBackAgainIT {
         } else {
             // foo channel do manual reconstruction.
 
+            Properties clientTLSProperties = new Properties();
+
+            final String clientPEMTLSCertificate = sampleStore.getClientPEMTLSCertificate(sampleOrg);
+            if (clientPEMTLSCertificate != null) {
+                clientTLSProperties.put("clientCertBytes", clientPEMTLSCertificate.getBytes(UTF_8));
+            }
+            final String clientPEMTLSKey = sampleStore.getClientPEMTLSKey(sampleOrg);
+
+            if (clientPEMTLSKey != null) {
+                clientTLSProperties.put("clientKeyBytes", clientPEMTLSKey.getBytes(UTF_8));
+            }
+
             newChannel = client.newChannel(name);
 
             for (String ordererName : sampleOrg.getOrdererNames()) {
+                Properties ordererProperties = (Properties) clientTLSProperties.clone();
+                ordererProperties.putAll(testConfig.getOrdererProperties(ordererName));
                 newChannel.addOrderer(client.newOrderer(ordererName, sampleOrg.getOrdererLocation(ordererName),
-                        testConfig.getOrdererProperties(ordererName)));
+                        ordererProperties));
             }
 
             boolean everyOther = false;
@@ -594,6 +608,7 @@ public class End2endAndBackAgainIT {
             for (String peerName : sampleOrg.getPeerNames()) {
                 String peerLocation = sampleOrg.getPeerLocation(peerName);
                 Properties peerProperties = testConfig.getPeerProperties(peerName);
+                peerProperties.putAll(clientTLSProperties);
                 Peer peer = client.newPeer(peerName, peerLocation, peerProperties);
                 final PeerOptions peerEventingOptions = // we have two peers on one use block on other use filtered
                         everyOther ?
@@ -613,8 +628,10 @@ public class End2endAndBackAgainIT {
                 //Should have two peers with all roles but event source.
                 assertEquals(2, newChannel.getPeers(PeerRole.NO_EVENT_SOURCE).size());
                 for (String eventHubName : sampleOrg.getEventHubNames()) {
+                    Properties eventhubProperties = (Properties) clientTLSProperties.clone();
+                    eventhubProperties.putAll(testConfig.getEventHubProperties(eventHubName));
                     EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
-                            testConfig.getEventHubProperties(eventHubName));
+                            eventhubProperties);
                     newChannel.addEventHub(eventHub);
                 }
             } else {
@@ -710,13 +727,12 @@ public class End2endAndBackAgainIT {
         return newChannel;
     }
 
-
     /**
-     *
-     *This code test the replay feature of the new peer event services.
+     * This code test the replay feature of the new peer event services.
      * Instead of the default of starting the eventing peer to retrieve the newest block it sets it
      * retrieve starting from the start parameter. Also checks with block and filterblock replays.
      * Depends on end2end and end2endAndBackagain of have fully run to have the blocks need to work with.
+     *
      * @param client
      * @param replayTestChannel
      * @param start
