@@ -28,6 +28,7 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.common.Common.Envelope;
 import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.orderer.Ab.SeekInfo;
@@ -45,19 +46,18 @@ import static org.hyperledger.fabric.protos.peer.PeerEvents.DeliverResponse.Type
 import static org.hyperledger.fabric.protos.peer.PeerEvents.DeliverResponse.TypeCase.STATUS;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createSeekInfoEnvelope;
 
-
 /**
  * Sample client code that makes gRPC calls to the server.
  */
 class PeerEventServiceClient {
     private static final Config config = Config.getConfig();
-    private static final long ORDERER_WAIT_TIME = config.getOrdererWaitTime();
+    private static final long PEER_EVENT_REGISTRATION_WAIT_TIME = config.getPeerEventRegistrationWaitTime();
     private static final Log logger = LogFactory.getLog(PeerEventServiceClient.class);
     private final String channelName;
     private final ManagedChannelBuilder channelBuilder;
     private final String name;
     private final String url;
-    private final long ordererWaitTimeMilliSecs;
+    private final long peerEventRegistrationWaitTimeMilliSecs;
     private final PeerOptions peerOptions;
     private final boolean filterBlock;
     Properties properties = new Properties();
@@ -70,7 +70,7 @@ class PeerEventServiceClient {
     private transient Peer peer;
 
     /**
-     * Construct client for accessing Orderer server using the existing managedChannel.
+     * Construct client for accessing Peer eventing service using the existing managedChannel.
      */
     PeerEventServiceClient(Peer peer, ManagedChannelBuilder<?> channelBuilder, Properties properties, PeerOptions peerOptions) {
 
@@ -86,22 +86,22 @@ class PeerEventServiceClient {
 
         if (null == properties) {
 
-            ordererWaitTimeMilliSecs = ORDERER_WAIT_TIME;
+            peerEventRegistrationWaitTimeMilliSecs = PEER_EVENT_REGISTRATION_WAIT_TIME;
 
         } else {
             this.properties = properties;
 
-            String ordererWaitTimeMilliSecsString = properties.getProperty("ordererWaitTimeMilliSecs", Long.toString(ORDERER_WAIT_TIME));
+            String peerEventRegistrationWaitTime = properties.getProperty("peerEventRegistrationWaitTime", Long.toString(PEER_EVENT_REGISTRATION_WAIT_TIME));
 
-            long tempOrdererWaitTimeMilliSecs = ORDERER_WAIT_TIME;
+            long tempPeerWaitTimeMilliSecs = PEER_EVENT_REGISTRATION_WAIT_TIME;
 
             try {
-                tempOrdererWaitTimeMilliSecs = Long.parseLong(ordererWaitTimeMilliSecsString);
+                tempPeerWaitTimeMilliSecs = Long.parseLong(peerEventRegistrationWaitTime);
             } catch (NumberFormatException e) {
-                logger.warn(format("Orderer %s wait time %s not parsable.", name, ordererWaitTimeMilliSecsString), e);
+                logger.warn(format("Peer event service registration %s wait time %s not parsable.", name, peerEventRegistrationWaitTime), e);
             }
 
-            ordererWaitTimeMilliSecs = tempOrdererWaitTimeMilliSecs;
+            peerEventRegistrationWaitTimeMilliSecs = tempPeerWaitTimeMilliSecs;
         }
 
     }
@@ -202,21 +202,30 @@ class PeerEventServiceClient {
                         done = true;
                         logger.debug(format("DeliverResponse channel %s peer %s setting done.",
                                 channelName, peer.getName()));
-                        retList.add(0, resp);
 
-                        finishLatch.countDown();
+                        if (resp.getStatus() == Common.Status.SUCCESS) {
+                            retList.add(0, resp);
+                        } else {
+
+                            throwableList.add(new TransactionException(format("Channel %s peer %s Status returned failure code %d (%s) during peer service event registration",
+                                    channelName, peer.getName(), resp.getStatusValue(), resp.getStatus().name())));
+                        }
 
                     } else if (typeCase == FILTERED_BLOCK || typeCase == BLOCK) {
                         logger.trace(format("Channel %s peer %s got event block hex hashcode: %016x, block number: %d",
                                 channelName, peer.getName(), resp.getBlock().hashCode(), resp.getBlock().getHeader().getNumber()));
                         retList.add(resp);
-                        finishLatch.countDown();
+
                         channelEventQue.addBEvent(new BlockEvent(peer, resp));
                     } else {
                         logger.error(format("Channel %s peer %s got event block with unknown type: %s, %d",
-                                channelName, peer.getName(), typeCase.name(), typeCase.getNumber())
-                        );
+                                channelName, peer.getName(), typeCase.name(), typeCase.getNumber()));
+
+                        throwableList.add(new TransactionException(format("Channel %s peer %s Status got unknown type %s, %d",
+                                channelName, peer.getName(), typeCase.name(), typeCase.getNumber())));
+
                     }
+                    finishLatch.countDown();
 
                 }
 
@@ -229,7 +238,6 @@ class PeerEventServiceClient {
                     if (!shutdown) {
                         logger.error(format("Received error on channel %s, peer %s, url %s, %s",
                                 channelName, name, url, t.getMessage()), t);
-
                         done = true;
                         throwableList.add(t);
                         finishLatch.countDown();
@@ -259,10 +267,9 @@ class PeerEventServiceClient {
             //nso.onCompleted();
 
             try {
-                //   if (!finishLatch.await(ordererWaitTimeMilliSecs, TimeUnit.MILLISECONDS)) {
-                if (!finishLatch.await(9999999, TimeUnit.MILLISECONDS)) {
+                if (!finishLatch.await(peerEventRegistrationWaitTimeMilliSecs, TimeUnit.MILLISECONDS)) {
                     TransactionException ex = new TransactionException(format(
-                            "Channel %s connect time exceeded for peer eventing service %s, timed out at %d ms.", channelName, name, ordererWaitTimeMilliSecs));
+                            "Channel %s connect time exceeded for peer eventing service %s, timed out at %d ms.", channelName, name, peerEventRegistrationWaitTimeMilliSecs));
                     logger.error(ex.getMessage(), ex);
                     throw ex;
                 }

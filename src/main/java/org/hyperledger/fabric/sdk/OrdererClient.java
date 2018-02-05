@@ -141,7 +141,12 @@ class OrdererClient {
                 public void onNext(Ab.BroadcastResponse resp) {
                     // logger.info("Got Broadcast response: " + resp);
                     logger.debug("resp status value: " + resp.getStatusValue() + ", resp: " + resp.getStatus());
-                    ret[0] = resp;
+                    if (resp.getStatus() == Common.Status.SUCCESS) {
+                        ret[0] = resp;
+                    } else {
+                        throwable[0] = new TransactionException(format("Channel %s orderer %s status returned failure code %d (%s) during order registration",
+                                channelName, name, resp.getStatusValue(), resp.getStatus().name()));
+                    }
                     finishLatch.countDown();
 
                 }

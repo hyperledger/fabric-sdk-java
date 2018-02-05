@@ -225,11 +225,17 @@ public class End2endAndBackAgainIT {
             SampleOrg sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
             Channel fooChannel = reconstructChannel(FOO_CHANNEL_NAME, client, sampleOrg);
             runChannel(client, fooChannel, sampleOrg, 0);
+            assertFalse(fooChannel.isShutdown());
+            assertTrue(fooChannel.isInitialized());
             fooChannel.shutdown(true); //clean up resources no longer needed.
+            assertTrue(fooChannel.isShutdown());
             out("\n");
+
             sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg2");
             Channel barChannel = reconstructChannel(BAR_CHANNEL_NAME, client, sampleOrg);
             runChannel(client, barChannel, sampleOrg, 100); //run a newly constructed foo channel with different b value!
+            assertFalse(barChannel.isShutdown());
+            assertTrue(barChannel.isInitialized());
 
             if (!testConfig.isRunningAgainstFabric10()) { //Peer eventing service support started with v1.1
 
@@ -695,6 +701,9 @@ public class End2endAndBackAgainIT {
             }
 
         }
+
+        assertTrue(newChannel.isInitialized());
+        assertFalse(newChannel.isShutdown());
 
         out("Finished reconstructing channel %s.", name);
 

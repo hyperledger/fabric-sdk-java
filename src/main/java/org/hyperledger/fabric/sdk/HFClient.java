@@ -278,7 +278,7 @@ public class HFClient {
     /**
      * newPeer create a new peer
      *
-     * @param name
+     * @param name       name of peer.
      * @param grpcURL    to the peer's location
      * @param properties <p>
      *                   Supported properties
@@ -300,6 +300,9 @@ public class HFClient {
      *                   <li>If the pemFile does not represent the server certificate, use this property to specify the URI authority
      *                   (a.k.a hostname) expected in the target server's certificate. This is required to get past default server
      *                   hostname verifications during TLS handshake.
+     *                   </li>
+     *                   <li>
+     *                   peerEventRegistrationWaitTime - Time in milliseconds to wait for peer eventing service registration.
      *                   </li>
      *                   <li>
      *                   grpc.NettyChannelBuilderOption.&lt;methodName&gt;  where methodName is any method on

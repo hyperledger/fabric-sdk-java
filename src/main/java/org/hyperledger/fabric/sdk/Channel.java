@@ -2300,7 +2300,15 @@ public class Channel implements Serializable {
         checkPeers(peers);
 
         if (null == proposalRequest) {
-            throw new InvalidArgumentException("sendProposal queryProposalRequest is null");
+            throw new InvalidArgumentException("The proposalRequest is null");
+        }
+
+        if (Utils.isNullOrEmpty(proposalRequest.getFcn())) {
+            throw new InvalidArgumentException("The proposalRequest's fcn is null or empty.");
+        }
+
+        if (proposalRequest.getChaincodeID() == null) {
+            throw new InvalidArgumentException("The proposalRequest's chaincode ID is null");
         }
 
         proposalRequest.setSubmitted();

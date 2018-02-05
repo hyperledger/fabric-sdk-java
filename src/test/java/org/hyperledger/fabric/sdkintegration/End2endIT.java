@@ -244,22 +244,28 @@ public class End2endIT {
             Channel fooChannel = constructChannel(FOO_CHANNEL_NAME, client, sampleOrg);
             runChannel(client, fooChannel, true, sampleOrg, 0);
 
+            assertFalse(fooChannel.isShutdown());
             fooChannel.shutdown(true); // Force foo channel to shutdown clean up resources.
+            assertTrue(fooChannel.isShutdown());
 
             assertNull(client.getChannel(FOO_CHANNEL_NAME));
             out("\n");
 
             sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg2");
             Channel barChannel = constructChannel(BAR_CHANNEL_NAME, client, sampleOrg);
+            assertTrue(barChannel.isInitialized());
             /**
              * sampleStore.saveChannel uses {@link Channel#serializeChannel()}
              */
             sampleStore.saveChannel(barChannel);
+            assertFalse(barChannel.isShutdown());
             runChannel(client, barChannel, true, sampleOrg, 100); //run a newly constructed bar channel with different b value!
             //let bar channel just shutdown so we have both scenarios.
 
             out("\nTraverse the blocks for chain %s ", barChannel.getName());
             blockWalker(client, barChannel);
+            assertFalse(barChannel.isShutdown());
+            assertTrue(barChannel.isInitialized());
             out("That's all folks!");
 
         } catch (Exception e) {
