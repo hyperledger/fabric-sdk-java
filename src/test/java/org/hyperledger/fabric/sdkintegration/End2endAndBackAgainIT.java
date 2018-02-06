@@ -279,6 +279,8 @@ public class End2endAndBackAgainIT {
         final String channelName = channel.getName();
         try {
 
+            client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME));
+
 //            final boolean changeContext = false; // BAR_CHANNEL_NAME.equals(channel.getName()) ? true : false;
             final boolean changeContext = BAR_CHANNEL_NAME.equals(channel.getName());
 
@@ -301,12 +303,14 @@ public class End2endAndBackAgainIT {
                 try {
 
                     waitOnFabric();
+                    client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME));
 
                     queryChaincodeForExpectedValue(client, channel, "" + (325 + delta), chaincodeID);
 
                     //////////////////
                     // Start of upgrade first must install it.
 
+                    client.setUserContext(sampleOrg.getPeerAdmin());
                     ///////////////
                     ////
                     InstallProposalRequest installProposalRequest = client.newInstallProposalRequest();
@@ -450,12 +454,6 @@ public class End2endAndBackAgainIT {
 
                     client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME));
 
-//
-//                    if( !changeContext ){
-//
-//                        client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME));
-//                    }
-
                     ///Check if we still get the same value on the ledger
                     out("delta is %s", delta);
                     queryChaincodeForExpectedValue(client, channel, "" + (325 + delta), chaincodeID);
@@ -559,7 +557,7 @@ public class End2endAndBackAgainIT {
     private Channel reconstructChannel(String name, HFClient client, SampleOrg sampleOrg) throws Exception {
         out("Reconstructing %s channel", name);
 
-        client.setUserContext(sampleOrg.getPeerAdmin());
+        client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME));
 
         Channel newChannel;
 
@@ -671,6 +669,7 @@ public class End2endAndBackAgainIT {
         assertEquals(newChannel, client.getChannel(name));
         assertFalse(newChannel.isInitialized());
         assertFalse(newChannel.isShutdown());
+        assertEquals(TESTUSER_1_NAME, client.getUserContext().getName());
         newChannel.initialize();
         assertTrue(newChannel.isInitialized());
         assertFalse(newChannel.isShutdown());
@@ -702,7 +701,9 @@ public class End2endAndBackAgainIT {
         assertNotNull(groupsMap.get("Application"));
 
         //Before return lets see if we have the chaincode on the peers that we expect from End2endIT
-        //And if they were instantiated too.
+        //And if they were instantiated too. this requires peer admin user
+
+        client.setUserContext(sampleOrg.getPeerAdmin());
 
         for (Peer peer : newChannel.getPeers()) {
 
@@ -718,6 +719,8 @@ public class End2endAndBackAgainIT {
             }
 
         }
+
+        client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME));
 
         assertTrue(newChannel.isInitialized());
         assertFalse(newChannel.isShutdown());

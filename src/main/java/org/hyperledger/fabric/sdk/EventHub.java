@@ -21,6 +21,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import javax.xml.bind.DatatypeConverter;
+
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.ManagedChannel;
@@ -71,6 +73,7 @@ public class EventHub implements Serializable {
     private transient boolean shutdown = false;
     private Channel channel;
     private transient TransactionContext transactionContext;
+    private transient byte[] clientTLSCertificateDigest;
 
     /**
      * Get disconnected time.
@@ -189,7 +192,10 @@ public class EventHub implements Serializable {
 
         lastConnectedAttempt = System.currentTimeMillis();
 
-        managedChannel = new Endpoint(url, properties).getChannelBuilder().build();
+        Endpoint endpoint = new Endpoint(url, properties);
+        managedChannel = endpoint.getChannelBuilder().build();
+
+        clientTLSCertificateDigest = endpoint.getClientTLSCertificateDigest();
 
         events = EventsGrpc.newStub(managedChannel);
 
@@ -321,10 +327,18 @@ public class EventHub implements Serializable {
 
         PeerEvents.Register register = PeerEvents.Register.newBuilder()
                 .addEvents(PeerEvents.Interest.newBuilder().setEventType(PeerEvents.EventType.BLOCK).build()).build();
-        ByteString blockEventByteString = PeerEvents.Event.newBuilder().setRegister(register)
+        PeerEvents.Event.Builder blockEventBuilder = PeerEvents.Event.newBuilder().setRegister(register)
                 .setCreator(transactionContext.getIdentity().toByteString())
-                .setTimestamp(ProtoUtils.getCurrentFabricTimestamp())
-                .build().toByteString();
+                .setTimestamp(ProtoUtils.getCurrentFabricTimestamp());
+
+        if (null != clientTLSCertificateDigest) {
+            logger.trace("Setting clientTLSCertificate digest for event registration to " + DatatypeConverter.printHexBinary(clientTLSCertificateDigest));
+            blockEventBuilder.setTlsCertHash(ByteString.copyFrom(clientTLSCertificateDigest));
+
+        }
+
+        ByteString blockEventByteString = blockEventBuilder.build().toByteString();
+
         PeerEvents.SignedEvent signedBlockEvent = PeerEvents.SignedEvent.newBuilder()
                 .setEventBytes(blockEventByteString)
                 .setSignature(transactionContext.signByteString(blockEventByteString.toByteArray()))

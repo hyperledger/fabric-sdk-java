@@ -19,12 +19,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,9 +49,12 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
+import org.bouncycastle.crypto.Digest;
+import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.helper.Utils.parseGrpcUrl;
 
 class Endpoint {
@@ -60,6 +63,8 @@ class Endpoint {
     private final String addr;
     private final int port;
     private final String url;
+    private byte[] clientTLSCertificateDigest;
+    private byte[] tlsClientCertificatePEMBytes;
     private NettyChannelBuilder channelBuilder = null;
 
     private static final Map<String, String> CN_CACHE = Collections.synchronizedMap(new HashMap<>());
@@ -103,7 +108,7 @@ class Endpoint {
                     try {
                         cn = properties.getProperty("hostnameOverride");
                         if (cn == null && "true".equals(properties.getProperty("trustServerCertificate"))) {
-                            final String cnKey = new String(pemBytes, StandardCharsets.UTF_8);
+                            final String cnKey = new String(pemBytes, UTF_8);
                             cn = CN_CACHE.get(cnKey);
                             if (cn == null) {
                                 X500Name x500name = new JcaX509CertificateHolder(
@@ -155,6 +160,7 @@ class Endpoint {
                         logger.trace("client TLS certificate bytes:" + Hex.encodeHexString(ccb));
                         clientCert = new X509Certificate[] {(X509Certificate) cp.bytesToCertificate(ccb)};
                         logger.trace("converted client TLS certificate.");
+                        tlsClientCertificatePEMBytes = ccb; // Save this away it's the exact pem we used.
                     } catch (CryptoException e) {
                         throw new RuntimeException("Failed to parse TLS client " + what, e);
                     }
@@ -216,6 +222,25 @@ class Endpoint {
             logger.error(e);
             throw new RuntimeException(e);
         }
+    }
+
+    byte[] getClientTLSCertificateDigest() {
+        //The digest must be SHA256 over the DER encoded certificate. The PEM has the exact DER sequence in hex encoding around the begin and end markers
+
+        if (tlsClientCertificatePEMBytes != null && clientTLSCertificateDigest == null) {
+
+            String pemCert = new String(tlsClientCertificatePEMBytes, UTF_8);
+            byte[] derBytes = Base64.getDecoder().decode(
+                    pemCert.replaceAll("-+[ \t]*(BEGIN|END)[ \t]+CERTIFICATE[ \t]*-+", "").replaceAll("\\s", "").trim()
+            );
+
+            Digest digest = new SHA256Digest();
+            clientTLSCertificateDigest = new byte[digest.getDigestSize()];
+            digest.update(derBytes, 0, derBytes.length);
+            digest.doFinal(clientTLSCertificateDigest, 0);
+        }
+
+        return clientTLSCertificateDigest;
     }
 
     private static final Pattern METHOD_PATTERN = Pattern.compile("grpc\\.NettyChannelBuilderOption\\.([^.]*)$");

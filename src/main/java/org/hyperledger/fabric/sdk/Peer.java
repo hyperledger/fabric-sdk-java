@@ -108,7 +108,8 @@ public class Peer implements Serializable {
 
             //PeerEventServiceClient(Peer peer, ManagedChannelBuilder<?> channelBuilder, Properties properties)
             //   peerEventingClient = new PeerEventServiceClient(this, new HashSet<Channel>(Arrays.asList(new Channel[] {channel})));
-            peerEventingClient = new PeerEventServiceClient(this, new Endpoint(url, properties).getChannelBuilder(), properties, peersOptions);
+
+            peerEventingClient = new PeerEventServiceClient(this, new Endpoint(url, properties), properties, peersOptions);
 
             peerEventingClient.connect(transactionContext);
 
@@ -303,7 +304,8 @@ public class Peer implements Serializable {
 
                 logger.debug(t);
 
-                PeerEventServiceClient lpeerEventingClient = new PeerEventServiceClient(this, new Endpoint(url, properties).getChannelBuilder(), properties, null);
+                PeerEventServiceClient lpeerEventingClient = new PeerEventServiceClient(this,
+                        new Endpoint(url, properties), properties, failedPeerEventServiceClient.getPeerOptions());
 
                 try {
                     lpeerEventingClient.connect(fltransactionContext);
