@@ -118,7 +118,7 @@ class RevocationRequest {
             factory.add("id", enrollmentID);
         } else {
             // revoke one particular enrollment
-            factory.add("serial", "0" + serial);
+            factory.add("serial", serial);
             factory.add("aki", aki);
         }
 

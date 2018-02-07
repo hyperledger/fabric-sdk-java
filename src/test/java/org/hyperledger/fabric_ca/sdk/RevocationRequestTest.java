@@ -98,7 +98,7 @@ public class RevocationRequestTest {
             testRevocationReq.setAki(revAKI + "000");
             testRevocationReq.setReason(revReason + "update");
 
-            Assert.assertTrue(testRevocationReq.toJson().contains("0" + revSerialNmbr));
+            Assert.assertTrue(testRevocationReq.toJson().contains(revSerialNmbr));
 
         } catch (Exception e) {
             Assert.fail("Unexpected Exception " + e.getMessage());

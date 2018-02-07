@@ -496,8 +496,12 @@ public class HFCAClient {
 
             String caName = result.getString("CAName");
             String caChain = result.getString("CAChain");
+            String version = null;
+            if (result.containsKey("Version")) {
+                version = result.getString("Version");
+            }
 
-            return new HFCAInfo(caName, caChain);
+            return new HFCAInfo(caName, caChain, version);
 
         } catch (Exception e) {
             InfoException ee = new InfoException(format("Url:%s, Failed to get info", url), e);
@@ -739,6 +743,85 @@ public class HFCAClient {
                 return resp.getString("CRL");
             }
             return null;
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            throw new RevocationException("Error while revoking the user. " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * revoke one certificate
+     *
+     * @param revoker    admin user who has revoker attribute configured in CA-server
+     * @param serial     serial number of the certificate to be revoked
+     * @param aki        aki of the certificate to be revoke
+     * @param reason     revoke reason, see RFC 5280
+     * @throws RevocationException
+     * @throws InvalidArgumentException
+     */
+
+   public void revoke(User revoker, String serial, String aki, String reason) throws RevocationException, InvalidArgumentException {
+        revokeInternal(revoker, serial, aki, reason, false);
+    }
+
+    /**
+     * revoke one enrollment of user
+     *
+     * @param revoker    admin user who has revoker attribute configured in CA-server
+     * @param serial     serial number of the certificate to be revoked
+     * @param aki        aki of the certificate to be revoke
+     * @param reason     revoke reason, see RFC 5280
+     * @param genCRL     generate CRL list
+     * @throws RevocationException
+     * @throws InvalidArgumentException
+     */
+
+    public String revoke(User revoker, String serial, String aki, String reason, boolean genCRL) throws RevocationException, InvalidArgumentException {
+        return revokeInternal(revoker, serial, aki, reason, genCRL);
+    }
+
+    private String revokeInternal(User revoker, String serial, String aki, String reason, boolean genCRL) throws RevocationException, InvalidArgumentException {
+
+        if (cryptoSuite == null) {
+            throw new InvalidArgumentException("Crypto primitives not set.");
+        }
+
+        if (Utils.isNullOrEmpty(serial)) {
+            throw new IllegalArgumentException("Serial number id required to revoke ceritificate");
+        }
+        if (Utils.isNullOrEmpty(aki)) {
+            throw new IllegalArgumentException("AKI is required to revoke certificate");
+        }
+        if (revoker == null) {
+            throw new InvalidArgumentException("revoker is not set");
+        }
+
+        logger.debug(format("revoke revoker: %s, reason: %s, url: %s", revoker.getName(), reason, url));
+
+        try {
+            setUpSSL();
+
+            // build request body
+            RevocationRequest req = new RevocationRequest(caName, null, serial, aki, reason, genCRL);
+            String body = req.toJson();
+
+            // send revoke request
+            JsonObject resp = httpPost(url + HFCA_REVOKE, body, revoker);
+            logger.debug("revoke done");
+
+            if (genCRL) {
+                if (resp.isEmpty()) {
+                    throw new RevocationException("Failed to return CRL, revoke response is empty");
+                }
+                if (resp.isNull("CRL")) {
+                    throw new RevocationException("Failed to return CRL");
+                }
+                return resp.getString("CRL");
+            }
+            return null;
+        } catch (CertificateException e) {
+            logger.error("Cannot validate certificate. Error is: " + e.getMessage());
+            throw new RevocationException("Error while revoking cert. " + e.getMessage(), e);
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
             throw new RevocationException("Error while revoking the user. " + e.getMessage(), e);

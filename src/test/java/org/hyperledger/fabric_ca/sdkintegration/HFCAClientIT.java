@@ -31,6 +31,11 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.xml.bind.DatatypeConverter;
+
+import org.bouncycastle.asn1.ASN1OctetString;
+import org.bouncycastle.asn1.x509.AuthorityKeyIdentifier;
+import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.TBSCertList;
 import org.bouncycastle.cert.X509CRLHolder;
 import org.bouncycastle.openssl.PEMParser;
@@ -45,6 +50,7 @@ import org.hyperledger.fabric_ca.sdk.HFCAAffiliation;
 import org.hyperledger.fabric_ca.sdk.HFCAAffiliation.HFCAAffiliationResp;
 import org.hyperledger.fabric_ca.sdk.HFCAClient;
 import org.hyperledger.fabric_ca.sdk.HFCAIdentity;
+import org.hyperledger.fabric_ca.sdk.HFCAInfo;
 import org.hyperledger.fabric_ca.sdk.MockHFCAClient;
 import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
 import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
@@ -68,6 +74,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -367,6 +374,66 @@ public class HFCAClientIT {
         // trying to reenroll the revoked user should fail with an EnrollmentException
         client.reenroll(user);
     }
+
+    // Tests revoking a certificate
+    @Test
+    public void testCertificateRevoke() throws Exception {
+
+        SampleUser user = getTestUser(TEST_USER1_ORG);
+
+        if (!user.isRegistered()) {
+            RegistrationRequest rr = new RegistrationRequest(user.getName(), TEST_USER1_AFFILIATION);
+            String password = "testUserRevoke";
+            rr.setSecret(password);
+            rr.addAttribute(new Attribute("user.role", "department lead"));
+            rr.addAttribute(new Attribute(HFCAClient.HFCA_ATTRIBUTE_HFREVOKER, "true"));
+            user.setEnrollmentSecret(client.register(rr, admin)); // Admin can register other users.
+            if (!user.getEnrollmentSecret().equals(password)) {
+                fail("Secret returned from RegistrationRequest not match : " + user.getEnrollmentSecret());
+            }
+        }
+
+        if (!user.isEnrolled()) {
+            EnrollmentRequest req = new EnrollmentRequest(DEFAULT_PROFILE_NAME, "label 2", null);
+            req.addHost("example3.ibm.com");
+            user.setEnrollment(client.enroll(user.getName(), user.getEnrollmentSecret(), req));
+        }
+
+        // verify
+        String cert = user.getEnrollment().getCert();
+
+        BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(cert.getBytes()));
+        CertificateFactory certFactory = CertificateFactory.getInstance(Config.getConfig().getCertificateFormat());
+        X509Certificate certificate = (X509Certificate) certFactory.generateCertificate(pem);
+
+        // get its serial number
+        String serial = DatatypeConverter.printHexBinary(certificate.getSerialNumber().toByteArray());
+
+        // get its aki
+        // 2.5.29.35 : AuthorityKeyIdentifier
+        byte[] extensionValue = certificate.getExtensionValue(Extension.authorityKeyIdentifier.getId());
+        ASN1OctetString akiOc = ASN1OctetString.getInstance(extensionValue);
+        String aki = DatatypeConverter.printHexBinary(AuthorityKeyIdentifier.getInstance(akiOc.getOctets()).getKeyIdentifier());
+
+
+        int startedWithRevokes = -1;
+
+        if (!testConfig.isRunningAgainstFabric10()) {
+            Thread.sleep(1000); //prevent clock skewing. make sure we request started with revokes.
+            startedWithRevokes = getRevokes(null).length; //one more after we do this revoke.
+            Thread.sleep(1000); //prevent clock skewing. make sure we request started with revokes.
+        }
+
+        // revoke all enrollment of this user
+        client.revoke(admin, serial, aki, "revoke certificate");
+        if (!testConfig.isRunningAgainstFabric10()) {
+
+            final int newRevokes = getRevokes(null).length;
+
+            assertEquals(format("Expected one more revocation %d, but got %d", startedWithRevokes + 1, newRevokes), startedWithRevokes + 1, newRevokes);
+        }
+    }
+
 
     // Tests attempting to revoke a user with Null reason
     @Test
@@ -1012,6 +1079,22 @@ public class HFCAClientIT {
         HFCAAffiliation aff = client2.newHFCAAffiliation("org6");
         HFCAAffiliationResp resp = aff.delete(admin2);
         assertEquals("Incorrect status code", new Integer(400), new Integer(resp.getStatusCode()));
+    }
+
+    // Tests getting server/ca information
+    @Test
+    public void testGetInfo() throws Exception {
+
+        if (testConfig.isRunningAgainstFabric10()) {
+            HFCAInfo info = client.info();
+            assertNull(info.getVersion());
+        }
+
+        if (!testConfig.isRunningAgainstFabric10()) {
+            HFCAInfo info = client.info();
+            assertTrue(info.getVersion().contains("1.1.0"));
+        }
+
     }
 
     @Test

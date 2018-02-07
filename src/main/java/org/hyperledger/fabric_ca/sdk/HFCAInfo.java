@@ -24,10 +24,13 @@ public class HFCAInfo {
 
     private final String caName;
     private final String caChain;
+    private final String version;
 
-    public HFCAInfo(String caName, String caChain) {
+    // Contains server/ca information
+    HFCAInfo(String caName, String caChain, String version) {
         this.caName = caName;
         this.caChain = caChain;
+        this.version = version;
     }
 
     /**
@@ -48,5 +51,16 @@ public class HFCAInfo {
 
     public String getCACertificateChain() {
         return caChain;
+    }
+
+    /**
+     * Version of Fabric CA server
+     *
+     * @return Version of Fabric CA server, value will be
+     * null for Fabric CA prior to 1.1.0
+     */
+
+    public String getVersion() {
+        return version;
     }
 }
