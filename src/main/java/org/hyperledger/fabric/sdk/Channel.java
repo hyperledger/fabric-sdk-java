@@ -174,7 +174,7 @@ public class Channel implements Serializable {
     private transient String blh = null;
 
     {
-        for (Peer.PeerRole peerRole : PeerRole.ALL) {
+        for (Peer.PeerRole peerRole : EnumSet.allOf(PeerRole.class)) {
 
             peerRoleSetMap.put(peerRole, Collections.synchronizedSet(new HashSet<>()));
 
@@ -725,9 +725,8 @@ public class Channel implements Serializable {
 
         try {
 
-            final Channel systemChannel = newSystemChannel(client); //needs to be invoked on system channel
-
-            TransactionContext transactionContext = systemChannel.getTransactionContext();
+            TransactionContext transactionContext = getTransactionContext();
+            transactionContext.verify(false); // can't verify till we get the config block.
 
             FabricProposal.Proposal proposal = GetConfigBlockBuilder.newBuilder()
                     .context(transactionContext)

@@ -732,7 +732,7 @@ public class End2endAndBackAgainIT {
             return; // not supported for v1.0
         }
 
-        assertFalse(replayTestChannel.isInitialized()); //not yet intialized
+        assertFalse(replayTestChannel.isInitialized()); //not yet initialized
         assertFalse(replayTestChannel.isShutdown()); // not yet shutdown.
 
         //Remove all peers just have one ledger peer and one eventing peer.
