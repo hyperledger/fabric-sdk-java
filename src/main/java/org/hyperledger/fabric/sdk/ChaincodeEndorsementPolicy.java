@@ -189,9 +189,6 @@ public class ChaincodeEndorsementPolicy {
                 case "peer":
                     mspRoleType = MSPRole.MSPRoleType.PEER;
                     break;
-                case "orderer":
-                    mspRoleType = MSPRole.MSPRoleType.ORDERER;
-                    break;
                 default:
                     throw new ChaincodeEndorsementPolicyParseException(format("In identities with key %s name expected member, admin, client, peer or orderer  in role got %s ", key, name));
             }
