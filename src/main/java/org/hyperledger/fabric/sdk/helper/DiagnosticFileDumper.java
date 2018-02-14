@@ -87,6 +87,12 @@ public class DiagnosticFileDumper implements Runnable {
 
     }
 
+    public String createDiagnosticTarFile(byte[] bytes) {
+
+        return createDiagnosticFile(bytes, null, "tgz");
+
+    }
+
     public String createDiagnosticFile(String msg) {
 
         return createDiagnosticFile(msg.getBytes(StandardCharsets.UTF_8), null, null);

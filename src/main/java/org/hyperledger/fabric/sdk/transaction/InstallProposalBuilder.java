@@ -30,7 +30,10 @@ import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeDeploymentSpec;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.sdk.TransactionRequest;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
+import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.helper.DiagnosticFileDumper;
 import org.hyperledger.fabric.sdk.helper.Utils;
 
 import static java.lang.String.format;
@@ -39,6 +42,11 @@ import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createDeployment
 public class InstallProposalBuilder extends LSCCProposalBuilder {
 
     private static final Log logger = LogFactory.getLog(InstallProposalBuilder.class);
+    private static final boolean IS_TRACE_LEVEL = logger.isTraceEnabled();
+
+    private static final Config config = Config.getConfig();
+    private static final DiagnosticFileDumper diagnosticFileDumper = IS_TRACE_LEVEL
+            ? config.getDiagnosticFileDumper() : null;
 
     private String chaincodePath;
 
@@ -81,7 +89,7 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
     }
 
     @Override
-    public FabricProposal.Proposal build() throws ProposalException {
+    public FabricProposal.Proposal build() throws ProposalException, InvalidArgumentException {
 
         constructInstallProposal();
         return super.build();
@@ -153,9 +161,29 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
                 }
                 break;
 
+            case NODE:
+
+                // chaincodePath is not applicable and must be null
+                // chaincodeSource may be a File or InputStream
+
+                //   Verify that chaincodePath is null
+                if (!Utils.isNullOrEmpty(chaincodePath)) {
+                    throw new IllegalArgumentException("chaincodePath must be null for Node chaincode");
+                }
+
+                dplang = "Node";
+                ccType = Type.NODE;
+                if (null != chaincodeSource) {
+
+                    projectSourceDir = Paths.get(chaincodeSource.toString()).toFile();
+                    targetPathPrefix = "src"; //Paths.get("src", chaincodePath).toString();
+                }
+                break;
             default:
                 throw new IllegalArgumentException("Unexpected chaincode language: " + chaincodeLanguage);
         }
+
+        ccType(ccType);
 
         final byte[] data;
         String chaincodeID = chaincodeName + "::" + chaincodePath + "::" + chaincodeVersion;
@@ -172,16 +200,29 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
                 throw new IllegalArgumentException(message);
             }
 
-            logger.info(format("Installing '%s'  %s chaincode from directory: '%s' with source location: '%s'. chaincodePath:'%s'",
+            logger.info(format("Installing '%s' language %s chaincode from directory: '%s' with source location: '%s'. chaincodePath:'%s'",
                     chaincodeID, dplang, projectSourceDir.getAbsolutePath(), targetPathPrefix, chaincodePath));
 
             // generate chaincode source tar
             data = Utils.generateTarGz(projectSourceDir, targetPathPrefix);
 
+            if (null != diagnosticFileDumper) {
+
+                logger.trace(format("Installing '%s' language %s chaincode from directory: '%s' with source location: '%s'. chaincodePath:'%s' tar file dump %s",
+                        chaincodeID, dplang, projectSourceDir.getAbsolutePath(), targetPathPrefix,
+                        chaincodePath, diagnosticFileDumper.createDiagnosticTarFile(data)));
+            }
+
         } else {
             logger.info(format("Installing '%s'  %s chaincode chaincodePath:'%s' from input stream",
                     chaincodeID, dplang, chaincodePath));
             data = IOUtils.toByteArray(chaincodeInputStream);
+
+            if (null != diagnosticFileDumper) {
+                logger.trace(format("Installing '%s' language %s chaincode from input stream",
+                        chaincodeID, dplang));
+            }
+
         }
 
         final ChaincodeDeploymentSpec depspec = createDeploymentSpec(

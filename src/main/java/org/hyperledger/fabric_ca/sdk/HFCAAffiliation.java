@@ -205,11 +205,8 @@ public class HFCAAffiliation {
 
             logger.debug(format("affiliation  url: %s, registrar: %s done.", readAffURL, registrar));
             HFCAAffiliationResp resp = getResponse(result);
-            System.out.println("aff read resp: " + result);
-            System.out.println("resp.getChildren().size(): " + resp.getChildren().size());
             this.childHFCAAffiliations = resp.getChildren();
 
-            System.out.println("this.childHFCAAffiliations: " + this.childHFCAAffiliations.size());
             this.identities = resp.getIdentities();
             this.deleted = false;
             return resp.statusCode;

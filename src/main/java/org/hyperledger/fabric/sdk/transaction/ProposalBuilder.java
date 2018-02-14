@@ -34,6 +34,7 @@ import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeHeaderExtension;
 import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeProposalPayload;
 import org.hyperledger.fabric.sdk.TransactionRequest;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 
 import static java.lang.String.format;
@@ -82,19 +83,31 @@ public class ProposalBuilder {
         return this;
     }
 
-    public ProposalBuilder request(TransactionRequest request) {
+    public ProposalBuilder request(TransactionRequest request) throws InvalidArgumentException {
         this.request = request;
 
         chaincodeID(request.getChaincodeID().getFabricChaincodeID());
-        ccType(request.getChaincodeLanguage() == TransactionRequest.Type.JAVA ?
-                Chaincode.ChaincodeSpec.Type.JAVA : Chaincode.ChaincodeSpec.Type.GOLANG);
+
+        switch (request.getChaincodeLanguage()) {
+            case JAVA:
+                ccType(Chaincode.ChaincodeSpec.Type.JAVA);
+                break;
+            case NODE:
+                ccType(Chaincode.ChaincodeSpec.Type.NODE);
+                break;
+            case GO_LANG:
+                ccType(Chaincode.ChaincodeSpec.Type.GOLANG);
+                break;
+            default:
+                throw new InvalidArgumentException("Requested chaincode type is not supported: " + request.getChaincodeLanguage());
+        }
 
         transientMap = request.getTransientMap();
 
         return this;
     }
 
-    public FabricProposal.Proposal build() throws ProposalException {
+    public FabricProposal.Proposal build() throws ProposalException, InvalidArgumentException {
         if (request != null && request.noChannelID()) {
             channelID = "";
         }

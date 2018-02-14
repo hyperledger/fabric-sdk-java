@@ -219,7 +219,8 @@ public class TransactionRequest {
     //Mirror Fabric try not expose any of its classes
     public enum Type {
         JAVA,
-        GO_LANG
+        GO_LANG,
+        NODE
     }
 
     public Type getChaincodeLanguage() {
@@ -229,7 +230,7 @@ public class TransactionRequest {
     /**
      * The chaincode language type: default type Type.GO_LANG
      *
-     * @param chaincodeLanguage . Type.Java Type.GO_LANG
+     * @param chaincodeLanguage . Type.Java Type.GO_LANG Type.NODE
      */
     public void setChaincodeLanguage(Type chaincodeLanguage) {
         this.chaincodeLanguage = chaincodeLanguage;

@@ -238,8 +238,8 @@ public class NetworkConfigIT {
         out("Now query chaincode on channel %s for the current value of b", channel.getName());
 
         QueryByChaincodeRequest queryByChaincodeRequest = client.newQueryProposalRequest();
-        queryByChaincodeRequest.setArgs(new String[] {"query", "b"});
-        queryByChaincodeRequest.setFcn("invoke");
+        queryByChaincodeRequest.setArgs("b");
+        queryByChaincodeRequest.setFcn("query");
         queryByChaincodeRequest.setChaincodeID(chaincodeID);
 
         Collection<ProposalResponse> queryProposals;
@@ -278,8 +278,8 @@ public class NetworkConfigIT {
         /// Send transaction proposal to all peers
         TransactionProposalRequest transactionProposalRequest = client.newTransactionProposalRequest();
         transactionProposalRequest.setChaincodeID(chaincodeID);
-        transactionProposalRequest.setFcn("invoke");
-        transactionProposalRequest.setArgs(new String[] {"move", from, to, moveAmount});
+        transactionProposalRequest.setFcn("move");
+        transactionProposalRequest.setArgs(from, to, moveAmount);
         transactionProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
         if (user != null) { // specific user use that
             transactionProposalRequest.setUserContext(user);
@@ -392,7 +392,7 @@ public class NetworkConfigIT {
             instantiateProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
             instantiateProposalRequest.setChaincodeID(chaincodeID);
             instantiateProposalRequest.setFcn("init");
-            instantiateProposalRequest.setArgs(new String[] {"a", "500", "b", "999"});
+            instantiateProposalRequest.setArgs("a", "500", "b", "999");
 
             Map<String, byte[]> tm = new HashMap<>();
             tm.put("HyperLedgerFabric", "InstantiateProposalRequest:JavaSDK".getBytes(UTF_8));

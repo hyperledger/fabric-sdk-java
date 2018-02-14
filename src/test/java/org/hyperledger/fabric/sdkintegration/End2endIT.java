@@ -57,6 +57,7 @@ import org.hyperledger.fabric.sdk.SDKUtils;
 import org.hyperledger.fabric.sdk.TestConfigHelper;
 import org.hyperledger.fabric.sdk.TransactionInfo;
 import org.hyperledger.fabric.sdk.TransactionProposalRequest;
+import org.hyperledger.fabric.sdk.TransactionRequest.Type;
 import org.hyperledger.fabric.sdk.TxReadWriteSetInfo;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
@@ -93,16 +94,20 @@ public class End2endIT {
     private static final String TESTUSER_1_NAME = "user1";
     private static final String TEST_FIXTURES_PATH = "src/test/fixture";
 
-    private static final String CHAIN_CODE_NAME = "example_cc_go";
-    private static final String CHAIN_CODE_PATH = "github.com/example_cc";
-    private static final String CHAIN_CODE_VERSION = "1";
-
     private static final String FOO_CHANNEL_NAME = "foo";
     private static final String BAR_CHANNEL_NAME = "bar";
 
     private static final byte[] EXPECTED_EVENT_DATA = "!".getBytes(UTF_8);
     private static final String EXPECTED_EVENT_NAME = "event";
     private static final Map<String, String> TX_EXPECTED;
+
+    String testName = "End2endIT";
+
+    String CHAIN_CODE_FILEPATH = "sdkintegration/gocc/sample1";
+    String CHAIN_CODE_NAME = "example_cc_go";
+    String CHAIN_CODE_PATH = "github.com/example_cc";
+    String CHAIN_CODE_VERSION = "1";
+    Type CHAIN_CODE_LANG = Type.GO_LANG;
 
     static {
         TX_EXPECTED = new HashMap<>();
@@ -112,6 +117,7 @@ public class End2endIT {
 
     private final TestConfigHelper configHelper = new TestConfigHelper();
     String testTxID = null;  // save the CC invoke TxID and use in queries
+    SampleStore sampleStore = null;
     private Collection<SampleOrg> testSampleOrgs;
 
     static void out(String format, Object... args) {
@@ -142,7 +148,7 @@ public class End2endIT {
 
     @Before
     public void checkConfig() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, MalformedURLException, org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException {
-        out("\n\n\nRUNNING: End2endIT.\n");
+        out("\n\n\nRUNNING: %s.\n", testName);
         //   configHelper.clearConfig();
         //   assertEquals(256, Config.getConfig().getSecurityLevel());
         resetConfig();
@@ -163,142 +169,150 @@ public class End2endIT {
 
     Map<String, Properties> clientTLSProperties = new HashMap<>();
 
+    File sampleStoreFile = new File(System.getProperty("java.io.tmpdir") + "/HFCSampletest.properties");
+
     @Test
-    public void setup() {
+    public void setup() throws Exception {
+        //Persistence is not part of SDK. Sample file store is for demonstration purposes only!
+        //   MUST be replaced with more robust application implementation  (Database, LDAP)
 
-        try {
+        if (sampleStoreFile.exists()) { //For testing start fresh
+            sampleStoreFile.delete();
+        }
+        sampleStore = new SampleStore(sampleStoreFile);
 
-            ////////////////////////////
-            // Setup client
+        enrollUsersSetup(sampleStore); //This enrolls users with fabric ca and setups sample store to get users later.
+        runFabricTest(sampleStore); //Runs Fabric tests with constructing channels, joining peers, exercising chaincode
 
-            //Create instance of client.
-            HFClient client = HFClient.createNewInstance();
+    }
 
-            client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+    public void runFabricTest(final SampleStore sampleStore) throws Exception {
 
-            // client.setMemberServices(peerOrg1FabricCA);
+        ////////////////////////////
+        // Setup client
 
-            ////////////////////////////
-            //Set up USERS
+        //Create instance of client.
+        HFClient client = HFClient.createNewInstance();
 
-            //Persistence is not part of SDK. Sample file store is for demonstration purposes only!
-            //   MUST be replaced with more robust application implementation  (Database, LDAP)
-            File sampleStoreFile = new File(System.getProperty("java.io.tmpdir") + "/HFCSampletest.properties");
-            if (sampleStoreFile.exists()) { //For testing start fresh
-                sampleStoreFile.delete();
+        client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+
+        ////////////////////////////
+        //Construct and run the channels
+        SampleOrg sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
+        Channel fooChannel = constructChannel(FOO_CHANNEL_NAME, client, sampleOrg);
+        sampleStore.saveChannel(fooChannel);
+        runChannel(client, fooChannel, true, sampleOrg, 0);
+
+        assertFalse(fooChannel.isShutdown());
+        fooChannel.shutdown(true); // Force foo channel to shutdown clean up resources.
+        assertTrue(fooChannel.isShutdown());
+
+        assertNull(client.getChannel(FOO_CHANNEL_NAME));
+        out("\n");
+
+        sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg2");
+        Channel barChannel = constructChannel(BAR_CHANNEL_NAME, client, sampleOrg);
+        assertTrue(barChannel.isInitialized());
+        /**
+         * sampleStore.saveChannel uses {@link Channel#serializeChannel()}
+         */
+        sampleStore.saveChannel(barChannel);
+        assertFalse(barChannel.isShutdown());
+        runChannel(client, barChannel, true, sampleOrg, 100); //run a newly constructed bar channel with different b value!
+        //let bar channel just shutdown so we have both scenarios.
+
+        out("\nTraverse the blocks for chain %s ", barChannel.getName());
+
+        blockWalker(client, barChannel);
+
+        assertFalse(barChannel.isShutdown());
+        assertTrue(barChannel.isInitialized());
+        out("That's all folks!");
+
+    }
+
+    /**
+     * Will register and enroll users persisting them to samplestore.
+     *
+     * @param sampleStore
+     * @throws Exception
+     */
+    public void enrollUsersSetup(SampleStore sampleStore) throws Exception {
+        ////////////////////////////
+        //Set up USERS
+
+        //SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface
+
+        ////////////////////////////
+        // get users for all orgs
+
+        for (SampleOrg sampleOrg : testSampleOrgs) {
+
+            HFCAClient ca = sampleOrg.getCAClient();
+
+            final String orgName = sampleOrg.getName();
+            final String mspid = sampleOrg.getMSPID();
+            ca.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+
+            if (testConfig.isRunningFabricTLS()) {
+                //This shows how to get a client TLS certificate from Fabric CA
+                // we will use one client TLS certificate for orderer peers etc.
+                final EnrollmentRequest enrollmentRequestTLS = new EnrollmentRequest();
+                enrollmentRequestTLS.addHost("localhost");
+                enrollmentRequestTLS.setProfile("tls");
+                final Enrollment enroll = ca.enroll("admin", "adminpw", enrollmentRequestTLS);
+                final String tlsCertPEM = enroll.getCert();
+                final String tlsKeyPEM = getPEMStringFromPrivateKey(enroll.getKey());
+
+                final Properties tlsProperties = new Properties();
+
+                tlsProperties.put("clientKeyBytes", tlsKeyPEM.getBytes(UTF_8));
+                tlsProperties.put("clientCertBytes", tlsCertPEM.getBytes(UTF_8));
+                clientTLSProperties.put(sampleOrg.getName(), tlsProperties);
+                //Save in samplestore for follow on tests.
+                sampleStore.storeClientPEMTLCertificate(sampleOrg, tlsCertPEM);
+                sampleStore.storeClientPEMTLSKey(sampleOrg, tlsKeyPEM);
             }
 
-            final SampleStore sampleStore = new SampleStore(sampleStoreFile);
-            //  sampleStoreFile.deleteOnExit();
-
-            //SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface
-
-            ////////////////////////////
-            // get users for all orgs
-
-            for (SampleOrg sampleOrg : testSampleOrgs) {
-
-                HFCAClient ca = sampleOrg.getCAClient();
-
-                final String orgName = sampleOrg.getName();
-                final String mspid = sampleOrg.getMSPID();
-                ca.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
-
-                if (testConfig.isRunningFabricTLS()) {
-                    //This shows how to get a client TLS certificate from Fabric CA
-                    // we will use one client TLS certificate for orderer peers etc.
-                    final EnrollmentRequest enrollmentRequestTLS = new EnrollmentRequest();
-                    enrollmentRequestTLS.addHost("localhost");
-                    enrollmentRequestTLS.setProfile("tls");
-                    final Enrollment enroll = ca.enroll("admin", "adminpw", enrollmentRequestTLS);
-                    final String tlsCertPEM = enroll.getCert();
-                    final String tlsKeyPEM = getPEMStringFromPrivateKey(enroll.getKey());
-
-                    final Properties tlsProperties = new Properties();
-
-                    tlsProperties.put("clientKeyBytes", tlsKeyPEM.getBytes(UTF_8));
-                    tlsProperties.put("clientCertBytes", tlsCertPEM.getBytes(UTF_8));
-                    clientTLSProperties.put(sampleOrg.getName(), tlsProperties);
-                    //Save in samplestore for follow on tests.
-                    sampleStore.storeClientPEMTLCertificate(sampleOrg, tlsCertPEM);
-                    sampleStore.storeClientPEMTLSKey(sampleOrg, tlsKeyPEM);
-                }
-
-                HFCAInfo info = ca.info(); //just check if we connect at all.
-                assertNotNull(info);
-                String infoName = info.getCAName();
-                if (infoName != null && !infoName.isEmpty()) {
-                    assertEquals(ca.getCAName(), infoName);
-                }
-
-                SampleUser admin = sampleStore.getMember(TEST_ADMIN_NAME, orgName);
-                if (!admin.isEnrolled()) {  //Preregistered admin only needs to be enrolled with Fabric caClient.
-                    admin.setEnrollment(ca.enroll(admin.getName(), "adminpw"));
-                    admin.setMspId(mspid);
-                }
-
-                sampleOrg.setAdmin(admin); // The admin of this org --
-
-                SampleUser user = sampleStore.getMember(TESTUSER_1_NAME, sampleOrg.getName());
-                if (!user.isRegistered()) {  // users need to be registered AND enrolled
-                    RegistrationRequest rr = new RegistrationRequest(user.getName(), "org1.department1");
-                    user.setEnrollmentSecret(ca.register(rr, admin));
-                }
-                if (!user.isEnrolled()) {
-                    user.setEnrollment(ca.enroll(user.getName(), user.getEnrollmentSecret()));
-                    user.setMspId(mspid);
-                }
-                sampleOrg.addUser(user); //Remember user belongs to this Org
-
-                final String sampleOrgName = sampleOrg.getName();
-                final String sampleOrgDomainName = sampleOrg.getDomainName();
-
-                // src/test/fixture/sdkintegration/e2e-2Orgs/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/
-
-                SampleUser peerOrgAdmin = sampleStore.getMember(sampleOrgName + "Admin", sampleOrgName, sampleOrg.getMSPID(),
-                        Util.findFileSk(Paths.get(testConfig.getTestChannelPath(), "crypto-config/peerOrganizations/",
-                                sampleOrgDomainName, format("/users/Admin@%s/msp/keystore", sampleOrgDomainName)).toFile()),
-                        Paths.get(testConfig.getTestChannelPath(), "crypto-config/peerOrganizations/", sampleOrgDomainName,
-                                format("/users/Admin@%s/msp/signcerts/Admin@%s-cert.pem", sampleOrgDomainName, sampleOrgDomainName)).toFile());
-
-                sampleOrg.setPeerAdmin(peerOrgAdmin); //A special user that can create channels, join peers and install chaincode
-
+            HFCAInfo info = ca.info(); //just check if we connect at all.
+            assertNotNull(info);
+            String infoName = info.getCAName();
+            if (infoName != null && !infoName.isEmpty()) {
+                assertEquals(ca.getCAName(), infoName);
             }
 
-            ////////////////////////////
-            //Construct and run the channels
-            SampleOrg sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
-            Channel fooChannel = constructChannel(FOO_CHANNEL_NAME, client, sampleOrg);
-            runChannel(client, fooChannel, true, sampleOrg, 0);
+            SampleUser admin = sampleStore.getMember(TEST_ADMIN_NAME, orgName);
+            if (!admin.isEnrolled()) {  //Preregistered admin only needs to be enrolled with Fabric caClient.
+                admin.setEnrollment(ca.enroll(admin.getName(), "adminpw"));
+                admin.setMspId(mspid);
+            }
 
-            assertFalse(fooChannel.isShutdown());
-            fooChannel.shutdown(true); // Force foo channel to shutdown clean up resources.
-            assertTrue(fooChannel.isShutdown());
+            sampleOrg.setAdmin(admin); // The admin of this org --
 
-            assertNull(client.getChannel(FOO_CHANNEL_NAME));
-            out("\n");
+            SampleUser user = sampleStore.getMember(TESTUSER_1_NAME, sampleOrg.getName());
+            if (!user.isRegistered()) {  // users need to be registered AND enrolled
+                RegistrationRequest rr = new RegistrationRequest(user.getName(), "org1.department1");
+                user.setEnrollmentSecret(ca.register(rr, admin));
+            }
+            if (!user.isEnrolled()) {
+                user.setEnrollment(ca.enroll(user.getName(), user.getEnrollmentSecret()));
+                user.setMspId(mspid);
+            }
+            sampleOrg.addUser(user); //Remember user belongs to this Org
 
-            sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg2");
-            Channel barChannel = constructChannel(BAR_CHANNEL_NAME, client, sampleOrg);
-            assertTrue(barChannel.isInitialized());
-            /**
-             * sampleStore.saveChannel uses {@link Channel#serializeChannel()}
-             */
-            sampleStore.saveChannel(barChannel);
-            assertFalse(barChannel.isShutdown());
-            runChannel(client, barChannel, true, sampleOrg, 100); //run a newly constructed bar channel with different b value!
-            //let bar channel just shutdown so we have both scenarios.
+            final String sampleOrgName = sampleOrg.getName();
+            final String sampleOrgDomainName = sampleOrg.getDomainName();
 
-            out("\nTraverse the blocks for chain %s ", barChannel.getName());
-            blockWalker(client, barChannel);
-            assertFalse(barChannel.isShutdown());
-            assertTrue(barChannel.isInitialized());
-            out("That's all folks!");
+            // src/test/fixture/sdkintegration/e2e-2Orgs/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/
 
-        } catch (Exception e) {
-            e.printStackTrace();
+            SampleUser peerOrgAdmin = sampleStore.getMember(sampleOrgName + "Admin", sampleOrgName, sampleOrg.getMSPID(),
+                    Util.findFileSk(Paths.get(testConfig.getTestChannelPath(), "crypto-config/peerOrganizations/",
+                            sampleOrgDomainName, format("/users/Admin@%s/msp/keystore", sampleOrgDomainName)).toFile()),
+                    Paths.get(testConfig.getTestChannelPath(), "crypto-config/peerOrganizations/", sampleOrgDomainName,
+                            format("/users/Admin@%s/msp/signcerts/Admin@%s-cert.pem", sampleOrgDomainName, sampleOrgDomainName)).toFile());
 
-            fail(e.getMessage());
+            sampleOrg.setPeerAdmin(peerOrgAdmin); //A special user that can create channels, join peers and install chaincode
+
         }
 
     }
@@ -367,9 +381,13 @@ public class End2endIT {
 
             }
 
-            chaincodeID = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
-                    .setVersion(CHAIN_CODE_VERSION)
-                    .setPath(CHAIN_CODE_PATH).build();
+            ChaincodeID.Builder chaincodeIDBuilder = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
+                    .setVersion(CHAIN_CODE_VERSION);
+            if (null != CHAIN_CODE_PATH) {
+                chaincodeIDBuilder.setPath(CHAIN_CODE_PATH);
+
+            }
+            chaincodeID = chaincodeIDBuilder.build();
 
             if (installChaincode) {
                 ////////////////////////////
@@ -387,17 +405,24 @@ public class End2endIT {
                     // on foo chain install from directory.
 
                     ////For GO language and serving just a single user, chaincodeSource is mostly likely the users GOPATH
-                    installProposalRequest.setChaincodeSourceLocation(new File(TEST_FIXTURES_PATH + "/sdkintegration/gocc/sample1"));
+                    installProposalRequest.setChaincodeSourceLocation(Paths.get(TEST_FIXTURES_PATH, CHAIN_CODE_FILEPATH).toFile());
                 } else {
                     // On bar chain install from an input stream.
 
-                    installProposalRequest.setChaincodeInputStream(Util.generateTarGzInputStream(
-                            (Paths.get(TEST_FIXTURES_PATH, "/sdkintegration/gocc/sample1", "src", CHAIN_CODE_PATH).toFile()),
-                            Paths.get("src", CHAIN_CODE_PATH).toString()));
+                    if (CHAIN_CODE_LANG.equals(Type.GO_LANG)) {
 
+                        installProposalRequest.setChaincodeInputStream(Util.generateTarGzInputStream(
+                                (Paths.get(TEST_FIXTURES_PATH, CHAIN_CODE_FILEPATH, "src", CHAIN_CODE_PATH).toFile()),
+                                Paths.get("src", CHAIN_CODE_PATH).toString()));
+                    } else {
+                        installProposalRequest.setChaincodeInputStream(Util.generateTarGzInputStream(
+                                (Paths.get(TEST_FIXTURES_PATH, CHAIN_CODE_FILEPATH).toFile()),
+                                "src"));
+                    }
                 }
 
                 installProposalRequest.setChaincodeVersion(CHAIN_CODE_VERSION);
+                installProposalRequest.setChaincodeLanguage(CHAIN_CODE_LANG);
 
                 out("Sending install proposal");
 
@@ -439,6 +464,7 @@ public class End2endIT {
             InstantiateProposalRequest instantiateProposalRequest = client.newInstantiationProposalRequest();
             instantiateProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
             instantiateProposalRequest.setChaincodeID(chaincodeID);
+            instantiateProposalRequest.setChaincodeLanguage(CHAIN_CODE_LANG);
             instantiateProposalRequest.setFcn("init");
             instantiateProposalRequest.setArgs(new String[] {"a", "500", "b", "" + (200 + delta)});
             Map<String, byte[]> tm = new HashMap<>();
@@ -462,7 +488,6 @@ public class End2endIT {
                 responses = channel.sendInstantiationProposal(instantiateProposalRequest, channel.getPeers());
             } else {
                 responses = channel.sendInstantiationProposal(instantiateProposalRequest);
-
             }
             for (ProposalResponse response : responses) {
                 if (response.isVerified() && response.getStatus() == ProposalResponse.Status.SUCCESS) {
@@ -474,6 +499,11 @@ public class End2endIT {
             }
             out("Received %d instantiate proposal responses. Successful+verified: %d . Failed: %d", responses.size(), successful.size(), failed.size());
             if (failed.size() > 0) {
+                for (ProposalResponse fail : failed) {
+
+                    out("Not enough endorsers for instantiate :" + successful.size() + "endorser failed with " + fail.getMessage() + ", on peer" + fail.getPeer());
+
+                }
                 ProposalResponse first = failed.iterator().next();
                 fail("Not enough endorsers for instantiate :" + successful.size() + "endorser failed with " + first.getMessage() + ". Was verified:" + first.isVerified());
             }
@@ -498,9 +528,11 @@ public class End2endIT {
                     /// Send transaction proposal to all peers
                     TransactionProposalRequest transactionProposalRequest = client.newTransactionProposalRequest();
                     transactionProposalRequest.setChaincodeID(chaincodeID);
-                    transactionProposalRequest.setFcn("invoke");
+                    transactionProposalRequest.setChaincodeLanguage(CHAIN_CODE_LANG);
+                    //transactionProposalRequest.setFcn("invoke");
+                    transactionProposalRequest.setFcn("move");
                     transactionProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
-                    transactionProposalRequest.setArgs("move", "a", "b", "100");
+                    transactionProposalRequest.setArgs("a", "b", "100");
 
                     Map<String, byte[]> tm2 = new HashMap<>();
                     tm2.put("HyperLedgerFabric", "TransactionProposalRequest:JavaSDK".getBytes(UTF_8)); //Just some extra junk in transient map
@@ -558,7 +590,16 @@ public class End2endIT {
 
                     ChaincodeID cid = resp.getChaincodeID();
                     assertNotNull(cid);
-                    assertEquals(CHAIN_CODE_PATH, cid.getPath());
+                    final String path = cid.getPath();
+                    if (null == CHAIN_CODE_PATH) {
+                        assertTrue(path == null || "".equals(path));
+
+                    } else {
+
+                        assertEquals(CHAIN_CODE_PATH, path);
+
+                    }
+
                     assertEquals(CHAIN_CODE_NAME, cid.getName());
                     assertEquals(CHAIN_CODE_VERSION, cid.getVersion());
 
@@ -590,8 +631,8 @@ public class End2endIT {
                     String expect = "" + (300 + delta);
                     out("Now query chaincode for the value of b.");
                     QueryByChaincodeRequest queryByChaincodeRequest = client.newQueryProposalRequest();
-                    queryByChaincodeRequest.setArgs(new String[] {"query", "b"});
-                    queryByChaincodeRequest.setFcn("invoke");
+                    queryByChaincodeRequest.setArgs(new String[] {"b"});
+                    queryByChaincodeRequest.setFcn("query");
                     queryByChaincodeRequest.setChaincodeID(chaincodeID);
 
                     Map<String, byte[]> tm2 = new HashMap<>();
@@ -624,12 +665,12 @@ public class End2endIT {
                 if (e instanceof TransactionEventException) {
                     BlockEvent.TransactionEvent te = ((TransactionEventException) e).getTransactionEvent();
                     if (te != null) {
-                        fail(format("Transaction with txid %s failed. %s", te.getTransactionID(), e.getMessage()));
+                        throw new AssertionError(format("Transaction with txid %s failed. %s", te.getTransactionID(), e.getMessage()), e);
                     }
                 }
-                fail(format("Test failed with %s exception %s", e.getClass().getName(), e.getMessage()));
 
-                return null;
+                throw new AssertionError(format("Test failed with %s exception %s", e.getClass().getName(), e.getMessage()), e);
+
             }).get(testConfig.getTransactionWaitTime(), TimeUnit.SECONDS);
 
             // Channel queries
@@ -716,7 +757,7 @@ public class End2endIT {
         }
     }
 
-    private Channel constructChannel(String name, HFClient client, SampleOrg sampleOrg) throws Exception {
+    Channel constructChannel(String name, HFClient client, SampleOrg sampleOrg) throws Exception {
         ////////////////////////////
         //Construct the channel
         //

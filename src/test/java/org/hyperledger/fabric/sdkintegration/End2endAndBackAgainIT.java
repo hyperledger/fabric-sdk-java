@@ -16,6 +16,7 @@ package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
 import java.net.MalformedURLException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -51,6 +52,7 @@ import org.hyperledger.fabric.sdk.ProposalResponse;
 import org.hyperledger.fabric.sdk.QueryByChaincodeRequest;
 import org.hyperledger.fabric.sdk.TestConfigHelper;
 import org.hyperledger.fabric.sdk.TransactionProposalRequest;
+import org.hyperledger.fabric.sdk.TransactionRequest;
 import org.hyperledger.fabric.sdk.UpgradeProposalRequest;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
@@ -86,22 +88,28 @@ public class End2endAndBackAgainIT {
     private static final String TESTUSER_1_NAME = "user1";
     private static final String TEST_FIXTURES_PATH = "src/test/fixture";
 
-    private static final String CHAIN_CODE_NAME = "example_cc_go";
-    private static final String CHAIN_CODE_PATH = "github.com/example_cc";
-    private static final String CHAIN_CODE_VERSION = "1";
-    private static final String CHAIN_CODE_VERSION_11 = "11";
     private static final String FOO_CHANNEL_NAME = "foo";
     private static final String BAR_CHANNEL_NAME = "bar";
-    final ChaincodeID chaincodeID = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
-            .setVersion(CHAIN_CODE_VERSION)
-            .setPath(CHAIN_CODE_PATH).build();
-    final ChaincodeID chaincodeID_11 = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
-            .setVersion(CHAIN_CODE_VERSION_11)
-            .setPath(CHAIN_CODE_PATH).build();
     private final TestConfigHelper configHelper = new TestConfigHelper();
     String testTxID = null;  // save the CC invoke TxID and use in queries
     SampleStore sampleStore;
     private Collection<SampleOrg> testSampleOrgs;
+
+    String testName = "End2endAndBackAgainIT";
+
+    String CHAIN_CODE_FILEPATH = "sdkintegration/gocc/sample_11";
+    String CHAIN_CODE_NAME = "example_cc_go";
+    String CHAIN_CODE_PATH = "github.com/example_cc";
+    String CHAIN_CODE_VERSION_11 = "11";
+    String CHAIN_CODE_VERSION = "1";
+    TransactionRequest.Type CHAIN_CODE_LANG = TransactionRequest.Type.GO_LANG;
+
+    ChaincodeID chaincodeID = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
+            .setVersion(CHAIN_CODE_VERSION)
+            .setPath(CHAIN_CODE_PATH).build();
+    ChaincodeID chaincodeID_11 = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
+            .setVersion(CHAIN_CODE_VERSION_11)
+            .setPath(CHAIN_CODE_PATH).build();
 
 //    @After
 //    public void clearConfig() {
@@ -120,7 +128,14 @@ public class End2endAndBackAgainIT {
 
         for (ChaincodeInfo ccifo : ccinfoList) {
 
-            found = ccName.equals(ccifo.getName()) && ccPath.equals(ccifo.getPath()) && ccVersion.equals(ccifo.getVersion());
+            if (ccPath != null) {
+                found = ccName.equals(ccifo.getName()) && ccPath.equals(ccifo.getPath()) && ccVersion.equals(ccifo.getVersion());
+                if (found) {
+                    break;
+                }
+            }
+
+            found = ccName.equals(ccifo.getName()) && ccVersion.equals(ccifo.getVersion());
             if (found) {
                 break;
             }
@@ -137,7 +152,15 @@ public class End2endAndBackAgainIT {
         boolean found = false;
 
         for (ChaincodeInfo ccifo : ccinfoList) {
-            found = ccName.equals(ccifo.getName()) && ccPath.equals(ccifo.getPath()) && ccVersion.equals(ccifo.getVersion());
+
+            if (ccPath != null) {
+                found = ccName.equals(ccifo.getName()) && ccPath.equals(ccifo.getPath()) && ccVersion.equals(ccifo.getVersion());
+                if (found) {
+                    break;
+                }
+            }
+
+            found = ccName.equals(ccifo.getName()) && ccVersion.equals(ccifo.getVersion());
             if (found) {
                 break;
             }
@@ -161,7 +184,7 @@ public class End2endAndBackAgainIT {
     @Before
     public void checkConfig() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, MalformedURLException {
 
-        out("\n\n\nRUNNING: End2endAndBackAgainIT\n");
+        out("\n\n\nRUNNING: %s.\n", testName);
 
         //      configHelper.clearConfig();
         resetConfig();
@@ -177,99 +200,113 @@ public class End2endAndBackAgainIT {
         }
     }
 
+    File sampleStoreFile = new File(System.getProperty("java.io.tmpdir") + "/HFCSampletest.properties");
+
     @Test
-    public void setup() {
+    public void setup() throws Exception {
 
         try {
 
-            ////////////////////////////
-            // Setup client
-
-            //Create instance of client.
-            HFClient client = HFClient.createNewInstance();
-
-            client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
-
             // client.setMemberServices(peerOrg1FabricCA);
 
-            ////////////////////////////
-            //Set up USERS
+            //Persistence is not part of SDK. Sample file store is for demonstration purposes only!
+            //   MUST be replaced with more robust application implementation  (Database, LDAP)
 
-//            //Persistence is not part of SDK. Sample file store is for demonstration purposes only!
-//            //   MUST be replaced with more robust application implementation  (Database, LDAP)
-            File sampleStoreFile = new File(System.getProperty("java.io.tmpdir") + "/HFCSampletest.properties");
-
+//            if (sampleStoreFile.exists()) { //For testing start fresh
+//                sampleStoreFile.delete();
+//            }
             sampleStore = new SampleStore(sampleStoreFile);
 
-//            //SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface
+            setupUsers(sampleStore);
+            runFabricTest(sampleStore);
 
-            ////////////////////////////
-            // get users for all orgs
 
-            for (SampleOrg sampleOrg : testSampleOrgs) {
-
-                final String orgName = sampleOrg.getName();
-
-                SampleUser admin = sampleStore.getMember(TEST_ADMIN_NAME, orgName);
-                sampleOrg.setAdmin(admin); // The admin of this org.
-
-                // No need to enroll or register all done in End2endIt !
-                SampleUser user = sampleStore.getMember(TESTUSER_1_NAME, orgName);
-                sampleOrg.addUser(user);  //Remember user belongs to this Org
-
-                sampleOrg.setPeerAdmin(sampleStore.getMember(orgName + "Admin", orgName));
-            }
-
-            ////////////////////////////
-            //Reconstruct and run the channels
-            SampleOrg sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
-            Channel fooChannel = reconstructChannel(FOO_CHANNEL_NAME, client, sampleOrg);
-            runChannel(client, fooChannel, sampleOrg, 0);
-            assertFalse(fooChannel.isShutdown());
-            assertTrue(fooChannel.isInitialized());
-            fooChannel.shutdown(true); //clean up resources no longer needed.
-            assertTrue(fooChannel.isShutdown());
-            out("\n");
-
-            sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg2");
-            Channel barChannel = reconstructChannel(BAR_CHANNEL_NAME, client, sampleOrg);
-            runChannel(client, barChannel, sampleOrg, 100); //run a newly constructed foo channel with different b value!
-            assertFalse(barChannel.isShutdown());
-            assertTrue(barChannel.isInitialized());
-
-            if (!testConfig.isRunningAgainstFabric10()) { //Peer eventing service support started with v1.1
-
-                // Now test replay feature of V1.1 peer eventing services.
-                byte[] replayChannelBytes = barChannel.serializeChannel();
-                barChannel.shutdown(true);
-
-                Channel replayChannel = client.deSerializeChannel(replayChannelBytes);
-
-                out("doing testPeerServiceEventingReplay,0,-1,false");
-                testPeerServiceEventingReplay(client, replayChannel, 0L, -1L, false);
-
-                replayChannel = client.deSerializeChannel(replayChannelBytes);
-                out("doing testPeerServiceEventingReplay,0,-1,true"); // block 0 is import to test
-                testPeerServiceEventingReplay(client, replayChannel, 0L, -1L, true);
-
-                //Now do it again starting at block 1
-                replayChannel = client.deSerializeChannel(replayChannelBytes);
-                out("doing testPeerServiceEventingReplay,1,-1,false");
-                testPeerServiceEventingReplay(client, replayChannel, 1L, -1L, false);
-
-                //Now do it again starting at block 2 to 3
-                replayChannel = client.deSerializeChannel(replayChannelBytes);
-                out("doing testPeerServiceEventingReplay,2,3,false");
-                testPeerServiceEventingReplay(client, replayChannel, 2L, 3L, false);
-
-            }
-
-            out("That's all folks!");
 
         } catch (Exception e) {
             e.printStackTrace();
             fail(e.getMessage());
         }
+    }
+
+    /**
+     * Will register and enroll users persisting them to samplestore.
+     *
+     * @param sampleStore
+     * @throws Exception
+     */
+    public void setupUsers(SampleStore sampleStore) {
+        //SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface
+
+        ////////////////////////////
+        // get users for all orgs
+        for (SampleOrg sampleOrg : testSampleOrgs) {
+            final String orgName = sampleOrg.getName();
+
+            SampleUser admin = sampleStore.getMember(TEST_ADMIN_NAME, orgName);
+            sampleOrg.setAdmin(admin); // The admin of this org.
+
+            // No need to enroll or register all done in End2endIt !
+            SampleUser user = sampleStore.getMember(TESTUSER_1_NAME, orgName);
+            sampleOrg.addUser(user);  //Remember user belongs to this Org
+
+            sampleOrg.setPeerAdmin(sampleStore.getMember(orgName + "Admin", orgName));
+        }
+    }
+
+    public void runFabricTest(final SampleStore sampleStore) throws Exception {
+        ////////////////////////////
+        // Setup client
+
+        //Create instance of client.
+        HFClient client = HFClient.createNewInstance();
+
+        client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+
+        ////////////////////////////
+        //Reconstruct and run the channels
+        SampleOrg sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
+        Channel fooChannel = reconstructChannel(FOO_CHANNEL_NAME, client, sampleOrg);
+        runChannel(client, fooChannel, sampleOrg, 0);
+        assertFalse(fooChannel.isShutdown());
+        assertTrue(fooChannel.isInitialized());
+        fooChannel.shutdown(true); //clean up resources no longer needed.
+        assertTrue(fooChannel.isShutdown());
+        out("\n");
+
+        sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg2");
+        Channel barChannel = reconstructChannel(BAR_CHANNEL_NAME, client, sampleOrg);
+        runChannel(client, barChannel, sampleOrg, 100); //run a newly constructed foo channel with different b value!
+        assertFalse(barChannel.isShutdown());
+        assertTrue(barChannel.isInitialized());
+
+        if (!testConfig.isRunningAgainstFabric10()) { //Peer eventing service support started with v1.1
+
+            // Now test replay feature of V1.1 peer eventing services.
+            byte[] replayChannelBytes = barChannel.serializeChannel();
+            barChannel.shutdown(true);
+
+            Channel replayChannel = client.deSerializeChannel(replayChannelBytes);
+
+            out("doing testPeerServiceEventingReplay,0,-1,false");
+            testPeerServiceEventingReplay(client, replayChannel, 0L, -1L, false);
+
+            replayChannel = client.deSerializeChannel(replayChannelBytes);
+            out("doing testPeerServiceEventingReplay,0,-1,true"); // block 0 is import to test
+            testPeerServiceEventingReplay(client, replayChannel, 0L, -1L, true);
+
+            //Now do it again starting at block 1
+            replayChannel = client.deSerializeChannel(replayChannelBytes);
+            out("doing testPeerServiceEventingReplay,1,-1,false");
+            testPeerServiceEventingReplay(client, replayChannel, 1L, -1L, false);
+
+            //Now do it again starting at block 2 to 3
+            replayChannel = client.deSerializeChannel(replayChannelBytes);
+            out("doing testPeerServiceEventingReplay,2,3,false");
+            testPeerServiceEventingReplay(client, replayChannel, 2L, 3L, false);
+
+        }
+
+        out("That's all folks!");
     }
 
     // Disable MethodLength as this method is for instructional purposes and hence
@@ -286,6 +323,7 @@ public class End2endAndBackAgainIT {
 
             out("Running Channel %s with a delta %d", channelName, delta);
 
+            out("ChaincodeID: ", chaincodeID);
             ////////////////////////////
             // Send Query Proposal to all peers see if it's what we expect from end of End2endIT
             //
@@ -299,7 +337,7 @@ public class End2endAndBackAgainIT {
 
             // exercise v1 of chaincode
 
-            moveAmount(client, channel, chaincodeID, "25", changeContext ? sampleOrg.getPeerAdmin() : null).thenApply(transactionEvent -> {
+            moveAmount(client, channel, chaincodeID, "25", changeContext ? sampleOrg.getPeerAdmin() : null).thenApply((BlockEvent.TransactionEvent transactionEvent) -> {
                 try {
 
                     waitOnFabric();
@@ -316,9 +354,10 @@ public class End2endAndBackAgainIT {
                     InstallProposalRequest installProposalRequest = client.newInstallProposalRequest();
                     installProposalRequest.setChaincodeID(chaincodeID);
                     ////For GO language and serving just a single user, chaincodeSource is mostly likely the users GOPATH
-                    installProposalRequest.setChaincodeSourceLocation(new File(TEST_FIXTURES_PATH + "/sdkintegration/gocc/sample_11"));
+                    installProposalRequest.setChaincodeSourceLocation(Paths.get(TEST_FIXTURES_PATH, CHAIN_CODE_FILEPATH).toFile());
                     installProposalRequest.setChaincodeVersion(CHAIN_CODE_VERSION_11);
                     installProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
+                    installProposalRequest.setChaincodeLanguage(CHAIN_CODE_LANG);
 
                     if (changeContext) {
                         installProposalRequest.setUserContext(sampleOrg.getPeerAdmin());
@@ -509,8 +548,8 @@ public class End2endAndBackAgainIT {
             /// Send transaction proposal to all peers
             TransactionProposalRequest transactionProposalRequest = client.newTransactionProposalRequest();
             transactionProposalRequest.setChaincodeID(chaincodeID);
-            transactionProposalRequest.setFcn("invoke");
-            transactionProposalRequest.setArgs(new byte[][] {"move".getBytes(UTF_8), //test using bytes .. end2end uses Strings.
+            transactionProposalRequest.setFcn("move");
+            transactionProposalRequest.setArgs(new byte[][] {//test using bytes .. end2end uses Strings.
                     "a".getBytes(UTF_8), "b".getBytes(UTF_8), moveAmount.getBytes(UTF_8)});
             transactionProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
             if (user != null) { // specific user use that
@@ -910,10 +949,10 @@ public class End2endAndBackAgainIT {
 
     private void queryChaincodeForExpectedValue(HFClient client, Channel channel, final String expect, ChaincodeID chaincodeID) {
 
-        out("Now query chaincode on channel %s for the value of b expecting to see: %s", channel.getName(), expect);
+        out("Now query chaincode %s on channel %s for the value of b expecting to see: %s", chaincodeID, channel.getName(), expect);
         QueryByChaincodeRequest queryByChaincodeRequest = client.newQueryProposalRequest();
-        queryByChaincodeRequest.setArgs("query".getBytes(UTF_8), "b".getBytes(UTF_8)); // test using bytes as args. End2end uses Strings.
-        queryByChaincodeRequest.setFcn("invoke");
+        queryByChaincodeRequest.setArgs("b".getBytes(UTF_8)); // test using bytes as args. End2end uses Strings.
+        queryByChaincodeRequest.setFcn("query");
         queryByChaincodeRequest.setChaincodeID(chaincodeID);
 
         Collection<ProposalResponse> queryProposals;

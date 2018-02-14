@@ -1,0 +1,15 @@
+{
+    "name": "example_cc",
+    "version": "1.0.0",
+    "description": "",
+    "main": "chaincode.js",
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1",
+      "start": "node chaincode.js"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+      "fabric-shim": "unstable"
+    }
+  }

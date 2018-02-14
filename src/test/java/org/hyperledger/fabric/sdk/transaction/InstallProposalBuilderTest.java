@@ -189,7 +189,37 @@ public class InstallProposalBuilderTest {
         builder.build();
     }
 
+    // Tests that no chaincode path is specified for Node code using a File
+    @Test
+    public void testBuildChaincodePathNodeFile() throws Exception {
 
+        thrown.expect(IllegalArgumentException.class);
+        thrown.expectMessage("chaincodePath must be null for Node chaincode");
+
+        InstallProposalBuilder builder = createTestBuilder();
+
+        builder.setChaincodeLanguage(TransactionRequest.Type.NODE);
+        builder.setChaincodeSource(new File("some/dir"));
+        builder.chaincodePath("src");
+
+        builder.build();
+    }
+
+    // Tests that no chaincode path is specified for Node code using input stream
+    @Test
+    public void testBuildChaincodePathNodeStream() throws Exception {
+
+        thrown.expect(IllegalArgumentException.class);
+        thrown.expectMessage("chaincodePath must be null for Node chaincode");
+
+        InstallProposalBuilder builder = createTestBuilder();
+
+        builder.setChaincodeLanguage(TransactionRequest.Type.NODE);
+        builder.setChaincodeInputStream(new ByteArrayInputStream("test string".getBytes()));
+        builder.chaincodePath("src");
+
+        builder.build();
+    }
     // ==========================================================================================
     // Helper methods
     // ==========================================================================================

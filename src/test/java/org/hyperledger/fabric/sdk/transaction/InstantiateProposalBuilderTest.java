@@ -50,5 +50,17 @@ public class InstantiateProposalBuilderTest {
 
     }
 
+    @Test
+    public void testInvalidType() throws Exception {
+
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("Chaincode type is required");
+
+        InstantiateProposalBuilder builder = InstantiateProposalBuilder.newBuilder();
+        builder.chaincodeType(null);
+
+        builder.build();
+    }
+
 
 }

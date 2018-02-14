@@ -190,7 +190,7 @@ public class ChaincodeEndorsementPolicy {
                     mspRoleType = MSPRole.MSPRoleType.PEER;
                     break;
                 default:
-                    throw new ChaincodeEndorsementPolicyParseException(format("In identities with key %s name expected member, admin, client, peer or orderer  in role got %s ", key, name));
+                    throw new ChaincodeEndorsementPolicyParseException(format("In identities with key %s name expected member, admin, client, or peer in role got %s ", key, name));
             }
 
             MSPRole mspRole = MSPRole.newBuilder().setRole(mspRoleType)

@@ -11,13 +11,16 @@ import org.junit.runners.Suite;
 
 @RunWith (Suite.class)
 
-@Suite.SuiteClasses({
-        End2endIT.class,
-        End2endAndBackAgainIT.class,
-        UpdateChannelIT.class,
-        NetworkConfigIT.class,
-        HFCAClientIT.class
-})
+@Suite.SuiteClasses (
+        {
+                End2endIT.class,
+                End2endAndBackAgainIT.class,
+                UpdateChannelIT.class,
+                NetworkConfigIT.class,
+                End2endNodeIT.class,
+                End2endNodeAndBackAgainIT.class,
+                HFCAClientIT.class
+        })
 public class IntegrationSuite {
 
 }
