@@ -391,20 +391,24 @@ public class HFClient {
      * Set the User context for this client.
      *
      * @param userContext
+     * @return the old user context. Maybe null if never set!
      * @throws InvalidArgumentException
      */
 
-    public void setUserContext(User userContext) throws InvalidArgumentException {
+    public User setUserContext(User userContext) throws InvalidArgumentException {
 
         if (null == cryptoSuite) {
             throw new InvalidArgumentException("No cryptoSuite has been set.");
         }
         userContextCheck(userContext);
+
+        User ret = this.userContext;
         this.userContext = userContext;
 
         logger.debug(
                 format("Setting user context to MSPID: %s user: %s", userContext.getMspId(), userContext.getName()));
 
+        return ret;
     }
 
     /**

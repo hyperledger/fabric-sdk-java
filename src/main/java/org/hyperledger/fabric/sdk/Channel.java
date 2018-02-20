@@ -459,7 +459,7 @@ public class Channel implements Serializable {
                 final ByteString sigHeaderByteString = getSignatureHeaderAsByteString(transactionContext);
 
                 final ChannelHeader payloadChannelHeader = ProtoUtils.createChannelHeader(HeaderType.CONFIG_UPDATE,
-                        transactionContext.getTxID(), name, transactionContext.getEpoch(), transactionContext.getFabricTimestamp(), null);
+                        transactionContext.getTxID(), name, transactionContext.getEpoch(), transactionContext.getFabricTimestamp(), null, null);
 
                 final Header payloadHeader = Header.newBuilder().setChannelHeader(payloadChannelHeader.toByteString())
                         .setSignatureHeader(sigHeaderByteString).build();
@@ -1357,7 +1357,7 @@ public class Channel implements Serializable {
 
                 TransactionContext txContext = getTransactionContext();
 
-                DeliverResponse[] deliver = orderer.sendDeliver(createSeekInfoEnvelope(txContext, seekInfo));
+                DeliverResponse[] deliver = orderer.sendDeliver(createSeekInfoEnvelope(txContext, seekInfo, null));
 
                 if (deliver.length < 1) {
                     logger.warn(format("Genesis block for channel %s fetch bad deliver missing status block only got blocks:%d", name, deliver.length));

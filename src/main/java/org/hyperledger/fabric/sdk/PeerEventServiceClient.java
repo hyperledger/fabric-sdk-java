@@ -58,8 +58,10 @@ class PeerEventServiceClient {
     private final String name;
     private final String url;
     private final long peerEventRegistrationWaitTimeMilliSecs;
+
     private final PeerOptions peerOptions;
     private final boolean filterBlock;
+    private byte[] clientTLSCertificateDigest;
     Properties properties = new Properties();
     StreamObserver<Envelope> nso = null;
     StreamObserver<DeliverResponse> so = null;
@@ -72,15 +74,16 @@ class PeerEventServiceClient {
     /**
      * Construct client for accessing Peer eventing service using the existing managedChannel.
      */
-    PeerEventServiceClient(Peer peer, ManagedChannelBuilder<?> channelBuilder, Properties properties, PeerOptions peerOptions) {
+    PeerEventServiceClient(Peer peer, Endpoint endpoint, Properties properties, PeerOptions peerOptions) {
 
-        this.channelBuilder = channelBuilder;
+        this.channelBuilder = endpoint.getChannelBuilder();
         this.filterBlock = peerOptions.isRegisterEventsForFilteredBlocks();
         this.peer = peer;
         name = peer.getName();
         url = peer.getUrl();
         channelName = peer.getChannel().getName();
         this.peerOptions = peerOptions;
+        clientTLSCertificateDigest = endpoint.getClientTLSCertificateDigest();
 
         this.channelEventQue = peer.getChannel().getChannelEventQue();
 
@@ -104,6 +107,10 @@ class PeerEventServiceClient {
             peerEventRegistrationWaitTimeMilliSecs = tempPeerWaitTimeMilliSecs;
         }
 
+    }
+
+    PeerOptions getPeerOptions() {
+        return peerOptions.clone();
     }
 
     synchronized void shutdown(boolean force) {
@@ -322,7 +329,7 @@ class PeerEventServiceClient {
     // Peer eventing
     void peerVent(TransactionContext transactionContext) throws TransactionException {
 
-        final Envelope latestBlock;
+        final Envelope envelope;
         try {
 
             Ab.SeekPosition.Builder start = Ab.SeekPosition.newBuilder();
@@ -334,16 +341,17 @@ class PeerEventServiceClient {
                 start.setNewest(Ab.SeekNewest.getDefaultInstance());
             }
 
-            latestBlock = createSeekInfoEnvelope(transactionContext,
+            //   properties.
+
+            envelope = createSeekInfoEnvelope(transactionContext,
                     start.build(),
                     Ab.SeekPosition.newBuilder()
                             .setSpecified(Ab.SeekSpecified.newBuilder().setNumber(peerOptions.getStopEvents()).build())
-                            //                          .setSpecified(Ab.SeekSpecified.newBuilder().setNumber(1L).build())
                             .build(),
-                    SeekInfo.SeekBehavior.BLOCK_UNTIL_READY
+                    SeekInfo.SeekBehavior.BLOCK_UNTIL_READY,
 
-            );
-            DeliverResponse[] deliver = connectEnvelope(latestBlock);
+                    clientTLSCertificateDigest);
+            connectEnvelope(envelope);
         } catch (CryptoException e) {
             throw new TransactionException(e);
         }

@@ -116,7 +116,7 @@ public class ProposalBuilder {
                 .setChaincodeId(chaincodeID).build();
 
         Common.ChannelHeader chainHeader = createChannelHeader(HeaderType.ENDORSER_TRANSACTION,
-                context.getTxID(), channelID, context.getEpoch(), context.getFabricTimestamp(), chaincodeHeaderExtension);
+                context.getTxID(), channelID, context.getEpoch(), context.getFabricTimestamp(), chaincodeHeaderExtension, null);
 
         ChaincodeInvocationSpec chaincodeInvocationSpec = createChaincodeInvocationSpec(
                 chaincodeID,
