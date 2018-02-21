@@ -17,23 +17,31 @@ package org.hyperledger.fabric.sdk;
 //Allow throwing undeclared checked execeptions in mock code.
 //CHECKSTYLE.OFF: IllegalImport
 
+import java.io.File;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import com.google.protobuf.ByteString;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.orderer.Ab;
+import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.PeerException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
+import org.hyperledger.fabric.sdk.testutils.TestUtils;
+import org.hyperledger.fabric.sdk.transaction.InstallProposalBuilder;
+import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -42,20 +50,25 @@ import org.junit.rules.ExpectedException;
 import sun.misc.Unsafe;
 
 import static org.hyperledger.fabric.sdk.Channel.PeerOptions.createPeerOptions;
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.assertArrayListEquals;
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.getMockUser;
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.matchesRegex;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.setField;
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.tarBytesToEntryArrayList;
 
 //CHECKSTYLE.ON: IllegalImport
 
 public class ChannelTest {
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
     private static HFClient hfclient = null;
     private static Channel shutdownChannel = null;
     private static final String BAD_STUFF = "this is bad!";
     private static Orderer throwOrderer = null;
     private static Channel throwChannel = null;
     private static final String CHANNEL_NAME = "channel3";
-
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
 
     @BeforeClass
     public static void setupClient() {
@@ -723,6 +736,151 @@ public class ChannelTest {
 
         hfclient.queryChannels(peer);
 
+    }
+
+    private static final String SAMPLE_GO_CC = "src/test/fixture/sdkintegration/gocc/sample1";
+
+    @Test
+    public void testProposalBuilderWithMetaInf() throws Exception {
+        InstallProposalBuilder installProposalBuilder = InstallProposalBuilder.newBuilder();
+
+        installProposalBuilder.setChaincodeLanguage(TransactionRequest.Type.GO_LANG);
+        installProposalBuilder.chaincodePath("github.com/example_cc");
+        installProposalBuilder.setChaincodeSource(new File(SAMPLE_GO_CC));
+        installProposalBuilder.chaincodeName("example_cc.go");
+        installProposalBuilder.setChaincodeMetaInfLocation(new File("src/test/fixture/meta-infs/test1"));
+        installProposalBuilder.chaincodeVersion("1");
+
+        Channel channel = hfclient.newChannel("testProposalBuilderWithMetaInf");
+
+        TestUtils.MockUser mockUser = getMockUser("rick", "rickORG");
+        TransactionContext transactionContext = new TransactionContext(channel, mockUser, CryptoSuite.Factory.getCryptoSuite());
+
+        installProposalBuilder.context(transactionContext);
+
+        FabricProposal.Proposal proposal = installProposalBuilder.build(); // Build it get the proposal. Then unpack it to see if it's what we expect.
+
+        FabricProposal.ChaincodeProposalPayload chaincodeProposalPayload = FabricProposal.ChaincodeProposalPayload.parseFrom(proposal.getPayload());
+        Chaincode.ChaincodeInvocationSpec chaincodeInvocationSpec = Chaincode.ChaincodeInvocationSpec.parseFrom(chaincodeProposalPayload.getInput());
+        Chaincode.ChaincodeSpec chaincodeSpec = chaincodeInvocationSpec.getChaincodeSpec();
+        Chaincode.ChaincodeInput input = chaincodeSpec.getInput();
+
+        Chaincode.ChaincodeDeploymentSpec chaincodeDeploymentSpec = Chaincode.ChaincodeDeploymentSpec.parseFrom(input.getArgs(1));
+        ByteString codePackage = chaincodeDeploymentSpec.getCodePackage();
+        ArrayList tarBytesToEntryArrayList = tarBytesToEntryArrayList(codePackage.toByteArray());
+
+        ArrayList<String> expect = new ArrayList(Arrays.asList(new String[] {
+                "META-INF/statedb/couchdb/indexes/MockFakeIndex.json",
+                "src/github.com/example_cc/example_cc.go"
+        }));
+
+        assertArrayListEquals("Tar in Install Proposal's codePackage does not have expected entries. ", expect, tarBytesToEntryArrayList);
+    }
+
+    @Test
+    public void testProposalBuilderWithOutMetaInf() throws Exception {
+        InstallProposalBuilder installProposalBuilder = InstallProposalBuilder.newBuilder();
+
+        installProposalBuilder.setChaincodeLanguage(TransactionRequest.Type.GO_LANG);
+        installProposalBuilder.chaincodePath("github.com/example_cc");
+        installProposalBuilder.setChaincodeSource(new File(SAMPLE_GO_CC));
+        installProposalBuilder.chaincodeName("example_cc.go");
+        installProposalBuilder.chaincodeVersion("1");
+
+        Channel channel = hfclient.newChannel("testProposalBuilderWithOutMetaInf");
+        TransactionContext transactionContext = new TransactionContext(channel, getMockUser("rick", "rickORG"), CryptoSuite.Factory.getCryptoSuite());
+
+        installProposalBuilder.context(transactionContext);
+
+        FabricProposal.Proposal proposal = installProposalBuilder.build(); // Build it get the proposal. Then unpack it to see if it's what we expect.
+        FabricProposal.ChaincodeProposalPayload chaincodeProposalPayload = FabricProposal.ChaincodeProposalPayload.parseFrom(proposal.getPayload());
+        Chaincode.ChaincodeInvocationSpec chaincodeInvocationSpec = Chaincode.ChaincodeInvocationSpec.parseFrom(chaincodeProposalPayload.getInput());
+        Chaincode.ChaincodeSpec chaincodeSpec = chaincodeInvocationSpec.getChaincodeSpec();
+        Chaincode.ChaincodeInput input = chaincodeSpec.getInput();
+
+        Chaincode.ChaincodeDeploymentSpec chaincodeDeploymentSpec = Chaincode.ChaincodeDeploymentSpec.parseFrom(input.getArgs(1));
+        ByteString codePackage = chaincodeDeploymentSpec.getCodePackage();
+        ArrayList tarBytesToEntryArrayList = tarBytesToEntryArrayList(codePackage.toByteArray());
+
+        ArrayList<String> expect = new ArrayList(Arrays.asList(new String[] {"src/github.com/example_cc/example_cc.go"
+        }));
+
+        assertArrayListEquals("Tar in Install Proposal's codePackage does not have expected entries. ", expect, tarBytesToEntryArrayList);
+    }
+
+    @Test
+    public void testProposalBuilderWithNoMetaInfDir() throws Exception {
+
+        thrown.expect(java.lang.IllegalArgumentException.class);
+        thrown.expectMessage(matchesRegex("The META-INF directory does not exist in.*src/test/fixture/meta-infs/test1/META-INF"));
+
+        InstallProposalBuilder installProposalBuilder = InstallProposalBuilder.newBuilder();
+
+        installProposalBuilder.setChaincodeLanguage(TransactionRequest.Type.GO_LANG);
+        installProposalBuilder.chaincodePath("github.com/example_cc");
+        installProposalBuilder.setChaincodeSource(new File(SAMPLE_GO_CC));
+        installProposalBuilder.chaincodeName("example_cc.go");
+        installProposalBuilder.chaincodeVersion("1");
+        installProposalBuilder.setChaincodeMetaInfLocation(new File("src/test/fixture/meta-infs/test1/META-INF")); // points into which is not what's expected.
+
+        Channel channel = hfclient.newChannel("testProposalBuilderWithNoMetaInfDir");
+        TransactionContext transactionContext = new TransactionContext(channel, getMockUser("rick", "rickORG"), CryptoSuite.Factory.getCryptoSuite());
+
+        installProposalBuilder.context(transactionContext);
+
+        installProposalBuilder.build(); // Build it get the proposal. Then unpack it to see if it's what we epect.
+    }
+
+    @Test
+    public void testProposalBuilderWithMetaInfExistsNOT() throws Exception {
+
+        thrown.expect(java.lang.IllegalArgumentException.class);
+        thrown.expectMessage("Directory to find chaincode META-INF /tmp/fdsjfksfj/fjksfjskd/fjskfjdsk/should never exist does not exist");
+
+        InstallProposalBuilder installProposalBuilder = InstallProposalBuilder.newBuilder();
+
+        installProposalBuilder.setChaincodeLanguage(TransactionRequest.Type.GO_LANG);
+        installProposalBuilder.chaincodePath("github.com/example_cc");
+        installProposalBuilder.setChaincodeSource(new File(SAMPLE_GO_CC));
+        installProposalBuilder.chaincodeName("example_cc.go");
+        installProposalBuilder.chaincodeVersion("1");
+        installProposalBuilder.setChaincodeMetaInfLocation(new File("/tmp/fdsjfksfj/fjksfjskd/fjskfjdsk/should never exist")); // points into which is not what's expected.
+
+        Channel channel = hfclient.newChannel("testProposalBuilderWithMetaInfExistsNOT");
+        TransactionContext transactionContext = new TransactionContext(channel, getMockUser("rick", "rickORG"), CryptoSuite.Factory.getCryptoSuite());
+
+        installProposalBuilder.context(transactionContext);
+
+        installProposalBuilder.build(); // Build it get the proposal. Then unpack it to see if it's what we epect.
+    }
+
+    @Test
+    public void testProposalBuilderWithMetaInfEmpty() throws Exception {
+
+        thrown.expect(java.lang.IllegalArgumentException.class);
+        thrown.expectMessage(matchesRegex("The META-INF directory.*/src/test/fixture/meta-infs/emptyMetaInf/META-INF is empty."));
+
+        File emptyINF = new File("src/test/fixture/meta-infs/emptyMetaInf/META-INF"); // make it cause git won't check in empty directory
+        if (!emptyINF.exists()) {
+            emptyINF.mkdirs();
+            emptyINF.deleteOnExit();
+        }
+
+        InstallProposalBuilder installProposalBuilder = InstallProposalBuilder.newBuilder();
+
+        installProposalBuilder.setChaincodeLanguage(TransactionRequest.Type.GO_LANG);
+        installProposalBuilder.chaincodePath("github.com/example_cc");
+        installProposalBuilder.setChaincodeSource(new File(SAMPLE_GO_CC));
+        installProposalBuilder.chaincodeName("example_cc.go");
+        installProposalBuilder.chaincodeVersion("1");
+        installProposalBuilder.setChaincodeMetaInfLocation(new File("src/test/fixture/meta-infs/emptyMetaInf")); // points into which is not what's expected.
+
+        Channel channel = hfclient.newChannel("testProposalBuilderWithMetaInfEmpty");
+        TransactionContext transactionContext = new TransactionContext(channel, getMockUser("rick", "rickORG"), CryptoSuite.Factory.getCryptoSuite());
+
+        installProposalBuilder.context(transactionContext);
+
+        FabricProposal.Proposal proposal = installProposalBuilder.build(); // Build it get the proposal. Then unpack it to see if it's what we epect.
     }
 
     class MockEndorserClient extends EndorserClient {

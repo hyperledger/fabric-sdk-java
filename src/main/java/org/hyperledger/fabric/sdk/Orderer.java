@@ -41,6 +41,7 @@ public class Orderer implements Serializable {
     private transient boolean shutdown = false;
     private Channel channel;
     private transient volatile OrdererClient ordererClient = null;
+    private transient byte[] clientTLSCertificateDigest;
 
     Orderer(String name, String url, Properties properties) throws InvalidArgumentException {
 
@@ -61,6 +62,13 @@ public class Orderer implements Serializable {
     static Orderer createNewInstance(String name, String url, Properties properties) throws InvalidArgumentException {
         return new Orderer(name, url, properties);
 
+    }
+
+    byte[] getClientTLSCertificateDigest() {
+        if (null == clientTLSCertificateDigest) {
+            clientTLSCertificateDigest = new Endpoint(url, properties).getClientTLSCertificateDigest();
+        }
+        return clientTLSCertificateDigest;
     }
 
     /**

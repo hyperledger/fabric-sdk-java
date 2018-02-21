@@ -13,19 +13,21 @@
  */
 package org.hyperledger.fabric.sdk.helper;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
 import com.google.protobuf.ByteString;
 import org.bouncycastle.crypto.digests.SHA3Digest;
 import org.bouncycastle.util.encoders.Hex;
+import org.hyperledger.fabric.sdk.testutils.TestUtils;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -33,10 +35,11 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.assertArrayListEquals;
 
 public class UtilsTest {
 
+    private static final String SAMPLE_GO_CC = "src/test/fixture/sdkintegration/gocc/sample1";
     // Create a temp folder to hold temp files for various file I/O operations
     // These are automatically deleted when each test completes
     @Rule
@@ -70,7 +73,7 @@ public class UtilsTest {
     }
 
     // Test generateDirectoryHash with a non-existent directory
-    @Test(expected = IOException.class)
+    @Test (expected = IOException.class)
     public void testGenerateDirectoryHashNoDirectory() throws Exception {
         File rootDir = tempFolder.getRoot().getAbsoluteFile();
         File nonExistentDir = new File(rootDir, "temp");
@@ -80,7 +83,7 @@ public class UtilsTest {
     }
 
     // Test generateDirectoryHash with an empty directory
-    @Test(expected = IOException.class)
+    @Test (expected = IOException.class)
     public void testGenerateDirectoryHashEmptyDirectory() throws Exception {
         // create an empty temp directory
         File emptyDir = tempFolder.newFolder("subfolder");
@@ -90,7 +93,7 @@ public class UtilsTest {
     }
 
     // Test generateDirectoryHash by passing it a file
-    @Test(expected = IOException.class)
+    @Test (expected = IOException.class)
     public void testGenerateDirectoryHashWithFile() throws Exception {
         // Create a temp file
         File tempFile = tempFolder.newFile("temp.txt");
@@ -114,7 +117,7 @@ public class UtilsTest {
     }
 
     // Test an attempt to read a non-existent file
-    @Test(expected = IOException.class)
+    @Test (expected = IOException.class)
     public void testReadFileNoFile() throws Exception {
         File rootDir = tempFolder.getRoot().getAbsoluteFile();
         Utils.readFile(new File(rootDir, "temp.txt"));
@@ -130,7 +133,7 @@ public class UtilsTest {
 
     // Test an attempt to read a non-existent file from the classpath
     @Ignore // See todo comment below...
-    @Test(expected = IOException.class)
+    @Test (expected = IOException.class)
     public void testReadFileFromClasspathNoFile() throws Exception {
         // Attempt to read a file that does not exist
         // TODO: readFileFromClasspath is not properly handling this use case and throws a NPE!
@@ -180,7 +183,7 @@ public class UtilsTest {
         File tempDir = createTempDirWithFiles();
 
         // Compress
-        byte[] data = Utils.generateTarGz(tempDir, "newPath");
+        byte[] data = Utils.generateTarGz(tempDir, "newPath", null);
 
         // Here, we simply ensure that it did something!
         Assert.assertNotNull(data);
@@ -193,7 +196,7 @@ public class UtilsTest {
 
         // create an empty directory
         File emptyDir = tempFolder.newFolder("subfolder");
-        byte[] data = Utils.generateTarGz(emptyDir, null);
+        byte[] data = Utils.generateTarGz(emptyDir, null, null);
 
         // Here, we simply ensure that it did something!
         Assert.assertNotNull(data);
@@ -202,13 +205,46 @@ public class UtilsTest {
 
     // Test compressing a non-existent directory
     // Note that this currently throws an IllegalArgumentException, and not an IOException!
-    @Test(expected = IllegalArgumentException.class)
+    @Test (expected = IllegalArgumentException.class)
     public void testGenerateTarGzNoDirectory() throws Exception {
         File rootDir = tempFolder.getRoot().getAbsoluteFile();
         File nonExistentDir = new File(rootDir, "temp");
-        Utils.generateTarGz(nonExistentDir, null);
+        Utils.generateTarGz(nonExistentDir, null, null);
         Assert.fail("Expected an IOException as the directory does not exist");
     }
+
+    @Test
+    public void testGenerateTarGzMETAINF() throws Exception {
+
+        ArrayList<String> expect = new ArrayList(Arrays.asList(new String[] {"META-INF/statedb/couchdb/indexes/MockFakeIndex.json", "src/github.com/example_cc/example_cc.go"
+        }));
+        Collections.sort(expect);
+
+        byte[] bytes = Utils.generateTarGz(new File(SAMPLE_GO_CC + "/src/github.com/example_cc"),
+                "src/github.com/example_cc", new File("src/test/fixture/meta-infs/test1/META-INF"));
+        Assert.assertNotNull("generateTarGz() returned null bytes.", bytes);
+
+        ArrayList tarBytesToEntryArrayList = TestUtils.tarBytesToEntryArrayList(bytes);
+        assertArrayListEquals("Tar not what expected.", expect, tarBytesToEntryArrayList);
+
+    }
+
+    @Test
+    public void testGenerateTarGzNOMETAINF() throws Exception {
+
+        byte[] bytes = Utils.generateTarGz(new File(SAMPLE_GO_CC + "/src/github.com/example_cc"),
+                "src/github.com/", null);
+        Assert.assertNotNull("generateTarGz() returned null bytes.", bytes);
+
+        ArrayList<String> expect = new ArrayList(Arrays.asList(new String[] {"src/github.com/example_cc.go"
+        }));
+
+        ArrayList tarBytesToEntryArrayList = TestUtils.tarBytesToEntryArrayList(bytes);
+        assertArrayListEquals("Tar not what expected.", expect, tarBytesToEntryArrayList);
+
+    }
+
+
 
     @Test
     public void testGenerateUUID() {

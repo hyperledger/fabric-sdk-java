@@ -56,6 +56,7 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
     private TransactionRequest.Type chaincodeLanguage;
     protected String action = "install";
     private InputStream chaincodeInputStream;
+    private File chaincodeMetaInfLocation;
 
     protected InstallProposalBuilder() {
         super();
@@ -85,6 +86,12 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
     public InstallProposalBuilder setChaincodeSource(File chaincodeSource) {
         this.chaincodeSource = chaincodeSource;
 
+        return this;
+    }
+
+    public InstallProposalBuilder setChaincodeMetaInfLocation(File chaincodeMetaInfLocation) {
+
+        this.chaincodeMetaInfLocation = chaincodeMetaInfLocation;
         return this;
     }
 
@@ -122,6 +129,40 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
         File projectSourceDir = null;
         String targetPathPrefix = null;
         String dplang;
+
+        File metainf = null;
+        if (null != chaincodeMetaInfLocation) {
+            if (!chaincodeMetaInfLocation.exists()) {
+                throw new IllegalArgumentException(format("Directory to find chaincode META-INF %s does not exist", chaincodeMetaInfLocation.getAbsolutePath()));
+            }
+
+            if (!chaincodeMetaInfLocation.isDirectory()) {
+                throw new IllegalArgumentException(format("Directory to find chaincode META-INF %s is not a directory", chaincodeMetaInfLocation.getAbsolutePath()));
+            }
+            metainf = new File(chaincodeMetaInfLocation, "META-INF");
+            logger.trace("META-INF directory is " + metainf.getAbsolutePath());
+            if (!metainf.exists()) {
+
+                throw new IllegalArgumentException(format("The META-INF directory does not exist in %s", chaincodeMetaInfLocation.getAbsolutePath()));
+            }
+
+            if (!metainf.isDirectory()) {
+                throw new IllegalArgumentException(format("The META-INF in %s is not a directory.", chaincodeMetaInfLocation.getAbsolutePath()));
+            }
+            File[] files = metainf.listFiles();
+
+            if (files == null) {
+                throw new IllegalArgumentException("null for listFiles on: " + chaincodeMetaInfLocation.getAbsolutePath());
+            }
+
+            if (files.length < 1) {
+
+                throw new IllegalArgumentException(format("The META-INF directory %s is empty.", metainf.getAbsolutePath()));
+            }
+
+            logger.trace(format("chaincode META-INF found %s", metainf.getAbsolutePath()));
+
+        }
 
         switch (chaincodeLanguage) {
             case GO_LANG:
@@ -204,7 +245,7 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
                     chaincodeID, dplang, projectSourceDir.getAbsolutePath(), targetPathPrefix, chaincodePath));
 
             // generate chaincode source tar
-            data = Utils.generateTarGz(projectSourceDir, targetPathPrefix);
+            data = Utils.generateTarGz(projectSourceDir, targetPathPrefix, metainf);
 
             if (null != diagnosticFileDumper) {
 
@@ -219,8 +260,8 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
             data = IOUtils.toByteArray(chaincodeInputStream);
 
             if (null != diagnosticFileDumper) {
-                logger.trace(format("Installing '%s' language %s chaincode from input stream",
-                        chaincodeID, dplang));
+                logger.trace(format("Installing '%s' language %s chaincode from input stream tar file dump %s",
+                        chaincodeID, dplang, diagnosticFileDumper.createDiagnosticTarFile(data)));
             }
 
         }

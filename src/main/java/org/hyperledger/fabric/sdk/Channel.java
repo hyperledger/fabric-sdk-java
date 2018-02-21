@@ -1357,7 +1357,7 @@ public class Channel implements Serializable {
 
                 TransactionContext txContext = getTransactionContext();
 
-                DeliverResponse[] deliver = orderer.sendDeliver(createSeekInfoEnvelope(txContext, seekInfo, null));
+                DeliverResponse[] deliver = orderer.sendDeliver(createSeekInfoEnvelope(txContext, seekInfo, orderer.getClientTLSCertificateDigest()));
 
                 if (deliver.length < 1) {
                     logger.warn(format("Genesis block for channel %s fetch bad deliver missing status block only got blocks:%d", name, deliver.length));
@@ -1565,6 +1565,7 @@ public class Channel implements Serializable {
             installProposalbuilder.chaincodeVersion(installProposalRequest.getChaincodeVersion());
             installProposalbuilder.setChaincodeSource(installProposalRequest.getChaincodeSourceLocation());
             installProposalbuilder.setChaincodeInputStream(installProposalRequest.getChaincodeInputStream());
+            installProposalbuilder.setChaincodeMetaInfLocation(installProposalRequest.getChaincodeMetaInfLocation());
 
             FabricProposal.Proposal deploymentProposal = installProposalbuilder.build();
             SignedProposal signedProposal = getSignedProposal(transactionContext, deploymentProposal);

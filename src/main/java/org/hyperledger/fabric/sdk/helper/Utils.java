@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -49,13 +50,15 @@ import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.SHA3Digest;
 import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.encoders.Hex;
-import org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException;
 
+import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.codec.binary.Hex.encodeHexString;
 
 public final class Utils {
     private static final Log logger = LogFactory.getLog(Utils.class);
+
+    private static final boolean TRACE_ENABED = logger.isTraceEnabled();
     private static final Config config = Config.getConfig();
     private static final int MAX_LOG_STRING_LENGTH = config.maxLogStringLength();
 
@@ -68,7 +71,7 @@ public final class Utils {
      * @return hash of path, func and args
      */
     public static String generateParameterHash(String path, String func, List<String> args) {
-        logger.debug(String.format("GenerateParameterHash : path=%s, func=%s, args=%s", path, func, args));
+        logger.debug(format("GenerateParameterHash : path=%s, func=%s, args=%s", path, func, args));
 
         // Append the arguments
         StringBuilder param = new StringBuilder(path);
@@ -100,7 +103,7 @@ public final class Utils {
 
         File dir = projectPath.toFile();
         if (!dir.exists() || !dir.isDirectory()) {
-            throw new IOException(String.format("The chaincode path \"%s\" is invalid", projectPath));
+            throw new IOException(format("The chaincode path \"%s\" is invalid", projectPath));
         }
 
         StringBuilder hashBuilder = new StringBuilder(hash);
@@ -115,13 +118,13 @@ public final class Utils {
                         hashBuilder.setLength(0);
                         hashBuilder.append(Hex.toHexString(hash(toHash, new SHA3Digest())));
                     } catch (IOException ex) {
-                        throw new RuntimeException(String.format("Error while reading file %s", file.getAbsolutePath()), ex);
+                        throw new RuntimeException(format("Error while reading file %s", file.getAbsolutePath()), ex);
                     }
                 });
 
         // If original hash and final hash are the same, it indicates that no new contents were found
         if (hashBuilder.toString().equals(hash)) {
-            throw new IOException(String.format("The chaincode directory \"%s\" has no files", projectPath));
+            throw new IOException(format("The chaincode directory \"%s\" has no files", projectPath));
         }
         return hashBuilder.toString();
     }
@@ -129,12 +132,17 @@ public final class Utils {
     /**
      * Compress the contents of given directory using Tar and Gzip to an in-memory byte array.
      *
-     * @param sourceDirectory the source directory.
-     * @param pathPrefix      a path to be prepended to every file name in the .tar.gz output, or {@code null} if no prefix is required.
+     * @param sourceDirectory  the source directory.
+     * @param pathPrefix       a path to be prepended to every file name in the .tar.gz output, or {@code null} if no prefix is required.
+     * @param chaincodeMetaInf
      * @return the compressed directory contents.
      * @throws IOException
      */
-    public static byte[] generateTarGz(File sourceDirectory, String pathPrefix) throws IOException {
+    public static byte[] generateTarGz(File sourceDirectory, String pathPrefix, File chaincodeMetaInf) throws IOException {
+        logger.trace(format("generateTarGz: sourceDirectory: %s, pathPrefix: %s, chaincodeMetaInf: %s",
+                sourceDirectory == null ? "null" : sourceDirectory.getAbsolutePath(), pathPrefix,
+                chaincodeMetaInf == null ? "null" : chaincodeMetaInf.getAbsolutePath()));
+
         ByteArrayOutputStream bos = new ByteArrayOutputStream(500000);
 
         String sourcePath = sourceDirectory.getAbsolutePath();
@@ -157,6 +165,10 @@ public final class Utils {
 
                 relativePath = FilenameUtils.separatorsToUnix(relativePath);
 
+                if (TRACE_ENABED) {
+                    logger.trace(format("generateTarGz: Adding '%s' entry from source '%s' to archive.", relativePath, childFile.getAbsolutePath()));
+                }
+
                 archiveEntry = new TarArchiveEntry(childFile, relativePath);
                 fileInputStream = new FileInputStream(childFile);
                 archiveOutputStream.putArchiveEntry(archiveEntry);
@@ -167,6 +179,35 @@ public final class Utils {
                     IOUtils.closeQuietly(fileInputStream);
                     archiveOutputStream.closeArchiveEntry();
                 }
+
+            }
+
+            if (null != chaincodeMetaInf) {
+                childrenFiles = org.apache.commons.io.FileUtils.listFiles(chaincodeMetaInf, null, true);
+
+                final URI metabase = chaincodeMetaInf.toURI();
+
+                for (File childFile : childrenFiles) {
+
+                    final String relativePath = Paths.get("META-INF", metabase.relativize(childFile.toURI()).getPath()).toString();
+
+                    if (TRACE_ENABED) {
+                        logger.trace(format("generateTarGz: Adding '%s' entry from source '%s' to archive.", relativePath, childFile.getAbsolutePath()));
+                    }
+
+                    archiveEntry = new TarArchiveEntry(childFile, relativePath);
+                    fileInputStream = new FileInputStream(childFile);
+                    archiveOutputStream.putArchiveEntry(archiveEntry);
+
+                    try {
+                        IOUtils.copy(fileInputStream, archiveOutputStream);
+                    } finally {
+                        IOUtils.closeQuietly(fileInputStream);
+                        archiveOutputStream.closeArchiveEntry();
+                    }
+
+                }
+
             }
         } finally {
             IOUtils.closeQuietly(archiveOutputStream);
@@ -286,7 +327,7 @@ public final class Utils {
 
             String protocol = props.getProperty("protocol");
             if (!"grpc".equals(protocol) && !"grpcs".equals(protocol)) {
-                throw new RuntimeException(String.format("Invalid protocol expected grpc or grpcs and found %s.", protocol));
+                throw new RuntimeException(format("Invalid protocol expected grpc or grpcs and found %s.", protocol));
             }
         } else {
             throw new RuntimeException("URL must be of the format protocol://host:port");
