@@ -59,6 +59,7 @@ import static org.junit.Assert.fail;
 public class UpdateChannelIT {
 
     private static final TestConfig testConfig = TestConfig.getConfig();
+    private static final String CONFIGTXLATOR_LOCATION = testConfig.getFabricConfigTxLaterLocation();
 
     private static final String ORIGINAL_BATCH_TIMEOUT = "\"timeout\": \"2s\""; // Batch time out in configtx.yaml
     private static final String UPDATED_BATCH_TIMEOUT = "\"timeout\": \"5s\"";  // What we want to change it to.
@@ -79,7 +80,6 @@ public class UpdateChannelIT {
 
         testSampleOrgs = testConfig.getIntegrationTestsSampleOrgs();
     }
-
 
     @Test
     public void setup() {
@@ -124,7 +124,7 @@ public class UpdateChannelIT {
             final byte[] channelConfigurationBytes = fooChannel.getChannelConfigurationBytes();
 
             HttpClient httpclient = HttpClients.createDefault();
-            HttpPost httppost = new HttpPost("http://localhost:7059/protolator/decode/common.Config");
+            HttpPost httppost = new HttpPost(CONFIGTXLATOR_LOCATION + "/protolator/decode/common.Config");
             httppost.setEntity(new ByteArrayEntity(channelConfigurationBytes));
 
             HttpResponse response = httpclient.execute(httppost);
@@ -144,7 +144,7 @@ public class UpdateChannelIT {
             //Now modify the batch timeout
             String updateString = responseAsString.replace(ORIGINAL_BATCH_TIMEOUT, UPDATED_BATCH_TIMEOUT);
 
-            httppost = new HttpPost("http://localhost:7059/protolator/encode/common.Config");
+            httppost = new HttpPost(CONFIGTXLATOR_LOCATION + "/protolator/encode/common.Config");
             httppost.setEntity(new StringEntity(updateString));
 
             response = httpclient.execute(httppost);
@@ -154,7 +154,7 @@ public class UpdateChannelIT {
             byte[] newConfigBytes = EntityUtils.toByteArray(response.getEntity());
 
             // Now send to configtxlator multipart form post with original config bytes, updated config bytes and channel name.
-            httppost = new HttpPost("http://localhost:7059/configtxlator/compute/update-from-configs");
+            httppost = new HttpPost(CONFIGTXLATOR_LOCATION + "/configtxlator/compute/update-from-configs");
 
             HttpEntity multipartEntity = MultipartEntityBuilder.create()
                     .setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
@@ -180,8 +180,8 @@ public class UpdateChannelIT {
 
             final String sampleOrgName = sampleOrg.getName();
             final SampleUser ordererAdmin = sampleStore.getMember(sampleOrgName + "OrderAdmin", sampleOrgName, "OrdererMSP",
-                    Util.findFileSk(Paths.get("src/test/fixture/sdkintegration/e2e-2Orgs/channel/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/keystore/").toFile()),
-                    Paths.get("src/test/fixture/sdkintegration/e2e-2Orgs/channel/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/signcerts/Admin@example.com-cert.pem").toFile());
+                    Util.findFileSk(Paths.get("src/test/fixture/sdkintegration/e2e-2Orgs/" + TestConfig.FAB_CONFIG_GEN_VERS + "/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/keystore/").toFile()),
+                    Paths.get("src/test/fixture/sdkintegration/e2e-2Orgs/" + TestConfig.FAB_CONFIG_GEN_VERS + "/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/signcerts/Admin@example.com-cert.pem").toFile());
 
             client.setUserContext(ordererAdmin);
 
@@ -195,7 +195,7 @@ public class UpdateChannelIT {
             final byte[] modChannelBytes = fooChannel.getChannelConfigurationBytes();
 
             //Now decode the new channel config bytes to json...
-            httppost = new HttpPost("http://localhost:7059/protolator/decode/common.Config");
+            httppost = new HttpPost(CONFIGTXLATOR_LOCATION + "/protolator/decode/common.Config");
             httppost.setEntity(new ByteArrayEntity(modChannelBytes));
 
             response = httpclient.execute(httppost);

@@ -241,14 +241,18 @@ In the directory src/test/fixture/sdkintegration/e2e-2Orgs/channel
 
   The command used to generate end2end `crypto-config` artifacts:</br>
 
-  ```build/bin/cryptogen generate --config crypto-config.yaml --output=crypto-config```
+  v1.0 ```build/bin/cryptogen generate --config crypto-config.yaml --output=crypto-config```
+
+   v1.1 ```cryptogen generate --config crypto-config.yaml --output=v1.1/crypto-config```
 
 For ease of assigning ports and mapping of artifacts to physical files, all peers, orderers, and fabric-ca are run as Docker containers controlled via a docker-compose configuration file.
 
 The files used by the end to end are:
- * _src/test/fixture/sdkintegration/e2e-2Orgs/channel_  (everything needed to bootstrap the orderer and create the channels)
- * _src/test/fixture/sdkintegration/e2e-2Orgs/crypto-config_ (as-is. Used by `configtxgen` and `docker-compose` to map the MSP directories)
+ * _src/test/fixture/sdkintegration/e2e-2Orgs/vX.0_  (everything needed to bootstrap the orderer and create the channels)
+ * _src/test/fixture/sdkintegration/e2e-2Orgs/vX.0crypto-config_ (as-is. Used by `configtxgen` and `docker-compose` to map the MSP directories)
  * _src/test/fixture/sdkintegration/docker-compose.yaml_
+
+
 
 
 The end to end test case artifacts are stored under the directory _src/test/fixture/sdkintegration/e2e-2Org/channel_ .
@@ -297,25 +301,31 @@ and one file in the _src/test/fixture/sdkintegration/e2e-2Orgs/channel_ director
  section to be true. The `signed-by` references an identity in the identities section.
 
 ### Channel creation artifacts
-Channel configuration files and orderer bootstrap files ( see directory _src/test/fixture/sdkintegration/e2e-2Orgs/channel_ ) are needed when creating a new channel.
-This is created with the Hyperledger Fabric `configtxgen` tool.
-
-For End2endIT.java the commands are
-
- * build/bin/configtxgen -outputCreateChannelTx foo.tx -profile TwoOrgsChannel -channelID foo
- * build/bin/configtxgen -outputCreateChannelTx bar.tx -profile TwoOrgsChannel -channelID bar
- * build/bin/configtxgen -outputBlock orderer.block -profile TwoOrgsOrdererGenesis
-
-with the configtxgen config file _src/test/fixture/sdkintegration/e2e-2Orgs/channel/configtx.yaml_
-
+Channel configuration files and orderer bootstrap files ( see directory _src/test/fixture/sdkintegration/e2e-2Orgs_ ) are needed when creating a new channel.
+This is created with the Hyperledger Fabric `configtxgen` tool.  This must be run after `cryptogen` and the directory you're
+running in **must** have a generated `crypto-config` directory.
 
 If `build/bin/configtxgen` tool is not present  run `make configtxgen`
 
-Before running the end to end test case:
- *  you may need to modify `configtx.yaml` to change all hostname and port definitions to match
-your server(s) hostname(s) and port(s).
- *  you **WILL** have to modify `configtx.yaml` to have the _MSPDir_ point to the correct path to the _crypto-config_ directories.
-   * `configtx.yaml` currently assumes that you are running in a Vagrant environment where the fabric, fabric-ca and fabric-sdk-java projects exist under the _/opt/gopath/src/github.com/hyperledger_ directory.
+For v1.0 integration test the commands are:
+
+ * build/bin/configtxgen -outputCreateChannelTx foo.tx -profile TwoOrgsChannel -channelID foo
+ * build/bin/configtxgen -outputCreateChannelTx bar.tx -profile TwoOrgsChannel -channelID bar
+
+For v1.1 integration the commands use the v11 profiles in configtx.yaml.
+  You need to for now copy the configtx.yaml in `e2e-20orgs` to the v1.1 directory and run from there:
+ * configtxgen -outputBlock orderer.block -profile TwoOrgsOrdererGenesis_v11
+ * configtxgen -outputCreateChannelTx bar.tx -profile TwoOrgsChannel_v11 -channelID bar
+ * configtxgen -outputCreateChannelTx foo.tx -profile TwoOrgsChannel_v11 -channelID foo
+
+ This should produce in the `v1.1` directory: bar.tx,foo.tx, orderer.block
+
+ **Note:** The above describes how this was done. If you redo this there are private key files
+ which are produced with uniqe names which won't match what's expected in the integration tests.
+ One examle of this is the docker-compose.yaml (search for **_sk**)
+
+
+
 
 ### GO Lang chaincode
 Go lang chaincode dependencies must be contained in vendor folder.

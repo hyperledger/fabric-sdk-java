@@ -17,6 +17,7 @@ package org.hyperledger.fabric.sdk;
 import java.io.File;
 
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
+import org.hyperledger.fabric.sdk.testutils.TestConfig;
 import org.hyperledger.fabric.sdkintegration.SampleStore;
 import org.hyperledger.fabric.sdkintegration.SampleUser;
 
@@ -55,8 +56,8 @@ public class TestHFClient {
 
         //SampleUser someTestUSER = sampleStore.getMember("someTestUSER", "someTestORG");
         SampleUser someTestUSER = sampleStore.getMember("someTestUSER", "someTestORG", "mspid",
-                findFileSk("src/test/fixture/sdkintegration/e2e-2Orgs/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore"),
-                new File("src/test/fixture/sdkintegration/e2e-2Orgs/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/Admin@org1.example.com-cert.pem"));
+                findFileSk("src/test/fixture/sdkintegration/e2e-2Orgs/" + TestConfig.FAB_CONFIG_GEN_VERS + "/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore"),
+                new File("src/test/fixture/sdkintegration/e2e-2Orgs/" + TestConfig.FAB_CONFIG_GEN_VERS + "/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/Admin@org1.example.com-cert.pem"));
         someTestUSER.setMspId("testMSPID?");
 
         hfclient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
@@ -88,7 +89,7 @@ public class TestHFClient {
             try {
                 tempFile.delete();
             } catch (Exception e) {
-               // // now harm done.
+                // // now harm done.
             }
         }
     }

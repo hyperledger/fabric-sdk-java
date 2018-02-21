@@ -106,7 +106,7 @@ public class NetworkConfigTest {
     @Test
     public void testLoadFromConfigFileYamlBasic() throws Exception {
 
-        File f = new File("src/test/fixture/sdkintegration/e2e-2Orgs/channel/network-config.yaml");
+        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.yaml");
         NetworkConfig config = NetworkConfig.fromYamlFile(f);
         Assert.assertNotNull(config);
     }
@@ -114,7 +114,7 @@ public class NetworkConfigTest {
     @Test
     public void testLoadFromConfigFileJsonBasic() throws Exception {
 
-        File f = new File("src/test/fixture/sdkintegration/e2e-2Orgs/channel/network-config.json");
+        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.json");
         NetworkConfig config = NetworkConfig.fromJsonFile(f);
         Assert.assertNotNull(config);
     }
@@ -123,7 +123,7 @@ public class NetworkConfigTest {
     public void testLoadFromConfigFileYaml() throws Exception {
 
         // Should be able to instantiate a new instance of "Client" with a valid path to the YAML configuration
-        File f = new File("src/test/fixture/sdkintegration/e2e-2Orgs/channel/network-config.yaml");
+        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.yaml");
         NetworkConfig config = NetworkConfig.fromYamlFile(f);
         //HFClient client = HFClient.loadFromConfig(f);
         Assert.assertNotNull(config);
@@ -140,7 +140,7 @@ public class NetworkConfigTest {
     public void testLoadFromConfigFileJson() throws Exception {
 
         // Should be able to instantiate a new instance of "Client" with a valid path to the JSON configuration
-        File f = new File("src/test/fixture/sdkintegration/e2e-2Orgs/channel/network-config.json");
+        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.json");
         NetworkConfig config = NetworkConfig.fromJsonFile(f);
         Assert.assertNotNull(config);
 

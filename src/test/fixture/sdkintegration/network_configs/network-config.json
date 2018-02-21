@@ -1,0 +1,118 @@
+{
+  "name": "global-trade-network",
+  "x-type": "hlfv1",
+  "description": "The network to be in if you want to stay in the global trade business",
+  "version": "1.0.0",
+  "client": {
+    "organization": "Org1",
+    "credentialStore": {
+      "path": "/tmp/hfc-kvs",
+      "cryptoStore": {
+        "path": "/tmp/hfc-cvs"
+      },
+      "wallet": "wallet-name"
+    }
+  },
+  "channels": {
+    "mychannel": {
+      "orderers": [
+        "orderer.example.com"
+      ],
+      "peers": {
+        "peer0.org1.example.com": {
+          "endorsingPeer": true,
+          "chaincodeQuery": true,
+          "ledgerQuery": true,
+          "eventSource": true
+        },
+        "peer0.org2.example.com": {
+          "endorsingPeer": true,
+          "chaincodeQuery": false,
+          "ledgerQuery": true,
+          "eventSource": false
+        }
+      },
+      "chaincodes": [
+        "example02:v1",
+        "marbles:1.0"
+      ]
+    }
+  },
+  "organizations": {
+    "Org1": {
+      "mspid": "Org1MSP",
+      "peers": [
+        "peer0.org1.example.com",
+        "peer1.org1.example.com"
+      ],
+      "certificateAuthorities": [
+        "ca-org1"
+      ],
+      "adminPrivateKey": {
+        "pem": "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQghnA7rdgbZi/wndusiXjyf0KgE6OKZjQ+5INjwelRAC6hRANCAASb3u+hY+U/FZvhYDN6d08HJ1v56UJUyz/n2NHyJgTg6kC05AaJMeGIinEF0JeJtRDNVQGzoQJQYjnzUTS9FvGh\n-----END PRIVATE KEY-----"
+      },
+      "signedCert": {
+        "path": "src/test/fixture/sdkintegration/e2e-2Orgs/v1.1/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/Admin@org1.example.com-cert.pem"
+      }
+    },
+    "Org2": {
+      "mspid": "Org2MSP",
+      "peers": [
+        "peer0.org2.example.com"
+      ]
+    }
+  },
+  "orderers": {
+    "orderer.example.com": {
+      "url": "grpcs://localhost:7050",
+      "grpcOptions": {
+        "ssl-target-name-override": "orderer.example.com",
+        "grpc-max-send-message-length": 15
+      },
+      "tlsCACerts": {
+        "pem": "-----BEGIN CERTIFICATE----- <etc>"
+      }
+    }
+  },
+  "peers": {
+    "peer0.org1.example.com": {
+      "url": "grpcs://localhost:7051",
+      "eventUrl": "grpcs://localhost:7053",
+      "grpcOptions": {
+        "ssl-target-name-override": "peer0.org1.example.com",
+        "grpc.http2.keepalive_time": 15
+      },
+      "tlsCACerts": {
+        "path": "src/test/fixture/sdkintegration/e2e-2Orgs/v1.1/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/server.crt"
+      }
+    },
+    "peer0.org2.example.com": {
+      "url": "grpcs://localhost:8051",
+      "eventUrl": "grpcs://localhost:8053",
+      "grpcOptions": {
+        "ssl-target-name-override": "peer0.org2.example.com"
+      },
+      "tlsCACerts": {
+        "path": "src/test/fixture/sdkintegration/e2e-2Orgs/v1.1/crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/server.crt"
+      }
+    }
+  },
+  "certificateAuthorities": {
+    "ca-org1": {
+      "url": "https://localhost:7054",
+      "httpOptions": {
+        "verify": true
+      },
+      "tlsCACerts": {
+        "path": "peerOrganizations/org1.example.com/ca/org1.example.com-cert.pem"
+      },
+      "registrar": [
+        {
+          "enrollId": "admin",
+          "enrollSecret": "adminpw"
+        }
+      ],
+      "caName": "caNameHere"
+    }
+  }
+}

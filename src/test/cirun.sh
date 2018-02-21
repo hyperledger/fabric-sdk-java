@@ -28,12 +28,18 @@ export ORG_HYPERLEDGER_FABRIC_SDK_CHANNEL_GENESISBLOCK_WAIT_TIME=180000
 ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION=${ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION:-}
 
 if [ "$ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION" == "1.0.0" ]; then
+# Limit the test run for V1.0
 export ORG_HYPERLEDGER_FABRIC_SDKTEST_ITSUITE="-Dorg.hyperledger.fabric.sdktest.ITSuite=IntegrationSuiteV1.java"
+#Options starting fabric-ca in docker-compose.yaml which are not supported on v1.0
 export V11_IDENTITIES_ALLOWREMOVE=""
 export V11_AFFILIATIONS_ALLOWREMOVE=""
+#set which images we pull for docker-compose.yaml when starting Fabric.
 export IMAGE_TAG_FABRIC=:x86_64-1.0.0
 export IMAGE_TAG_FABRIC_CA=:x86_64-1.0.0
+# set which Fabric  generated configuations is used.
+export FAB_CONFIG_GEN_VERS="v1.0"
 else
+#everythign just defaults for latest (v1.1)
 export ORG_HYPERLEDGER_FABRIC_SDKTEST_ITSUITE=""
 #unset to use what's in docker's .env file.
 unset IMAGE_TAG_FABRIC

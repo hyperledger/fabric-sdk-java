@@ -97,7 +97,6 @@ import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
-import org.hyperledger.fabric_ca.sdk.HFCAAffiliation.HFCAAffiliationResp;
 import org.hyperledger.fabric_ca.sdk.exception.AffiliationException;
 import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric_ca.sdk.exception.GenerateCRLException;
@@ -167,6 +166,8 @@ public class HFCAClient {
      * HFCA_ATTRIBUTE_HFGENCRL is an attribute that allows an identity to generate a CRL
      */
     public static final String HFCA_ATTRIBUTE_HFGENCRL = "hf.GenCRL";
+
+    private static final Config config = Config.getConfig();  // DO NOT REMOVE THIS IS NEEDED TO MAKE SURE WE FIRST LOAD CONFIG!!!
 
     private static final Log logger = LogFactory.getLog(HFCAClient.class);
 

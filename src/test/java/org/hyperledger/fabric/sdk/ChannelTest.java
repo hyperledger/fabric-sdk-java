@@ -812,7 +812,7 @@ public class ChannelTest {
     public void testProposalBuilderWithNoMetaInfDir() throws Exception {
 
         thrown.expect(java.lang.IllegalArgumentException.class);
-        thrown.expectMessage(matchesRegex("The META-INF directory does not exist in.*src/test/fixture/meta-infs/test1/META-INF"));
+        thrown.expectMessage(matchesRegex("The META-INF directory does not exist in.*src.test.fixture.meta-infs.test1.META-INF"));
 
         InstallProposalBuilder installProposalBuilder = InstallProposalBuilder.newBuilder();
 
@@ -835,7 +835,7 @@ public class ChannelTest {
     public void testProposalBuilderWithMetaInfExistsNOT() throws Exception {
 
         thrown.expect(java.lang.IllegalArgumentException.class);
-        thrown.expectMessage("Directory to find chaincode META-INF /tmp/fdsjfksfj/fjksfjskd/fjskfjdsk/should never exist does not exist");
+        thrown.expectMessage(matchesRegex("Directory to find chaincode META-INF.*tmp.fdsjfksfj.fjksfjskd.fjskfjdsk.should never exist does not exist"));
 
         InstallProposalBuilder installProposalBuilder = InstallProposalBuilder.newBuilder();
 
@@ -858,7 +858,7 @@ public class ChannelTest {
     public void testProposalBuilderWithMetaInfEmpty() throws Exception {
 
         thrown.expect(java.lang.IllegalArgumentException.class);
-        thrown.expectMessage(matchesRegex("The META-INF directory.*/src/test/fixture/meta-infs/emptyMetaInf/META-INF is empty."));
+        thrown.expectMessage(matchesRegex("The META-INF directory.*src.test.fixture.meta-infs.emptyMetaInf.META-INF is empty\\."));
 
         File emptyINF = new File("src/test/fixture/meta-infs/emptyMetaInf/META-INF"); // make it cause git won't check in empty directory
         if (!emptyINF.exists()) {

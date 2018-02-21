@@ -26,7 +26,7 @@ public class RegistrationRequestTest {
     private static final String regCAName = "CA";
     private static final String regID = "userid";
     private static final String regSecret = "secret";
-    private static final String regType = "user";
+    private static final String regType = HFCAClient.HFCA_TYPE_CLIENT;
 
     private static final int regMaxEnrollments = 5;
 
