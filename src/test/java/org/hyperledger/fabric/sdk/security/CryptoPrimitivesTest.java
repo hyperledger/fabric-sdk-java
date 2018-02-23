@@ -420,35 +420,6 @@ public class CryptoPrimitivesTest {
     }
 
     @Test
-    public void testLoadCACerts() {
-        try {
-            File certsFolder = new File("cacerts").getAbsoluteFile();
-            Collection<File> certFiles = FileUtils.listFiles(certsFolder, new String[] {"pem"}, false);
-            int numFiles = certFiles.size();
-            int numStore = crypto.getTrustStore().size();
-
-            BufferedInputStream bis;
-            ArrayList<byte[]> certBytesList = new ArrayList<>();
-            ArrayList<String> certIDs = new ArrayList<>();
-            byte[] certB;
-            for (File certFile : certFiles) {
-                certB = IOUtils.toByteArray(new FileInputStream(certFile));
-                certBytesList.add(certB);
-                bis = new BufferedInputStream(new ByteArrayInputStream(certB));
-                certIDs.add(Integer.toString(cf.generateCertificate(bis).hashCode()));
-            }
-            crypto.loadCACertificatesAsBytes(certBytesList);
-            assertEquals(crypto.getTrustStore().size(), numStore + numFiles);
-            for (String cID : certIDs) {
-                assertTrue(crypto.getTrustStore().containsAlias(cID));
-            }
-        } catch (KeyStoreException | CryptoException | IOException | CertificateException e) {
-            fail("testLoadCACerts should not have thrown exception. Error: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    @Test
     public void testValidateNullCertificateByteArray() {
         assertFalse(crypto.validateCertificate((byte[]) null));
     }
