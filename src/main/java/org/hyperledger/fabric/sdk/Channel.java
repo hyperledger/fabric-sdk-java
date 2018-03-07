@@ -114,6 +114,7 @@ import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 import org.hyperledger.fabric.sdk.transaction.UpgradeProposalBuilder;
 
 import static java.lang.String.format;
+import static org.hyperledger.fabric.sdk.Channel.TransactionOptions.createTransactionOptions;
 import static org.hyperledger.fabric.sdk.User.userContextCheck;
 import static org.hyperledger.fabric.sdk.helper.Utils.isNullOrEmpty;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createSeekInfoEnvelope;
@@ -865,25 +866,6 @@ public class Channel implements Serializable {
 
     }
 
-//    private Set<Anchor> traverseConfigGroupsAnchors(String name, ConfigGroup configGroup, Set<Anchor> anchorPeers) throws InvalidProtocolBufferException, InvalidArgumentException {
-//        ConfigValue anchorsConfig = configGroup.getValuesMap().get("AnchorPeers");
-//        if (anchorsConfig != null) {
-//            AnchorPeers anchors = AnchorPeers.parseFrom(anchorsConfig.getValue());
-//            for (AnchorPeer anchorPeer : anchors.getAnchorPeersList()) {
-//                String hostName = anchorPeer.getHost();
-//                int port = anchorPeer.getPort();
-//                logger.debug(format("parsed from config block: anchor peer %s:%d", hostName, port));
-//                anchorPeers.add(new Anchor(hostName, port));
-//            }
-//        }
-//
-//        for (Map.Entry<String, ConfigGroup> gm : configGroup.getGroupsMap().entrySet()) {
-//            traverseConfigGroupsAnchors(gm.getKey(), gm.getValue(), anchorPeers);
-//        }
-//
-//        return anchorPeers;
-//    }
-
     /**
      * Add an Event Hub to this channel.
      *
@@ -1215,8 +1197,6 @@ public class Channel implements Serializable {
             Map<String, MSP> newMSPS = traverseConfigGroupsMSP("", channelGroup, new HashMap<>(20));
 
             msps = Collections.unmodifiableMap(newMSPS);
-
-//            anchorPeers = Collections.unmodifiableSet(traverseConfigGroupsAnchors("", channelGroup, new HashSet<>()));
 
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
@@ -2839,6 +2819,252 @@ public class Channel implements Serializable {
         return sendTransaction(proposalResponses, orderers, client.getUserContext());
     }
 
+    public static class NOfEvents {
+
+        public NOfEvents setN(int n) {
+            if (n < 1) {
+
+                throw new IllegalArgumentException(format("N was %d but needs to be greater than 0.  ", n));
+
+            }
+            this.n = n;
+            return this;
+        }
+
+        boolean ready = false;
+        boolean started = false;
+
+        private long n = Long.MAX_VALUE; //all
+
+        private HashSet<EventHub> eventHubs = new HashSet<>();
+        private HashSet<Peer> peers = new HashSet<>();
+        private HashSet<NOfEvents> nOfEvents = new HashSet<>();
+
+        public NOfEvents addPeers(Peer... peers) {
+            if (peers == null || peers.length == 0) {
+                throw new IllegalArgumentException("Peers added must be not null or empty.");
+            }
+            this.peers.addAll(Arrays.asList(peers));
+
+            return this;
+
+        }
+
+        public NOfEvents addPeers(Collection<Peer> peers) {
+            addPeers(peers.toArray(new Peer[peers.size()]));
+            return this;
+        }
+
+        public NOfEvents addEventHubs(EventHub... eventHubs) {
+            if (eventHubs == null || eventHubs.length == 0) {
+                throw new IllegalArgumentException("EventHubs added must be not null or empty.");
+            }
+            this.eventHubs.addAll(Arrays.asList(eventHubs));
+
+            return this;
+
+        }
+
+        public NOfEvents addEventHubs(Collection<EventHub> eventHubs) {
+            addEventHubs(eventHubs.toArray(new EventHub[eventHubs.size()]));
+            return this;
+        }
+
+        public NOfEvents addNOfs(NOfEvents... nOfEvents) {
+            if (nOfEvents == null || nOfEvents.length == 0) {
+                throw new IllegalArgumentException("nofEvents added must be not null or empty.");
+            }
+
+            for (NOfEvents n : nOfEvents) {
+                if (nofNoEvents == n) {
+                    throw new IllegalArgumentException("nofNoEvents may not be added as an event.");
+                }
+                if (inHayStack(n)) {
+                    throw new IllegalArgumentException("nofEvents already was added..");
+                }
+                this.nOfEvents.add(new NOfEvents(n));
+            }
+
+            return this;
+        }
+
+        private boolean inHayStack(NOfEvents needle) {
+            if (this == needle) {
+                return true;
+            }
+            for (NOfEvents straw : nOfEvents) {
+                if (straw.inHayStack(needle)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public NOfEvents addNOfs(Collection<NOfEvents> nofs) {
+            addNOfs(nofs.toArray(new NOfEvents[nofs.size()]));
+            return this;
+        }
+
+        synchronized Collection<Peer> unSeenPeers() {
+
+            Set<Peer> unseen = new HashSet(16);
+            unseen.addAll(peers);
+            for (NOfEvents nOfEvents : nOfEvents) {
+                unseen.addAll(nofNoEvents.unSeenPeers());
+            }
+            return unseen;
+        }
+
+        synchronized Collection<EventHub> unSeenEventHubs() {
+
+            Set<EventHub> unseen = new HashSet(16);
+            unseen.addAll(eventHubs);
+            for (NOfEvents nOfEvents : nOfEvents) {
+                unseen.addAll(nofNoEvents.unSeenEventHubs());
+            }
+            return unseen;
+        }
+
+        synchronized boolean seen(EventHub eventHub) {
+            if (!started) {
+                started = true;
+                n = Long.min(eventHubs.size() + peers.size() + nOfEvents.size(), n);
+            }
+            if (!ready) {
+                if (eventHubs.remove(eventHub)) {
+
+                    if (--n == 0) {
+                        ready = true;
+                    }
+                }
+                if (!ready) {
+                    for (Iterator<NOfEvents> ni = nOfEvents.iterator(); ni.hasNext();
+                            ) { // for check style
+                        NOfEvents e = ni.next();
+                        if (e.seen(eventHub)) {
+                            ni.remove();
+
+                            if (--n == 0) {
+                                ready = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if (ready) {
+
+                eventHubs.clear();
+                peers.clear();
+                nOfEvents.clear();
+
+            }
+            return ready;
+        }
+
+        synchronized boolean seen(Peer peer) {
+            if (!started) {
+                started = true;
+                n = Long.min(eventHubs.size() + peers.size() + nOfEvents.size(), n);
+            }
+            if (!ready) {
+
+                if (peers.remove(peer)) {
+                    if (--n == 0) {
+                        ready = true;
+                    }
+                }
+                if (!ready) {
+
+                    for (Iterator<NOfEvents> ni = nOfEvents.iterator(); ni.hasNext();
+                            ) { // for check style
+                        NOfEvents e = ni.next();
+                        if (e.seen(peer)) {
+                            ni.remove();
+
+                            if (--n == 0) {
+                                ready = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if (ready) {
+
+                eventHubs.clear();
+                peers.clear();
+                nOfEvents.clear();
+            }
+            return ready;
+        }
+
+        NOfEvents(NOfEvents nof) { // Deep Copy.
+            if (nofNoEvents == nof) {
+                throw new IllegalArgumentException("nofNoEvents may not be copied.");
+            }
+            ready = false; // no use in one set to ready.
+            started = false;
+            this.n = nof.n;
+            this.peers = new HashSet<>(nof.peers);
+            this.eventHubs = new HashSet<>(nof.eventHubs);
+            for (NOfEvents nofc : nof.nOfEvents) {
+                this.nOfEvents.add(new NOfEvents(nofc));
+
+            }
+        }
+
+        private NOfEvents() {
+
+        }
+
+        public static NOfEvents createNofEvents() {
+            return new NOfEvents();
+        }
+
+        public static NOfEvents nofNoEvents = new NOfEvents() {
+            @Override
+            public NOfEvents addNOfs(NOfEvents... nOfEvents) {
+                throw new IllegalArgumentException("Can not add any events.");
+            }
+
+            @Override
+            public NOfEvents addEventHubs(EventHub... eventHub) {
+                throw new IllegalArgumentException("Can not add any events.");
+            }
+
+            @Override
+            public NOfEvents addPeers(Peer... peers) {
+                throw new IllegalArgumentException("Can not add any events.");
+            }
+
+            @Override
+            public NOfEvents setN(int n) {
+                throw new IllegalArgumentException("Can not set N");
+            }
+
+            @Override
+            public NOfEvents addEventHubs(Collection<EventHub> eventHubs) {
+                throw new IllegalArgumentException("Can not add any events.");
+            }
+
+            @Override
+            public NOfEvents addPeers(Collection<Peer> peers) {
+                throw new IllegalArgumentException("Can not add any events.");
+            }
+        };
+
+        static {
+            nofNoEvents.ready = true;
+        }
+
+        public static NOfEvents createNoEvents() {
+            return nofNoEvents;
+
+        }
+
+    }
+
     /**
      * Send transaction to one of a specified set of orderers with the specified user context.
      * IF there are no event hubs or eventing peers this future returns immediately completed
@@ -2850,22 +3076,128 @@ public class Channel implements Serializable {
      */
 
     public CompletableFuture<TransactionEvent> sendTransaction(Collection<ProposalResponse> proposalResponses, Collection<Orderer> orderers, User userContext) {
+        return sendTransaction(proposalResponses, createTransactionOptions().orderers(orderers).userContext(userContext));
+    }
+
+    public static class TransactionOptions {
+        List<Orderer> orderers;
+        boolean shuffleOrders = true;
+        NOfEvents nOfEvents;
+        User userContext;
+        boolean failFast = true;
+
+        /**
+         * Fail fast when there is an invalid transaction received on the eventhub or eventing peer being observed.
+         * The default value is true.
+         *
+         * @param failFast fail fast.
+         * @return This TransactionOptions
+         */
+        public TransactionOptions failFast(boolean failFast) {
+            this.failFast = failFast;
+            return this;
+        }
+
+        /**
+         * The user context that is to be used. The default is the user context on the client.
+         *
+         * @param userContext
+         * @return This TransactionOptions
+         */
+        public TransactionOptions userContext(User userContext) {
+            this.userContext = userContext;
+            return this;
+        }
+
+        /**
+         * The orders to try on this transaction. Each order is tried in turn for a successful submission.
+         * The default is try all orderers on the chain.
+         *
+         * @param orderers the orderers to try.
+         * @return This TransactionOptions
+         */
+        public TransactionOptions orderers(Orderer... orderers) {
+            this.orderers = new ArrayList(Arrays.asList(orderers)); //convert make sure we have a copy.
+            return this;
+        }
+
+        /**
+         * Shuffle the order the Orderers are tried. The default is true.
+         *
+         * @param shuffleOrders
+         * @return This TransactionOptions
+         */
+        public TransactionOptions shuffleOrders(boolean shuffleOrders) {
+            this.shuffleOrders = shuffleOrders;
+            return this;
+        }
+
+        /**
+         * Events reporting Eventing Peers and EventHubs to complete the transaction.
+         * This maybe set to NOfEvents.nofNoEvents that will complete the future as soon as a successful submission
+         * to an Orderer, but the completed Transaction event in that case will be null.
+         *
+         * @param nOfEvents
+         * @return This TransactionOptions
+         */
+        public TransactionOptions nOfEvents(NOfEvents nOfEvents) {
+            this.nOfEvents = nOfEvents == NOfEvents.nofNoEvents ? nOfEvents : new NOfEvents(nOfEvents);
+            return this;
+        }
+
+        /**
+         * Create transaction options.
+         *
+         * @return return transaction options.
+         */
+        public static TransactionOptions createTransactionOptions() {
+            return new TransactionOptions();
+        }
+
+        /**
+         * The orders to try on this transaction. Each order is tried in turn for a successful submission.
+         * The default is try all orderers on the chain.
+         *
+         * @param orderers the orderers to try.
+         * @return This TransactionOptions
+         */
+        public TransactionOptions orderers(Collection<Orderer> orderers) {
+            return orderers(orderers.toArray(new Orderer[orderers.size()]));
+        }
+    }
+
+    /**
+     * Send transaction to one of a specified set of orderers with the specified user context.
+     * IF there are no event hubs or eventing peers this future returns immediately completed
+     * indicating that orderer has accepted the transaction only.
+     *
+     * @param proposalResponses
+     * @param transactionOptions
+     * @return Future allowing access to the result of the transaction invocation.
+     */
+
+    public CompletableFuture<TransactionEvent> sendTransaction(Collection<ProposalResponse> proposalResponses,
+                                                               TransactionOptions transactionOptions) {
         try {
+
+            if (null == transactionOptions) {
+                throw new InvalidArgumentException("Parameter transactionOptions can't be null");
+            }
             checkChannelState();
+            User userContext = transactionOptions.userContext != null ? transactionOptions.userContext : client.getUserContext();
             userContextCheck(userContext);
             if (null == proposalResponses) {
                 throw new InvalidArgumentException("sendTransaction proposalResponses was null");
             }
 
-            if (null == orderers) {
-                throw new InvalidArgumentException("sendTransaction Orderers is null");
-            }
+            List<Orderer> orderers = transactionOptions.orderers != null ? transactionOptions.orderers :
+                    new ArrayList<>(getOrderers());
 
-            final ArrayList<Orderer> shuffeledOrderers = new ArrayList<>(orderers);
-            Collections.shuffle(shuffeledOrderers);
+            // make certain we have our own copy
+            final List<Orderer> shuffeledOrderers = new ArrayList<>(orderers);
 
-            if (shuffeledOrderers.isEmpty()) {
-                throw new InvalidArgumentException("sendTransaction Orderers to send to is empty.");
+            if (transactionOptions.shuffleOrders) {
+                Collections.shuffle(shuffeledOrderers);
             }
 
             if (config.getProposalConsistencyValidation()) {
@@ -2906,14 +3238,63 @@ public class Channel implements Serializable {
 
             Envelope transactionEnvelope = createTransactionEnvelope(transactionPayload, userContext);
 
+            NOfEvents nOfEvents = transactionOptions.nOfEvents;
+
+            if (nOfEvents == null) {
+                nOfEvents = NOfEvents.createNofEvents();
+                Collection<Peer> eventingPeers = getEventingPeers();
+                boolean anyAdded = false;
+                if (!eventingPeers.isEmpty()) {
+                    anyAdded = true;
+                    nOfEvents.addPeers(eventingPeers);
+                }
+                Collection<EventHub> eventHubs = getEventHubs();
+                if (!eventHubs.isEmpty()) {
+                    anyAdded = true;
+                    nOfEvents.addEventHubs(getEventHubs());
+                }
+
+                if (!anyAdded) {
+                    nOfEvents = NOfEvents.createNoEvents();
+                }
+
+            } else if (nOfEvents != NOfEvents.nofNoEvents) {
+                StringBuilder issues = new StringBuilder(100);
+                Collection<Peer> eventingPeers = getEventingPeers();
+                nOfEvents.unSeenPeers().forEach(peer -> {
+                    if (peer.getChannel() != this) {
+                        issues.append(format("Peer %s added to NOFEvents does not belong this channel. ", peer.getName()));
+
+                    } else if (!eventingPeers.contains(peer)) {
+                        issues.append(format("Peer %s added to NOFEvents is not a eventing Peer in this channel. ", peer.getName()));
+                    }
+
+                });
+                nOfEvents.unSeenEventHubs().forEach(eventHub -> {
+                    if (!eventHubs.contains(eventHub)) {
+                        issues.append(format("Eventhub %s added to NOFEvents does not belong this channel. ", eventHub.getName()));
+                    }
+
+                });
+
+                if (nOfEvents.unSeenEventHubs().isEmpty() && nOfEvents.unSeenPeers().isEmpty()) {
+                    issues.append("NofEvents had no Eventhubs added or Peer eventing services.");
+                }
+                String foundIssues = issues.toString();
+                if (!foundIssues.isEmpty()) {
+                    throw new InvalidArgumentException(foundIssues);
+                }
+            }
+
+            final boolean replyonly = nOfEvents == NOfEvents.nofNoEvents || (getEventHubs().isEmpty() && getEventingPeers().isEmpty());
+
             CompletableFuture<TransactionEvent> sret;
-            if (getEventHubs().isEmpty() && getEventingPeers().isEmpty()) { //If there are no eventhubs to complete the future, complete it
+            if (replyonly) { //If there are no eventhubs to complete the future, complete it
                 // immediately but give no transaction event
                 logger.debug(format("Completing transaction id %s immediately no event hubs or peer eventing services found in channel %s.", proposalTransactionID, name));
                 sret = new CompletableFuture<>();
-                sret.complete(null);
             } else {
-                sret = registerTxListener(proposalTransactionID);
+                sret = registerTxListener(proposalTransactionID, nOfEvents, transactionOptions.failFast);
             }
 
             logger.debug(format("Channel %s sending transaction to orderer(s) with TxID %s ", name, proposalTransactionID));
@@ -2961,6 +3342,9 @@ public class Channel implements Serializable {
             if (success) {
                 logger.debug(format("Channel %s successful sent to Orderer transaction id: %s",
                         name, proposalTransactionID));
+                if (replyonly) {
+                    sret.complete(null); // just say we're done.
+                }
                 return sret;
             } else {
 
@@ -3268,14 +3652,15 @@ public class Channel implements Serializable {
      * Register a transactionId that to get notification on when the event is seen in the block chain.
      *
      * @param txid
+     * @param nOfEvents
      * @return
      */
 
-    private CompletableFuture<TransactionEvent> registerTxListener(String txid) {
+    private CompletableFuture<TransactionEvent> registerTxListener(String txid, NOfEvents nOfEvents, boolean failFast) {
 
         CompletableFuture<TransactionEvent> future = new CompletableFuture<>();
 
-        new TL(txid, future);
+        new TL(txid, future, nOfEvents, failFast);
 
         return future;
 
@@ -3943,15 +4328,19 @@ public class Channel implements Serializable {
         final long createTime = System.currentTimeMillis();
         final AtomicBoolean fired = new AtomicBoolean(false);
         final CompletableFuture<TransactionEvent> future;
-        final Set<EventHub> unSeenEventHubs = Collections.synchronizedSet(new HashSet<>());
-        final Set<Peer> unSeenPeers = Collections.synchronizedSet(new HashSet<>());
+        final boolean failFast;
+        final Set<Peer> peers;
+        final Set<EventHub> eventHubs;
+        private final NOfEvents nOfEvents;
         long sweepTime = System.currentTimeMillis() + (long) (DELTA_SWEEP * 1.5);
 
-        TL(String txID, CompletableFuture<BlockEvent.TransactionEvent> future) {
+        TL(String txID, CompletableFuture<TransactionEvent> future, NOfEvents nOfEvents, boolean failFast) {
             this.txID = txID;
             this.future = future;
-            unSeenPeers.addAll(getEventingPeers());
-            unSeenEventHubs.addAll(eventHubs);
+            this.nOfEvents = new NOfEvents(nOfEvents);
+            peers = new HashSet<>(nOfEvents.unSeenPeers());
+            eventHubs = new HashSet<>(nOfEvents.unSeenEventHubs());
+            this.failFast = failFast;
             addListener();
         }
 
@@ -3964,21 +4353,33 @@ public class Channel implements Serializable {
         boolean eventReceived(TransactionEvent transactionEvent) {
             sweepTime = System.currentTimeMillis() + DELTA_SWEEP; //seen activity keep it active.
 
-            Peer peer = transactionEvent.getPeer();
+            final Peer peer = transactionEvent.getPeer();
+            final EventHub eventHub = transactionEvent.getEventHub();
+
+            if (peer != null && !peers.contains(peer)) {
+                return false;
+            }
+            if (eventHub != null && !eventHubs.contains(eventHub)) {
+                return false;
+            }
+
+            if (failFast && !transactionEvent.isValid()) {
+                return true;
+            }
+
             if (peer != null) {
-                unSeenPeers.remove(peer);
+                nOfEvents.seen(peer);
                 logger.debug(format("Channel %s seen transaction event %s for peer %s", name, txID, peer.getName()));
-            } else if (null != transactionEvent.getEventHub()) {
-                EventHub eventHub = transactionEvent.getEventHub();
+            } else if (null != eventHub) {
                 logger.debug(format("Channel %s seen transaction event %s for eventHub %s", name, txID, eventHub.toString()));
-                unSeenEventHubs.remove(eventHub);
+                nOfEvents.seen(eventHub);
             } else {
                 logger.error(format("Channel %s seen transaction event %s with no associated peer or eventhub", name, txID));
             }
 
             boolean isEmpty;
             synchronized (this) {
-                isEmpty = unSeenEventHubs.isEmpty() && unSeenPeers.isEmpty();
+                isEmpty = nOfEvents.ready;
             }
             return isEmpty;
         }
@@ -4000,7 +4401,7 @@ public class Channel implements Serializable {
                 StringBuilder sb = new StringBuilder(10000);
                 sb.append("Non reporting event hubs:");
                 String sep = "";
-                for (EventHub eh : unSeenEventHubs) {
+                for (EventHub eh : nOfEvents.unSeenEventHubs()) {
                     sb.append(sep).append(eh.getName());
                     sep = ",";
 
@@ -4010,7 +4411,7 @@ public class Channel implements Serializable {
 
                 }
                 sep = "Non reporting peers: ";
-                for (Peer peer : unSeenPeers) {
+                for (Peer peer : nOfEvents.unSeenPeers()) {
                     sb.append(sep).append(peer.getName());
                     sep = ",";
                 }

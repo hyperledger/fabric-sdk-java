@@ -75,7 +75,9 @@ import org.junit.Test;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.BlockInfo.EnvelopeType.TRANSACTION_ENVELOPE;
+import static org.hyperledger.fabric.sdk.Channel.NOfEvents.createNofEvents;
 import static org.hyperledger.fabric.sdk.Channel.PeerOptions.createPeerOptions;
+import static org.hyperledger.fabric.sdk.Channel.TransactionOptions.createTransactionOptions;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -511,7 +513,25 @@ public class End2endIT {
             ///////////////
             /// Send instantiate transaction to orderer
             out("Sending instantiateTransaction to orderer with a and b set to 100 and %s respectively", "" + (200 + delta));
-            channel.sendTransaction(successful, orderers).thenApply(transactionEvent -> {
+
+            //Specify what events should complete the interest in this transaction. This is the default
+            // for all to complete. It's possible to specify many different combinations like
+            //any from a group, all from one group and just one from another or even None(NOfEvents.createNoEvents).
+            // See. Channel.NOfEvents
+            Channel.NOfEvents nOfEvents = createNofEvents();
+            if (!channel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).isEmpty()) {
+                nOfEvents.addPeers(channel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)));
+            }
+            if (!channel.getEventHubs().isEmpty()) {
+                nOfEvents.addEventHubs(channel.getEventHubs());
+            }
+
+            channel.sendTransaction(successful, createTransactionOptions() //Basically the default options but shows it's usage.
+                    .userContext(client.getUserContext()) //could be a different user context. this is the default.
+                    .shuffleOrders(false) // don't shuffle any orderers the default is true.
+                    .orderers(channel.getOrderers()) // specify the orderers we want to try this transaction. Fails once all Orderers are tried.
+                    .nOfEvents(nOfEvents) // The events to signal the completion of the interest in the transaction
+            ).thenApply(transactionEvent -> {
 
                 waitOnFabric(0);
 
@@ -578,7 +598,7 @@ public class End2endIT {
                     }
                     out("Successfully received transaction proposal responses.");
 
-                    ProposalResponse resp = transactionPropResp.iterator().next();
+                    ProposalResponse resp = successful.iterator().next();
                     byte[] x = resp.getChaincodeActionResponsePayload(); // This is the data returned by the chaincode.
                     String resultAsString = null;
                     if (x != null) {

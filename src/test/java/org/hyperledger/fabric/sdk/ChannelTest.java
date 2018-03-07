@@ -35,6 +35,7 @@ import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.sdk.Channel.NOfEvents;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.PeerException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
@@ -57,6 +58,7 @@ import static org.hyperledger.fabric.sdk.testutils.TestUtils.matchesRegex;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.setField;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.tarBytesToEntryArrayList;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 //CHECKSTYLE.ON: IllegalImport
 
@@ -858,6 +860,66 @@ public class ChannelTest {
         installProposalBuilder.context(transactionContext);
 
         installProposalBuilder.build(); // Build it get the proposal. Then unpack it to see if it's what we epect.
+    }
+
+    @Test
+    public void testNOf() throws Exception {
+
+        Peer peer1Org1 = new Peer("peer1Org1", "grpc://localhost:9", null);
+        Peer peer1Org12nd = new Peer("org12nd", "grpc://localhost:9", null);
+        Peer peer2Org2 = new Peer("peer2Org2", "grpc://localhost:9", null);
+        Peer peer2Org22nd = new Peer("peer2Org22nd", "grpc://localhost:9", null);
+
+        //One from each set.
+        NOfEvents nOfEvents = NOfEvents.createNofEvents().addNOfs(NOfEvents.createNofEvents().setN(1).addPeers(peer1Org1, peer1Org12nd),
+                NOfEvents.createNofEvents().setN(1).addPeers(peer2Org2, peer2Org22nd)
+        );
+
+        NOfEvents nOfEvents1 = new NOfEvents(nOfEvents);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer1Org1);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer1Org12nd);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer2Org22nd);
+        assertTrue(nOfEvents1.ready);
+        assertFalse(nOfEvents.ready);
+
+        nOfEvents = NOfEvents.createNofEvents().addNOfs(NOfEvents.createNofEvents().addPeers(peer1Org1, peer1Org12nd),
+                NOfEvents.createNofEvents().addPeers(peer2Org2, peer2Org22nd)
+        );
+        nOfEvents1 = new NOfEvents(nOfEvents);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer1Org1);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer2Org2);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer1Org12nd);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer2Org22nd);
+        assertTrue(nOfEvents1.ready);
+        assertFalse(nOfEvents.ready);
+
+        EventHub peer2Org2eh = new EventHub("peer2Org2", "grpc://localhost:9", null, null);
+        EventHub peer2Org22ndeh = new EventHub("peer2Org22nd", "grpc://localhost:9", null, null);
+
+        nOfEvents = NOfEvents.createNofEvents().setN(1).addNOfs(NOfEvents.createNofEvents().addPeers(peer1Org1, peer1Org12nd),
+                NOfEvents.createNofEvents().addEventHubs(peer2Org2eh, peer2Org22ndeh)
+        );
+
+        nOfEvents1 = new NOfEvents(nOfEvents);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer1Org1);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer2Org2eh);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer2Org22ndeh);
+        assertTrue(nOfEvents1.ready);
+        assertFalse(nOfEvents.ready);
+
+        nOfEvents = NOfEvents.createNoEvents();
+        assertTrue(nOfEvents.ready);
+
     }
 
     @Test
