@@ -52,6 +52,7 @@ public class Config {
     public static final String ORDERER_RETRY_WAIT_TIME = "org.hyperledger.fabric.sdk.orderer_retry.wait_time";
     public static final String ORDERER_WAIT_TIME = "org.hyperledger.fabric.sdk.orderer.ordererWaitTimeMilliSecs";
     public static final String PEER_EVENT_REGISTRATION_WAIT_TIME = "org.hyperledger.fabric.sdk.peer.eventRegistration.wait_time";
+    public static final String PEER_EVENT_RETRY_WAIT_TIME = "org.hyperledger.fabric.sdk.peer.retry_wait_time";
     public static final String EVENTHUB_CONNECTION_WAIT_TIME = "org.hyperledger.fabric.sdk.eventhub_connection.wait_time";
     public static final String GENESISBLOCK_WAIT_TIME = "org.hyperledger.fabric.sdk.channel.genesisblock_wait_time";
     /**
@@ -107,6 +108,7 @@ public class Config {
             defaultProperty(ORDERER_RETRY_WAIT_TIME, "200");
             defaultProperty(ORDERER_WAIT_TIME, "10000");
             defaultProperty(PEER_EVENT_REGISTRATION_WAIT_TIME, "5000");
+            defaultProperty(PEER_EVENT_RETRY_WAIT_TIME, "500");
             defaultProperty(EVENTHUB_CONNECTION_WAIT_TIME, "1000");
             defaultProperty(GENESISBLOCK_WAIT_TIME, "5000");
             /**
@@ -357,6 +359,15 @@ public class Config {
      */
     public long getPeerEventRegistrationWaitTime() {
         return Long.parseLong(getProperty(PEER_EVENT_REGISTRATION_WAIT_TIME));
+    }
+
+    /**
+     * getPeerEventRegistrationWaitTime
+     *
+     * @return time in milliseconds to wait for peer eventing service to wait for event registration
+     */
+    public  long getPeerRetryWaitTime() {
+        return Long.parseLong(getProperty(PEER_EVENT_RETRY_WAIT_TIME));
     }
 
     public long getEventHubConnectionWaitTime() {

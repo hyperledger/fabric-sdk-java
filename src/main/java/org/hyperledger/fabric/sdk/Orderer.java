@@ -205,4 +205,9 @@ public class Orderer implements Serializable {
         shutdown(true);
         super.finalize();
     }
+
+    @Override
+    public String toString() {
+        return "Orderer: " + name + "(" + url + ")";
+    }
 } // end Orderer

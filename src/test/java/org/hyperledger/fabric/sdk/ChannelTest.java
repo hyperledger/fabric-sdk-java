@@ -22,6 +22,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.concurrent.CompletableFuture;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -55,6 +56,7 @@ import static org.hyperledger.fabric.sdk.testutils.TestUtils.getMockUser;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.matchesRegex;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.setField;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.tarBytesToEntryArrayList;
+import static org.junit.Assert.assertFalse;
 
 //CHECKSTYLE.ON: IllegalImport
 
@@ -77,6 +79,7 @@ public class ChannelTest {
             hfclient = TestHFClient.newInstance();
 
             shutdownChannel = new Channel("shutdown", hfclient);
+            shutdownChannel.addOrderer(hfclient.newOrderer("shutdow_orderer", "grpc://localhost:99"));
 
             setField(shutdownChannel, "shutdown", true);
 
@@ -261,7 +264,7 @@ public class ChannelTest {
         final Peer peer = hfclient.newPeer("peer_", "grpc://localhost:7051");
 
         testChannel.addPeer(peer, createPeerOptions().setPeerRoles(Peer.PeerRole.NO_EVENT_SOURCE));
-        Assert.assertFalse(testChannel.isInitialized());
+        assertFalse(testChannel.isInitialized());
         testChannel.initialize();
         Assert.assertTrue(testChannel.isInitialized());
 
@@ -398,7 +401,7 @@ public class ChannelTest {
         thrown.expectMessage("Peer value is null.");
 
         final Channel channel = createRunningChannel(null);
-        channel.queryBlockByHash(null, "rick".getBytes());
+        channel.queryBlockByHash((Peer) null, "rick".getBytes());
     }
 
     @Test
@@ -501,6 +504,7 @@ public class ChannelTest {
         if (peers == null) {
             Peer peer = hfclient.newPeer("peer1", "grpc://localhost:22");
             channel.addPeer(peer);
+            channel.addOrderer(hfclient.newOrderer("order1", "grpc://localhost:22"));
         } else {
             for (Peer peer : peers) {
                 channel.addPeer(peer);
@@ -539,6 +543,8 @@ public class ChannelTest {
         thrown.expectMessage("Channel channel does not have any orderers associated with it.");
 
         final Channel channel = createRunningChannel(null);
+
+        setField(channel, "orderers", new LinkedList<>());
 
         //Peer joining channel were no orderer is there .. not likely.
 
