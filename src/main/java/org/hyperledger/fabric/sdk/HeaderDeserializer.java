@@ -18,7 +18,11 @@ package org.hyperledger.fabric.sdk;
 
 import java.lang.ref.WeakReference;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.common.Common.Header;
+import org.hyperledger.fabric.protos.msp.Identities;
+import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
 
 class HeaderDeserializer {
 
@@ -53,4 +57,25 @@ class HeaderDeserializer {
 
     }
 
+    Identities.SerializedIdentity getCreator() {
+
+        try {
+            Common.SignatureHeader signatureHeader1 = Common.SignatureHeader.parseFrom(header.getSignatureHeader());
+            return Identities.SerializedIdentity.parseFrom(signatureHeader1.getCreator());
+        } catch (InvalidProtocolBufferException e) {
+            throw new InvalidProtocolBufferRuntimeException(e);
+        }
+
+    }
+
+    byte[] getNonce() {
+
+        try {
+            Common.SignatureHeader signatureHeader1 = Common.SignatureHeader.parseFrom(header.getSignatureHeader());
+            return signatureHeader1.getNonce().toByteArray();
+        } catch (InvalidProtocolBufferException e) {
+            throw new InvalidProtocolBufferRuntimeException(e);
+        }
+
+    }
 }

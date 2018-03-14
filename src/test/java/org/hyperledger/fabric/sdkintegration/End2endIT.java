@@ -516,9 +516,14 @@ public class End2endIT {
                 waitOnFabric(0);
 
                 assertTrue(transactionEvent.isValid()); // must be valid to be here.
+                assertNotNull(transactionEvent.getSignature()); //musth have a signature.
+                BlockEvent blockEvent = transactionEvent.getBlockEvent(); // This is the blockevent that has this transaction.
+                assertNotNull(blockEvent.getBlock()); // Make sure the RAW Fabric block is returned.
+
                 out("Finished instantiate transaction with transaction id %s", transactionEvent.getTransactionID());
 
                 try {
+                    assertEquals(blockEvent.getChannelId(), channel.getName());
                     successful.clear();
                     failed.clear();
 
@@ -900,6 +905,8 @@ public class End2endIT {
                     out("  Transaction number %d has epoch: %d", i, envelopeInfo.getEpoch());
                     out("  Transaction number %d has transaction timestamp: %tB %<te,  %<tY  %<tT %<Tp", i, envelopeInfo.getTimestamp());
                     out("  Transaction number %d has type id: %s", i, "" + envelopeInfo.getType());
+                    out("  Transaction number %d has nonce : %s", i, "" + Hex.encodeHexString(envelopeInfo.getNonce()));
+                    out("  Transaction number %d has submitter mspid: %s,  certificate: %s", i, envelopeInfo.getCreator().getMspid(), envelopeInfo.getCreator().getId());
 
                     if (envelopeInfo.getType() == TRANSACTION_ENVELOPE) {
                         BlockInfo.TransactionEnvelopeInfo transactionEnvelopeInfo = (BlockInfo.TransactionEnvelopeInfo) envelopeInfo;
@@ -924,7 +931,7 @@ public class End2endIT {
                             for (int n = 0; n < transactionActionInfo.getEndorsementsCount(); ++n) {
                                 BlockInfo.EndorserInfo endorserInfo = transactionActionInfo.getEndorsementInfo(n);
                                 out("Endorser %d signature: %s", n, Hex.encodeHexString(endorserInfo.getSignature()));
-                                out("Endorser %d endorser: %s", n, new String(endorserInfo.getEndorser(), "UTF-8"));
+                                out("Endorser %d endorser: mspid %s \n certificate %s", n, endorserInfo.getMspid(), endorserInfo.getId());
                             }
                             out("   Transaction action %d has %d chaincode input arguments", j, transactionActionInfo.getChaincodeInputArgsCount());
                             for (int z = 0; z < transactionActionInfo.getChaincodeInputArgsCount(); ++z) {
