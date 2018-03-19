@@ -55,6 +55,7 @@ public class EventHub implements Serializable {
     private static final Log logger = LogFactory.getLog(EventHub.class);
     private static final Config config = Config.getConfig();
     private static final long EVENTHUB_CONNECTION_WAIT_TIME = config.getEventHubConnectionWaitTime();
+    private static final long EVENTHUB_RECONNECTION_WARNING_RATE = config.getEventHubReconnectionWarningRate();
 
     private final transient ExecutorService executorService;
 
@@ -247,7 +248,7 @@ public class EventHub implements Serializable {
                 final boolean isTerminated = lmanagedChannel == null ? true : lmanagedChannel.isTerminated();
                 final boolean isChannelShutdown = lmanagedChannel == null ? true : lmanagedChannel.isShutdown();
 
-                if (reconnectCount % 50 == 1) {
+                if (EVENTHUB_RECONNECTION_WARNING_RATE > 1 && reconnectCount % EVENTHUB_RECONNECTION_WARNING_RATE == 1) {
                     logger.warn(format("%s terminated is %b shutdown is %b, retry count %d  has error %s.", EventHub.this.toString(), isTerminated, isChannelShutdown,
                             reconnectCount, t.getMessage()));
                 } else {
@@ -261,7 +262,7 @@ public class EventHub implements Serializable {
                 if (t instanceof StatusRuntimeException) {
                     StatusRuntimeException sre = (StatusRuntimeException) t;
                     Status sreStatus = sre.getStatus();
-                    if (reconnectCount % 50 == 1) {
+                    if (EVENTHUB_RECONNECTION_WARNING_RATE > 1 && reconnectCount % EVENTHUB_RECONNECTION_WARNING_RATE == 1) {
                         logger.warn(format("%s :StatusRuntimeException Status %s.  Description %s ", EventHub.this, sreStatus + "", sreStatus.getDescription()));
                     } else {
                         logger.trace(format("%s :StatusRuntimeException Status %s.  Description %s ", EventHub.this, sreStatus + "", sreStatus.getDescription()));
