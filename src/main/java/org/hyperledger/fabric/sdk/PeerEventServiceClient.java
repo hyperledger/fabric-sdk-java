@@ -51,6 +51,7 @@ import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createSeekInfoEn
 class PeerEventServiceClient {
     private static final Config config = Config.getConfig();
     private static final long PEER_EVENT_REGISTRATION_WAIT_TIME = config.getPeerEventRegistrationWaitTime();
+    private static final long PEER_EVENT_RECONNECTION_WARNING_RATE = config.getPeerEventReconnectionWarningRate();
     private static final Log logger = LogFactory.getLog(PeerEventServiceClient.class);
     private final String channelName;
     private final ManagedChannelBuilder channelBuilder;
@@ -257,7 +258,7 @@ class PeerEventServiceClient {
                     }
                     if (!shutdown) {
                         final long reconnectCount = peer.getReconnectCount();
-                        if (reconnectCount % 50 == 1) {
+                        if (PEER_EVENT_RECONNECTION_WARNING_RATE > 1 && reconnectCount % PEER_EVENT_RECONNECTION_WARNING_RATE == 1) {
                             logger.warn(format("Received error on peer eventing service on channel %s, peer %s, url %s, attempts %d. %s",
                                     channelName, name, url, reconnectCount, t.getMessage()));
 
