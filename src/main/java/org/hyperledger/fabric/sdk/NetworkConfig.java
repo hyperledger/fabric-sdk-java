@@ -55,12 +55,10 @@ import org.yaml.snakeyaml.Yaml;
 import static java.lang.String.format;
 
 /**
- *
  * Holds details of network and channel configurations typically loaded from an external config file.
  * <br>
  * Also contains convenience methods for utilizing the config details,
  * including the main {@link HFClient#getChannel(String)} method
- *
  */
 
 public class NetworkConfig {
@@ -80,7 +78,6 @@ public class NetworkConfig {
     private Map<String, CAInfo> certificateAuthorities;
 
     private static final Log logger = LogFactory.getLog(NetworkConfig.class);
-
 
     private NetworkConfig(JsonObject jsonConfig) throws InvalidArgumentException, NetworkConfigurationException {
 
@@ -106,14 +103,12 @@ public class NetworkConfig {
         createAllCertificateAuthorities();
         createAllOrganizations();
 
-
         // Validate the organization for this client
         JsonObject jsonClient = getJsonObject(jsonConfig, "client");
         String orgName = jsonClient == null ? null : getJsonValueAsString(jsonClient.get("organization"));
         if (orgName == null || orgName.isEmpty()) {
             throw new InvalidArgumentException("A client organization must be specified");
         }
-
 
         clientOrganization = getOrganizationInfo(orgName);
         if (clientOrganization == null) {
@@ -122,11 +117,10 @@ public class NetworkConfig {
 
     }
 
-
     /**
      * Creates a new NetworkConfig instance configured with details supplied in a YAML file.
      *
-     * @param configFile    The file containing the network configuration
+     * @param configFile The file containing the network configuration
      * @return A new NetworkConfig instance
      * @throws InvalidArgumentException
      * @throws IOException
@@ -138,7 +132,7 @@ public class NetworkConfig {
     /**
      * Creates a new NetworkConfig instance configured with details supplied in a JSON file.
      *
-     * @param configFile    The file containing the network configuration
+     * @param configFile The file containing the network configuration
      * @return A new NetworkConfig instance
      * @throws InvalidArgumentException
      * @throws IOException
@@ -165,7 +159,7 @@ public class NetworkConfig {
 
         Yaml yaml = new Yaml();
 
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings ("unchecked")
         Map<String, Object> map = (Map<String, Object>) yaml.load(configStream);
 
         JsonObjectBuilder builder = Json.createObjectBuilder(map);
@@ -256,7 +250,7 @@ public class NetworkConfig {
             throw new InvalidArgumentException("config must be specified");
         }
 
-       return new NetworkConfig(jsonConfig);
+        return new NetworkConfig(jsonConfig);
     }
 
     public OrgInfo getClientOrganization() {
@@ -273,6 +267,7 @@ public class NetworkConfig {
 
     /**
      * Returns the admin user associated with the client organization
+     *
      * @return The admin user details
      * @throws NetworkConfigurationException
      */
@@ -298,17 +293,14 @@ public class NetworkConfig {
         return org.getPeerAdmin();
     }
 
-
-
     //public Set<CertificateAuthority> getPeerCertificateAuthorites(String peerName) {
     //    return null;
     //}
 
-
     /**
      * Returns a channel configured using the details in the Network Configuration file
      *
-     * @param client The associated client
+     * @param client      The associated client
      * @param channelName The name of the channel
      * @return A configured Channel instance
      */
@@ -510,7 +502,6 @@ public class NetworkConfig {
 
     }
 
-
     // Reconstructs an existing channel
     private Channel reconstructChannel(HFClient client, String channelName, JsonObject jsonChannel) throws NetworkConfigurationException {
 
@@ -525,7 +516,7 @@ public class NetworkConfig {
 
             //out("Orderer names: " + (ordererNames == null ? "null" : ordererNames.toString()));
             if (ordererNames != null) {
-                for (JsonValue jsonVal: ordererNames) {
+                for (JsonValue jsonVal : ordererNames) {
 
                     String ordererName = getJsonValueAsString(jsonVal);
                     Orderer orderer = getOrderer(client, ordererName);
@@ -594,7 +585,6 @@ public class NetworkConfig {
                 throw new NetworkConfigurationException(format("Error constructing channel %s. At least one peer must be specified", channelName));
             }
 
-
         } catch (InvalidArgumentException e) {
             throw new IllegalArgumentException(e);
         }
@@ -635,6 +625,12 @@ public class NetworkConfig {
         Properties props = extractProperties(jsonOrderer, "grpcOptions");
 
         // Extract the pem details
+        getTLSCerts(nodeName, jsonOrderer, props);
+
+        return new Node(nodeName, url, props);
+    }
+
+    private void getTLSCerts(String nodeName, JsonObject jsonOrderer, Properties props) throws NetworkConfigurationException {
         JsonObject jsonTlsCaCerts = getJsonObject(jsonOrderer, "tlsCACerts");
         if (jsonTlsCaCerts != null) {
             String pemFilename = getJsonValueAsString(jsonTlsCaCerts.get("path"));
@@ -648,9 +644,6 @@ public class NetworkConfig {
                 // Determine full pathname and ensure the file exists
                 File pemFile = new File(pemFilename);
                 String fullPathname = pemFile.getAbsolutePath();
-                if (!pemFile.exists()) {
-                    throw new NetworkConfigurationException(format("Endpoint %s: Pem file %s does not exist", nodeName, fullPathname));
-                }
                 props.put("pemFile", fullPathname);
             }
 
@@ -658,12 +651,7 @@ public class NetworkConfig {
                 props.put("pemBytes", pemBytes.getBytes());
             }
         }
-
-        return new Node(nodeName, url, props);
     }
-
-
-
 
     // Creates a new OrgInfo instance from a JSON object
     private OrgInfo createOrg(String orgName, JsonObject jsonOrg) throws NetworkConfigurationException {
@@ -678,7 +666,7 @@ public class NetworkConfig {
         // Peers
         JsonArray jsonPeers = getJsonValueAsArray(jsonOrg.get("peers"));
         if (jsonPeers != null) {
-            for (JsonValue peer: jsonPeers) {
+            for (JsonValue peer : jsonPeers) {
                 String peerName = getJsonValueAsString(peer);
                 if (peerName != null) {
                     org.addPeerName(peerName);
@@ -689,7 +677,7 @@ public class NetworkConfig {
         // CAs
         JsonArray jsonCertificateAuthorities = getJsonValueAsArray(jsonOrg.get("certificateAuthorities"));
         if (jsonCertificateAuthorities != null) {
-            for (JsonValue jsonCA: jsonCertificateAuthorities) {
+            for (JsonValue jsonCA : jsonCertificateAuthorities) {
                 String caName = getJsonValueAsString(jsonCA);
                 if (caName != null) {
                     //org.addCAName(caName);
@@ -702,7 +690,6 @@ public class NetworkConfig {
             }
         }
 
-
         String adminPrivateKeyString = extractPemString(jsonOrg, "adminPrivateKey", msgPrefix);
         String signedCert = extractPemString(jsonOrg, "signedCert", msgPrefix);
 
@@ -714,7 +701,6 @@ public class NetworkConfig {
                 throw new NetworkConfigurationException(format("%s: Invalid private key", msgPrefix), ioe);
             }
         }
-
 
         if (privateKey != null) {
             org.setAdminPrivateKey(privateKey);
@@ -742,14 +728,11 @@ public class NetworkConfig {
         return privateKey;
     }
 
-
-
     // Returns the PEM (as a String) from either a path or a pem field
     private static String extractPemString(JsonObject json, String fieldName, String msgPrefix) throws NetworkConfigurationException {
 
         String path = null;
         String pemString = null;
-
 
         JsonObject jsonField = getJsonValueAsObject(json.get(fieldName));
         if (jsonField != null) {
@@ -760,7 +743,6 @@ public class NetworkConfig {
         if (path != null && pemString != null) {
             throw new NetworkConfigurationException(format("%s should not specify both %s path and pem", msgPrefix, fieldName));
         }
-
 
         if (path != null) {
             // Determine full pathname and ensure the file exists
@@ -781,7 +763,7 @@ public class NetworkConfig {
     }
 
     // Creates a new CAInfo instance from a JSON object
-    private static CAInfo createCA(String name, JsonObject jsonCA) {
+    private CAInfo createCA(String name, JsonObject jsonCA) throws NetworkConfigurationException {
 
         String url = getJsonValueAsString(jsonCA.get("url"));
         Properties httpOptions = extractProperties(jsonCA, "httpOptions");
@@ -802,7 +784,12 @@ public class NetworkConfig {
             caInfo.setCaName(caName);
         }
 
-        // TODO: Implement tlsCACerts???
+        Properties properties = new Properties();
+        if (null != httpOptions && "false".equals(httpOptions.getProperty("verify"))) {
+            properties.setProperty("allowAllHostNames", "true");
+        }
+        getTLSCerts(name, jsonCA, properties);
+        caInfo.setProperties(properties);
 
         return caInfo;
     }
@@ -824,7 +811,6 @@ public class NetworkConfig {
         return props;
     }
 
-
     // Returns a new Peer instance for the specified peer name
     private Peer getPeer(HFClient client, String peerName) throws InvalidArgumentException {
         Peer peer = null;
@@ -835,7 +821,6 @@ public class NetworkConfig {
         return peer;
     }
 
-
     // Returns a new EventHub instance for the specified name
     private EventHub getEventHub(HFClient client, String name) throws InvalidArgumentException {
         EventHub ehub = null;
@@ -845,7 +830,6 @@ public class NetworkConfig {
         }
         return ehub;
     }
-
 
     // Returns the specified JsonValue in a suitable format
     // If it's a JsonString - it returns the string
@@ -911,7 +895,6 @@ public class NetworkConfig {
         return obj;
     }
 
-
     // Holds a network "node" (eg. Peer, Orderer, EventHub)
     private class Node {
 
@@ -937,12 +920,10 @@ public class NetworkConfig {
             return properties;
         }
 
-
     }
 
     /**
      * Holds details of a User
-     *
      */
     public static class UserInfo {
 
@@ -969,7 +950,7 @@ public class NetworkConfig {
         }
 
         public PrivateKey getPrivateKey() {
-           return parentOrg.getAdminPrivateKey();
+            return parentOrg.getAdminPrivateKey();
         }
 
         public String getSignedCert() {
@@ -979,7 +960,6 @@ public class NetworkConfig {
 
     /**
      * Holds details of an Organization
-     *
      */
     public static class OrgInfo {
 
@@ -989,7 +969,6 @@ public class NetworkConfig {
         private String signedCert;
         private final List<String> peerNames = new ArrayList<>();
         private final List<CAInfo> certificateAuthorities = new ArrayList<>();
-
 
         OrgInfo(String orgName, String mspId) {
             this.name = orgName;
@@ -1011,7 +990,6 @@ public class NetworkConfig {
         private void setSignedCert(String signedCert) {
             this.signedCert = signedCert;
         }
-
 
         public String getName() {
             return name;
@@ -1063,10 +1041,8 @@ public class NetworkConfig {
     }
 
     /**
-    *
-    * Holds the details of a Certificate Authority
-    *
-    */
+     * Holds the details of a Certificate Authority
+     */
     public static class CAInfo {
         private final String name;
         private final String url;
@@ -1074,6 +1050,7 @@ public class NetworkConfig {
         private final String registrarEnrollSecret;
         private final Properties httpOptions;
         private String caName;          // The "optional" caName specified in the config, as opposed to its "config" name
+        private Properties properties;
 
         CAInfo(String name, String url, String registrarEnrollId, String registrarEnrollSecret, Properties httpOptions) {
             this.name = name;
@@ -1111,6 +1088,13 @@ public class NetworkConfig {
             return httpOptions;
         }
 
+        void setProperties(Properties properties) {
+            this.properties = properties;
+        }
+
+        public Properties getProperties() {
+            return this.properties;
+        }
     }
 
 }

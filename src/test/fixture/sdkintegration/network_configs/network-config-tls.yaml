@@ -170,6 +170,8 @@ organizations:
     mspid: Org2MSP
     peers:
       - peer0.org2.example.com
+    certificateAuthorities:
+          - ca-org2
 
 #
 # List of orderers to send transaction and channel create/update requests to. For the time
@@ -287,16 +289,7 @@ certificateAuthorities:
     # the properties specified under this object are passed to the 'http' client verbatim when
     # making the request to the Fabric-CA server
     httpOptions:
-      verify: true
-    tlsCACerts:
-      # Comma-Separated list of paths
-      path: peerOrganizations/org1.example.com/ca/org1.example.com-cert.pem
-
-      # Client key and cert for TLS mutual auth with Fabric CA. If the target Fabric CA server
-      # does not have TLS mutual auth turned on, then this section is not needed
-      client:
-        keyfile: path/to/tls/fabricca/certs/client/client_fabric_client-key.pem
-        certfile: path/to/tls/fabricca/certs/client/client_fabric_client.pem
+      verify: false #must be false for testing env.
 
     # Fabric-CA supports dynamic user enrollment via REST APIs. A "root" user, a.k.a registrar, is
     # needed to enroll and invoke new users.
@@ -304,4 +297,37 @@ certificateAuthorities:
       enrollId: admin
       enrollSecret: adminpw
     # [Optional] The optional name of the CA.
-    caName: caNameHere
+    caName: ca0
+
+    tlsCACerts:
+      # Comma-Separated list of paths
+      path: src/test/fixture/sdkintegration/e2e-2Orgs/v1.1/crypto-config/peerOrganizations/org1.example.com/ca/ca.org1.example.com-cert.pem
+
+      # Client key and cert for TLS mutual auth with Fabric CA. If the target Fabric CA server
+      # does not have TLS mutual auth turned on, then this section is not needed
+      client:
+        keyfile: path/to/tls/fabricca/certs/client/client_fabric_client-key.pem
+        certfile: path/to/tls/fabricca/certs/client/client_fabric_client.pem
+  ca-org2:
+    url: https://localhost:8054
+      # the properties specified under this object are passed to the 'http' client verbatim when
+      # making the request to the Fabric-CA server
+    httpOptions:
+      verify: false #must be no for testing env.
+    # Fabric-CA supports dynamic user enrollment via REST APIs. A "root" user, a.k.a registrar, is
+    # needed to enroll and invoke new users.
+    registrar:
+      enrollId: admin
+      enrollSecret: adminpw
+      # [Optional] The optional name of the CA.
+      ## caName: ca0 no ca name!
+    tlsCACerts:
+      # Comma-Separated list of paths
+      path: src/test/fixture/sdkintegration/e2e-2Orgs/v1.1/crypto-config/peerOrganizations/org2.example.com/ca/ca.org2.example.com-cert.pem
+
+      # Client key and cert for TLS mutual auth with Fabric CA. If the target Fabric CA server
+      # does not have TLS mutual auth turned on, then this section is not needed
+      client:
+        keyfile: path/to/tls/fabricca/certs/client/client_fabric_client-key.pem
+        certfile: path/to/tls/fabricca/certs/client/client_fabric_client.pem
+

@@ -379,7 +379,7 @@ public class TestConfig {
                 Files.write(Paths.get(temp.getAbsolutePath()), sourceText.getBytes(StandardCharsets.UTF_8),
                         StandardOpenOption.CREATE_NEW, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
 
-                if (!Objects.equals("true", System.getenv(System.getenv(ORG_HYPERLEDGER_FABRIC_SDK_TEST_FABRIC_HOST + "_KEEP")))) {
+                if (!Objects.equals("true", System.getenv(ORG_HYPERLEDGER_FABRIC_SDK_TEST_FABRIC_HOST + "_KEEP"))) {
                     temp.deleteOnExit();
                 } else {
                     System.err.println("produced new network-config.yaml file at:" + temp.getAbsolutePath());

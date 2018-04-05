@@ -109,7 +109,7 @@ public class HFCAClientTest {
     @Test
     public void testNewInstanceNullUrl() throws Exception {
         thrown.expect(MalformedURLException.class);
-        HFCAClient.createNewInstance(null, null);
+        HFCAClient.createNewInstance(null, (Properties) null);
     }
 
     @Test
