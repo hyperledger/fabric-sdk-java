@@ -25,10 +25,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -53,6 +55,7 @@ import org.hyperledger.fabric.sdk.exception.NetworkConfigurationException;
 import org.yaml.snakeyaml.Yaml;
 
 import static java.lang.String.format;
+import static org.hyperledger.fabric.sdk.helper.Utils.isNullOrEmpty;
 
 /**
  * Holds details of network and channel configurations typically loaded from an external config file.
@@ -76,6 +79,7 @@ public class NetworkConfig {
 
     // CAs keyed on name
     private Map<String, CAInfo> certificateAuthorities;
+    private Map<String, CAInfo> certificateAuthoritiesJSON;
 
     private static final Log logger = LogFactory.getLog(NetworkConfig.class);
 
@@ -99,9 +103,9 @@ public class NetworkConfig {
         createAllPeers();
         createAllOrderers();
 
-        // Note: CAs must be loaded before orgs!
-        createAllCertificateAuthorities();
-        createAllOrganizations();
+        Map<String, JsonObject> foundCertificateAuthorities = findCertificateAuthorities();
+        //createAllCertificateAuthorities();
+        createAllOrganizations(foundCertificateAuthorities);
 
         // Validate the organization for this client
         JsonObject jsonClient = getJsonObject(jsonConfig, "client");
@@ -160,7 +164,7 @@ public class NetworkConfig {
         Yaml yaml = new Yaml();
 
         @SuppressWarnings ("unchecked")
-        Map<String, Object> map = (Map<String, Object>) yaml.load(configStream);
+        Map<String, Object> map = yaml.load(configStream);
 
         JsonObjectBuilder builder = Json.createObjectBuilder(map);
 
@@ -293,10 +297,6 @@ public class NetworkConfig {
         return org.getPeerAdmin();
     }
 
-    //public Set<CertificateAuthority> getPeerCertificateAuthorites(String peerName) {
-    //    return null;
-    //}
-
     /**
      * Returns a channel configured using the details in the Network Configuration file
      *
@@ -330,47 +330,6 @@ public class NetworkConfig {
 
         return channel;
     }
-
-/*
-    **
-     * Returns a peer from the specified organization and having the desired role.
-     * <p>
-     * Note that if more than one peer matches the supplied attributes, it is arbitrary which peer will be returned.
-     *
-     * @param orgName The name of the organization (or null to use the client organization)
-     * @param role The desired role (or null for any role)
-     * @return A matching peer (or null if a suitable peer was not found)
-     *
-    Peer findPeerWithRole(String orgName, PeerRole role) {
-
-        JsonObject org = orgName == null ? clientOrganization : getOrganization(orgName);
-        if (org == null) {
-            // The organization is not defined, so no suitable peer exists
-            return null;
-        }
-
-        // Examine the peers associated with this organization
-        JsonArray peerNames = getJsonValueAsArray(org.get("peers"));
-        if (peerNames != null) {
-            for (JsonValue val: peerNames) {
-                String peerName = getJsonValueAsString(val);
-                if (peerName != null) {
-                    Node peer = peers.get(peerName);
-                    if (peer != null) {
-                        // TODO: Currently we are ignoring the role - because roles are channel-based and hence we need to know the channel before we can get the roles!
-                        try {
-                            return Peer.createNewInstance(peer.getName(), peer.getUrl(), peer.getProperties());
-                        } catch (InvalidArgumentException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                }
-            }
-        }
-
-        return null;
-    }
-*/
 
     // Creates Node instances representing all the orderers defined in the config file
     private void createAllOrderers() throws NetworkConfigurationException {
@@ -442,20 +401,12 @@ public class NetworkConfig {
 
     }
 
-    // Creates JsonObjects representing all the CertificateAuthorities defined in the config file
-    private void createAllCertificateAuthorities() throws NetworkConfigurationException {
+    // Produce a map from tag to jsonobject for the CA
+    private Map<String, JsonObject> findCertificateAuthorities() throws NetworkConfigurationException {
+        Map<String, JsonObject> ret = new HashMap<>();
 
-        // Sanity check
-        if (certificateAuthorities != null) {
-            throw new NetworkConfigurationException("INTERNAL ERROR: certificateAuthorities has already been initialized!");
-        }
-
-        certificateAuthorities = new HashMap<>();
-
-        // certificateAuthorities is a JSON object containing a nested object for each CA
         JsonObject jsonCertificateAuthorities = getJsonObject(jsonConfig, "certificateAuthorities");
-
-        if (jsonCertificateAuthorities != null) {
+        if (null != jsonCertificateAuthorities) {
 
             for (Entry<String, JsonValue> entry : jsonCertificateAuthorities.entrySet()) {
                 String name = entry.getKey();
@@ -464,16 +415,16 @@ public class NetworkConfig {
                 if (jsonCA == null) {
                     throw new NetworkConfigurationException(format("Error loading config. Invalid CA entry: %s", name));
                 }
-
-                CAInfo ca = createCA(name, jsonCA);
-                certificateAuthorities.put(name, ca);
+                ret.put(name, jsonCA);
             }
         }
+
+        return ret;
 
     }
 
     // Creates JsonObjects representing all the Organizations defined in the config file
-    private void createAllOrganizations() throws NetworkConfigurationException {
+    private void createAllOrganizations(Map<String, JsonObject> foundCertificateAuthorities) throws NetworkConfigurationException {
 
         // Sanity check
         if (organizations != null) {
@@ -495,7 +446,7 @@ public class NetworkConfig {
                     throw new NetworkConfigurationException(format("Error loading config. Invalid Organization entry: %s", orgName));
                 }
 
-                OrgInfo org = createOrg(orgName, jsonOrg);
+                OrgInfo org = createOrg(orgName, jsonOrg, foundCertificateAuthorities);
                 organizations.put(orgName, org);
             }
         }
@@ -654,11 +605,10 @@ public class NetworkConfig {
     }
 
     // Creates a new OrgInfo instance from a JSON object
-    private OrgInfo createOrg(String orgName, JsonObject jsonOrg) throws NetworkConfigurationException {
+    private OrgInfo createOrg(String orgName, JsonObject jsonOrg, Map<String, JsonObject> foundCertificateAuthorities) throws NetworkConfigurationException {
 
         String msgPrefix = format("Organization %s", orgName);
 
-        // TODO: Note the camel-case inconsistency with "mspid" vs "mspId"!
         String mspId = getJsonValueAsString(jsonOrg.get("mspid"));
 
         OrgInfo org = new OrgInfo(orgName, mspId);
@@ -678,14 +628,16 @@ public class NetworkConfig {
         JsonArray jsonCertificateAuthorities = getJsonValueAsArray(jsonOrg.get("certificateAuthorities"));
         if (jsonCertificateAuthorities != null) {
             for (JsonValue jsonCA : jsonCertificateAuthorities) {
+
                 String caName = getJsonValueAsString(jsonCA);
+
                 if (caName != null) {
-                    //org.addCAName(caName);
-                    CAInfo caInfo = certificateAuthorities.get(caName);
-                    if (caInfo == null) {
+                    JsonObject jsonObject = foundCertificateAuthorities.get(caName);
+                    if (jsonObject != null) {
+                        org.addCertificateAuthority(createCA(caName, jsonObject, org));
+                    } else {
                         throw new NetworkConfigurationException(format("%s: Certificate Authority %s is not defined", msgPrefix, caName));
                     }
-                    org.addCertificateAuthority(caInfo);
                 }
             }
         }
@@ -693,21 +645,32 @@ public class NetworkConfig {
         String adminPrivateKeyString = extractPemString(jsonOrg, "adminPrivateKey", msgPrefix);
         String signedCert = extractPemString(jsonOrg, "signedCert", msgPrefix);
 
-        PrivateKey privateKey = null;
-        if (adminPrivateKeyString != null) {
+        if (!isNullOrEmpty(adminPrivateKeyString) && !isNullOrEmpty(signedCert)) {
+
+            PrivateKey privateKey = null;
+
             try {
-                privateKey = getPrivateKeyFromString(adminPrivateKeyString);
+                    privateKey = getPrivateKeyFromString(adminPrivateKeyString);
             } catch (IOException ioe) {
-                throw new NetworkConfigurationException(format("%s: Invalid private key", msgPrefix), ioe);
+                    throw new NetworkConfigurationException(format("%s: Invalid private key", msgPrefix), ioe);
             }
-        }
 
-        if (privateKey != null) {
-            org.setAdminPrivateKey(privateKey);
-        }
+            final PrivateKey privateKeyFinal = privateKey;
 
-        if (signedCert != null) {
-            org.setSignedCert(signedCert);
+            org.peerAdmin = new UserInfo(mspId, "PeerAdmin_" + mspId + "_" + orgName, null);
+            org.peerAdmin.setEnrollment(new Enrollment() {
+                @Override
+                public PrivateKey getKey() {
+                    return privateKeyFinal;
+                }
+
+                @Override
+                public String getCert() {
+                    return signedCert;
+                }
+            });
+
+
         }
 
         return org;
@@ -723,9 +686,7 @@ public class NetworkConfig {
             pemPair = (PrivateKeyInfo) pemParser.readObject();
         }
 
-        PrivateKey privateKey = new JcaPEMKeyConverter().getPrivateKey(pemPair);
-
-        return privateKey;
+        return new JcaPEMKeyConverter().getPrivateKey(pemPair);
     }
 
     // Returns the PEM (as a String) from either a path or a pem field
@@ -763,7 +724,7 @@ public class NetworkConfig {
     }
 
     // Creates a new CAInfo instance from a JSON object
-    private CAInfo createCA(String name, JsonObject jsonCA) throws NetworkConfigurationException {
+    private CAInfo createCA(String name, JsonObject jsonCA, OrgInfo org) throws NetworkConfigurationException {
 
         String url = getJsonValueAsString(jsonCA.get("url"));
         Properties httpOptions = extractProperties(jsonCA, "httpOptions");
@@ -771,13 +732,18 @@ public class NetworkConfig {
         String enrollId = null;
         String enrollSecret = null;
 
-        JsonObject registrar = getJsonValueAsObject(jsonCA.get("registrar"));
-        if (registrar != null) {
-            enrollId = getJsonValueAsString(registrar.get("enrollId"));
-            enrollSecret = getJsonValueAsString(registrar.get("enrollSecret"));
+        List<JsonObject> registrars = getJsonValueAsList(jsonCA.get("registrar"));
+        List<UserInfo> regUsers = new LinkedList<>();
+        if (registrars != null) {
+
+            for (JsonObject reg : registrars) {
+                enrollId = getJsonValueAsString(reg.get("enrollId"));
+                enrollSecret = getJsonValueAsString(reg.get("enrollSecret"));
+                regUsers.add(new UserInfo(org.mspId, enrollId, enrollSecret));
+            }
         }
 
-        CAInfo caInfo = new CAInfo(name, url, enrollId, enrollSecret, httpOptions);
+        CAInfo caInfo = new CAInfo(name, org.mspId, url, regUsers, httpOptions);
 
         String caName = getJsonValueAsString(jsonCA.get("caName"));
         if (caName != null) {
@@ -833,7 +799,7 @@ public class NetworkConfig {
 
     // Returns the specified JsonValue in a suitable format
     // If it's a JsonString - it returns the string
-    // If it's a number = it returns the string represenation of that number
+    // If it's a number = it returns the string representation of that number
     // If it's TRUE or FALSE - it returns "true" and "false" respectively
     // If it's anything else it returns null
     private static String getJsonValue(JsonValue value) {
@@ -861,6 +827,22 @@ public class NetworkConfig {
     // Returns the specified JsonValue as a JsonArray, or null if it's not an array
     private static JsonArray getJsonValueAsArray(JsonValue value) {
         return (value != null && value.getValueType() == ValueType.ARRAY) ? value.asJsonArray() : null;
+    }
+
+    // Returns the specified JsonValue as a List. Allows single or array
+    private static List<JsonObject> getJsonValueAsList(JsonValue value) {
+        if (value != null) {
+            if (value.getValueType() == ValueType.ARRAY) {
+                return value.asJsonArray().getValuesAs(JsonObject.class);
+
+            } else if (value.getValueType() == ValueType.OBJECT) {
+                List<JsonObject> ret = new ArrayList<>();
+                ret.add(value.asJsonObject());
+
+                return ret;
+            }
+        }
+        return null;
     }
 
     // Returns the specified JsonValue as a String, or null if it's not a string
@@ -925,37 +907,87 @@ public class NetworkConfig {
     /**
      * Holds details of a User
      */
-    public static class UserInfo {
+    public static class UserInfo implements User {
 
-        private final String enrollId;
-        private final String enrollSecret;
-        private final OrgInfo parentOrg;
+        public void setName(String name) {
+            this.name = name;
+        }
 
-        UserInfo(OrgInfo parentOrg, String enrollId, String enrollSecret) {
-            this.parentOrg = parentOrg;
-            this.enrollId = enrollId;
+        protected String name;
+        protected String enrollSecret;
+        protected String mspid;
+        private Set<String> roles;
+        private String account;
+        private String affiliation;
+        private Enrollment enrollment;
+
+        public void setEnrollSecret(String enrollSecret) {
             this.enrollSecret = enrollSecret;
         }
 
-        public String getEnrollId() {
-            return enrollId;
+        public String getMspid() {
+            return mspid;
+        }
+
+        public void setMspid(String mspid) {
+            this.mspid = mspid;
+        }
+
+        public void setRoles(Set<String> roles) {
+            this.roles = roles;
+        }
+
+        public void setAccount(String account) {
+            this.account = account;
+        }
+
+        public void setAffiliation(String affiliation) {
+            this.affiliation = affiliation;
+        }
+
+        public void setEnrollment(Enrollment enrollment) {
+            this.enrollment = enrollment;
+        }
+
+        UserInfo(String mspid, String name, String enrollSecret) {
+            this.name = name;
+            this.enrollSecret = enrollSecret;
+            this.mspid = mspid;
         }
 
         public String getEnrollSecret() {
             return enrollSecret;
         }
 
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public Set<String> getRoles() {
+            return roles;
+        }
+
+        @Override
+        public String getAccount() {
+            return account;
+        }
+
+        @Override
+        public String getAffiliation() {
+            return affiliation;
+        }
+
+        @Override
+        public Enrollment getEnrollment() {
+            return enrollment;
+        }
+
         public String getMspId() {
-            return parentOrg.getMspId();
+            return mspid;
         }
 
-        public PrivateKey getPrivateKey() {
-            return parentOrg.getAdminPrivateKey();
-        }
-
-        public String getSignedCert() {
-            return parentOrg.getSignedCert();
-        }
     }
 
     /**
@@ -965,10 +997,9 @@ public class NetworkConfig {
 
         private final String name;
         private final String mspId;
-        private PrivateKey adminPrivateKey;
-        private String signedCert;
         private final List<String> peerNames = new ArrayList<>();
         private final List<CAInfo> certificateAuthorities = new ArrayList<>();
+        private UserInfo peerAdmin;
 
         OrgInfo(String orgName, String mspId) {
             this.name = orgName;
@@ -983,14 +1014,6 @@ public class NetworkConfig {
             certificateAuthorities.add(ca);
         }
 
-        private void setAdminPrivateKey(PrivateKey adminPrivateKey) {
-            this.adminPrivateKey = adminPrivateKey;
-        }
-
-        private void setSignedCert(String signedCert) {
-            this.signedCert = signedCert;
-        }
-
         public String getName() {
             return name;
         }
@@ -999,13 +1022,6 @@ public class NetworkConfig {
             return mspId;
         }
 
-        public PrivateKey getAdminPrivateKey() {
-            return adminPrivateKey;
-        }
-
-        public String getSignedCert() {
-            return signedCert;
-        }
 
         public List<String> getPeerNames() {
             return peerNames;
@@ -1019,24 +1035,12 @@ public class NetworkConfig {
          * Returns the associated admin user
          *
          * @return The admin user details
-         * @throws NetworkConfigurationException
          */
-        public UserInfo getPeerAdmin() throws NetworkConfigurationException {
+        public UserInfo getPeerAdmin() {
 
-            String enrollId = null;
-            String enrollSecret = null;
-
-            List<CAInfo> caInfos = getCertificateAuthorities();
-            if (caInfos.size() > 0) {
-                CAInfo ca = caInfos.get(0);
-                if (ca != null) {
-                    enrollId = ca.getRegistrarEnrollId();
-                    enrollSecret = ca.getRegistrarEnrollSecret();
-                }
-            }
-
-            return new UserInfo(this, enrollId, enrollSecret);
+            return peerAdmin;
         }
+
 
     }
 
@@ -1046,18 +1050,19 @@ public class NetworkConfig {
     public static class CAInfo {
         private final String name;
         private final String url;
-        private final String registrarEnrollId;
-        private final String registrarEnrollSecret;
         private final Properties httpOptions;
+        private final String mspid;
         private String caName;          // The "optional" caName specified in the config, as opposed to its "config" name
         private Properties properties;
 
-        CAInfo(String name, String url, String registrarEnrollId, String registrarEnrollSecret, Properties httpOptions) {
+        private final List<UserInfo> registrars;
+
+        CAInfo(String name, String mspid, String url, List<UserInfo> registrars, Properties httpOptions) {
             this.name = name;
             this.url = url;
-            this.registrarEnrollId = registrarEnrollId;
-            this.registrarEnrollSecret = registrarEnrollSecret;
             this.httpOptions = httpOptions;
+            this.registrars = registrars;
+            this.mspid = mspid;
         }
 
         private void setCaName(String caName) {
@@ -1076,14 +1081,6 @@ public class NetworkConfig {
             return url;
         }
 
-        public String getRegistrarEnrollId() {
-            return registrarEnrollId;
-        }
-
-        public String getRegistrarEnrollSecret() {
-            return registrarEnrollSecret;
-        }
-
         public Properties getHttpOptions() {
             return httpOptions;
         }
@@ -1095,6 +1092,11 @@ public class NetworkConfig {
         public Properties getProperties() {
             return this.properties;
         }
+
+        public Collection<UserInfo> getRegistrars() {
+            return new LinkedList<>(registrars);
+        }
+
     }
 
 }
