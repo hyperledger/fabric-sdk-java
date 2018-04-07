@@ -37,6 +37,7 @@ import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.InstallProposalRequest;
 import org.hyperledger.fabric.sdk.InstantiateProposalRequest;
 import org.hyperledger.fabric.sdk.NetworkConfig;
+import org.hyperledger.fabric.sdk.NetworkConfig.CAInfo;
 import org.hyperledger.fabric.sdk.Orderer;
 import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.ProposalResponse;
@@ -52,6 +53,8 @@ import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
 import org.hyperledger.fabric.sdk.testutils.TestUtils;
 import org.hyperledger.fabric.sdk.testutils.TestUtils.MockUser;
+import org.hyperledger.fabric_ca.sdk.HFCAClient;
+import org.hyperledger.fabric_ca.sdk.HFCAInfo;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -59,6 +62,7 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -107,6 +111,23 @@ public class NetworkConfigIT {
         // Use the appropriate TLS/non-TLS network config file
         networkConfig = NetworkConfig.fromYamlFile(testConfig.getTestNetworkConfigFileYAML());
 
+        //Check if we get access to defined CAs!
+        CAInfo caInfo = networkConfig.getOrganizationInfo("Org1").getCertificateAuthorities().get(0);
+
+        HFCAClient hfcaClient = HFCAClient.createNewInstance(caInfo);
+        assertEquals(hfcaClient.getCAName(), caInfo.getCAName());
+        HFCAInfo info = hfcaClient.info(); //makes actual REST call.
+        assertEquals(caInfo.getCAName(), info.getCAName());
+
+        //with no caname or the default
+        caInfo = networkConfig.getOrganizationInfo("Org2").getCertificateAuthorities().get(0);
+
+        hfcaClient = HFCAClient.createNewInstance(caInfo);
+        assertEquals(hfcaClient.getCAName(), caInfo.getCAName());
+        assertNull(caInfo.getCAName());
+
+        info = hfcaClient.info(); //makes actual REST call.
+        assertEquals(info.getCAName(), ""); //means default
         // Ensure the chaincode required for these tests is deployed
         deployChaincodeIfRequired();
     }
