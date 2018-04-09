@@ -256,8 +256,8 @@ peers:
     grpcOptions:
       ssl-target-name-override: peer0.org1.example.com
       grpc.http2.keepalive_time: 15
-      negotiationType: TLS
-      sslProvider: openSSL
+     # negotiationType: TLS  ### purposely commented out to verify these are the defaults
+     # sslProvider: openSSL
       hostnameOverride: peer1.org1.example.com
 
     tlsCACerts:

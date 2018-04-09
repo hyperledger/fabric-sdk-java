@@ -77,10 +77,6 @@ public class NetworkConfig {
     // Organizations, keyed on org name (and not on mspid!)
     private Map<String, OrgInfo> organizations;
 
-    // CAs keyed on name
-    private Map<String, CAInfo> certificateAuthorities;
-    private Map<String, CAInfo> certificateAuthoritiesJSON;
-
     private static final Log logger = LogFactory.getLog(NetworkConfig.class);
 
     private NetworkConfig(JsonObject jsonConfig) throws InvalidArgumentException, NetworkConfigurationException {

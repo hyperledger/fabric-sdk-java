@@ -53,13 +53,18 @@ import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
 import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 
+import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.helper.Utils.parseGrpcUrl;
 
 class Endpoint {
     private static final Log logger = LogFactory.getLog(Endpoint.class);
+
+    private static final String SSLPROVIDER = Config.getConfig().getDefaultSSLProvider();
+    private static final String SSLNEGOTIATION = Config.getConfig().getDefaultSSLNegotiationType();
 
     private final String addr;
     private final int port;
@@ -71,7 +76,7 @@ class Endpoint {
     private static final Map<String, String> CN_CACHE = Collections.synchronizedMap(new HashMap<>());
 
     Endpoint(String url, Properties properties) {
-        logger.trace(String.format("Creating endpoint for url %s", url));
+        logger.trace(format("Creating endpoint for url %s", url));
         this.url = url;
         String cn = null;
         String sslp = null;
@@ -168,19 +173,23 @@ class Endpoint {
                 }
 
                 sslp = properties.getProperty("sslProvider");
-                if (sslp == null) {
-                    throw new RuntimeException("Property of sslProvider expected");
+
+                if (null == sslp) {
+                    sslp = SSLPROVIDER;
+                    logger.trace(format("Endpoint %s specific SSL provider not found use global value: %s ", url, SSLPROVIDER));
                 }
-                if (!sslp.equals("openSSL") && !sslp.equals("JDK")) {
-                    throw new RuntimeException("Property of sslProvider has to be either openSSL or JDK");
+                if (!"openSSL".equals(sslp) && !"JDK".equals(sslp)) {
+                    throw new RuntimeException(format("Endpoint %s property of sslProvider has to be either openSSL or JDK. value: '%s'", url, sslp));
                 }
 
                 nt = properties.getProperty("negotiationType");
-                if (nt == null) {
-                    throw new RuntimeException("Property of negotiationType expected");
+                if (null == nt) {
+                    nt = SSLNEGOTIATION;
+                    logger.trace(format("Endpoint %s specific Negotiation type not found use global value: %s ", url, SSLNEGOTIATION));
                 }
-                if (!nt.equals("TLS") && !nt.equals("plainText")) {
-                    throw new RuntimeException("Property of negotiationType has to be either TLS or plainText");
+
+                if (!"TLS".equals(nt) && !"plainText".equals(nt)) {
+                    throw new RuntimeException(format("Endpoint %s property of negotiationType has to be either TLS or plainText. value: '%s'", url, nt));
                 }
             }
         }
@@ -197,6 +206,7 @@ class Endpoint {
                 } else {
                     try {
 
+                        logger.trace(format("Endpoint %s Negotiation type: '%s', SSLprovider: '%s'", url, nt, sslp));
                         SslProvider sslprovider = sslp.equals("openSSL") ? SslProvider.OPENSSL : SslProvider.JDK;
                         NegotiationType ntype = nt.equals("TLS") ? NegotiationType.TLS : NegotiationType.PLAINTEXT;
 
@@ -331,7 +341,7 @@ class Endpoint {
                     sep = ", ";
 
                 }
-                logger.trace(String.format("Endpoint with url: %s set managed channel builder method %s (%s) ", url,
+                logger.trace(format("Endpoint with url: %s set managed channel builder method %s (%s) ", url,
                         method, sb.toString()));
 
             }

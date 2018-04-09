@@ -77,6 +77,14 @@ public class Config {
     public static final String DIAGNOTISTIC_FILE_DIRECTORY = "org.hyperledger.fabric.sdk.diagnosticFileDir"; //ORG_HYPERLEDGER_FABRIC_SDK_DIAGNOSTICFILEDIR
 
     /**
+     * Connections settings
+     */
+
+    public static final String CONN_SSL_PROVIDER = "org.hyperledger.fabric.sdk.connections.ssl.sslProvider";
+    public static final String CONN_SSL_NEGTYPE = "org.hyperledger.fabric.sdk.connections.ssl.negotiationType";
+
+
+    /**
      * Miscellaneous settings
      **/
     public static final String PROPOSAL_CONSISTENCY_VALIDATION = "org.hyperledger.fabric.sdk.proposal.consistency_validation";
@@ -132,6 +140,13 @@ public class Config {
 
             defaultProperty(CERTIFICATE_FORMAT, "X.509");
             defaultProperty(SIGNATURE_ALGORITHM, "SHA256withECDSA");
+
+            /**
+             * Connection defaults
+             */
+
+            defaultProperty(CONN_SSL_PROVIDER, "openSSL");
+            defaultProperty(CONN_SSL_NEGTYPE, "TLS");
 
             /**
              * Logging settings
@@ -270,6 +285,28 @@ public class Config {
         return getProperty(HASH_ALGORITHM);
 
     }
+
+    /**
+     * The default ssl provider for grpc connection
+     *
+     * @return The default ssl provider for grpc connection
+     */
+    public String getDefaultSSLProvider() {
+        return getProperty(CONN_SSL_PROVIDER);
+
+    }
+
+    /**
+     * The default ssl negotiation type
+     *
+     * @return The default ssl negotiation type
+     */
+
+    public String getDefaultSSLNegotiationType() {
+        return getProperty(CONN_SSL_NEGTYPE);
+
+    }
+
 
     private Map<Integer, String> curveMapping = null;
 
