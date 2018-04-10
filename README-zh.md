@@ -47,7 +47,7 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>
-    </repositories>
+</repositories>
 
 <dependencies>
 
@@ -99,7 +99,7 @@ SDK依赖于少量的第三方库,在使用JAR文件时，他们必须包含在�
 </code>
 
 ### 运行单元测试
-要运行单元测试，请使用<code> mvn install </ code>来运行单元测试并构建jar文件.
+要运行单元测试，请使用<code> mvn install </code>来运行单元测试并构建jar文件.
 
 **许多单元测试使用测试失败条件,这会显示的异常和堆栈跟踪,但这并不表示失败！**
 **[INFO] BUILD SUCCESS**  **_最后通常是一个非常可靠的指示，表明所有测试都已成功通过！_**
@@ -157,3 +157,21 @@ IBM Java需要定义以下属性才能使用TLS 1.2来获得到Fabric CA的HTTPS
 目前，pom.xml中设置使用netty-tcnative-boringssl用于TLS连接到Orderer和Peers，您可以更改pom.xml（取消注释几行）来通过ALPN使用替代TLS连接。
 
 ### SDK集成测试需要的TLS环境
+SDK集成测试可以通过在./fabric重新启动之前添加以下内容来启用：
+
+```shell
+ORG_HYPERLEDGER_FABRIC_SDKTEST_INTEGRATIONTESTS_TLS = true ORG_HYPERLEDGER_FABRIC_SDKTEST_INTEGRATIONTESTS_CA_TLS = - tls.enabled 
+./fabric.sh restart
+```
+然后运行集成测试：
+```shell
+ORG_HYPERLEDGER_FABRIC_SDKTEST_INTEGRATIONTESTS_TLS=true 
+mvn clean install -DskipITs=false -Dmaven.test.failure.ignore=false javadoc:javadoc
+```
+
+### Chaincode背书政策?(Chaincode endorsement policies)
+Policies are described in the Fabric Endorsement Policies document.
+策略在[Fabric背书策略文档](https://gerrit.hyperledger.org/r/gitweb?p=fabric.git;a=blob;f=docs/endorsement-policies.md;h=1eecf359c12c3f7c1ddc63759a0b5f3141b07f13;hb=HEAD)中进行了描述。
+当您在使用Fabric工具创建策略（示例显示在[JIRA issue FAB-2376](https://jira.hyperledger.org/browse/FAB-2376?focusedCommentId=21121&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-21121)中）.
+并将其作为文件或字节数组提供给SDK时,SDK会在创建链代码实例化请求时使用该策略。
+
