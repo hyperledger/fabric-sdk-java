@@ -1,4 +1,7 @@
 # Java SDK for Hyperledger Fabric 1.1
+
+*阅读其他语言: [English](README.md), [简体中文](README-zh.md).*
+
 欢迎使用Java SDK for Hyperledger项目。 SDK有助于促进Java应用程序管理Hyperledger生命周期和用户链码。 SDK还提供了一种方式来执行用户链码，查询块和通道上的交易，并能够监控通道上的事件。
 
 该SDK能够对通过实现SDK的`用户`接口来定义应用程序的用户特定行为进行操作。
