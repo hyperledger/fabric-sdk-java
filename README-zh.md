@@ -175,3 +175,17 @@ Policies are described in the Fabric Endorsement Policies document.
 当您在使用Fabric工具创建策略（示例显示在[JIRA issue FAB-2376](https://jira.hyperledger.org/browse/FAB-2376?focusedCommentId=21121&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-21121)中）.
 并将其作为文件或字节数组提供给SDK时,SDK会在创建链代码实例化请求时使用该策略。
 
+要将策略输入到SDK，请使用 **ChaincodeEndorsementPolicy**类。
+出于测试目的，_src/test/resources_ 目录中有2个策略文件.
+  * _policyBitsAdmin_ (政策 **AND(DEFAULT.admin)** 意味着来自 DEFAULT MSP 管理员的签名是必需的)
+  * _policyBitsMember_ (政策 **AND(DEFAULT.member)** 意味着来自 DEFAULT MSP 一个成员的签名是必需的)
+
+_src/test/fixture/sdk integration/e2e-2Orgs/channel_ 目录下一个文件专门用于端到端测试场景. 
+  * _members_from_org1_or_2.policy_ (策略 **OR(peerOrg1.member, peerOrg2.member)** 意味着来自组织peerOrg1或者PeerOrg2中一个成员的签名是必须的)
+  
+或者,你也可以通过定义一个 YAML 策略文件使用ChaincodeEndorsementPolicy类.
+端到端的测试用例在 _src/test/fixture/sdkintegration/chaincodeendorsementpolicy.yaml_
+文件 _chaincodeendorsementpolicy.yaml_ 中有注释,能帮助你了解如何创建这些策略。
+第一部分列出您可以在政策中使用的所有签名身份,目前只支持ROLE类型。
+策略部分由 `n-of` 和 `signed-by` 的节点组成。然后,n-of(`1-of` `2-of`) 需要该部分很多 `n` 为true.`signed-by` 引用标识部分中的身份标示.
+ **此部分翻译欠妥,请[参阅原文](README.md/###Chaincode endorsement policies)以便更好的理解**
