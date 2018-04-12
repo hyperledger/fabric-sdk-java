@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +74,154 @@ public class NetworkConfig {
     private Map<String, Node> orderers;
     private Map<String, Node> peers;
     private Map<String, Node> eventHubs;
+
+    /**
+     * Names of Peers found
+     *
+     * @return Collection of peer names found.
+     */
+    public Collection<String> getPeerNames() {
+        if (peers == null) {
+            return Collections.EMPTY_SET;
+        } else {
+            return new HashSet<>(peers.keySet());
+        }
+    }
+
+    /**
+     * Names of Orderers found
+     *
+     * @return Collection of peer names found.
+     */
+    public Collection<String> getOrdererNames() {
+        if (orderers == null) {
+            return Collections.EMPTY_SET;
+        } else {
+            return new HashSet<>(orderers.keySet());
+        }
+    }
+
+    /**
+     * Names of EventHubs found
+     *
+     * @return Collection of eventhubs names found.
+     */
+
+    public Collection<String> getEventHubNames() {
+        if (eventHubs == null) {
+            return Collections.EMPTY_SET;
+        } else {
+            return new HashSet<>(eventHubs.keySet());
+        }
+    }
+
+    private Properties getNodeProperties(String type, String name, Map<String, Node> nodes) throws InvalidArgumentException {
+        if (isNullOrEmpty(name)) {
+            throw new InvalidArgumentException("Parameter name is null or empty.");
+        }
+
+        Node node = nodes.get(name);
+        if (node == null) {
+            throw new InvalidArgumentException(format("%s %s not found.", type, name));
+        }
+
+        if (null == node.properties) {
+            return new Properties();
+        } else {
+
+            return new Properties(node.properties);
+        }
+
+    }
+
+    private void setNodeProperties(String type, String name, Map<String, Node> nodes, Properties properties) throws InvalidArgumentException {
+        if (isNullOrEmpty(name)) {
+            throw new InvalidArgumentException("Parameter name is null or empty.");
+        }
+        if (properties == null) {
+            throw new InvalidArgumentException("Parameter properties is null.");
+        }
+
+        Node node = nodes.get(name);
+        if (node == null) {
+            throw new InvalidArgumentException(format("%S %s not found.", type, name));
+        }
+
+        Properties ourCopyProps = new Properties();
+        ourCopyProps.putAll(properties);
+
+        node.properties = ourCopyProps;
+
+    }
+
+    /**
+     * Get properties for a specific peer.
+     *
+     * @param name Name of peer to get the properties for.
+     * @return The peer's properties.
+     * @throws InvalidArgumentException
+     */
+    public Properties getPeerProperties(String name) throws InvalidArgumentException {
+        return getNodeProperties("Peer", name, peers);
+
+    }
+
+    /**
+     * Get properties for a specific Orderer.
+     *
+     * @param name Name of orderer to get the properties for.
+     * @return The orderer's properties.
+     * @throws InvalidArgumentException
+     */
+    public Properties getOrderProperties(String name) throws InvalidArgumentException {
+        return getNodeProperties("Orderer", name, orderers);
+
+    }
+
+    /**
+     * Get properties for a specific eventhub.
+     *
+     * @param name Name of eventhub to get the properties for.
+     * @return The eventhubs's properties.
+     * @throws InvalidArgumentException
+     */
+    public Properties getEventHubsProperties(String name) throws InvalidArgumentException {
+        return getNodeProperties("EventHub", name, eventHubs);
+
+    }
+
+    /**
+     * Set a specific peer's properties.
+     *
+     * @param name       The name of the peer's property to set.
+     * @param properties The properties to set.
+     * @throws InvalidArgumentException
+     */
+    public void setPeerProperties(String name, Properties properties) throws InvalidArgumentException {
+        setNodeProperties("Peer", name, peers, properties);
+    }
+
+    /**
+     * Set a specific orderer's properties.
+     *
+     * @param name       The name of the orderer's property to set.
+     * @param properties The properties to set.
+     * @throws InvalidArgumentException
+     */
+    public void setOrdererProperties(String name, Properties properties) throws InvalidArgumentException {
+        setNodeProperties("Orderer", name, orderers, properties);
+    }
+
+    /**
+     * Set a specific eventhub's properties.
+     *
+     * @param name       The name of the eventhub's property to set.
+     * @param properties The properties to set.
+     * @throws InvalidArgumentException
+     */
+    public void setEventHubProperties(String name, Properties properties) throws InvalidArgumentException {
+        setNodeProperties("EventHub", name, eventHubs, properties);
+    }
 
     // Organizations, keyed on org name (and not on mspid!)
     private Map<String, OrgInfo> organizations;
@@ -878,7 +1027,7 @@ public class NetworkConfig {
 
         private final String name;
         private final String url;
-        private final Properties properties;
+        private Properties properties;
 
         Node(String name, String url, Properties properties) {
             this.url = url;
