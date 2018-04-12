@@ -189,3 +189,108 @@ _src/test/fixture/sdk integration/e2e-2Orgs/channel_ 目录下一个文件专门
 第一部分列出您可以在政策中使用的所有签名身份,目前只支持ROLE类型。
 策略部分由 `n-of` 和 `signed-by` 的节点组成。然后,n-of(`1-of` `2-of`) 需要该部分很多 `n` 为true.`signed-by` 引用标识部分中的身份标示.
  **此部分翻译欠妥,请[参阅原文](README.md/###Chaincode endorsement policies)以便更好的理解**
+ 
+ ### Channel creation artifacts
+ Channel configuration files and orderer bootstrap files ( see directory _src/test/fixture/sdkintegration/e2e-2Orgs_ ) are needed when creating a new channel.
+ This is created with the Hyperledger Fabric `configtxgen` tool.  This must be run after `cryptogen` and the directory you're
+ running in **must** have a generated `crypto-config` directory.
+ 
+ If `build/bin/configtxgen` tool is not present  run `make configtxgen`
+ 
+ For v1.0 integration test the commands are:
+ 
+  * build/bin/configtxgen -outputCreateChannelTx foo.tx -profile TwoOrgsChannel -channelID foo
+  * build/bin/configtxgen -outputCreateChannelTx bar.tx -profile TwoOrgsChannel -channelID bar
+ 
+ For v1.1 integration the commands use the v11 profiles in configtx.yaml.
+   You need to for now copy the configtx.yaml in `e2e-20orgs` to the v1.1 directory and run from there:
+  * configtxgen -outputBlock orderer.block -profile TwoOrgsOrdererGenesis_v11
+  * configtxgen -outputCreateChannelTx bar.tx -profile TwoOrgsChannel_v11 -channelID bar
+  * configtxgen -outputCreateChannelTx foo.tx -profile TwoOrgsChannel_v11 -channelID foo
+ 
+  This should produce in the `v1.1` directory: bar.tx,foo.tx, orderer.block
+ 
+  **Note:** The above describes how this was done. If you redo this there are private key files
+  which are produced with unique names which won't match what's expected in the integration tests.
+  One examle of this is the docker-compose.yaml (search for **_sk**)
+ 
+ 
+ ### GO Lang 区块链
+ Go lang 区块链的依赖关系必须包含在vendor文件夹中。
+有关此的解释请参阅[Vendor folder explanation](https://blog.gopheracademy.com/advent-2015/vendor-folder/)
+ 
+ 
+ ## 基本故障排除
+ 
+ **防火墙，负载均衡器，网络代理**
+ 
+ 有时这些可能会静默地关闭网络连接，并阻止它们自动重新连接。
+ 要解决这些问题,请查看添加在 Peers, EventHubs 和 Orderer's 中的连接配置:
+ `grpc.NettyChannelBuilderOption.keepAliveTime`, `grpc.NettyChannelBuilderOption.keepAliveTimeout`,
+ `grpc.NettyChannelBuilderOption.keepAliveWithoutCalls`. 这些例子在 End2endIT.java 中.
+ 
+ 
+ **身份或令牌不匹配**
+ 
+请记住，您只能使用成员服务服务器执行一次注册过程，因为enrollmentSecret使用一次性密码。如果您已使用成员服务执行了FSUser注册/登记，但是随后删除了存储在客户端的加密令牌，则下次尝试注册时，将会看到类似于以下信息的错误。
+ ``Error: identity or token do not match``
+ 
+ ``Error: FSUser is already registered``
+ 要解决这个问题，请按照[这里](https://github.com/hyperledger/fabric/blob/master/docs/Setup/Chaincode-setup.md#removing-temporary-files-when-security-is-enabled)的说明删除CA服务器中存储的所有加密资料，这些操作通常涉及删除/var/hyperledger/production目录并重新启动membership服务。您还需要通过删除KeyValStore来移除存储在客户端的所有加密令牌。在单元测试中,KeyValStore在文件${FSUser.home}/test.properties中进行配置.
+
+运行单元测试时，您将始终需要清除membership服务数据库并删除KeyStore文件，否则单元测试将失败。
+
+ **java.security.InvalidKeyException: Illegal key size**
+ 
+ 如果你得到这个错误，这意味着你的JDK不能处理无限强度的加密算法。 要解决此问题，您需要为您的JDK下载JCE库。 请按照[说明](http://stackoverflow.com/questions/6481627/java-security-illegal-key-size-or-default-parameters)为您的JDK下载和安装相应版本的JCE。
+
+
+ ## 与开发人员和其他用户沟通
+  登录到[Hyperledger project's Rocket chat](https://chat.hyperledger.org/)
+  为此，您还需要一个[Linux Foundation ID](https://identity.linuxfoundation.org/)
+  加入**fabric-sdk-java**频道。
+ 
+ ## 报告问题
+ 如果您的问题与构建Fabric开发环境有关，请在ocket.chat's #fabric-dev-env 频道上讨论此问题。
+ 
+ 要报告问题，请到[Hyperledger's JIRA](http://jira.hyperledger.org/).
+您需要一个 Linux Foundation ID (LFID)进行登录,如果还没有,你可以在[The Linux Foundation](https://identity.linuxfoundation.org/")获得.
+ 
+JIRA字段应该如下：
+ <dl>
+   <dt>Type</dt>
+   <dd>Bug <i>or</i> New Feature</dd>
+ 
+   <dt>Component</dt>
+   <dd>fabric-sdk-java</dd>
+   <dt>Fix Versions</dt>
+     <dd>v1.1</dd>
+ </dl>
+ 
+ 请提供尽可能多的信息，以解决您遇到的问题：堆栈跟踪日志。
+ 
+ 请提供 **java -XshowSettings:properties -version**的输出信息.
+ 
+ 通过设置环境变量可以启用对SDK的记录：
+ ```shell
+ ORG_HYPERLEDGER_FABRIC_SDK_LOGLEVEL=TRACE
+ 
+ ORG_HYPERLEDGER_FABRIC_CA_SDK_LOGLEVEL=TRACE
+```
+
+Fabric 调试在文件 SDK docker-compose.yml 中默认启用. 
+ 
+ 在Orderer上:
+ 
+ ORDERER_GENERAL_LOGLEVEL=debug
+ 
+ 在 peers上:
+ CORE_LOGGING_LEVEL=DEBUG
+ 
+ Fabric CA
+ 通过添加参数-d开始执行命令
+ 
+ 如果可能的话，将完整日志上传到JIRA，而不仅仅是发生问题的地方
+ 
+ 
+ <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
