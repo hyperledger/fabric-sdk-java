@@ -128,12 +128,31 @@ public class TestUtils {
     public static Object getField(Object o, String fieldName) {
 
         try {
-            final Field field = o.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
+            final Field field = getFieldInt(o.getClass(), fieldName);
+
             return field.get(o);
         } catch (Exception e) {
             throw new RuntimeException("Cannot get value of field " + fieldName, e);
         }
+    }
+
+    private static Field getFieldInt(Class o, String name) throws NoSuchFieldException {
+        Field ret;
+        try {
+            ret = o.getDeclaredField(name);
+        } catch (NoSuchFieldException e) {
+
+            Class superclass = o.getSuperclass();
+            if (null != superclass) {
+                ret = getFieldInt(superclass, name);
+
+            } else {
+                throw e;
+            }
+
+        }
+        ret.setAccessible(true);
+        return ret;
     }
 
     /**

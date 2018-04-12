@@ -14,7 +14,6 @@
 
 package org.hyperledger.fabric.sdk;
 
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -29,6 +28,7 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
 
+import io.grpc.ManagedChannelBuilder;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.NetworkConfigurationException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
@@ -39,6 +39,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.getField;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -342,6 +344,13 @@ public class NetworkConfigTest {
             config.setPeerProperties(peerName, peerProperties);
         }
 
+        for (String orderName : config.getOrdererNames()) {
+            Properties ordererProperties = config.getOrdererProperties(orderName);
+            ordererProperties.put("grpc.NettyChannelBuilderOption.maxInboundMessageSize", 9000000);
+            ordererProperties.put("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls", new Object[] {false});
+            config.setOrdererProperties(orderName, ordererProperties);
+        }
+
         //HFClient client = HFClient.loadFromConfig(f);
         assertNotNull(config);
 
@@ -363,6 +372,27 @@ public class NetworkConfigTest {
             assertNotNull(properties.get("grpc.NettyChannelBuilderOption.keepAliveTimeout"));
             assertNotNull(properties.get("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls"));
 
+            Endpoint ep = new Endpoint(peer.getUrl(), properties);
+            ManagedChannelBuilder<?> channelBuilder = ep.getChannelBuilder();
+
+            assertEquals(5L * 60L * 1000000000L, getField(channelBuilder, "keepAliveTimeNanos"));
+            assertEquals(8L * 1000000000L, getField(channelBuilder, "keepAliveTimeoutNanos"));
+            assertEquals(true, getField(channelBuilder, "keepAliveWithoutCalls"));
+        }
+
+        for (Orderer orderer : channel.getOrderers()) {
+
+            Properties properties = orderer.getProperties();
+
+            assertNotNull(properties);
+            assertNotNull(properties.get("grpc.NettyChannelBuilderOption.maxInboundMessageSize"));
+            assertNotNull(properties.get("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls"));
+
+            Endpoint ep = new Endpoint(orderer.getUrl(), properties);
+            ManagedChannelBuilder<?> channelBuilder = ep.getChannelBuilder();
+
+            assertEquals(9000000, getField(channelBuilder, "maxInboundMessageSize"));
+            assertEquals(false, getField(channelBuilder, "keepAliveWithoutCalls"));
         }
 
     }

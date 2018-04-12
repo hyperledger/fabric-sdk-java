@@ -173,7 +173,7 @@ public class NetworkConfig {
      * @return The orderer's properties.
      * @throws InvalidArgumentException
      */
-    public Properties getOrderProperties(String name) throws InvalidArgumentException {
+    public Properties getOrdererProperties(String name) throws InvalidArgumentException {
         return getNodeProperties("Orderer", name, orderers);
 
     }
