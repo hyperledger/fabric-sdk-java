@@ -62,7 +62,7 @@ public class SDKUtils {
         }
 
         CryptoSuite cryptoSuite = client.getCryptoSuite();
-        if (null == client) {
+        if (null == cryptoSuite) {
             throw new InvalidArgumentException("Client crypto suite has not  been set.");
         }
 
