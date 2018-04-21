@@ -14,11 +14,12 @@
 
 package org.hyperledger.fabric.sdk;
 
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -27,6 +28,7 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
 
+import io.grpc.ManagedChannelBuilder;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.NetworkConfigurationException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
@@ -37,6 +39,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.getField;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class NetworkConfigTest {
 
@@ -106,43 +113,43 @@ public class NetworkConfigTest {
     @Test
     public void testLoadFromConfigFileYamlBasic() throws Exception {
 
-        File f = new File("src/test/fixture/sdkintegration/e2e-2Orgs/channel/network-config.yaml");
+        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.yaml");
         NetworkConfig config = NetworkConfig.fromYamlFile(f);
-        Assert.assertNotNull(config);
+        assertNotNull(config);
     }
 
     @Test
     public void testLoadFromConfigFileJsonBasic() throws Exception {
 
-        File f = new File("src/test/fixture/sdkintegration/e2e-2Orgs/channel/network-config.json");
+        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.json");
         NetworkConfig config = NetworkConfig.fromJsonFile(f);
-        Assert.assertNotNull(config);
+        assertNotNull(config);
     }
 
     @Test
     public void testLoadFromConfigFileYaml() throws Exception {
 
         // Should be able to instantiate a new instance of "Client" with a valid path to the YAML configuration
-        File f = new File("src/test/fixture/sdkintegration/e2e-2Orgs/channel/network-config.yaml");
+        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.yaml");
         NetworkConfig config = NetworkConfig.fromYamlFile(f);
         //HFClient client = HFClient.loadFromConfig(f);
-        Assert.assertNotNull(config);
+        assertNotNull(config);
 
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
         client.setUserContext(TestUtils.getMockUser(USER_NAME, USER_MSP_ID));
 
         Channel channel = client.loadChannelFromConfig("foo", config);
-        Assert.assertNotNull(channel);
+        assertNotNull(channel);
     }
 
     @Test
     public void testLoadFromConfigFileJson() throws Exception {
 
         // Should be able to instantiate a new instance of "Client" with a valid path to the JSON configuration
-        File f = new File("src/test/fixture/sdkintegration/e2e-2Orgs/channel/network-config.json");
+        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.json");
         NetworkConfig config = NetworkConfig.fromJsonFile(f);
-        Assert.assertNotNull(config);
+        assertNotNull(config);
 
         //HFClient client = HFClient.loadFromConfig(f);
         //Assert.assertNotNull(client);
@@ -152,7 +159,7 @@ public class NetworkConfigTest {
         client.setUserContext(TestUtils.getMockUser(USER_NAME, USER_MSP_ID));
 
         Channel channel = client.loadChannelFromConfig("mychannel", config);
-        Assert.assertNotNull(channel);
+        assertNotNull(channel);
     }
 
     @Test
@@ -191,7 +198,7 @@ public class NetworkConfigTest {
         TestHFClient.setupClient(client);
 
         Channel channel = client.loadChannelFromConfig(CHANNEL_NAME, config);
-        Assert.assertNotNull(channel);
+        assertNotNull(channel);
         Assert.assertEquals(CHANNEL_NAME, channel.getName());
     }
 
@@ -287,6 +294,109 @@ public class NetworkConfigTest {
 
     }
 
+    @Test
+    public void testLoadFromConfigFileYamlNOOverrides() throws Exception {
+
+        // Should be able to instantiate a new instance of "Client" with a valid path to the YAML configuration
+        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.yaml");
+        NetworkConfig config = NetworkConfig.fromYamlFile(f);
+
+        //HFClient client = HFClient.loadFromConfig(f);
+        assertNotNull(config);
+
+        HFClient client = HFClient.createNewInstance();
+        client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+        client.setUserContext(TestUtils.getMockUser(USER_NAME, USER_MSP_ID));
+
+        Channel channel = client.loadChannelFromConfig("foo", config);
+        assertNotNull(channel);
+
+        assertTrue(!channel.getPeers().isEmpty());
+
+        for (Peer peer : channel.getPeers()) {
+
+            Properties properties = peer.getProperties();
+
+            assertNotNull(properties);
+            assertNull(properties.get("grpc.NettyChannelBuilderOption.keepAliveTime"));
+            assertNull(properties.get("grpc.NettyChannelBuilderOption.keepAliveTimeout"));
+            assertNull(properties.get("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls"));
+
+        }
+
+    }
+
+    @Test
+    public void testLoadFromConfigFileYamlOverrides() throws Exception {
+
+        // Should be able to instantiate a new instance of "Client" with a valid path to the YAML configuration
+        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.yaml");
+        NetworkConfig config = NetworkConfig.fromYamlFile(f);
+
+        for (String peerName : config.getPeerNames()) {
+            Properties peerProperties = config.getPeerProperties(peerName);
+
+            //example of setting keepAlive to avoid timeouts on inactive http2 connections.
+            // Under 5 minutes would require changes to server side to accept faster ping rates.
+            peerProperties.put("grpc.NettyChannelBuilderOption.keepAliveTime", new Object[] {5L, TimeUnit.MINUTES});
+            peerProperties.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {8L, TimeUnit.SECONDS});
+            peerProperties.put("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls", new Object[] {true});
+            config.setPeerProperties(peerName, peerProperties);
+        }
+
+        for (String orderName : config.getOrdererNames()) {
+            Properties ordererProperties = config.getOrdererProperties(orderName);
+            ordererProperties.put("grpc.NettyChannelBuilderOption.maxInboundMessageSize", 9000000);
+            ordererProperties.put("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls", new Object[] {false});
+            config.setOrdererProperties(orderName, ordererProperties);
+        }
+
+        //HFClient client = HFClient.loadFromConfig(f);
+        assertNotNull(config);
+
+        HFClient client = HFClient.createNewInstance();
+        client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+        client.setUserContext(TestUtils.getMockUser(USER_NAME, USER_MSP_ID));
+
+        Channel channel = client.loadChannelFromConfig("foo", config);
+        assertNotNull(channel);
+
+        assertTrue(!channel.getPeers().isEmpty());
+
+        for (Peer peer : channel.getPeers()) {
+
+            Properties properties = peer.getProperties();
+
+            assertNotNull(properties);
+            assertNotNull(properties.get("grpc.NettyChannelBuilderOption.keepAliveTime"));
+            assertNotNull(properties.get("grpc.NettyChannelBuilderOption.keepAliveTimeout"));
+            assertNotNull(properties.get("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls"));
+
+            Endpoint ep = new Endpoint(peer.getUrl(), properties);
+            ManagedChannelBuilder<?> channelBuilder = ep.getChannelBuilder();
+
+            assertEquals(5L * 60L * 1000000000L, getField(channelBuilder, "keepAliveTimeNanos"));
+            assertEquals(8L * 1000000000L, getField(channelBuilder, "keepAliveTimeoutNanos"));
+            assertEquals(true, getField(channelBuilder, "keepAliveWithoutCalls"));
+        }
+
+        for (Orderer orderer : channel.getOrderers()) {
+
+            Properties properties = orderer.getProperties();
+
+            assertNotNull(properties);
+            assertNotNull(properties.get("grpc.NettyChannelBuilderOption.maxInboundMessageSize"));
+            assertNotNull(properties.get("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls"));
+
+            Endpoint ep = new Endpoint(orderer.getUrl(), properties);
+            ManagedChannelBuilder<?> channelBuilder = ep.getChannelBuilder();
+
+            assertEquals(9000000, getField(channelBuilder, "maxInboundMessageSize"));
+            assertEquals(false, getField(channelBuilder, "keepAliveWithoutCalls"));
+        }
+
+    }
+
 
     // TODO: ca-org1 not defined
     @Ignore
@@ -307,18 +417,18 @@ public class NetworkConfigTest {
         //TestHFClient.setupClient(client);
 
         //Channel channel = client.getChannel(CHANNEL_NAME);
-        Assert.assertNotNull(channel);
+        assertNotNull(channel);
         Assert.assertEquals(CHANNEL_NAME, channel.getName());
 
         Collection<Orderer> orderers = channel.getOrderers();
-        Assert.assertNotNull(orderers);
+        assertNotNull(orderers);
         Assert.assertEquals(1, orderers.size());
 
         Orderer orderer = orderers.iterator().next();
         Assert.assertEquals("orderer1.example.com", orderer.getName());
 
         Collection<Peer> peers = channel.getPeers();
-        Assert.assertNotNull(peers);
+        assertNotNull(peers);
         Assert.assertEquals(1, peers.size());
 
         Peer peer = peers.iterator().next();

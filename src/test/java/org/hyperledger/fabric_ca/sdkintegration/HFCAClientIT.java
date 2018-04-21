@@ -415,7 +415,6 @@ public class HFCAClientIT {
         ASN1OctetString akiOc = ASN1OctetString.getInstance(extensionValue);
         String aki = DatatypeConverter.printHexBinary(AuthorityKeyIdentifier.getInstance(akiOc.getOctets()).getKeyIdentifier());
 
-
         int startedWithRevokes = -1;
 
         if (!testConfig.isRunningAgainstFabric10()) {
@@ -433,7 +432,6 @@ public class HFCAClientIT {
             assertEquals(format("Expected one more revocation %d, but got %d", startedWithRevokes + 1, newRevokes), startedWithRevokes + 1, newRevokes);
         }
     }
-
 
     // Tests attempting to revoke a user with Null reason
     @Test
@@ -605,8 +603,8 @@ public class HFCAClientIT {
         Boolean found = false;
         for (Attribute attr : attrs) {
             if (attr.getName().equals("testattr1")) {
-                 found = true;
-                 break;
+                found = true;
+                break;
             }
         }
 
@@ -642,7 +640,7 @@ public class HFCAClientIT {
         ident.create(admin);
 
         Collection<HFCAIdentity> foundIdentities = client.getHFCAIdentities(admin);
-        String[] expectedIdenities = new String[]{"testuser2", "admin"};
+        String[] expectedIdenities = new String[] {"testuser2", "admin"};
         Integer found = 0;
 
         for (HFCAIdentity id : foundIdentities) {
@@ -797,7 +795,8 @@ public class HFCAClientIT {
         ArrayList<String> expectedFirstLevelAffiliations = new ArrayList<String>(Arrays.asList("org2", "org1"));
         int found = 0;
         for (HFCAAffiliation aff : resp.getChildren()) {
-            for (Iterator<String> iter = expectedFirstLevelAffiliations.iterator(); iter.hasNext();) {
+            for (Iterator<String> iter = expectedFirstLevelAffiliations.iterator(); iter.hasNext();
+                    ) {
                 String element = iter.next();
                 if (aff.getName().equals(element)) {
                     iter.remove();
@@ -812,12 +811,7 @@ public class HFCAClientIT {
         ArrayList<String> expectedSecondLevelAffiliations = new ArrayList<String>(Arrays.asList("org2.department1", "org1.department1", "org1.department2"));
         for (HFCAAffiliation aff : resp.getChildren()) {
             for (HFCAAffiliation aff2 : aff.getChildren()) {
-                for (Iterator<String> iter = expectedSecondLevelAffiliations.iterator(); iter.hasNext();) {
-                    String element = iter.next();
-                    if (aff2.getName().equals(element)) {
-                        iter.remove();
-                    }
-                }
+                expectedSecondLevelAffiliations.removeIf(element -> aff2.getName().equals(element));
             }
         }
 
@@ -1092,7 +1086,10 @@ public class HFCAClientIT {
 
         if (!testConfig.isRunningAgainstFabric10()) {
             HFCAInfo info = client.info();
-            assertTrue(info.getVersion().contains("1.1.0"));
+            assertNotNull("client.info returned null.", info);
+            String version = info.getVersion();
+            assertNotNull("client.info.getVersion returned null.", version);
+            assertTrue(format("Version '%s' didn't match expected pattern", version), version.matches("^\\d+\\.\\d+\\.\\d+($|-.*)"));
         }
 
     }

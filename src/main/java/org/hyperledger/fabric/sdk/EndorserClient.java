@@ -17,9 +17,9 @@ package org.hyperledger.fabric.sdk;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import io.grpc.StatusRuntimeException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.peer.EndorserGrpc;
@@ -86,24 +86,10 @@ class EndorserClient {
         return futureStub.processProposal(proposal);
     }
 
-    public FabricProposalResponse.ProposalResponse sendProposal(FabricProposal.SignedProposal proposal) throws PeerException {
-
-        if (shutdown) {
-            throw new PeerException("Shutdown");
-        }
-
-        try {
-            return blockingStub.processProposal(proposal);
-
-        } catch (StatusRuntimeException e) {
-            logger.warn(String.format("RPC failed: %s", e.getStatus()));
-            throw new PeerException("Sending transaction to peer failed", e);
-        }
-    }
 
     boolean isChannelActive() {
         ManagedChannel lchannel = managedChannel;
-        return lchannel != null && !lchannel.isShutdown() && !lchannel.isTerminated();
+        return lchannel != null && !lchannel.isShutdown() && !lchannel.isTerminated() && ConnectivityState.READY.equals(lchannel.getState(true));
     }
 
     @Override

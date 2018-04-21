@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -52,6 +51,7 @@ import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createSeekInfoEn
 class PeerEventServiceClient {
     private static final Config config = Config.getConfig();
     private static final long PEER_EVENT_REGISTRATION_WAIT_TIME = config.getPeerEventRegistrationWaitTime();
+    private static final long PEER_EVENT_RECONNECTION_WARNING_RATE = config.getPeerEventReconnectionWarningRate();
     private static final Log logger = LogFactory.getLog(PeerEventServiceClient.class);
     private final String channelName;
     private final ManagedChannelBuilder channelBuilder;
@@ -67,7 +67,7 @@ class PeerEventServiceClient {
     StreamObserver<DeliverResponse> so = null;
     private Channel.ChannelEventQue channelEventQue;
     private boolean shutdown = false;
-    private ManagedChannel managedChannel = null;
+    private transient ManagedChannel managedChannel = null;
     private transient TransactionContext transactionContext;
     private transient Peer peer;
 
@@ -159,7 +159,13 @@ class PeerEventServiceClient {
         shutdown(true);
     }
 
-    DeliverResponse[] connectEnvelope(Envelope envelope) throws TransactionException {
+    /**
+     * Get the last block received by this peer.
+     *
+     * @return The last block received by this peer. May return null if no block has been received since first reactivated.
+     */
+
+    void connectEnvelope(Envelope envelope) throws TransactionException {
 
         if (shutdown) {
             throw new TransactionException("Peer eventing client is shutdown");
@@ -179,13 +185,11 @@ class PeerEventServiceClient {
             DeliverGrpc.DeliverStub broadcast = DeliverGrpc.newStub(lmanagedChannel);
 
             // final DeliverResponse[] ret = new DeliverResponse[1];
-            final List<DeliverResponse> retList = new ArrayList<>();
+            //   final List<DeliverResponse> retList = new ArrayList<>();
             final List<Throwable> throwableList = new ArrayList<>();
             final CountDownLatch finishLatch = new CountDownLatch(1);
 
             so = new StreamObserver<DeliverResponse>() {
-                boolean done = false;
-                AtomicBoolean inRecovery = new AtomicBoolean(false);
 
                 @Override
                 public void onNext(DeliverResponse resp) {
@@ -194,24 +198,16 @@ class PeerEventServiceClient {
                     logger.trace(format("DeliverResponse channel %s peer %s resp status value:%d  status %s, typecase %s ",
                             channelName, peer.getName(), resp.getStatusValue(), resp.getStatus(), resp.getTypeCase()));
 
-                    if (done) {
-
-                        // logger.info("Got Broadcast response: " + resp);
-                        logger.trace(format("DeliverResponse channel %s peer %s ignored because done. resp status value:%d  status %s, typecase %s ",
-                                channelName, peer.getName(), resp.getStatusValue(), resp.getStatus(), resp.getTypeCase()));
-
-                        return;
-                    }
-
                     final DeliverResponse.TypeCase typeCase = resp.getTypeCase();
 
                     if (typeCase == STATUS) {
-                        done = true;
+
                         logger.debug(format("DeliverResponse channel %s peer %s setting done.",
                                 channelName, peer.getName()));
 
-                        if (resp.getStatus() == Common.Status.SUCCESS) {
-                            retList.add(0, resp);
+                        if (resp.getStatus() == Common.Status.SUCCESS) { // unlike you may think this only happens when all blocks are fetched.
+                            peer.setLastConnectTime(System.currentTimeMillis());
+                            peer.resetReconnectCount();
                         } else {
 
                             throwableList.add(new TransactionException(format("Channel %s peer %s Status returned failure code %d (%s) during peer service event registration",
@@ -219,11 +215,28 @@ class PeerEventServiceClient {
                         }
 
                     } else if (typeCase == FILTERED_BLOCK || typeCase == BLOCK) {
-                        logger.trace(format("Channel %s peer %s got event block hex hashcode: %016x, block number: %d",
-                                channelName, peer.getName(), resp.getBlock().hashCode(), resp.getBlock().getHeader().getNumber()));
-                        retList.add(resp);
+                        if (typeCase == BLOCK) {
+                            logger.trace(format("Channel %s peer %s got event block hex hashcode: %016x, block number: %d",
+                                    channelName, peer.getName(), resp.getBlock().hashCode(), resp.getBlock().getHeader().getNumber()));
+                        } else {
+                            logger.trace(format("Channel %s peer %s got event block hex hashcode: %016x, block number: %d",
+                                    channelName, peer.getName(), resp.getFilteredBlock().hashCode(), resp.getFilteredBlock().getNumber()));
+                        }
 
-                        channelEventQue.addBEvent(new BlockEvent(peer, resp));
+                        peer.setLastConnectTime(System.currentTimeMillis());
+                        long reconnectCount = peer.getReconnectCount();
+                        if (reconnectCount > 1) {
+
+                            logger.info(format("Peer eventing service reconnected after %d attempts on channel %s, peer %s, url %s",
+                                    reconnectCount, channelName, name, url));
+
+                        }
+                        peer.resetReconnectCount();
+
+                        BlockEvent blockEvent = new BlockEvent(peer, resp);
+                        peer.setLastBlockSeen(blockEvent);
+
+                        channelEventQue.addBEvent(blockEvent);
                     } else {
                         logger.error(format("Channel %s peer %s got event block with unknown type: %s, %d",
                                 channelName, peer.getName(), typeCase.name(), typeCase.getNumber()));
@@ -238,31 +251,34 @@ class PeerEventServiceClient {
 
                 @Override
                 public void onError(Throwable t) {
-                    final boolean recoverymode = inRecovery.getAndSet(true);
-                    if (recoverymode) {
-                        return; // make sure we do this once.
+                    ManagedChannel llmanagedChannel = managedChannel;
+                    if (llmanagedChannel != null) {
+                        llmanagedChannel.shutdownNow();
+                        managedChannel = null;
                     }
                     if (!shutdown) {
-                        logger.error(format("Received error on channel %s, peer %s, url %s, %s",
-                                channelName, name, url, t.getMessage()), t);
-                        done = true;
-                        throwableList.add(t);
-                        finishLatch.countDown();
-                        Peer lpeer = peer;
+                        final long reconnectCount = peer.getReconnectCount();
+                        if (PEER_EVENT_RECONNECTION_WARNING_RATE > 1 && reconnectCount % PEER_EVENT_RECONNECTION_WARNING_RATE == 1) {
+                            logger.warn(format("Received error on peer eventing service on channel %s, peer %s, url %s, attempts %d. %s",
+                                    channelName, name, url, reconnectCount, t.getMessage()));
 
-                        if (lpeer != null) {
-
-                            lpeer.reconnectPeerEventServiceClient(PeerEventServiceClient.this, t);
+                        } else {
+                            logger.trace(format("Received error on peer eventing service on channel %s, peer %s, url %s, attempts %d. %s",
+                                    channelName, name, url, reconnectCount, t.getMessage()));
 
                         }
+
+                        peer.reconnectPeerEventServiceClient(PeerEventServiceClient.this, t);
+
                     }
+                    finishLatch.countDown();
                 }
 
                 @Override
                 public void onCompleted() {
                     logger.debug(format("DeliverResponse onCompleted channel %s peer %s setting done.",
                             channelName, peer.getName()));
-                    done = true;
+                    //            done = true;
                     //There should have been a done before this...
                     finishLatch.countDown();
                 }
@@ -271,33 +287,36 @@ class PeerEventServiceClient {
             nso = filterBlock ? broadcast.deliverFiltered(so) : broadcast.deliver(so);
 
             nso.onNext(envelope);
-            //nso.onCompleted();
 
-            try {
-                if (!finishLatch.await(peerEventRegistrationWaitTimeMilliSecs, TimeUnit.MILLISECONDS)) {
-                    TransactionException ex = new TransactionException(format(
-                            "Channel %s connect time exceeded for peer eventing service %s, timed out at %d ms.", channelName, name, peerEventRegistrationWaitTimeMilliSecs));
-                    logger.error(ex.getMessage(), ex);
-                    throw ex;
-                }
-                logger.trace("Done waiting for reply!");
+            // try {
+            if (!finishLatch.await(peerEventRegistrationWaitTimeMilliSecs, TimeUnit.MILLISECONDS)) {
+                TransactionException ex = new TransactionException(format(
+                        "Channel %s connect time exceeded for peer eventing service %s, timed out at %d ms.", channelName, name, peerEventRegistrationWaitTimeMilliSecs));
+                throwableList.add(0, ex);
 
-            } catch (InterruptedException e) {
-                logger.error(e);
             }
+            logger.trace("Done waiting for reply!");
 
             if (!throwableList.isEmpty()) {
+                ManagedChannel llmanagedChannel = managedChannel;
+                if (llmanagedChannel != null) {
+                    llmanagedChannel.shutdownNow();
+                    managedChannel = null;
+                }
                 Throwable throwable = throwableList.get(0);
-                TransactionException e = new TransactionException(format(
-                        "Channel %s connect failed on peer eventing service %s. Reason: %s", channelName, name, throwable.getMessage()), throwable);
-                logger.error(e.getMessage(), e);
-                throw e;
+                peer.reconnectPeerEventServiceClient(this, throwable);
+
             }
 
-            return retList.toArray(new DeliverResponse[retList.size()]);
-        } catch (Throwable t) {
-            managedChannel = null;
-            throw t;
+        } catch (InterruptedException e) {
+            ManagedChannel llmanagedChannel = managedChannel;
+            if (llmanagedChannel != null) {
+                llmanagedChannel.shutdownNow();
+                managedChannel = null;
+            }
+            logger.error(e); // not likely
+
+            peer.reconnectPeerEventServiceClient(this, e);
 
         } finally {
             if (null != nso) {

@@ -34,7 +34,7 @@ public class RegistrationRequest {
     // The enrollment ID of the user
     private String enrollmentID;
     // Type of identity
-    private String type = "user";
+    private String type = HFCAClient.HFCA_TYPE_CLIENT;
     // Optional secret
     private String secret;
     // Maximum number of enrollments with the secret

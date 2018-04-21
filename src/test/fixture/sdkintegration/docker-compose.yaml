@@ -15,7 +15,7 @@ services:
     command: sh -c 'fabric-ca-server start -n ca0 ${V11_IDENTITIES_ALLOWREMOVE} ${V11_AFFILIATIONS_ALLOWREMOVE} --registry.maxenrollments -1 --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.org1.example.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/fcf776b02a05600408d0be9d9752afc59f64950b721cacb363b5b95a0fea6216_sk -b admin:adminpw ${ORG_HYPERLEDGER_FABRIC_SDKTEST_INTEGRATIONTESTS_CA_TLS} --tls.certfile /etc/hyperledger/fabric-ca-server-config/ca.org1.example.com-cert.pem --tls.keyfile /etc/hyperledger/fabric-ca-server-config/fcf776b02a05600408d0be9d9752afc59f64950b721cacb363b5b95a0fea6216_sk -d'
 
     volumes:
-      - ./e2e-2Orgs/channel/crypto-config/peerOrganizations/org1.example.com/ca/:/etc/hyperledger/fabric-ca-server-config:ro
+      - ./e2e-2Orgs/${FAB_CONFIG_GEN_VERS}/crypto-config/peerOrganizations/org1.example.com/ca/:/etc/hyperledger/fabric-ca-server-config:ro
     container_name: ca_peerOrg1
 
   ca1:
@@ -26,7 +26,7 @@ services:
       - "8054:7054"
     command: sh -c 'fabric-ca-server start --registry.maxenrollments -1 --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.org2.example.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/b59bba37975dafcc4a93984aa01d3d29b64894617db9e0c9a2d486b5273cbd27_sk -b admin:adminpw ${ORG_HYPERLEDGER_FABRIC_SDKTEST_INTEGRATIONTESTS_CA_TLS} --tls.certfile /etc/hyperledger/fabric-ca-server-config/ca.org2.example.com-cert.pem --tls.keyfile /etc/hyperledger/fabric-ca-server-config/b59bba37975dafcc4a93984aa01d3d29b64894617db9e0c9a2d486b5273cbd27_sk -d'
     volumes:
-      - ./e2e-2Orgs/channel/crypto-config/peerOrganizations/org2.example.com/ca/:/etc/hyperledger/fabric-ca-server-config:ro
+      - ./e2e-2Orgs/${FAB_CONFIG_GEN_VERS}/crypto-config/peerOrganizations/org2.example.com/ca/:/etc/hyperledger/fabric-ca-server-config:ro
     container_name: ca_peerOrg2
 
 
@@ -44,14 +44,14 @@ services:
       - ORDERER_GENERAL_TLS_PRIVATEKEY=/etc/hyperledger/msp/orderer/tls/server.key
       - ORDERER_GENERAL_TLS_CERTIFICATE=/etc/hyperledger/msp/orderer/tls/server.crt
       - ORDERER_GENERAL_TLS_ROOTCAS=[/etc/hyperledger/msp/orderer/tls/ca.crt]
-#      - ORDERER_GENERAL_TLS_ROOTCAS=[/etc/hyperledger/msp/orderer/tls/ca.crt, /etc/hyperledger/msp/peer0Org1/tls/ca.crt, /etc/hyperledger/msp/peer1Org1/tls/ca.crt, /etc/hyperledger/msp/peer0Org2/tls/ca.crt, /etc/hyperledger/msp/peer1Org2/tls/ca.crt]
       - GRPC_TRACE=all=true,
       - GRPC_VERBOSITY=debug
+      - ORDERER_GENERAL_AUTHENTICATION_TIMEWINDOW=3600s #Not for production -- remove.
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric
     command: orderer
     volumes:
-     - ./e2e-2Orgs/channel:/etc/hyperledger/configtx:ro
-     - ./e2e-2Orgs/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/:/etc/hyperledger/msp/orderer:ro
+     - ./e2e-2Orgs/${FAB_CONFIG_GEN_VERS}:/etc/hyperledger/configtx:ro
+     - ./e2e-2Orgs/${FAB_CONFIG_GEN_VERS}/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/:/etc/hyperledger/msp/orderer:ro
     ports:
       - 7050:7050
 
@@ -68,7 +68,7 @@ services:
       - CORE_PEER_LOCALMSPID=Org1MSP
     volumes:
       - /var/run/:/host/var/run/
-      - ./e2e-2Orgs/channel/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/:/etc/hyperledger/msp/peer:ro
+      - ./e2e-2Orgs/${FAB_CONFIG_GEN_VERS}/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/:/etc/hyperledger/msp/peer:ro
     ports:
       - 7051:7051
       - 7053:7053
@@ -88,7 +88,7 @@ services:
       - CORE_PEER_LOCALMSPID=Org1MSP
     volumes:
          - /var/run/:/host/var/run/
-         - ./e2e-2Orgs/channel/crypto-config/peerOrganizations/org1.example.com/peers/peer1.org1.example.com/:/etc/hyperledger/msp/peer:ro
+         - ./e2e-2Orgs/${FAB_CONFIG_GEN_VERS}/crypto-config/peerOrganizations/org1.example.com/peers/peer1.org1.example.com/:/etc/hyperledger/msp/peer:ro
     ports:
        - 7056:7051
        - 7058:7053
@@ -109,7 +109,7 @@ services:
       - CORE_PEER_LOCALMSPID=Org2MSP
     volumes:
       - /var/run/:/host/var/run/
-      - ./e2e-2Orgs/channel/crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/:/etc/hyperledger/msp/peer:ro
+      - ./e2e-2Orgs/${FAB_CONFIG_GEN_VERS}/crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/:/etc/hyperledger/msp/peer:ro
     ports:
       - 8051:7051
       - 8053:7053
@@ -129,7 +129,7 @@ services:
       - CORE_PEER_LOCALMSPID=Org2MSP
     volumes:
          - /var/run/:/host/var/run/
-         - ./e2e-2Orgs/channel/crypto-config/peerOrganizations/org2.example.com/peers/peer1.org2.example.com/:/etc/hyperledger/msp/peer:ro
+         - ./e2e-2Orgs/${FAB_CONFIG_GEN_VERS}/crypto-config/peerOrganizations/org2.example.com/peers/peer1.org2.example.com/:/etc/hyperledger/msp/peer:ro
     ports:
        - 8056:7051
        - 8058:7053

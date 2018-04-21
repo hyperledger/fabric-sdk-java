@@ -15,7 +15,6 @@
 package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
-import java.security.PrivateKey;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -37,6 +36,8 @@ import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.InstallProposalRequest;
 import org.hyperledger.fabric.sdk.InstantiateProposalRequest;
 import org.hyperledger.fabric.sdk.NetworkConfig;
+import org.hyperledger.fabric.sdk.NetworkConfig.CAInfo;
+import org.hyperledger.fabric.sdk.NetworkConfig.UserInfo;
 import org.hyperledger.fabric.sdk.Orderer;
 import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.ProposalResponse;
@@ -50,13 +51,16 @@ import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
-import org.hyperledger.fabric.sdk.testutils.TestUtils;
 import org.hyperledger.fabric.sdk.testutils.TestUtils.MockUser;
+import org.hyperledger.fabric_ca.sdk.HFCAClient;
+import org.hyperledger.fabric_ca.sdk.HFCAInfo;
+import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.getMockUser;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -97,6 +101,10 @@ public class NetworkConfigIT {
 
     private static NetworkConfig networkConfig;
 
+    private static Map<String, User> orgRegisteredUsers = new HashMap<>();
+
+
+
     @BeforeClass
     public static void doMainSetup() throws Exception {
         out("\n\n\nRUNNING: NetworkConfigIT.\n");
@@ -107,7 +115,43 @@ public class NetworkConfigIT {
         // Use the appropriate TLS/non-TLS network config file
         networkConfig = NetworkConfig.fromYamlFile(testConfig.getTestNetworkConfigFileYAML());
 
-        // Ensure the chaincode required for these tests is deployed
+        //Check if we get access to defined CAs!
+        NetworkConfig.OrgInfo org = networkConfig.getOrganizationInfo("Org1");
+        CAInfo caInfo = org.getCertificateAuthorities().get(0);
+
+        HFCAClient hfcaClient = HFCAClient.createNewInstance(caInfo);
+        assertEquals(hfcaClient.getCAName(), caInfo.getCAName());
+        HFCAInfo info = hfcaClient.info(); //makes actual REST call.
+        assertEquals(caInfo.getCAName(), info.getCAName());
+
+        Collection<UserInfo> registrars = caInfo.getRegistrars();
+        assertTrue(!registrars.isEmpty());
+        UserInfo registrar = registrars.iterator().next();
+        registrar.setEnrollment(hfcaClient.enroll(registrar.getName(), registrar.getEnrollSecret()));
+        MockUser mockuser = getMockUser(org.getName() + "_mock_" + System.nanoTime(), registrar.getMspId());
+        RegistrationRequest rr = new RegistrationRequest(mockuser.getName(), "org1.department1");
+        mockuser.setEnrollmentSecret(hfcaClient.register(rr, registrar));
+        mockuser.setEnrollment(hfcaClient.enroll(mockuser.getName(), mockuser.getEnrollmentSecret()));
+        orgRegisteredUsers.put(org.getName(), mockuser);
+
+        org = networkConfig.getOrganizationInfo("Org2");
+        caInfo = org.getCertificateAuthorities().get(0);
+
+        hfcaClient = HFCAClient.createNewInstance(caInfo);
+        assertEquals(hfcaClient.getCAName(), caInfo.getCAName());
+        info = hfcaClient.info(); //makes actual REST call.
+        assertEquals(info.getCAName(), "");
+
+        registrars = caInfo.getRegistrars();
+        assertTrue(!registrars.isEmpty());
+        registrar = registrars.iterator().next();
+        registrar.setEnrollment(hfcaClient.enroll(registrar.getName(), registrar.getEnrollSecret()));
+        mockuser = getMockUser(org.getName() + "_mock_" + System.nanoTime(), registrar.getMspId());
+        rr = new RegistrationRequest(mockuser.getName(), "org1.department1");
+        mockuser.setEnrollmentSecret(hfcaClient.register(rr, registrar));
+        mockuser.setEnrollment(hfcaClient.enroll(mockuser.getName(), mockuser.getEnrollmentSecret()));
+        orgRegisteredUsers.put(org.getName(), mockuser);
+
         deployChaincodeIfRequired();
     }
 
@@ -144,19 +188,7 @@ public class NetworkConfigIT {
 
     private static User getAdminUser(String orgName) throws Exception {
 
-        NetworkConfig.UserInfo userInfo = networkConfig.getPeerAdmin(orgName);
-        //NetworkConfig.UserInfo userInfo = networkConfig.getPeerAdmin();
-
-        String userName = userInfo.getEnrollId();
-        String mspId = userInfo.getMspId();
-
-        PrivateKey privateKey = userInfo.getPrivateKey();
-        String signedCert = userInfo.getSignedCert();
-
-        MockUser admin = TestUtils.getMockUser(userName, mspId);
-        admin.setEnrollment(TestUtils.getMockEnrollment(privateKey, signedCert));
-
-        return admin;
+        return networkConfig.getPeerAdmin(orgName);
     }
 
     @Test
@@ -179,6 +211,9 @@ public class NetworkConfigIT {
         String newVal = "" + (Integer.parseInt(originalVal) + moveAmount);
 
         out("Original value = %s", originalVal);
+
+        //user registered user
+        client.setUserContext(orgRegisteredUsers.get("Org1")); // only using org1
 
         // Move some assets
         moveAmount(client, channel, chaincodeID, "a", "b", "" + moveAmount, null).thenApply(transactionEvent -> {

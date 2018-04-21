@@ -16,11 +16,15 @@ package org.hyperledger.fabric.sdk.testutils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -49,6 +53,9 @@ public class TestConfig {
 
     private static final String DEFAULT_CONFIG = "src/test/java/org/hyperledger/fabric/sdk/testutils.properties";
     private static final String ORG_HYPERLEDGER_FABRIC_SDK_CONFIGURATION = "org.hyperledger.fabric.sdktest.configuration";
+    private static final String ORG_HYPERLEDGER_FABRIC_SDK_TEST_FABRIC_HOST = "ORG_HYPERLEDGER_FABRIC_SDK_TEST_FABRIC_HOST";
+    private static final String LOCALHOST = //Change test to reference another host .. easier config for my testing on Windows !
+            System.getenv(ORG_HYPERLEDGER_FABRIC_SDK_TEST_FABRIC_HOST) == null ? "localhost" : System.getenv(ORG_HYPERLEDGER_FABRIC_SDK_TEST_FABRIC_HOST);
 
     private static final String PROPBASE = "org.hyperledger.fabric.sdktest.";
 
@@ -60,6 +67,9 @@ public class TestConfig {
     private static final Pattern orgPat = Pattern.compile("^" + Pattern.quote(INTEGRATIONTESTS_ORG) + "([^\\.]+)\\.mspid$");
 
     private static final String INTEGRATIONTESTSTLS = PROPBASE + "integrationtests.tls";
+    // location switching between fabric cryptogen and configtxgen artifacts for v1.0 and v1.1 in src/test/fixture/sdkintegration/e2e-2Orgs
+    public static final String FAB_CONFIG_GEN_VERS =
+            Objects.equals(System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION"), "1.0.0") ? "v1.0" : "v1.1";
 
     private static TestConfig config;
     private static final Properties sdkProperties = new Properties();
@@ -99,17 +109,17 @@ public class TestConfig {
             //////
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.mspid", "Org1MSP");
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.domname", "org1.example.com");
-            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.ca_location", "http://localhost:7054");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.ca_location", "http://" + LOCALHOST + ":7054");
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.caName", "ca0");
-            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.peer_locations", "peer0.org1.example.com@grpc://localhost:7051, peer1.org1.example.com@grpc://localhost:7056");
-            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.orderer_locations", "orderer.example.com@grpc://localhost:7050");
-            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.eventhub_locations", "peer0.org1.example.com@grpc://localhost:7053,peer1.org1.example.com@grpc://localhost:7058");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.peer_locations", "peer0.org1.example.com@grpc://" + LOCALHOST + ":7051, peer1.org1.example.com@grpc://" + LOCALHOST + ":7056");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.orderer_locations", "orderer.example.com@grpc://" + LOCALHOST + ":7050");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.eventhub_locations", "peer0.org1.example.com@grpc://" + LOCALHOST + ":7053,peer1.org1.example.com@grpc://" + LOCALHOST + ":7058");
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.mspid", "Org2MSP");
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.domname", "org2.example.com");
-            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.ca_location", "http://localhost:8054");
-            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.peer_locations", "peer0.org2.example.com@grpc://localhost:8051,peer1.org2.example.com@grpc://localhost:8056");
-            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.orderer_locations", "orderer.example.com@grpc://localhost:7050");
-            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.eventhub_locations", "peer0.org2.example.com@grpc://localhost:8053, peer1.org2.example.com@grpc://localhost:8058");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.ca_location", "http://" + LOCALHOST + ":8054");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.peer_locations", "peer0.org2.example.com@grpc://" + LOCALHOST + ":8051,peer1.org2.example.com@grpc://" + LOCALHOST + ":8056");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.orderer_locations", "orderer.example.com@grpc://" + LOCALHOST + ":7050");
+            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.eventhub_locations", "peer0.org2.example.com@grpc://" + LOCALHOST + ":8053, peer1.org2.example.com@grpc://" + LOCALHOST + ":8058");
 
             defaultProperty(INTEGRATIONTESTSTLS, null);
             runningTLS = null != sdkProperties.getProperty(INTEGRATIONTESTSTLS, null);
@@ -166,7 +176,8 @@ public class TestConfig {
                 sampleOrg.setCAName(sdkProperties.getProperty((INTEGRATIONTESTS_ORG + org.getKey() + ".caName")));
 
                 if (runningFabricCATLS) {
-                    String cert = "src/test/fixture/sdkintegration/e2e-2Orgs/channel/crypto-config/peerOrganizations/DNAME/ca/ca.DNAME-cert.pem".replaceAll("DNAME", domainName);
+                    String cert = "src/test/fixture/sdkintegration/e2e-2Orgs/FAB_CONFIG_GEN_VERS/crypto-config/peerOrganizations/DNAME/ca/ca.DNAME-cert.pem"
+                            .replaceAll("DNAME", domainName).replaceAll("FAB_CONFIG_GEN_VERS", FAB_CONFIG_GEN_VERS);
                     File cf = new File(cert);
                     if (!cf.exists() || !cf.isFile()) {
                         throw new RuntimeException("TEST is missing cert file " + cf.getAbsolutePath());
@@ -313,7 +324,7 @@ public class TestConfig {
 
     public String getTestChannelPath() {
 
-        return "src/test/fixture/sdkintegration/e2e-2Orgs/channel";
+        return "src/test/fixture/sdkintegration/e2e-2Orgs/" + FAB_CONFIG_GEN_VERS;
 
     }
 
@@ -324,6 +335,16 @@ public class TestConfig {
     }
 
     /**
+     * url location of configtxlator
+     *
+     * @return
+     */
+
+    public String getFabricConfigTxLaterLocation() {
+        return "http://" + LOCALHOST + ":7059";
+    }
+
+    /**
      * Returns the appropriate Network Config YAML file based on whether TLS is currently
      * enabled or not
      *
@@ -331,10 +352,48 @@ public class TestConfig {
      */
     public File getTestNetworkConfigFileYAML() {
         String fname = runningTLS ? "network-config-tls.yaml" : "network-config.yaml";
-        String pname = "src/test/fixture/sdkintegration/e2e-2Orgs/channel/" + fname;
-        return new File(pname);
-    }
+        String pname = "src/test/fixture/sdkintegration/network_configs/";
+        File ret = new File(pname, fname);
 
+        if (!"localhost".equals(LOCALHOST)) {
+            // change on the fly ...
+            File temp = null;
+
+            try {
+                //create a temp file
+                temp = File.createTempFile(fname, "-FixedUp.yaml");
+
+                if (temp.exists()) { //For testing start fresh
+                    temp.delete();
+                }
+
+                byte[] data = Files.readAllBytes(Paths.get(ret.getAbsolutePath()));
+
+                String sourceText = new String(data, StandardCharsets.UTF_8);
+
+                sourceText = sourceText.replaceAll("https://localhost", "https://" + LOCALHOST);
+                sourceText = sourceText.replaceAll("http://localhost", "http://" + LOCALHOST);
+                sourceText = sourceText.replaceAll("grpcs://localhost", "grpcs://" + LOCALHOST);
+                sourceText = sourceText.replaceAll("grpc://localhost", "grpc://" + LOCALHOST);
+
+                Files.write(Paths.get(temp.getAbsolutePath()), sourceText.getBytes(StandardCharsets.UTF_8),
+                        StandardOpenOption.CREATE_NEW, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+
+                if (!Objects.equals("true", System.getenv(ORG_HYPERLEDGER_FABRIC_SDK_TEST_FABRIC_HOST + "_KEEP"))) {
+                    temp.deleteOnExit();
+                } else {
+                    System.err.println("produced new network-config.yaml file at:" + temp.getAbsolutePath());
+                }
+
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
+            ret = temp;
+        }
+
+        return ret;
+    }
 
     private String getDomainName(final String name) {
         int dot = name.indexOf(".");

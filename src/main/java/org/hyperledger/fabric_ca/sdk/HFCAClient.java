@@ -93,11 +93,11 @@ import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.x509.AuthorityKeyIdentifier;
 import org.bouncycastle.asn1.x509.Extension;
 import org.hyperledger.fabric.sdk.Enrollment;
+import org.hyperledger.fabric.sdk.NetworkConfig;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
-import org.hyperledger.fabric_ca.sdk.HFCAAffiliation.HFCAAffiliationResp;
 import org.hyperledger.fabric_ca.sdk.exception.AffiliationException;
 import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
 import org.hyperledger.fabric_ca.sdk.exception.GenerateCRLException;
@@ -111,6 +111,7 @@ import org.hyperledger.fabric_ca.sdk.helper.Config;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
+
 /**
  * HFCAClient Hyperledger Fabric Certificate Authority Client.
  */
@@ -167,6 +168,8 @@ public class HFCAClient {
      * HFCA_ATTRIBUTE_HFGENCRL is an attribute that allows an identity to generate a CRL
      */
     public static final String HFCA_ATTRIBUTE_HFGENCRL = "hf.GenCRL";
+
+    private static final Config config = Config.getConfig();  // DO NOT REMOVE THIS IS NEEDED TO MAKE SURE WE FIRST LOAD CONFIG!!!
 
     private static final Log logger = LogFactory.getLog(HFCAClient.class);
 
@@ -279,6 +282,51 @@ public class HFCAClient {
 
         return new HFCAClient(name, url, properties);
 
+    }
+
+    /**
+     * Create HFCAClient from a NetworkConfig.CAInfo using default crypto suite.
+     *
+     * @param caInfo created from NetworkConfig.getOrganizationInfo("org_name").getCertificateAuthorities()
+     * @return HFCAClient
+     * @throws MalformedURLException
+     * @throws InvalidArgumentException
+     */
+
+    public static HFCAClient createNewInstance(NetworkConfig.CAInfo caInfo) throws MalformedURLException, InvalidArgumentException {
+
+        try {
+            return createNewInstance(caInfo, CryptoSuite.Factory.getCryptoSuite());
+        } catch (MalformedURLException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new InvalidArgumentException(e);
+        }
+    }
+
+    /**
+     * Create HFCAClient from a NetworkConfig.CAInfo
+     *
+     * @param caInfo      created from NetworkConfig.getOrganizationInfo("org_name").getCertificateAuthorities()
+     * @param cryptoSuite the specific cryptosuite to use.
+     * @return HFCAClient
+     * @throws MalformedURLException
+     * @throws InvalidArgumentException
+     */
+
+    public static HFCAClient createNewInstance(NetworkConfig.CAInfo caInfo, CryptoSuite cryptoSuite) throws MalformedURLException, InvalidArgumentException {
+
+        if (null == caInfo) {
+            throw new InvalidArgumentException("The caInfo parameter can not be null.");
+        }
+
+        if (null == cryptoSuite) {
+            throw new InvalidArgumentException("The cryptoSuite parameter can not be null.");
+        }
+
+        HFCAClient ret = new HFCAClient(caInfo.getCAName(), caInfo.getUrl(), caInfo.getProperties());
+        ret.setCryptoSuite(cryptoSuite);
+        return ret;
     }
 
     public void setCryptoSuite(CryptoSuite cryptoSuite) {
@@ -598,7 +646,7 @@ public class HFCAClient {
      * @throws InvalidArgumentException
      */
 
-   public void revoke(User revoker, Enrollment enrollment, String reason) throws RevocationException, InvalidArgumentException {
+    public void revoke(User revoker, Enrollment enrollment, String reason) throws RevocationException, InvalidArgumentException {
         revokeInternal(revoker, enrollment, reason, false);
     }
 
@@ -688,7 +736,7 @@ public class HFCAClient {
      */
 
     public void revoke(User revoker, String revokee, String reason) throws RevocationException, InvalidArgumentException {
-         revokeInternal(revoker, revokee, reason, false);
+        revokeInternal(revoker, revokee, reason, false);
     }
 
     /**
@@ -752,26 +800,26 @@ public class HFCAClient {
     /**
      * revoke one certificate
      *
-     * @param revoker    admin user who has revoker attribute configured in CA-server
-     * @param serial     serial number of the certificate to be revoked
-     * @param aki        aki of the certificate to be revoke
-     * @param reason     revoke reason, see RFC 5280
+     * @param revoker admin user who has revoker attribute configured in CA-server
+     * @param serial  serial number of the certificate to be revoked
+     * @param aki     aki of the certificate to be revoke
+     * @param reason  revoke reason, see RFC 5280
      * @throws RevocationException
      * @throws InvalidArgumentException
      */
 
-   public void revoke(User revoker, String serial, String aki, String reason) throws RevocationException, InvalidArgumentException {
+    public void revoke(User revoker, String serial, String aki, String reason) throws RevocationException, InvalidArgumentException {
         revokeInternal(revoker, serial, aki, reason, false);
     }
 
     /**
      * revoke one enrollment of user
      *
-     * @param revoker    admin user who has revoker attribute configured in CA-server
-     * @param serial     serial number of the certificate to be revoked
-     * @param aki        aki of the certificate to be revoke
-     * @param reason     revoke reason, see RFC 5280
-     * @param genCRL     generate CRL list
+     * @param revoker admin user who has revoker attribute configured in CA-server
+     * @param serial  serial number of the certificate to be revoked
+     * @param aki     aki of the certificate to be revoke
+     * @param reason  revoke reason, see RFC 5280
+     * @param genCRL  generate CRL list
      * @throws RevocationException
      * @throws InvalidArgumentException
      */
@@ -909,7 +957,7 @@ public class HFCAClient {
      *
      * @param registrar The identity of the registrar (i.e. who is performing the registration).
      * @return the identity that was requested
-     * @throws IdentityException    if adding an identity fails.
+     * @throws IdentityException        if adding an identity fails.
      * @throws InvalidArgumentException Invalid (null) argument specified
      */
 
@@ -964,7 +1012,7 @@ public class HFCAClient {
      *
      * @param registrar The identity of the registrar (i.e. who is performing the registration).
      * @return The affiliations that were requested
-     * @throws AffiliationException    if getting all affiliations fails
+     * @throws AffiliationException     if getting all affiliations fails
      * @throws InvalidArgumentException
      */
 
@@ -1229,7 +1277,7 @@ public class HFCAClient {
 
         JsonObject result = jobj.getJsonObject("result");
         if (result == null) {
-             HTTPException e = new HTTPException(format("%s request to %s failed request body %s " +
+            HTTPException e = new HTTPException(format("%s request to %s failed request body %s " +
                     "Body of response did not contain result", type, url, body), respStatusCode);
             logger.error(e.getMessage());
             throw e;
@@ -1368,12 +1416,12 @@ public class HFCAClient {
         String url = this.url + endpoint;
         URIBuilder uri = new URIBuilder(url);
         if (caName != null) {
-             uri.addParameter("ca", caName);
+            uri.addParameter("ca", caName);
         }
         return uri.build().toURL().toString();
     }
 
-     String getURL(String endpoint, Map<String, String> queryMap) throws URISyntaxException, MalformedURLException, InvalidArgumentException {
+    String getURL(String endpoint, Map<String, String> queryMap) throws URISyntaxException, MalformedURLException, InvalidArgumentException {
         setUpSSL();
         String url = this.url + endpoint;
         URIBuilder uri = new URIBuilder(url);
@@ -1382,19 +1430,19 @@ public class HFCAClient {
         }
         if (queryMap != null) {
             for (Map.Entry<String, String> param : queryMap.entrySet()) {
-                 uri.addParameter(param.getKey(), param.getValue());
+                uri.addParameter(param.getKey(), param.getValue());
             }
         }
         return uri.build().toURL().toString();
     }
 
-     // Convert the identity request to a JSON string
-     String toJson(JsonObject toJsonFunc) {
-         StringWriter stringWriter = new StringWriter();
-         JsonWriter jsonWriter = Json.createWriter(new PrintWriter(stringWriter));
-         jsonWriter.writeObject(toJsonFunc);
-         jsonWriter.close();
-         return stringWriter.toString();
-     }
+    // Convert the identity request to a JSON string
+    String toJson(JsonObject toJsonFunc) {
+        StringWriter stringWriter = new StringWriter();
+        JsonWriter jsonWriter = Json.createWriter(new PrintWriter(stringWriter));
+        jsonWriter.writeObject(toJsonFunc);
+        jsonWriter.close();
+        return stringWriter.toString();
+    }
 }
 

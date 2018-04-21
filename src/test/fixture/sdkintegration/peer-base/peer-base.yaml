@@ -23,5 +23,8 @@ services:
       - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/msp/peer/tls/server.key
       - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/msp/peer/tls/ca.crt
       - CORE_PEER_TLS_ENABLED=${ORG_HYPERLEDGER_FABRIC_SDKTEST_INTEGRATIONTESTS_TLS}
+      # NOTE BOTH below should never be used in production.
+      - CORE_PEER_AUTHENTICATION_TIMEWINDOW=3600s
+      - CORE_PEER_EVENTS_TIMEWINDOW=3600s
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
     command: peer node start

@@ -20,6 +20,7 @@ import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -326,6 +327,6 @@ class OrdererClient {
 
     boolean isChannelActive() {
         ManagedChannel lchannel = managedChannel;
-        return lchannel != null && !lchannel.isShutdown() && !lchannel.isTerminated();
+        return lchannel != null && !lchannel.isShutdown() && !lchannel.isTerminated() && ConnectivityState.READY.equals(lchannel.getState(true));
     }
 }

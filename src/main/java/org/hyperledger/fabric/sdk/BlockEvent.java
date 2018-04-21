@@ -110,6 +110,18 @@ public class BlockEvent extends BlockInfo {
         }
 
         /**
+         * The BlockEvent for this TransactionEvent.
+         *
+         * @return BlockEvent for this transaction.
+         */
+
+        public BlockEvent getBlockEvent() {
+
+            return BlockEvent.this;
+
+        }
+
+        /**
          * The event hub that received this event.
          *
          * @return May return null if peer eventing service detected the event.

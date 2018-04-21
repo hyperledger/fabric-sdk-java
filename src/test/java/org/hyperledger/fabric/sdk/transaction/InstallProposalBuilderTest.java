@@ -106,7 +106,7 @@ public class InstallProposalBuilderTest {
 
         builder.setChaincodeLanguage(TransactionRequest.Type.JAVA);
         builder.setChaincodeSource(new File("some/dir"));
-        builder.chaincodePath("");
+        builder.chaincodePath("null or empty string");
 
         builder.build();
     }
@@ -122,7 +122,7 @@ public class InstallProposalBuilderTest {
 
         builder.setChaincodeLanguage(TransactionRequest.Type.JAVA);
         builder.setChaincodeInputStream(new ByteArrayInputStream("test string".getBytes()));
-        builder.chaincodePath("");
+        builder.chaincodePath("null or empty string");
 
         builder.build();
     }

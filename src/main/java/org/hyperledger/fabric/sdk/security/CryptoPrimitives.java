@@ -67,6 +67,7 @@ import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.DERSequenceGenerator;
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.asn1.x9.ECNamedCurveTable;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.Digest;
@@ -272,13 +273,19 @@ public class CryptoPrimitives implements CryptoSuite {
         CryptoException ce = null;
 
         try {
+            PemReader pr = new PemReader(new StringReader(new String(pemKey)));
+            PemObject po = pr.readPemObject();
             PEMParser pem = new PEMParser(new StringReader(new String(pemKey)));
-            PEMKeyPair kp = (PEMKeyPair) pem.readObject();
-            pk = new JcaPEMKeyConverter().getPrivateKey(kp.getPrivateKeyInfo());
+            logger.debug("found private key with type " + po.getType());
+            if (po.getType().equals("PRIVATE KEY")) {
+                pk = new JcaPEMKeyConverter().getPrivateKey((PrivateKeyInfo) pem.readObject());
+            } else {
+                PEMKeyPair kp = (PEMKeyPair) pem.readObject();
+                pk = new JcaPEMKeyConverter().getPrivateKey(kp.getPrivateKeyInfo());
+            }
         } catch (Exception e) {
             throw new CryptoException("Failed to convert private key bytes", e);
         }
-
         return pk;
     }
 

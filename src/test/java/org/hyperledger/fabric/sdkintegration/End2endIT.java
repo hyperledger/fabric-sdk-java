@@ -75,7 +75,9 @@ import org.junit.Test;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.BlockInfo.EnvelopeType.TRANSACTION_ENVELOPE;
+import static org.hyperledger.fabric.sdk.Channel.NOfEvents.createNofEvents;
 import static org.hyperledger.fabric.sdk.Channel.PeerOptions.createPeerOptions;
+import static org.hyperledger.fabric.sdk.Channel.TransactionOptions.createTransactionOptions;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -511,14 +513,37 @@ public class End2endIT {
             ///////////////
             /// Send instantiate transaction to orderer
             out("Sending instantiateTransaction to orderer with a and b set to 100 and %s respectively", "" + (200 + delta));
-            channel.sendTransaction(successful, orderers).thenApply(transactionEvent -> {
+
+            //Specify what events should complete the interest in this transaction. This is the default
+            // for all to complete. It's possible to specify many different combinations like
+            //any from a group, all from one group and just one from another or even None(NOfEvents.createNoEvents).
+            // See. Channel.NOfEvents
+            Channel.NOfEvents nOfEvents = createNofEvents();
+            if (!channel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).isEmpty()) {
+                nOfEvents.addPeers(channel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)));
+            }
+            if (!channel.getEventHubs().isEmpty()) {
+                nOfEvents.addEventHubs(channel.getEventHubs());
+            }
+
+            channel.sendTransaction(successful, createTransactionOptions() //Basically the default options but shows it's usage.
+                    .userContext(client.getUserContext()) //could be a different user context. this is the default.
+                    .shuffleOrders(false) // don't shuffle any orderers the default is true.
+                    .orderers(channel.getOrderers()) // specify the orderers we want to try this transaction. Fails once all Orderers are tried.
+                    .nOfEvents(nOfEvents) // The events to signal the completion of the interest in the transaction
+            ).thenApply(transactionEvent -> {
 
                 waitOnFabric(0);
 
                 assertTrue(transactionEvent.isValid()); // must be valid to be here.
+                assertNotNull(transactionEvent.getSignature()); //musth have a signature.
+                BlockEvent blockEvent = transactionEvent.getBlockEvent(); // This is the blockevent that has this transaction.
+                assertNotNull(blockEvent.getBlock()); // Make sure the RAW Fabric block is returned.
+
                 out("Finished instantiate transaction with transaction id %s", transactionEvent.getTransactionID());
 
                 try {
+                    assertEquals(blockEvent.getChannelId(), channel.getName());
                     successful.clear();
                     failed.clear();
 
@@ -573,7 +598,7 @@ public class End2endIT {
                     }
                     out("Successfully received transaction proposal responses.");
 
-                    ProposalResponse resp = transactionPropResp.iterator().next();
+                    ProposalResponse resp = successful.iterator().next();
                     byte[] x = resp.getChaincodeActionResponsePayload(); // This is the data returned by the chaincode.
                     String resultAsString = null;
                     if (x != null) {
@@ -795,7 +820,7 @@ public class End2endIT {
         Orderer anOrderer = orderers.iterator().next();
         orderers.remove(anOrderer);
 
-        ChannelConfiguration channelConfiguration = new ChannelConfiguration(new File(TEST_FIXTURES_PATH + "/sdkintegration/e2e-2Orgs/channel/" + name + ".tx"));
+        ChannelConfiguration channelConfiguration = new ChannelConfiguration(new File(TEST_FIXTURES_PATH + "/sdkintegration/e2e-2Orgs/" + TestConfig.FAB_CONFIG_GEN_VERS + "/" + name + ".tx"));
 
         //Create channel that has only one signer that is this orgs peer admin. If channel creation policy needed more signature they would need to be added too.
         Channel newChannel = client.newChannel(name, anOrderer, channelConfiguration, client.getChannelConfigurationSignature(channelConfiguration, sampleOrg.getPeerAdmin()));
@@ -900,6 +925,8 @@ public class End2endIT {
                     out("  Transaction number %d has epoch: %d", i, envelopeInfo.getEpoch());
                     out("  Transaction number %d has transaction timestamp: %tB %<te,  %<tY  %<tT %<Tp", i, envelopeInfo.getTimestamp());
                     out("  Transaction number %d has type id: %s", i, "" + envelopeInfo.getType());
+                    out("  Transaction number %d has nonce : %s", i, "" + Hex.encodeHexString(envelopeInfo.getNonce()));
+                    out("  Transaction number %d has submitter mspid: %s,  certificate: %s", i, envelopeInfo.getCreator().getMspid(), envelopeInfo.getCreator().getId());
 
                     if (envelopeInfo.getType() == TRANSACTION_ENVELOPE) {
                         BlockInfo.TransactionEnvelopeInfo transactionEnvelopeInfo = (BlockInfo.TransactionEnvelopeInfo) envelopeInfo;
@@ -924,7 +951,7 @@ public class End2endIT {
                             for (int n = 0; n < transactionActionInfo.getEndorsementsCount(); ++n) {
                                 BlockInfo.EndorserInfo endorserInfo = transactionActionInfo.getEndorsementInfo(n);
                                 out("Endorser %d signature: %s", n, Hex.encodeHexString(endorserInfo.getSignature()));
-                                out("Endorser %d endorser: %s", n, new String(endorserInfo.getEndorser(), "UTF-8"));
+                                out("Endorser %d endorser: mspid %s \n certificate %s", n, endorserInfo.getMspid(), endorserInfo.getId());
                             }
                             out("   Transaction action %d has %d chaincode input arguments", j, transactionActionInfo.getChaincodeInputArgsCount());
                             for (int z = 0; z < transactionActionInfo.getChaincodeInputArgsCount(); ++z) {

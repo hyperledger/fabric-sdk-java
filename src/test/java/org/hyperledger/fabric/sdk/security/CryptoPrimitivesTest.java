@@ -482,6 +482,16 @@ public class CryptoPrimitivesTest {
     }
 
     @Test
+    public void testBytesToPrivateKeyPKCS8() {
+        try {
+            byte[] bytes = Files.readAllBytes(Paths.get(System.getProperty("user.dir") + "/src/test/resources/tls-client-pk8.key"));
+            PrivateKey pk = crypto.bytesToPrivateKey(bytes);
+        } catch (Exception e) {
+            Assert.fail("failed to parse private key bytes: " + e.toString());
+        }
+    }
+
+    @Test
     public void testValidateNotSignedCertificate() {
         try {
             BufferedInputStream bis = new BufferedInputStream(this.getClass().getResourceAsStream("/notsigned.crt"));

@@ -57,9 +57,13 @@ class EnvelopeDeserializer {
 
         }
 
-        //Todo         ret.getSignature();
-
         return ret;
+
+    }
+
+    byte[] getSignature() {
+
+        return getEnvelope().getSignature().toByteArray();
 
     }
 

@@ -23,6 +23,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.common.Common.Block;
 import org.hyperledger.fabric.protos.ledger.rwset.Rwset.TxReadWriteSet;
+import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInput;
 import org.hyperledger.fabric.protos.peer.FabricTransaction;
 import org.hyperledger.fabric.protos.peer.PeerEvents;
@@ -45,16 +46,6 @@ public class BlockInfo {
         filteredBlock = null;
         this.block = new BlockDeserializer(block);
     }
-
-//    BlockInfo(PeerEvents.Event event) {
-//        if (event.getEventCase() == PeerEvents.Event.EventCase.FILTERED_BLOCK) {
-//            block = null;
-//            filteredBlock = event.getFilteredBlock();
-//        } else {
-//            this.block = new BlockDeserializer(event.getBlock());
-//            filteredBlock = null;
-//        }
-//    }
 
     BlockInfo(PeerEvents.DeliverResponse resp) {
 
@@ -149,11 +140,20 @@ public class BlockInfo {
         return isFiltered() ? filteredBlock.getFilteredTransactionsCount() : block.getData().getDataCount();
     }
 
+    /**
+     * Wrappers Envelope
+     */
+
     public class EnvelopeInfo {
         private final EnvelopeDeserializer envelopeDeserializer;
         private final HeaderDeserializer headerDeserializer;
         protected final FilteredTransaction filteredTx;
 
+        /**
+         * This block is filtered
+         *
+         * @return true if it's filtered.
+         */
         boolean isFiltered() {
             return filteredTx != null;
 
@@ -167,18 +167,79 @@ public class BlockInfo {
             filteredTx = null;
         }
 
-        public EnvelopeInfo(FilteredTransaction filteredTx) {
+        EnvelopeInfo(FilteredTransaction filteredTx) {
             this.filteredTx = filteredTx;
             envelopeDeserializer = null;
             headerDeserializer = null;
 
         }
 
+        /**
+         * Get channel id
+         *
+         * @return The channel id also referred to as channel name.
+         */
         public String getChannelId() {
 
             return BlockInfo.this.isFiltered() ? filteredBlock.getChannelId() : headerDeserializer.getChannelHeader().getChannelId();
         }
 
+        public class IdentitiesInfo {
+            final String mspid;
+            final String id;
+
+            /**
+             * The identification of the identity usually the certificate.
+             *
+             * @return The certificate of the user in PEM format.
+             */
+            public String getId() {
+                return id;
+            }
+
+            /**
+             * The MSPId of the user.
+             *
+             * @return The MSPid of the user.
+             */
+            public String getMspid() {
+                return mspid;
+            }
+
+            IdentitiesInfo(Identities.SerializedIdentity identity) {
+                mspid = identity.getMspid();
+                id = identity.getIdBytes().toStringUtf8();
+
+            }
+
+        }
+
+        /**
+         * This is the creator or submitter of the transaction.
+         * Returns null for a filtered block.
+         *
+         * @return {@link IdentitiesInfo}
+         */
+        public IdentitiesInfo getCreator() {
+            return isFiltered() ? null : new IdentitiesInfo(headerDeserializer.getCreator());
+
+        }
+
+        /**
+         * The nonce of the transaction.
+         *
+         * @return return null for filtered block.
+         */
+        public byte[] getNonce() {
+            return isFiltered() ? null : headerDeserializer.getNonce();
+
+        }
+
+        /**
+         * The transaction ID
+         *
+         * @return the transaction id.
+         */
         public String getTransactionID() {
 
             return BlockInfo.this.isFiltered() ? filteredTx.getTxid() : headerDeserializer.getChannelHeader().getTxId();
@@ -315,6 +376,16 @@ public class BlockInfo {
         TransactionEnvelopeInfo(FilteredTransaction filteredTx) {
             super(filteredTx);
             this.transactionDeserializer = null;
+        }
+
+        /**
+         * Signature for the transaction.
+         *
+         * @return byte array that as the signature.
+         */
+        public byte[] getSignature() {
+
+            return transactionDeserializer.getSignature();
         }
 
         TransactionEnvelopeInfo(EndorserTransactionEnvDeserializer transactionDeserializer) {
@@ -600,8 +671,30 @@ public class BlockInfo {
             return endorsement.getSignature().toByteArray();
         }
 
+        /**
+         * @return
+         * @deprecated use getId and getMspid
+         */
         public byte[] getEndorser() {
             return endorsement.getEndorser().toByteArray();
+        }
+
+        public String getId() {
+
+            try {
+                return Identities.SerializedIdentity.parseFrom(endorsement.getEndorser()).getIdBytes().toStringUtf8();
+            } catch (InvalidProtocolBufferException e) {
+                throw new InvalidProtocolBufferRuntimeException(e);
+            }
+
+        }
+
+        public String getMspid() {
+            try {
+                return Identities.SerializedIdentity.parseFrom(endorsement.getEndorser()).getMspid();
+            } catch (InvalidProtocolBufferException e) {
+                throw new InvalidProtocolBufferRuntimeException(e);
+            }
         }
 
     }

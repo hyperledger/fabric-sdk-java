@@ -14,7 +14,6 @@
 
 package org.hyperledger.fabric.sdk;
 
-import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.PeerException;
 import org.junit.Assert;
@@ -65,19 +64,6 @@ public class PeerTest {
     public void testSetEmptyName() throws InvalidArgumentException {
         peer = hfclient.newPeer("", "grpc://localhost:4");
         Assert.fail("expected set empty name to throw exception.");
-    }
-
-    @Test (expected = PeerException.class)
-    public void testSendNullProposal() throws PeerException, InvalidArgumentException {
-        peer.sendProposal(null);
-        Assert.fail("Expected null proposal to throw exception.");
-    }
-
-    @Test (expected = PeerException.class)
-    public void testSendNullChannel() throws InvalidArgumentException, PeerException {
-        Peer badpeer = hfclient.newPeer("badpeer", "grpc://localhost:7051");
-        badpeer.sendProposal(FabricProposal.SignedProposal.newBuilder().build());
-        Assert.fail("Expected peer with no channel throw exception");
     }
 
     @Test (expected = PeerException.class)

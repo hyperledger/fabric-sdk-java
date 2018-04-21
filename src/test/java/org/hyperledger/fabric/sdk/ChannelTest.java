@@ -22,6 +22,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.concurrent.CompletableFuture;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -34,6 +35,7 @@ import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.sdk.Channel.NOfEvents;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.PeerException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
@@ -55,6 +57,8 @@ import static org.hyperledger.fabric.sdk.testutils.TestUtils.getMockUser;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.matchesRegex;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.setField;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.tarBytesToEntryArrayList;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 //CHECKSTYLE.ON: IllegalImport
 
@@ -77,6 +81,7 @@ public class ChannelTest {
             hfclient = TestHFClient.newInstance();
 
             shutdownChannel = new Channel("shutdown", hfclient);
+            shutdownChannel.addOrderer(hfclient.newOrderer("shutdow_orderer", "grpc://localhost:99"));
 
             setField(shutdownChannel, "shutdown", true);
 
@@ -261,7 +266,7 @@ public class ChannelTest {
         final Peer peer = hfclient.newPeer("peer_", "grpc://localhost:7051");
 
         testChannel.addPeer(peer, createPeerOptions().setPeerRoles(Peer.PeerRole.NO_EVENT_SOURCE));
-        Assert.assertFalse(testChannel.isInitialized());
+        assertFalse(testChannel.isInitialized());
         testChannel.initialize();
         Assert.assertTrue(testChannel.isInitialized());
 
@@ -398,7 +403,7 @@ public class ChannelTest {
         thrown.expectMessage("Peer value is null.");
 
         final Channel channel = createRunningChannel(null);
-        channel.queryBlockByHash(null, "rick".getBytes());
+        channel.queryBlockByHash((Peer) null, "rick".getBytes());
     }
 
     @Test
@@ -501,6 +506,7 @@ public class ChannelTest {
         if (peers == null) {
             Peer peer = hfclient.newPeer("peer1", "grpc://localhost:22");
             channel.addPeer(peer);
+            channel.addOrderer(hfclient.newOrderer("order1", "grpc://localhost:22"));
         } else {
             for (Peer peer : peers) {
                 channel.addPeer(peer);
@@ -539,6 +545,8 @@ public class ChannelTest {
         thrown.expectMessage("Channel channel does not have any orderers associated with it.");
 
         final Channel channel = createRunningChannel(null);
+
+        setField(channel, "orderers", new LinkedList<>());
 
         //Peer joining channel were no orderer is there .. not likely.
 
@@ -812,7 +820,7 @@ public class ChannelTest {
     public void testProposalBuilderWithNoMetaInfDir() throws Exception {
 
         thrown.expect(java.lang.IllegalArgumentException.class);
-        thrown.expectMessage(matchesRegex("The META-INF directory does not exist in.*src/test/fixture/meta-infs/test1/META-INF"));
+        thrown.expectMessage(matchesRegex("The META-INF directory does not exist in.*src.test.fixture.meta-infs.test1.META-INF"));
 
         InstallProposalBuilder installProposalBuilder = InstallProposalBuilder.newBuilder();
 
@@ -835,7 +843,7 @@ public class ChannelTest {
     public void testProposalBuilderWithMetaInfExistsNOT() throws Exception {
 
         thrown.expect(java.lang.IllegalArgumentException.class);
-        thrown.expectMessage("Directory to find chaincode META-INF /tmp/fdsjfksfj/fjksfjskd/fjskfjdsk/should never exist does not exist");
+        thrown.expectMessage(matchesRegex("Directory to find chaincode META-INF.*tmp.fdsjfksfj.fjksfjskd.fjskfjdsk.should never exist does not exist"));
 
         InstallProposalBuilder installProposalBuilder = InstallProposalBuilder.newBuilder();
 
@@ -855,10 +863,70 @@ public class ChannelTest {
     }
 
     @Test
+    public void testNOf() throws Exception {
+
+        Peer peer1Org1 = new Peer("peer1Org1", "grpc://localhost:9", null);
+        Peer peer1Org12nd = new Peer("org12nd", "grpc://localhost:9", null);
+        Peer peer2Org2 = new Peer("peer2Org2", "grpc://localhost:9", null);
+        Peer peer2Org22nd = new Peer("peer2Org22nd", "grpc://localhost:9", null);
+
+        //One from each set.
+        NOfEvents nOfEvents = NOfEvents.createNofEvents().addNOfs(NOfEvents.createNofEvents().setN(1).addPeers(peer1Org1, peer1Org12nd),
+                NOfEvents.createNofEvents().setN(1).addPeers(peer2Org2, peer2Org22nd)
+        );
+
+        NOfEvents nOfEvents1 = new NOfEvents(nOfEvents);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer1Org1);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer1Org12nd);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer2Org22nd);
+        assertTrue(nOfEvents1.ready);
+        assertFalse(nOfEvents.ready);
+
+        nOfEvents = NOfEvents.createNofEvents().addNOfs(NOfEvents.createNofEvents().addPeers(peer1Org1, peer1Org12nd),
+                NOfEvents.createNofEvents().addPeers(peer2Org2, peer2Org22nd)
+        );
+        nOfEvents1 = new NOfEvents(nOfEvents);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer1Org1);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer2Org2);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer1Org12nd);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer2Org22nd);
+        assertTrue(nOfEvents1.ready);
+        assertFalse(nOfEvents.ready);
+
+        EventHub peer2Org2eh = new EventHub("peer2Org2", "grpc://localhost:9", null, null);
+        EventHub peer2Org22ndeh = new EventHub("peer2Org22nd", "grpc://localhost:9", null, null);
+
+        nOfEvents = NOfEvents.createNofEvents().setN(1).addNOfs(NOfEvents.createNofEvents().addPeers(peer1Org1, peer1Org12nd),
+                NOfEvents.createNofEvents().addEventHubs(peer2Org2eh, peer2Org22ndeh)
+        );
+
+        nOfEvents1 = new NOfEvents(nOfEvents);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer1Org1);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer2Org2eh);
+        assertFalse(nOfEvents1.ready);
+        nOfEvents1.seen(peer2Org22ndeh);
+        assertTrue(nOfEvents1.ready);
+        assertFalse(nOfEvents.ready);
+
+        nOfEvents = NOfEvents.createNoEvents();
+        assertTrue(nOfEvents.ready);
+
+    }
+
+    @Test
     public void testProposalBuilderWithMetaInfEmpty() throws Exception {
 
         thrown.expect(java.lang.IllegalArgumentException.class);
-        thrown.expectMessage(matchesRegex("The META-INF directory.*/src/test/fixture/meta-infs/emptyMetaInf/META-INF is empty."));
+        thrown.expectMessage(matchesRegex("The META-INF directory.*src.test.fixture.meta-infs.emptyMetaInf.META-INF is empty\\."));
 
         File emptyINF = new File("src/test/fixture/meta-infs/emptyMetaInf/META-INF"); // make it cause git won't check in empty directory
         if (!emptyINF.exists()) {

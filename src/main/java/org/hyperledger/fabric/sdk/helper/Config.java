@@ -52,10 +52,13 @@ public class Config {
     public static final String ORDERER_RETRY_WAIT_TIME = "org.hyperledger.fabric.sdk.orderer_retry.wait_time";
     public static final String ORDERER_WAIT_TIME = "org.hyperledger.fabric.sdk.orderer.ordererWaitTimeMilliSecs";
     public static final String PEER_EVENT_REGISTRATION_WAIT_TIME = "org.hyperledger.fabric.sdk.peer.eventRegistration.wait_time";
+    public static final String PEER_EVENT_RETRY_WAIT_TIME = "org.hyperledger.fabric.sdk.peer.retry_wait_time";
     public static final String EVENTHUB_CONNECTION_WAIT_TIME = "org.hyperledger.fabric.sdk.eventhub_connection.wait_time";
+    public static final String EVENTHUB_RECONNECTION_WARNING_RATE = "org.hyperledger.fabric.sdk.eventhub.reconnection_warning_rate";
+    public static final String PEER_EVENT_RECONNECTION_WARNING_RATE = "org.hyperledger.fabric.sdk.peer.reconnection_warning_rate";
     public static final String GENESISBLOCK_WAIT_TIME = "org.hyperledger.fabric.sdk.channel.genesisblock_wait_time";
     /**
-     * Crypto configuration settings
+     * Crypto configuration settings -- settings should not be changed.
      **/
     public static final String DEFAULT_CRYPTO_SUITE_FACTORY = "org.hyperledger.fabric.sdk.crypto.default_crypto_suite_factory";
     public static final String SECURITY_LEVEL = "org.hyperledger.fabric.sdk.security_level";
@@ -72,6 +75,14 @@ public class Config {
     public static final String EXTRALOGLEVEL = "org.hyperledger.fabric.sdk.log.extraloglevel";  // ORG_HYPERLEDGER_FABRIC_SDK_LOG_EXTRALOGLEVEL
     public static final String LOGGERLEVEL = "org.hyperledger.fabric.sdk.loglevel";  // ORG_HYPERLEDGER_FABRIC_SDK_LOGLEVEL=TRACE,DEBUG
     public static final String DIAGNOTISTIC_FILE_DIRECTORY = "org.hyperledger.fabric.sdk.diagnosticFileDir"; //ORG_HYPERLEDGER_FABRIC_SDK_DIAGNOSTICFILEDIR
+
+    /**
+     * Connections settings
+     */
+
+    public static final String CONN_SSL_PROVIDER = "org.hyperledger.fabric.sdk.connections.ssl.sslProvider";
+    public static final String CONN_SSL_NEGTYPE = "org.hyperledger.fabric.sdk.connections.ssl.negotiationType";
+
 
     /**
      * Miscellaneous settings
@@ -107,7 +118,8 @@ public class Config {
             defaultProperty(ORDERER_RETRY_WAIT_TIME, "200");
             defaultProperty(ORDERER_WAIT_TIME, "10000");
             defaultProperty(PEER_EVENT_REGISTRATION_WAIT_TIME, "5000");
-            defaultProperty(EVENTHUB_CONNECTION_WAIT_TIME, "1000");
+            defaultProperty(PEER_EVENT_RETRY_WAIT_TIME, "500");
+            defaultProperty(EVENTHUB_CONNECTION_WAIT_TIME, "5000");
             defaultProperty(GENESISBLOCK_WAIT_TIME, "5000");
             /**
              * This will NOT complete any transaction futures time out and must be kept WELL above any expected future timeout
@@ -130,6 +142,13 @@ public class Config {
             defaultProperty(SIGNATURE_ALGORITHM, "SHA256withECDSA");
 
             /**
+             * Connection defaults
+             */
+
+            defaultProperty(CONN_SSL_PROVIDER, "openSSL");
+            defaultProperty(CONN_SSL_NEGTYPE, "TLS");
+
+            /**
              * Logging settings
              **/
             defaultProperty(MAX_LOG_STRING_LENGTH, "64");
@@ -140,6 +159,8 @@ public class Config {
              * Miscellaneous settings
              */
             defaultProperty(PROPOSAL_CONSISTENCY_VALIDATION, "true");
+            defaultProperty(EVENTHUB_RECONNECTION_WARNING_RATE, "50");
+            defaultProperty(PEER_EVENT_RECONNECTION_WARNING_RATE, "50");
 
             final String inLogLevel = sdkProperties.getProperty(LOGGERLEVEL);
 
@@ -265,6 +286,28 @@ public class Config {
 
     }
 
+    /**
+     * The default ssl provider for grpc connection
+     *
+     * @return The default ssl provider for grpc connection
+     */
+    public String getDefaultSSLProvider() {
+        return getProperty(CONN_SSL_PROVIDER);
+
+    }
+
+    /**
+     * The default ssl negotiation type
+     *
+     * @return The default ssl negotiation type
+     */
+
+    public String getDefaultSSLNegotiationType() {
+        return getProperty(CONN_SSL_NEGTYPE);
+
+    }
+
+
     private Map<Integer, String> curveMapping = null;
 
     /**
@@ -357,6 +400,28 @@ public class Config {
      */
     public long getPeerEventRegistrationWaitTime() {
         return Long.parseLong(getProperty(PEER_EVENT_REGISTRATION_WAIT_TIME));
+    }
+
+    /**
+     * getPeerEventRegistrationWaitTime
+     *
+     * @return time in milliseconds to wait for peer eventing service to wait for event registration
+     */
+    public long getPeerRetryWaitTime() {
+        return Long.parseLong(getProperty(PEER_EVENT_RETRY_WAIT_TIME));
+    }
+
+    /**
+     * The number of failed  attempts to reissue a warning. Or -1 for none.
+     *
+     * @return The number of failed  attempts to reissue a warning.
+     */
+    public long getEventHubReconnectionWarningRate() {
+        return Long.parseLong(getProperty(EVENTHUB_RECONNECTION_WARNING_RATE));
+    }
+
+    public long getPeerEventReconnectionWarningRate() {
+        return Long.parseLong(getProperty(PEER_EVENT_RECONNECTION_WARNING_RATE));
     }
 
     public long getEventHubConnectionWaitTime() {
