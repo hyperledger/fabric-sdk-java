@@ -186,10 +186,10 @@ orderers:
     # they will be passed in as-is to gRPC client constructor
     grpcOptions:
 #      ssl-target-name-override: orderer.example.com
-      sslProvider: openSSL
-      negotiationType: TLS
       hostnameOverride: orderer.example.com
       grpc-max-send-message-length: 15
+      grpc.keepalive_time_ms: 360000
+      grpc.keepalive_timeout_ms: 180000
 
     # src/test/fixture/sdkintegration/e2e-2Orgs/v1.1/crypto-config/ordererOrganizations/example.com/tlsca
     tlsCACerts:
@@ -224,8 +224,6 @@ peers:
     grpcOptions:
       ssl-target-name-override: peer0.org1.example.com
       grpc.http2.keepalive_time: 15
-      negotiationType: TLS
-      sslProvider: openSSL
       hostnameOverride: peer0.org1.example.com
       # TODO: The following causes a NoSuchMethodException to be thrown when sending proposals to the peer...
       # grpc.NettyChannelBuilderOption.maxInboundMessageSize: 9000000
@@ -272,7 +270,7 @@ peers:
 #      ssl-target-name-override: peer0.org2.example.com
 #      negotiationType: TLS
 #      grpc.NettyChannelBuilderOption.maxInboundMessageSize: 9000000
-      sslProvider: openSSL
+#      sslProvider: openSSL
       hostnameOverride: peer0.org2.example.com
 
     tlsCACerts:

@@ -17,7 +17,6 @@ package org.hyperledger.fabric.sdk.security;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -35,14 +34,11 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Properties;
 
 import javax.xml.bind.DatatypeConverter;
 
 import org.apache.commons.compress.utils.IOUtils;
-import org.apache.commons.io.FileUtils;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.util.encoders.Hex;
@@ -674,6 +670,22 @@ public class CryptoPrimitivesTest {
         crypto.setHashAlgorithm("SHA3");
         byte[] hash = crypto.hash(input);
         Assert.assertEquals(expectedHash, Hex.toHexString(hash));
+    }
+
+    /**
+     * Test makes sure we validate a certificate that has non-standard attributes as FabricCA generates.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testValidationOfCertWithFabicCAattributes() throws Exception {
+
+        CryptoSuite cryptoSuite = CryptoSuiteFactory.getDefault().getCryptoSuite();
+        byte[] onceFailingPem = Files.readAllBytes(Paths.get("src/test/fixture/testPems/peerCert.pem"));
+        byte[] caPems = Files.readAllBytes(Paths.get("src/test/fixture/testPems/caBundled.pems"));
+        CryptoPrimitives cryptoPrimitives = (CryptoPrimitives) cryptoSuite;
+        cryptoPrimitives.addCACertificatesToTrustStore(new BufferedInputStream(new ByteArrayInputStream(caPems)));
+        assertTrue(cryptoPrimitives.validateCertificate(onceFailingPem));
     }
 
 }

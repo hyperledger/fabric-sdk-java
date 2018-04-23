@@ -26,6 +26,8 @@ import java.net.Socket;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyManagementException;
 import java.security.KeyPair;
 import java.security.KeyStore;
@@ -487,6 +489,7 @@ public class HFCAClient {
         } catch (EnrollmentException ee) {
             logger.error(format("url:%s, user:%s  error:%s", url, user, ee.getMessage()), ee);
             throw ee;
+
         } catch (Exception e) {
             EnrollmentException ee = new EnrollmentException(format("Url:%s, Failed to enroll user %s ", url, user), e);
             logger.error(e.getMessage(), e);
@@ -971,7 +974,7 @@ public class HFCAClient {
         try {
             JsonObject result = httpGet(HFCAIdentity.HFCA_IDENTITY, registrar);
 
-            Collection<HFCAIdentity> allIdentities = new ArrayList<HFCAIdentity>();
+            Collection<HFCAIdentity> allIdentities = new ArrayList<>();
 
             JsonArray identities = result.getJsonArray("identities");
             if (identities != null && !identities.isEmpty()) {
@@ -1257,8 +1260,7 @@ public class HFCAClient {
                         respStatusCode, type, url, body, jo.getInt("code"), jo.getString("message"));
                 logger.error(errorMsg);
             }
-            JsonObject result = job.build();
-            return result;
+            return job.build();
         }
         if (errors != null && !errors.isEmpty()) {
             JsonObject jo = errors.getJsonObject(0);
@@ -1327,26 +1329,40 @@ public class HFCAClient {
         }
 
         if (isSSL && null == registry) {
-            if (properties.containsKey("pemBytes") && properties.containsKey("pemFile")) {
+            if (!properties.containsKey("pemBytes") && !properties.containsKey("pemFile")) {
 
-                throw new InvalidArgumentException("Properties can not have both \"pemBytes\" and \"pemFile\" specified. ");
+                logger.warn("SSL with no CA certficates in either pemBytes or pemFile");
 
             }
             try {
 
                 if (properties.containsKey("pemBytes")) {
-                    byte[] pemBytes = (byte[]) properties.get("pemBytes");
+                    byte[] permbytes = (byte[]) properties.get("pemBytes");
 
-                    cryptoPrimitives.addCACertificateToTrustStore(pemBytes, pemBytes.toString());
-
-                } else {
-                    String pemFile = properties.getProperty("pemFile");
-                    if (pemFile != null) {
-
-                        cryptoPrimitives.addCACertificateToTrustStore(new File(pemFile), pemFile);
-
+                    try (BufferedInputStream bis = new BufferedInputStream(new ByteArrayInputStream(permbytes))) {
+                        cryptoPrimitives.addCACertificatesToTrustStore(bis);
                     }
 
+                }
+
+                if (properties.containsKey("pemFile")) {
+                    String pemFile = properties.getProperty("pemFile");
+                    if (pemFile != null) {
+                        String[] pems = pemFile.split("[ \t]*,[ \t]*");
+
+                        for (String pem : pems) {
+                            if (null != pem && !pem.isEmpty()) {
+                                try {
+                                    try (BufferedInputStream bis = new BufferedInputStream(
+                                            new ByteArrayInputStream(Files.readAllBytes(Paths.get(pem))))) {
+                                        cryptoPrimitives.addCACertificatesToTrustStore(bis);
+                                    }
+                                } catch (IOException e) {
+                                    throw new InvalidArgumentException(format("Unable to add CA certificate, can't open certifciate file %s", new File(pem).getAbsolutePath()));
+                                }
+                            }
+                        }
+                    }
                 }
 
                 SSLContext sslContext = SSLContexts.custom()
@@ -1444,5 +1460,6 @@ public class HFCAClient {
         jsonWriter.close();
         return stringWriter.toString();
     }
+
 }
 

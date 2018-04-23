@@ -15,12 +15,13 @@
 package org.hyperledger.fabric.sdk;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
@@ -97,19 +98,43 @@ class Endpoint {
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
-                if (properties.containsKey("pemFile") && properties.containsKey("pemBytes")) {
-                    throw new RuntimeException("Properties \"pemBytes\" and \"pemFile\" can not be both set.");
-                }
-                if (properties.containsKey("pemFile")) {
-                    Path path = Paths.get(properties.getProperty("pemFile"));
-                    try {
-                        pemBytes = Files.readAllBytes(path);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
+
+                try (ByteArrayOutputStream bis = new ByteArrayOutputStream(64000)) {
+                    byte[] pb = (byte[]) properties.get("pemBytes");
+                    if (null != pb) {
+                        bis.write(pb);
                     }
-                } else if (properties.containsKey("pemBytes")) {
-                    pemBytes = (byte[]) properties.get("pemBytes");
+                    if (properties.containsKey("pemFile")) {
+
+                        String pemFile = properties.getProperty("pemFile");
+
+                        String[] pems = pemFile.split("[ \t]*,[ \t]*");
+
+                        for (String pem : pems) {
+                            if (null != pem && !pem.isEmpty()) {
+                                try {
+                                    bis.write(Files.readAllBytes(Paths.get(pem)));
+                                } catch (IOException e) {
+                                    throw new RuntimeException(format("Failed to read certificate file %s",
+                                            new File(pem).getAbsolutePath()), e);
+                                }
+                            }
+                        }
+
+                    }
+                    pemBytes = bis.toByteArray();
+
+                    if (pemBytes.length == 0) {
+                        pemBytes = null;
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to read CA certificates file %s", e);
                 }
+
+                if (pemBytes == null) {
+                    logger.warn(format("Endpoint %s is grpcs with no CA certificates", url));
+                }
+
                 if (null != pemBytes) {
                     try {
                         cn = properties.getProperty("hostnameOverride");
@@ -210,18 +235,20 @@ class Endpoint {
                         SslProvider sslprovider = sslp.equals("openSSL") ? SslProvider.OPENSSL : SslProvider.JDK;
                         NegotiationType ntype = nt.equals("TLS") ? NegotiationType.TLS : NegotiationType.PLAINTEXT;
 
-                        InputStream myInputStream = new ByteArrayInputStream(pemBytes);
-                        SslContextBuilder clientContextBuilder = GrpcSslContexts.configure(SslContextBuilder.forClient(), sslprovider);
-                        if (clientKey != null && clientCert != null) {
-                            clientContextBuilder = clientContextBuilder.keyManager(clientKey, clientCert);
+                        SslContextBuilder clientContextBuilder = getSslContextBuilder(clientCert, clientKey, sslprovider);
+                        SslContext sslContext;
+
+                        try (InputStream myInputStream = new ByteArrayInputStream(pemBytes)) {
+                            sslContext = clientContextBuilder
+                                    .trustManager(myInputStream)
+                                    .build();
                         }
-                        SslContext sslContext = clientContextBuilder
-                            .trustManager(myInputStream)
-                            .build();
-                        this.channelBuilder = NettyChannelBuilder
-                            .forAddress(addr, port)
-                            .sslContext(sslContext)
-                            .negotiationType(ntype);
+
+                        channelBuilder = NettyChannelBuilder
+                                .forAddress(addr, port)
+                                .sslContext(sslContext)
+                                .negotiationType(ntype);
+
                         if (cn != null) {
                             channelBuilder.overrideAuthority(cn);
                         }
@@ -240,6 +267,14 @@ class Endpoint {
             logger.error(e);
             throw new RuntimeException(e);
         }
+    }
+
+    SslContextBuilder getSslContextBuilder(X509Certificate[] clientCert, PrivateKey clientKey, SslProvider sslprovider) {
+        SslContextBuilder clientContextBuilder = GrpcSslContexts.configure(SslContextBuilder.forClient(), sslprovider);
+        if (clientKey != null && clientCert != null) {
+            clientContextBuilder = clientContextBuilder.keyManager(clientKey, clientCert);
+        }
+        return clientContextBuilder;
     }
 
     byte[] getClientTLSCertificateDigest() {

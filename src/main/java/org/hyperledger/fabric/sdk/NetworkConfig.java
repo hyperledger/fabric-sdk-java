@@ -24,6 +24,7 @@ import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -32,10 +33,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import javax.json.Json;
 import javax.json.JsonArray;
-import javax.json.JsonNumber;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
@@ -469,8 +470,26 @@ public class NetworkConfig {
                     throw new NetworkConfigurationException(format("Channel %s is already configured in the client!", channelName));
                 }
                 channel = reconstructChannel(client, channelName, jsonChannel);
+            } else {
+
+                final Set<String> channelNames = getChannelNames();
+                if (channelNames.isEmpty()) {
+                    throw new NetworkConfigurationException("Channel configuration has no channels defined.");
+                }
+                final StringBuilder sb = new StringBuilder(1000);
+
+                channelNames.forEach(s -> {
+                    if (sb.length() != 0) {
+                        sb.append(", ");
+                    }
+                    sb.append(s);
+                });
+                throw new NetworkConfigurationException(format("Channel %s not found in configuration file. Found channel names: %s ", channelName, sb.toString()));
+
             }
 
+        } else {
+            throw new NetworkConfigurationException("Channel configuration has no channels defined.");
         }
 
         return channel;
@@ -500,6 +519,9 @@ public class NetworkConfig {
                 }
 
                 Node orderer = createNode(ordererName, jsonOrderer, "url");
+                if (orderer == null) {
+                    throw new NetworkConfigurationException(format("Error loading config. Invalid orderer entry: %s", ordererName));
+                }
                 orderers.put(ordererName, orderer);
             }
         }
@@ -536,11 +558,16 @@ public class NetworkConfig {
                 }
 
                 Node peer = createNode(peerName, jsonPeer, "url");
+                if (peer == null) {
+                    throw new NetworkConfigurationException(format("Error loading config. Invalid peer entry: %s", peerName));
+                }
                 peers.put(peerName, peer);
 
                 // Also create an event hub with the same name as the peer
-                Node eventHub = createNode(peerName, jsonPeer, "eventUrl");
-                eventHubs.put(peerName, eventHub);
+                Node eventHub = createNode(peerName, jsonPeer, "eventUrl"); // may not be present
+                if (null != eventHub) {
+                    eventHubs.put(peerName, eventHub);
+                }
             }
         }
 
@@ -660,17 +687,17 @@ public class NetworkConfig {
                     setPeerRole(channelName, peerOptions, jsonPeer, PeerRole.LEDGER_QUERY);
                     setPeerRole(channelName, peerOptions, jsonPeer, PeerRole.EVENT_SOURCE);
 
-                    channel.addPeer(peer, peerOptions);
-
                     foundPeer = true;
 
                     // Add the event hub associated with this peer
                     EventHub eventHub = getEventHub(client, peerName);
-                    if (eventHub == null) {
-                        // By rights this should never happen!
-                        throw new NetworkConfigurationException(format("Error constructing channel %s. EventHub for %s not defined in configuration", channelName, peerName));
+                    if (eventHub != null) {
+                        channel.addEventHub(eventHub);
+                        if (peerOptions.peerRoles == null) { // means no roles were found but there is an event hub so define all roles but eventing.
+                            peerOptions.setPeerRoles(EnumSet.of(PeerRole.ENDORSING_PEER, PeerRole.CHAINCODE_QUERY, PeerRole.LEDGER_QUERY));
+                        }
                     }
-                    channel.addEventHub(eventHub);
+                    channel.addPeer(peer, peerOptions);
 
                 }
 
@@ -714,33 +741,49 @@ public class NetworkConfig {
     }
 
     // Creates a new Node instance from a JSON object
-    private Node createNode(String nodeName, JsonObject jsonOrderer, String urlPropName) throws NetworkConfigurationException {
+    private Node createNode(String nodeName, JsonObject jsonNode, String urlPropName) throws NetworkConfigurationException {
 
-        String url = jsonOrderer.getString(urlPropName);
+//        jsonNode.
+//        if (jsonNode.isNull(urlPropName)) {
+//            return  null;
+//        }
 
-        Properties props = extractProperties(jsonOrderer, "grpcOptions");
+        String url = jsonNode.getString(urlPropName, null);
+        if (url == null) {
+            return null;
+        }
+
+        Properties props = extractProperties(jsonNode, "grpcOptions");
+
+        if (null != props) {
+            String value = props.getProperty("grpc.keepalive_time_ms");
+            if (null != value) {
+                props.remove("grpc.keepalive_time_ms");
+                props.put("grpc.NettyChannelBuilderOption.keepAliveTime", new Object[] {new Long(value), TimeUnit.MILLISECONDS});
+            }
+
+            value = props.getProperty("grpc.keepalive_timeout_ms");
+            if (null != value) {
+                props.remove("grpc.keepalive_timeout_ms");
+                props.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {new Long(value), TimeUnit.MILLISECONDS});
+            }
+        }
 
         // Extract the pem details
-        getTLSCerts(nodeName, jsonOrderer, props);
+        getTLSCerts(nodeName, jsonNode, props);
 
         return new Node(nodeName, url, props);
     }
 
-    private void getTLSCerts(String nodeName, JsonObject jsonOrderer, Properties props) throws NetworkConfigurationException {
+    private void getTLSCerts(String nodeName, JsonObject jsonOrderer, Properties props) {
         JsonObject jsonTlsCaCerts = getJsonObject(jsonOrderer, "tlsCACerts");
         if (jsonTlsCaCerts != null) {
             String pemFilename = getJsonValueAsString(jsonTlsCaCerts.get("path"));
             String pemBytes = getJsonValueAsString(jsonTlsCaCerts.get("pem"));
 
-            if (pemFilename != null && pemBytes != null) {
-                throw new NetworkConfigurationException(format("Endpoint %s should not specify both tlsCACerts path and pem", nodeName));
-            }
-
             if (pemFilename != null) {
-                // Determine full pathname and ensure the file exists
-                File pemFile = new File(pemFilename);
-                String fullPathname = pemFile.getAbsolutePath();
-                props.put("pemFile", fullPathname);
+                // let the sdk handle non existing errors could be they don't exist during parsing but are there later.
+                props.put("pemFile", pemFilename);
             }
 
             if (pemBytes != null) {
@@ -795,9 +838,9 @@ public class NetworkConfig {
             PrivateKey privateKey = null;
 
             try {
-                    privateKey = getPrivateKeyFromString(adminPrivateKeyString);
+                privateKey = getPrivateKeyFromString(adminPrivateKeyString);
             } catch (IOException ioe) {
-                    throw new NetworkConfigurationException(format("%s: Invalid private key", msgPrefix), ioe);
+                throw new NetworkConfigurationException(format("%s: Invalid private key", msgPrefix), ioe);
             }
 
             final PrivateKey privateKeyFinal = privateKey;
@@ -814,7 +857,6 @@ public class NetworkConfig {
                     return signedCert;
                 }
             });
-
 
         }
 
@@ -997,7 +1039,7 @@ public class NetworkConfig {
 
     // Returns the specified JsonValue as a String, or null if it's not a string
     private static String getJsonValueAsNumberString(JsonValue value) {
-        return (value != null && value.getValueType() == ValueType.NUMBER) ? ((JsonNumber) value).toString() : null;
+        return (value != null && value.getValueType() == ValueType.NUMBER) ? value.toString() : null;
     }
 
     // Returns the specified JsonValue as a Boolean, or null if it's not a boolean
@@ -1020,6 +1062,25 @@ public class NetworkConfig {
             obj = val.asJsonObject();
         }
         return obj;
+    }
+
+    /**
+     * Get the channel names found.
+     *
+     * @return A set of the channel names found in the configuration file or empty set if none found.
+     */
+
+    public Set<String> getChannelNames() {
+        Set<String> ret = Collections.EMPTY_SET;
+
+        JsonObject channels = getJsonObject(jsonConfig, "channels");
+        if (channels != null) {
+            final Set<String> channelNames = channels.keySet();
+            if (channelNames != null && !channelNames.isEmpty()) {
+                ret = new HashSet<>(channelNames);
+            }
+        }
+        return ret;
     }
 
     // Holds a network "node" (eg. Peer, Orderer, EventHub)
@@ -1167,7 +1228,6 @@ public class NetworkConfig {
             return mspId;
         }
 
-
         public List<String> getPeerNames() {
             return peerNames;
         }
@@ -1185,7 +1245,6 @@ public class NetworkConfig {
 
             return peerAdmin;
         }
-
 
     }
 

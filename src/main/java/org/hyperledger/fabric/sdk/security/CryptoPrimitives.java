@@ -125,7 +125,7 @@ public class CryptoPrimitives implements CryptoSuite {
     public CryptoPrimitives() throws ClassNotFoundException, IllegalAccessException, InstantiationException {
         String securityProviderClassName = config.getSecurityProviderClassName();
 
-        SECURITY_PROVIDER = setUpExplictProvider(securityProviderClassName);
+        SECURITY_PROVIDER = setUpExplicitProvider(securityProviderClassName);
 
         //Decided TO NOT do this as it can have affects over the whole JVM and could have
         // unexpected results.  The embedding application can easily do this!
@@ -133,7 +133,7 @@ public class CryptoPrimitives implements CryptoSuite {
         // Security.insertProviderAt(SECURITY_PROVIDER, 1); // 1 is top not 0 :)
     }
 
-    Provider setUpExplictProvider(String securityProviderClassName) throws InstantiationException, ClassNotFoundException, IllegalAccessException {
+    Provider setUpExplicitProvider(String securityProviderClassName) throws InstantiationException, ClassNotFoundException, IllegalAccessException {
         if (null == securityProviderClassName) {
             throw new InstantiationException(format("Security provider class name property (%s) set to null  ", Config.SECURITY_PROVIDER_CLASS_NAME));
         }
@@ -212,11 +212,11 @@ public class CryptoPrimitives implements CryptoSuite {
         CryptoException rete = null;
 
         List<Provider> providerList = new LinkedList<>(Arrays.asList(Security.getProviders()));
-        if (SECURITY_PROVIDER != null) { //Add
-            providerList.add(0, SECURITY_PROVIDER);
+        if (SECURITY_PROVIDER != null) { //Add if overridden
+            providerList.add(SECURITY_PROVIDER);
         }
         try {
-            providerList.add(BouncyCastleProvider.class.newInstance());
+            providerList.add(BouncyCastleProvider.class.newInstance()); // bouncy castle is there always.
         } catch (Exception e) {
             logger.warn(e);
 
@@ -228,13 +228,14 @@ public class CryptoPrimitives implements CryptoSuite {
                 }
                 CertificateFactory certFactory = CertificateFactory.getInstance(CERTIFICATE_FORMAT, provider);
                 if (null != certFactory) {
+                    try (ByteArrayInputStream bis = new ByteArrayInputStream(pemCertificate)) {
+                        Certificate certificate = certFactory.generateCertificate(bis);
 
-                    //   BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(pemCertificate));
-                    Certificate certificate = certFactory.generateCertificate(new ByteArrayInputStream(pemCertificate));
-                    if (certificate instanceof X509Certificate) {
-                        ret = (X509Certificate) certificate;
-                        rete = null;
-                        break;
+                        if (certificate instanceof X509Certificate) {
+                            ret = (X509Certificate) certificate;
+                            rete = null;
+                            break;
+                        }
                     }
 
                 }
@@ -262,7 +263,7 @@ public class CryptoPrimitives implements CryptoSuite {
 
     }
 
-     /**
+    /**
      * Return PrivateKey  from pem bytes.
      *
      * @param pemKey pem-encoded private key
@@ -300,11 +301,12 @@ public class CryptoPrimitives implements CryptoSuite {
         if (config.extraLogLevel(10)) {
             if (null != diagnosticFileDumper) {
                 StringBuilder sb = new StringBuilder(10000);
-                sb.append("plaintext in hex: " + DatatypeConverter.printHexBinary(plainText));
-                sb.append("\n");
-                sb.append("signature in hex: " + DatatypeConverter.printHexBinary(signature));
-                sb.append("\n");
-                sb.append("PEM cert in hex: " + DatatypeConverter.printHexBinary(pemCertificate));
+                sb.append("plaintext in hex: ")
+                        .append(DatatypeConverter.printHexBinary(plainText))
+                        .append("\n")
+                        .append("signature in hex: " + DatatypeConverter.printHexBinary(signature))
+                        .append("\n")
+                        .append("PEM cert in hex: " + DatatypeConverter.printHexBinary(pemCertificate));
                 logger.trace("verify :  " +
                         diagnosticFileDumper.createDiagnosticFile(sb.toString()));
             }
@@ -401,45 +403,51 @@ public class CryptoPrimitives implements CryptoSuite {
             throw new InvalidArgumentException("You must assign an alias to a certificate when adding to the trust store");
         }
 
-        BufferedInputStream bis;
         try {
+            try (BufferedInputStream bis = new BufferedInputStream(new ByteArrayInputStream(FileUtils.readFileToByteArray(caCertPem)))) {
 
-            bis = new BufferedInputStream(new ByteArrayInputStream(FileUtils.readFileToByteArray(caCertPem)));
-            Certificate caCert = cf.generateCertificate(bis);
-            addCACertificateToTrustStore(caCert, alias);
+                Certificate caCert = cf.generateCertificate(bis);
+                addCACertificateToTrustStore(caCert, alias);
+            }
         } catch (CertificateException | IOException e) {
             throw new CryptoException("Unable to add CA certificate to trust store. Error: " + e.getMessage(), e);
         }
+
     }
 
     /**
-     * addCACertificateToTrustStore adds a CA cert to the set of certificates used for signature validation
+     * addCACertificatesToTrustStore adds a CA certs in a stream to the trust store  used for signature validation
      *
-     * @param bytes an X.509 certificate in PEM format in bytes
-     * @param alias an alias associated with the certificate. Used as shorthand for the certificate during crypto operations
+     * @param bis an X.509 certificate stream in PEM format in bytes
      * @throws CryptoException
      * @throws InvalidArgumentException
      */
-    public void addCACertificateToTrustStore(byte[] bytes, String alias) throws CryptoException, InvalidArgumentException {
+    public void addCACertificatesToTrustStore(BufferedInputStream bis) throws CryptoException, InvalidArgumentException {
 
-        if (bytes == null) {
-            throw new InvalidArgumentException("The certificate cannot be null");
+        if (bis == null) {
+            throw new InvalidArgumentException("The certificate stream bis cannot be null");
         }
 
-        if (alias == null || alias.isEmpty()) {
-            throw new InvalidArgumentException("You must assign an alias to a certificate when adding to the trust store");
-        }
-
-        BufferedInputStream bis;
         try {
-
-            bis = new BufferedInputStream(new ByteArrayInputStream(bytes));
-            Certificate caCert = cf.generateCertificate(bis);
-            addCACertificateToTrustStore(caCert, alias);
+            final Collection<? extends Certificate> certificates = cf.generateCertificates(bis);
+            for (Certificate certificate : certificates) {
+                addCACertificateToTrustStore(certificate);
+            }
 
         } catch (CertificateException e) {
             throw new CryptoException("Unable to add CA certificate to trust store. Error: " + e.getMessage(), e);
         }
+    }
+
+    private void addCACertificateToTrustStore(Certificate certificate) throws InvalidArgumentException, CryptoException {
+
+        String alias;
+        if (certificate instanceof X509Certificate) {
+            alias = ((X509Certificate) certificate).getSerialNumber().toString();
+        } else { // not likely ...
+            alias = Integer.toString(certificate.hashCode());
+        }
+        addCACertificateToTrustStore(certificate, alias);
     }
 
     /**
@@ -462,9 +470,8 @@ public class CryptoPrimitives implements CryptoSuite {
         try {
             if (config.extraLogLevel(10)) {
                 if (null != diagnosticFileDumper) {
-                    logger.trace("Adding cert to trust store. alias: " + diagnosticFileDumper.createDiagnosticFile(alias + "cert: " + caCert.toString()));
+                    logger.trace(format("Adding cert to trust store. alias: %s. certificate:", alias) + diagnosticFileDumper.createDiagnosticFile(alias + "cert: " + caCert.toString()));
                 }
-
             }
             getTrustStore().setCertificateEntry(alias, caCert);
         } catch (KeyStoreException e) {
@@ -482,7 +489,8 @@ public class CryptoPrimitives implements CryptoSuite {
 
         try {
             for (Certificate cert : certificates) {
-                addCACertificateToTrustStore(cert, Integer.toString(cert.hashCode()));
+
+                addCACertificateToTrustStore(cert);
             }
         } catch (InvalidArgumentException e) {
             // Note: This can currently never happen (as cert<>null and alias<>null)
@@ -659,34 +667,36 @@ public class CryptoPrimitives implements CryptoSuite {
      * @throws Exception
      */
     private static BigInteger[] decodeECDSASignature(byte[] signature) throws Exception {
-        ByteArrayInputStream inStream = new ByteArrayInputStream(signature);
-        ASN1InputStream asnInputStream = new ASN1InputStream(inStream);
-        ASN1Primitive asn1 = asnInputStream.readObject();
 
-        BigInteger[] sigs = new BigInteger[2];
-        int count = 0;
-        if (asn1 instanceof ASN1Sequence) {
-            ASN1Sequence asn1Sequence = (ASN1Sequence) asn1;
-            ASN1Encodable[] asn1Encodables = asn1Sequence.toArray();
-            for (ASN1Encodable asn1Encodable : asn1Encodables) {
-                ASN1Primitive asn1Primitive = asn1Encodable.toASN1Primitive();
-                if (asn1Primitive instanceof ASN1Integer) {
-                    ASN1Integer asn1Integer = (ASN1Integer) asn1Primitive;
-                    BigInteger integer = asn1Integer.getValue();
-                    if (count  < 2) {
-                        sigs[count] = integer;
+        try (ByteArrayInputStream inStream = new ByteArrayInputStream(signature)) {
+            ASN1InputStream asnInputStream = new ASN1InputStream(inStream);
+            ASN1Primitive asn1 = asnInputStream.readObject();
+
+            BigInteger[] sigs = new BigInteger[2];
+            int count = 0;
+            if (asn1 instanceof ASN1Sequence) {
+                ASN1Sequence asn1Sequence = (ASN1Sequence) asn1;
+                ASN1Encodable[] asn1Encodables = asn1Sequence.toArray();
+                for (ASN1Encodable asn1Encodable : asn1Encodables) {
+                    ASN1Primitive asn1Primitive = asn1Encodable.toASN1Primitive();
+                    if (asn1Primitive instanceof ASN1Integer) {
+                        ASN1Integer asn1Integer = (ASN1Integer) asn1Primitive;
+                        BigInteger integer = asn1Integer.getValue();
+                        if (count < 2) {
+                            sigs[count] = integer;
+                        }
+                        count++;
                     }
-                    count++;
                 }
             }
+            if (count != 2) {
+                throw new CryptoException(format("Invalid ECDSA signature. Expected count of 2 but got: %d. Signature is: %s", count,
+                        DatatypeConverter.printHexBinary(signature)));
+            }
+            return sigs;
         }
-        if (count != 2) {
-            throw new CryptoException(format("Invalid ECDSA signature. Expected count of 2 but got: %d. Signature is: %s", count,
-                    DatatypeConverter.printHexBinary(signature)));
-        }
-        return sigs;
-    }
 
+    }
 
     /**
      * Sign data with the specified elliptic curve private key.
@@ -702,7 +712,7 @@ public class CryptoPrimitives implements CryptoSuite {
             BigInteger curveN = params.getN();
 
             Signature sig = SECURITY_PROVIDER == null ? Signature.getInstance(DEFAULT_SIGNATURE_ALGORITHM) :
-                                                        Signature.getInstance(DEFAULT_SIGNATURE_ALGORITHM, SECURITY_PROVIDER);
+                    Signature.getInstance(DEFAULT_SIGNATURE_ALGORITHM, SECURITY_PROVIDER);
             sig.initSign(privateKey);
             sig.update(data);
             byte[] signature = sig.sign();
@@ -711,13 +721,14 @@ public class CryptoPrimitives implements CryptoSuite {
 
             sigs = preventMalleability(sigs, curveN);
 
-            ByteArrayOutputStream s = new ByteArrayOutputStream();
+            try (ByteArrayOutputStream s = new ByteArrayOutputStream()) {
 
-            DERSequenceGenerator seq = new DERSequenceGenerator(s);
-            seq.addObject(new ASN1Integer(sigs[0]));
-            seq.addObject(new ASN1Integer(sigs[1]));
-            seq.close();
-            return s.toByteArray();
+                DERSequenceGenerator seq = new DERSequenceGenerator(s);
+                seq.addObject(new ASN1Integer(sigs[0]));
+                seq.addObject(new ASN1Integer(sigs[1]));
+                seq.close();
+                return s.toByteArray();
+            }
 
         } catch (Exception e) {
             throw new CryptoException("Could not sign the message using private key", e);
@@ -825,7 +836,7 @@ public class CryptoPrimitives implements CryptoSuite {
         return HLSDKJCryptoSuiteFactory.instance(); //Factory for this crypto suite.
     }
 
-    final AtomicBoolean inited = new AtomicBoolean(false);
+    private final AtomicBoolean inited = new AtomicBoolean(false);
 
     // @Override
     public void init() throws CryptoException, InvalidArgumentException {
@@ -918,7 +929,7 @@ public class CryptoPrimitives implements CryptoSuite {
                 config.getSecurityProviderClassName();
 
         try {
-            SECURITY_PROVIDER = setUpExplictProvider(providerName);
+            SECURITY_PROVIDER = setUpExplicitProvider(providerName);
         } catch (Exception e) {
             throw new InvalidArgumentException(format("Getting provider for class name: %s", providerName), e);
 
