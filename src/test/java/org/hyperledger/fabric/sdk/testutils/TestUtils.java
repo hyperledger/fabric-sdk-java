@@ -24,8 +24,10 @@ import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
@@ -35,12 +37,19 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
+import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.Enrollment;
+import org.hyperledger.fabric.sdk.HFClient;
+import org.hyperledger.fabric.sdk.Orderer;
+import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.User;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Config;
 import org.junit.Assert;
 
 import static java.lang.String.format;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 //import org.hyperledger.fabric.sdk.MockUser;
 //import org.hyperledger.fabric.sdk.ClientTest.MockEnrollment;
@@ -252,6 +261,60 @@ public class TestUtils {
                 return item.matches(regex);
             }
         };
+    }
+
+    /**
+     * Just for testing remove all peers and orderers and add them back.
+     *
+     * @param client
+     * @param channel
+     */
+    public static void testRemovingAddingPeersOrderers(HFClient client, Channel channel) {
+        Map<Peer, Channel.PeerOptions> perm = new HashMap<>();
+
+        assertTrue(channel.isInitialized());
+        assertFalse(channel.isShutdown());
+
+        channel.getPeers().forEach(peer -> {
+            try {
+                perm.put(peer, channel.getPeersOptions(peer));
+                channel.removePeer(peer);
+            } catch (InvalidArgumentException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        perm.forEach((peer, value) -> {
+            try {
+
+                Peer newPeer = client.newPeer(peer.getName(), peer.getUrl(), peer.getProperties());
+                channel.addPeer(newPeer, value);
+
+            } catch (InvalidArgumentException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        List<Orderer> removedOrders = new ArrayList<>();
+
+        for (Orderer orderer : channel.getOrderers()) {
+            try {
+                channel.removeOrderer(orderer);
+                removedOrders.add(orderer);
+            } catch (InvalidArgumentException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+        removedOrders.forEach(orderer -> {
+            try {
+                Orderer newOrderer = client.newOrderer(orderer.getName(), orderer.getUrl(), orderer.getProperties());
+                channel.addOrderer(newOrderer);
+            } catch (InvalidArgumentException e) {
+                throw new RuntimeException(e);
+            }
+
+        });
     }
 
     private static class MockPrivateKey implements PrivateKey {

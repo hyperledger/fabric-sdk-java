@@ -83,11 +83,13 @@ public class Config {
     public static final String CONN_SSL_PROVIDER = "org.hyperledger.fabric.sdk.connections.ssl.sslProvider";
     public static final String CONN_SSL_NEGTYPE = "org.hyperledger.fabric.sdk.connections.ssl.negotiationType";
 
-
     /**
      * Miscellaneous settings
      **/
     public static final String PROPOSAL_CONSISTENCY_VALIDATION = "org.hyperledger.fabric.sdk.proposal.consistency_validation";
+
+    public static final String SERVICE_DISCOVER_FREQ_SECONDS = "org.hyperledger.fabric.sdk.service_discovery.frequency_sec";
+    public static final String SERVICE_DISCOVER_WAIT_TIME = "org.hyperledger.fabric.sdk.service_discovery.discovery_wait_time";
 
     private static Config config;
     private static final Properties sdkProperties = new Properties();
@@ -161,6 +163,10 @@ public class Config {
             defaultProperty(PROPOSAL_CONSISTENCY_VALIDATION, "true");
             defaultProperty(EVENTHUB_RECONNECTION_WARNING_RATE, "50");
             defaultProperty(PEER_EVENT_RECONNECTION_WARNING_RATE, "50");
+
+            defaultProperty(SERVICE_DISCOVER_FREQ_SECONDS, "120");
+            defaultProperty(SERVICE_DISCOVER_WAIT_TIME, "5000");
+
 
             final String inLogLevel = sdkProperties.getProperty(LOGGERLEVEL);
 
@@ -307,7 +313,6 @@ public class Config {
 
     }
 
-
     private Map<Integer, String> curveMapping = null;
 
     /**
@@ -422,6 +427,24 @@ public class Config {
 
     public long getPeerEventReconnectionWarningRate() {
         return Long.parseLong(getProperty(PEER_EVENT_RECONNECTION_WARNING_RATE));
+    }
+
+    /**
+     * How often serviced discovery is preformed in seconds.
+     *
+     * @return
+     */
+    public int getServiceDiscoveryFreqSeconds() {
+        return Integer.parseInt(getProperty(SERVICE_DISCOVER_FREQ_SECONDS));
+    }
+
+    /**
+     * Time to wait for service discovery to complete.
+     *
+     * @return
+     */
+    public int getServiceDiscoveryWaitTime() {
+        return Integer.parseInt(getProperty(SERVICE_DISCOVER_WAIT_TIME));
     }
 
     public long getEventHubConnectionWaitTime() {

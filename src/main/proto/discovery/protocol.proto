@@ -9,6 +9,7 @@ import "msp/msp_config.proto";
 import "msp/identities.proto";
 
 option go_package = "github.com/hyperledger/fabric/protos/discovery";
+option java_package = "org.hyperledger.fabric.protos.discovery";
 
 package discovery;
 

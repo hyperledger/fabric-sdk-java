@@ -22,6 +22,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.concurrent.CompletableFuture;
 
@@ -265,7 +266,7 @@ public class ChannelTest {
         final Channel testChannel = new MockChannel(CHANNEL_NAME, hfclient);
         final Peer peer = hfclient.newPeer("peer_", "grpc://localhost:7051");
 
-        testChannel.addPeer(peer, createPeerOptions().setPeerRoles(Peer.PeerRole.NO_EVENT_SOURCE));
+        testChannel.addPeer(peer, createPeerOptions().setPeerRoles(EnumSet.of(Peer.PeerRole.ENDORSING_PEER)));
         assertFalse(testChannel.isInitialized());
         testChannel.initialize();
         Assert.assertTrue(testChannel.isInitialized());

@@ -58,6 +58,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.security.auth.x500.X500Principal;
 import javax.xml.bind.DatatypeConverter;
 
+import io.netty.util.internal.ConcurrentSet;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -439,6 +440,8 @@ public class CryptoPrimitives implements CryptoSuite {
         }
     }
 
+    ConcurrentSet<String> certificateSet = new ConcurrentSet<>();
+
     private void addCACertificateToTrustStore(Certificate certificate) throws InvalidArgumentException, CryptoException {
 
         String alias;
@@ -463,6 +466,7 @@ public class CryptoPrimitives implements CryptoSuite {
         if (alias == null || alias.isEmpty()) {
             throw new InvalidArgumentException("You must assign an alias to a certificate when adding to the trust store.");
         }
+
         if (caCert == null) {
             throw new InvalidArgumentException("Certificate cannot be null.");
         }
@@ -473,7 +477,15 @@ public class CryptoPrimitives implements CryptoSuite {
                     logger.trace(format("Adding cert to trust store. alias: %s. certificate:", alias) + diagnosticFileDumper.createDiagnosticFile(alias + "cert: " + caCert.toString()));
                 }
             }
-            getTrustStore().setCertificateEntry(alias, caCert);
+            synchronized (certificateSet) {
+                if (certificateSet.contains(alias)) {
+                    return;
+                }
+
+                getTrustStore().setCertificateEntry(alias, caCert);
+                certificateSet.add(alias);
+
+            }
         } catch (KeyStoreException e) {
             String emsg = "Unable to add CA certificate to trust store. Error: " + e.getMessage();
             logger.error(emsg, e);
@@ -506,20 +518,13 @@ public class CryptoPrimitives implements CryptoSuite {
         if (certificatesBytes == null || certificatesBytes.size() == 0) {
             throw new CryptoException("List of CA certificates is empty. Nothing to load.");
         }
-        StringBuilder sb = new StringBuilder(1000);
+
         ArrayList<Certificate> certList = new ArrayList<>();
         for (byte[] certBytes : certificatesBytes) {
-            if (null != diagnosticFileDumper) {
-                sb.append("certificate to load:\n" + new String(certBytes));
-
-            }
             certList.add(bytesToCertificate(certBytes));
         }
         loadCACertificates(certList);
-        if (diagnosticFileDumper != null && sb.length() > 1) {
-            logger.trace("loaded certificates: " + diagnosticFileDumper.createDiagnosticFile(sb.toString()));
 
-        }
     }
 
     /**

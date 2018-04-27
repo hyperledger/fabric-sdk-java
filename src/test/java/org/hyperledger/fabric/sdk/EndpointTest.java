@@ -61,7 +61,7 @@ public class EndpointTest {
             new Endpoint("grpcs://localhost", null);
             Assert.fail("should have thrown error as there is no port in the url");
         } catch (RuntimeException rex) {
-            Assert.assertEquals("URL must be of the format protocol://host:port", rex.getMessage());
+            Assert.assertEquals("URL must be of the format protocol://host:port. Found: 'grpcs://localhost'", rex.getMessage());
         }
 
         try {
@@ -203,7 +203,7 @@ public class EndpointTest {
     @Test
     public void testBadClientKeyFile() {
         thrown.expect(RuntimeException.class);
-        thrown.expectMessage("Failed to parse TLS client private key");
+        thrown.expectMessage("Failed endpoint grpcs://localhost:594 to parse TLS client private key");
 
         Properties testprops = new Properties();
         testprops.setProperty("trustServerCertificate", "true");
@@ -220,7 +220,7 @@ public class EndpointTest {
     @Test
     public void testBadClientCertFile() {
         thrown.expect(RuntimeException.class);
-        thrown.expectMessage("Failed to parse TLS client certificate");
+        thrown.expectMessage("Failed endpoint grpcs://localhost:594 to parse TLS client certificate");
 
         Properties testprops = new Properties();
         testprops.setProperty("trustServerCertificate", "true");
@@ -267,7 +267,7 @@ public class EndpointTest {
         try {
             new Endpoint("grpcs://localhost:594", testprops);
         } catch (RuntimeException e) {
-            Assert.assertEquals("Failed to parse TLS client private key", e.getMessage());
+            Assert.assertTrue(e.getMessage().contains("Failed endpoint grpcs://localhost:594 to parse TLS client private key"));
         }
     }
 

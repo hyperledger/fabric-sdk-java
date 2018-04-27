@@ -333,7 +333,7 @@ public final class Utils {
                 throw new RuntimeException(format("Invalid protocol expected grpc or grpcs and found %s.", protocol));
             }
         } else {
-            throw new RuntimeException("URL must be of the format protocol://host:port");
+            throw new RuntimeException("URL must be of the format protocol://host:port. Found: '" + url + "'");
         }
 
         // TODO: allow all possible formats of the URL

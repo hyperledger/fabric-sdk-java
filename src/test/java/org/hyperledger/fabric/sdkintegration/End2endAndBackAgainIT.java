@@ -70,6 +70,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.BlockInfo.EnvelopeType.TRANSACTION_ENVELOPE;
 import static org.hyperledger.fabric.sdk.Channel.PeerOptions.createPeerOptions;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.testRemovingAddingPeersOrderers;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -308,6 +309,9 @@ public class End2endAndBackAgainIT {
         try {
 
             client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME));
+
+            //This is for testing only and can be ignored.
+            testRemovingAddingPeersOrderers(client, channel);
 
 //            final boolean changeContext = false; // BAR_CHANNEL_NAME.equals(channel.getName()) ? true : false;
             final boolean changeContext = BAR_CHANNEL_NAME.equals(channel.getName());
@@ -624,11 +628,11 @@ public class End2endAndBackAgainIT {
                 Peer peer = client.newPeer(peerName, peerLocation, peerProperties);
                 final PeerOptions peerEventingOptions = // we have two peers on one use block on other use filtered
                         everyOther ?
-                                createPeerOptions().registerEventsForBlocks() :
-                                createPeerOptions().registerEventsForFilteredBlocks();
+                                createPeerOptions().registerEventsForBlocks().setPeerRoles(EnumSet.of(PeerRole.ENDORSING_PEER, PeerRole.LEDGER_QUERY, PeerRole.CHAINCODE_QUERY, PeerRole.EVENT_SOURCE)) :
+                                createPeerOptions().registerEventsForFilteredBlocks().setPeerRoles(EnumSet.of(PeerRole.ENDORSING_PEER, PeerRole.LEDGER_QUERY, PeerRole.CHAINCODE_QUERY, PeerRole.EVENT_SOURCE));
 
                 newChannel.addPeer(peer, IS_FABRIC_V10 ?
-                        createPeerOptions().setPeerRoles(PeerRole.NO_EVENT_SOURCE) : peerEventingOptions);
+                        createPeerOptions().setPeerRoles(EnumSet.of(PeerRole.ENDORSING_PEER, PeerRole.LEDGER_QUERY, PeerRole.CHAINCODE_QUERY)) : peerEventingOptions);
 
                 everyOther = !everyOther;
             }
@@ -772,8 +776,10 @@ public class End2endAndBackAgainIT {
             replayTestChannel.removePeer(peer);
         }
         assertTrue(savedPeers.size() > 1); //need at least two
-        final Peer eventingPeer = savedPeers.remove(0);
+        Peer eventingPeer = savedPeers.remove(0);
+        eventingPeer = client.newPeer(eventingPeer.getName(), eventingPeer.getUrl(), eventingPeer.getProperties());
         Peer ledgerPeer = savedPeers.remove(0);
+        ledgerPeer = client.newPeer(ledgerPeer.getName(), ledgerPeer.getUrl(), ledgerPeer.getProperties());
 
         assertTrue(replayTestChannel.getPeers().isEmpty()); // no more peers.
         assertTrue(replayTestChannel.getPeers(EnumSet.of(PeerRole.CHAINCODE_QUERY, PeerRole.ENDORSING_PEER)).isEmpty()); // just checking :)

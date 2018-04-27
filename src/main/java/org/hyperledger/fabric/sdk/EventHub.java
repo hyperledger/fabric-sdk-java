@@ -190,7 +190,7 @@ public class EventHub implements Serializable {
 
         lastConnectedAttempt = System.currentTimeMillis();
 
-        Endpoint endpoint = new Endpoint(url, properties);
+        Endpoint endpoint = Endpoint.createEndpoint(url, properties);
         managedChannel = endpoint.getChannelBuilder().build();
 
         clientTLSCertificateDigest = endpoint.getClientTLSCertificateDigest();

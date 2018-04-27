@@ -284,6 +284,7 @@ public class HFClient {
      *                   Supported properties
      *                   <ul>
      *                   <li>pemFile - File location for x509 pem certificate for SSL.</li>
+     *                   <li>pemBytes - byte array for x509 pem certificates for SSL</li>
      *                   <li>trustServerCertificate - boolen(true/false) override CN to match pemFile certificate -- for development only.
      *                   If the pemFile has the target server's certificate (instead of a CA Root certificate),
      *                   instruct the TLS client to trust the CN value of the certificate in the pemFile,
@@ -414,12 +415,13 @@ public class HFClient {
     /**
      * Create a new Eventhub.
      *
-     * @param name       name of Orderer.
+     * @param name       name of Eventhub.
      * @param grpcURL    url location of orderer grpc or grpcs protocol.
      * @param properties <p>
      *                   Supported properties
      *                   <ul>
      *                   <li>pemFile - File location for x509 pem certificate for SSL.</li>
+     *                   <li>pemBytes - byte array for x509 pem certificates for SSL</li>
      *                   <li>trustServerCertificate - boolean(true/false) override CN to match pemFile certificate -- for development only.
      *                   If the pemFile has the target server's certificate (instead of a CA Root certificate),
      *                   instruct the TLS client to trust the CN value of the certificate in the pemFile,
@@ -487,6 +489,7 @@ public class HFClient {
      *                   Supported properties
      *                   <ul>
      *                   <li>pemFile - File location for x509 pem certificate for SSL.</li>
+     *                   <li>pemBytes - byte array for x509 pem certificates for SSL</li>
      *                   <li>trustServerCertificate - boolean(true/false) override CN to match pemFile certificate -- for development only.
      *                   If the pemFile has the target server's certificate (instead of a CA Root certificate),
      *                   instruct the TLS client to trust the CN value of the certificate in the pemFile,

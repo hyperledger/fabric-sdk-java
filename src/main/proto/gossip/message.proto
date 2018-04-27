@@ -5,6 +5,7 @@
 syntax = "proto3";
 
 option go_package = "github.com/hyperledger/fabric/protos/gossip";
+option java_package = "org.hyperledger.fabric.protos.gossip";
 
 package gossip;
 
@@ -20,7 +21,7 @@ service Gossip {
     // Ping is used to probe a remote peer's aliveness
     rpc Ping (Empty) returns (Empty) {
     }
-    }
+}
 
 // Envelope contains a marshalled
 // GossipMessage and a signature over it.

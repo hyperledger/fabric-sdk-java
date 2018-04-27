@@ -28,6 +28,7 @@ import org.hyperledger.fabric.sdk.exception.TransactionException;
 
 import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
+import static org.hyperledger.fabric.sdk.helper.Utils.parseGrpcUrl;
 
 /**
  * The Orderer class represents a orderer to which SDK sends deploy, invoke, or query requests.
@@ -66,7 +67,7 @@ public class Orderer implements Serializable {
 
     byte[] getClientTLSCertificateDigest() {
         if (null == clientTLSCertificateDigest) {
-            clientTLSCertificateDigest = new Endpoint(url, properties).getClientTLSCertificateDigest();
+            clientTLSCertificateDigest = Endpoint.createEndpoint(url, properties).getClientTLSCertificateDigest();
         }
         return clientTLSCertificateDigest;
     }
@@ -145,7 +146,7 @@ public class Orderer implements Serializable {
         OrdererClient localOrdererClient = ordererClient;
 
         if (localOrdererClient == null || !localOrdererClient.isChannelActive()) {
-            ordererClient = new OrdererClient(this, new Endpoint(url, properties).getChannelBuilder(), properties);
+            ordererClient = new OrdererClient(this, Endpoint.createEndpoint(url, properties).getChannelBuilder(), properties);
             localOrdererClient = ordererClient;
         }
 
@@ -170,7 +171,7 @@ public class Orderer implements Serializable {
 
         logger.debug(format("Order.sendDeliver name: %s, url: %s", name, url));
         if (localOrdererClient == null || !localOrdererClient.isChannelActive()) {
-            localOrdererClient = new OrdererClient(this, new Endpoint(url, properties).getChannelBuilder(), properties);
+            localOrdererClient = new OrdererClient(this, Endpoint.createEndpoint(url, properties).getChannelBuilder(), properties);
             ordererClient = localOrdererClient;
         }
 
@@ -198,6 +199,16 @@ public class Orderer implements Serializable {
             torderClientDeliver.shutdown(force);
         }
 
+    }
+
+    String endPoint;
+
+    String getEndpoint() {
+        if (null == endPoint) {
+            Properties properties = parseGrpcUrl(url);
+            endPoint = properties.get("host") + ":" + properties.getProperty("port").toLowerCase().trim();
+        }
+        return endPoint;
     }
 
     @Override

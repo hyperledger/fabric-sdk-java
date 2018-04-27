@@ -68,9 +68,12 @@ services:
     environment:
       - CORE_PEER_ID=peer0.org1.example.com
       - CORE_PEER_ADDRESS=peer0.org1.example.com:7051
+      - CORE_PEER_EVENTS_ADDRESS=0.0.0.0:7053
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org1.example.com:7051
-#      - CORE_PEER_GOSSIP_ORGLEADER=true
+      - CORE_PEER_GOSSIP_ENDPOINT=peer0.org1.example.com:7051
+ #     - CORE_PEER_GOSSIP_ORGLEADER=true
       - CORE_PEER_LOCALMSPID=Org1MSP
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org1.example.com:7051
 
 #      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/msp/peer/msp/cacerts/ca.org1.example.com-cert.pem
       - CORE_PEER_TLS_CLIENTROOTCAS_FILES=/etc/hyperledger/msp/peer/msp/tlscacerts/tlsca.org1.example.com-cert.pem
@@ -90,9 +93,12 @@ services:
       service: peer-base
     environment:
       - CORE_PEER_ID=peer1.org1.example.com
-      - CORE_PEER_ADDRESS=peer1.org1.example.com:7051
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.org1.example.com:7051
-#      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org1.example.com:7051
+      - CORE_PEER_ADDRESS=peer1.org1.example.com:7056
+      - CORE_PEER_LISTENADDRESS=peer1.org1.example.com:7056
+      - CORE_PEER_EVENTS_ADDRESS=0.0.0.0:7058
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.org1.example.com:7056
+      - CORE_PEER_GOSSIP_ENDPOINT=peer1.org1.example.com:7056
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org1.example.com:7051
       - CORE_PEER_LOCALMSPID=Org1MSP
 #      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/msp/peer/msp/cacerts/ca.org1.example.com-cert.pem
       - CORE_PEER_TLS_CLIENTROOTCAS_FILES=/etc/hyperledger/msp/peer/msp/tlscacerts/tlsca.org1.example.com-cert.pem
@@ -100,8 +106,8 @@ services:
          - /var/run/:/host/var/run/
          - ./e2e-2Orgs/${FAB_CONFIG_GEN_VERS}/crypto-config/peerOrganizations/org1.example.com/peers/peer1.org1.example.com/:/etc/hyperledger/msp/peer:ro
     ports:
-       - 7056:7051
-       - 7058:7053
+       - 7056:7056
+       - 7058:7058
     depends_on:
        - orderer.example.com
        - peer0.org1.example.com
@@ -113,9 +119,13 @@ services:
       service: peer-base
     environment:
       - CORE_PEER_ID=peer0.org2.example.com
-      - CORE_PEER_ADDRESS=peer0.org2.example.com:7051
+      - CORE_PEER_ADDRESS=peer0.org2.example.com:8051
+      - CORE_PEER_LISTENADDRESS=peer0.org2.example.com:8051
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org2.example.com:8051
-#      - CORE_PEER_GOSSIP_ORGLEADER=true
+      - CORE_PEER_GOSSIP_ENDPOINT=peer0.org2.example.com:8051
+      - CORE_PEER_EVENTS_ADDRESS=0.0.0.0:8053
+ #     - CORE_PEER_GOSSIP_ORGLEADER=true
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org2.example.com:8051
       - CORE_PEER_LOCALMSPID=Org2MSP
 #      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/msp/peer/msp/cacerts/ca.org2.example.com-cert.pem
       - CORE_PEER_TLS_CLIENTROOTCAS_FILES=/etc/hyperledger/msp/peer/msp/tlscacerts/tlsca.org2.example.com-cert.pem
@@ -123,8 +133,8 @@ services:
       - /var/run/:/host/var/run/
       - ./e2e-2Orgs/${FAB_CONFIG_GEN_VERS}/crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/:/etc/hyperledger/msp/peer:ro
     ports:
-      - 8051:7051
-      - 8053:7053
+      - 8051:8051
+      - 8053:8053
     depends_on:
       - orderer.example.com
 
@@ -135,9 +145,12 @@ services:
       service: peer-base
     environment:
       - CORE_PEER_ID=peer1.org2.example.com
-      - CORE_PEER_ADDRESS=peer1.org2.example.com:7051
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.org2.example.com:8051
-#      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org2.example.com:8051
+      - CORE_PEER_ADDRESS=peer1.org2.example.com:8056
+      - CORE_PEER_LISTENADDRESS=peer1.org2.example.com:8056
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.org2.example.com:8056
+      - CORE_PEER_GOSSIP_ENDPOINT=peer0.org1.example.com:8056
+      - CORE_PEER_EVENTS_ADDRESS=0.0.0.0:8058
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org2.example.com:8051
       - CORE_PEER_LOCALMSPID=Org2MSP
 #      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/msp/peer/msp/cacerts/ca.org2.example.com-cert.pem
       - CORE_PEER_TLS_CLIENTROOTCAS_FILES=/etc/hyperledger/msp/peer/msp/tlscacerts/tlsca.org2.example.com-cert.pem
@@ -145,8 +158,8 @@ services:
          - /var/run/:/host/var/run/
          - ./e2e-2Orgs/${FAB_CONFIG_GEN_VERS}/crypto-config/peerOrganizations/org2.example.com/peers/peer1.org2.example.com/:/etc/hyperledger/msp/peer:ro
     ports:
-       - 8056:7051
-       - 8058:7053
+       - 8056:8056
+       - 8058:8058
     depends_on:
        - orderer.example.com
        - peer0.org2.example.com

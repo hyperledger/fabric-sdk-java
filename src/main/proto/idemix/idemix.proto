@@ -7,6 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 syntax = "proto3";
 
 option go_package = "github.com/hyperledger/fabric/idemix";
+option java_package = "org.hyperledger.fabric.protos.idemix";
 
 // The Identity Mixer protocols make use of pairings (bilinear maps) -
 // functions that can be described as e: G1 x G2 -> GT  that
