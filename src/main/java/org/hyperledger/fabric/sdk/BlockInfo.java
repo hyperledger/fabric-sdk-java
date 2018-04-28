@@ -33,6 +33,7 @@ import org.hyperledger.fabric.sdk.transaction.ProtoUtils;
 
 import static java.lang.String.format;
 import static org.hyperledger.fabric.protos.peer.FabricProposalResponse.Endorsement;
+import static org.hyperledger.fabric.sdk.BlockInfo.EnvelopeType.TRANSACTION_ENVELOPE;
 
 /**
  * BlockInfo contains the data from a {@link Block}
@@ -138,6 +139,52 @@ public class BlockInfo {
 
     public int getEnvelopeCount() {
         return isFiltered() ? filteredBlock.getFilteredTransactionsCount() : block.getData().getDataCount();
+    }
+
+    private int transactionCount = -1;
+
+    /**
+     * Number of endorser transaction found in the block.
+     *
+     * @return Number of endorser transaction found in the block.
+     */
+
+    public int getTransactionCount() {
+        if (isFiltered()) {
+
+            int ltransactionCount = transactionCount;
+            if (ltransactionCount < 0) {
+                ltransactionCount = 0;
+
+                for (int i = filteredBlock.getFilteredTransactionsCount() - 1; i >= 0; --i) {
+                    FilteredTransaction filteredTransactions = filteredBlock.getFilteredTransactions(i);
+                    Common.HeaderType type = filteredTransactions.getType();
+                    if (type == Common.HeaderType.ENDORSER_TRANSACTION) {
+                        ++ltransactionCount;
+                    }
+                }
+                transactionCount = ltransactionCount;
+            }
+
+            return transactionCount;
+        }
+        int ltransactionCount = transactionCount;
+        if (ltransactionCount < 0) {
+
+            ltransactionCount = 0;
+            for (int i = getEnvelopeCount() - 1; i >= 0; --i) {
+                try {
+                    EnvelopeInfo envelopeInfo = getEnvelopeInfo(i);
+                    if (envelopeInfo.getType() == TRANSACTION_ENVELOPE) {
+                        ++ltransactionCount;
+                    }
+                } catch (InvalidProtocolBufferException e) {
+                    throw new InvalidProtocolBufferRuntimeException(e);
+                }
+            }
+            transactionCount = ltransactionCount;
+        }
+        return transactionCount;
     }
 
     /**

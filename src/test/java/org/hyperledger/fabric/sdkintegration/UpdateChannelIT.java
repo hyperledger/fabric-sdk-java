@@ -34,6 +34,8 @@ import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.hyperledger.fabric.sdk.BlockEvent.TransactionEvent;
+import org.hyperledger.fabric.sdk.BlockInfo;
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
@@ -49,6 +51,8 @@ import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.Channel.PeerOptions.createPeerOptions;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -216,6 +220,11 @@ public class UpdateChannelIT {
 
             out("\n");
 
+            Thread.sleep(3000); // give time for events to happen
+
+            assertTrue(eventCountFilteredBlock > 0); // make sure we got blockevent that were tested.
+            assertTrue(eventCountBlock > 0); // make sure we got blockevent that were tested.
+
             out("That's all folks!");
 
         } catch (Exception e) {
@@ -223,6 +232,9 @@ public class UpdateChannelIT {
             fail(e.getMessage());
         }
     }
+
+    int eventCountFilteredBlock = 0;
+    int eventCountBlock = 0;
 
     private Channel reconstructChannel(String name, HFClient client, SampleOrg sampleOrg) throws Exception {
 
@@ -234,6 +246,9 @@ public class UpdateChannelIT {
                     testConfig.getOrdererProperties(orderName)));
         }
 
+        assertTrue(sampleOrg.getPeerNames().size() > 1); // need at least two for testing.
+
+        int i = 0;
         for (String peerName : sampleOrg.getPeerNames()) {
             String peerLocation = sampleOrg.getPeerLocation(peerName);
             Peer peer = client.newPeer(peerName, peerLocation, testConfig.getPeerProperties(peerName));
@@ -243,9 +258,17 @@ public class UpdateChannelIT {
             if (!channels.contains(name)) {
                 throw new AssertionError(format("Peer %s does not appear to belong to channel %s", peerName, name));
             }
+            Channel.PeerOptions peerOptions = createPeerOptions().setPeerRoles(EnumSet.of(Peer.PeerRole.CHAINCODE_QUERY,
+                    Peer.PeerRole.ENDORSING_PEER, Peer.PeerRole.LEDGER_QUERY, Peer.PeerRole.EVENT_SOURCE));
 
-            newChannel.addPeer(peer, createPeerOptions().setPeerRoles(EnumSet.of(Peer.PeerRole.CHAINCODE_QUERY,
-                    Peer.PeerRole.ENDORSING_PEER, Peer.PeerRole.LEDGER_QUERY)));
+            if (i % 2 == 0) {
+                peerOptions.registerEventsForFilteredBlocks(); // we need a mix of each type for testing.
+            } else {
+                peerOptions.registerEventsForBlocks();
+            }
+            ++i;
+
+            newChannel.addPeer(peer, peerOptions);
         }
 
         for (String eventHubName : sampleOrg.getEventHubNames()) {
@@ -253,6 +276,40 @@ public class UpdateChannelIT {
                     testConfig.getEventHubProperties(eventHubName));
             newChannel.addEventHub(eventHub);
         }
+
+        //For testing of blocks which are not transactions.
+        newChannel.registerBlockListener(blockEvent -> {
+            // Note peer eventing will always start with sending the last block so this will get the last endorser block
+            int transactions = 0;
+            int nonTransactions = 0;
+            for (BlockInfo.EnvelopeInfo envelopeInfo : blockEvent.getEnvelopeInfos()) {
+
+                if (BlockInfo.EnvelopeType.TRANSACTION_ENVELOPE == envelopeInfo.getType()) {
+                    ++transactions;
+                } else {
+                    assertEquals(BlockInfo.EnvelopeType.ENVELOPE, envelopeInfo.getType());
+                    ++nonTransactions;
+                }
+
+            }
+            assertTrue(format("nontransactions %d, transactions %d", nonTransactions, transactions), nonTransactions < 2); // non transaction blocks only have one envelope
+            assertTrue(format("nontransactions %d, transactions %d", nonTransactions, transactions), nonTransactions + transactions > 0); // has to be one.
+            assertFalse(format("nontransactions %d, transactions %d", nonTransactions, transactions), nonTransactions > 0 && transactions > 0); // can't have both.
+
+            if (nonTransactions > 0) { // this is an update block -- don't care about others here.
+
+                if (blockEvent.isFiltered()) {
+                    ++eventCountFilteredBlock; // make sure we're seeing non transaction events.
+                } else {
+                    ++eventCountBlock;
+                }
+                assertEquals(0, blockEvent.getTransactionCount());
+                assertEquals(1, blockEvent.getEnvelopeCount());
+                for (TransactionEvent transactionEvent : blockEvent.getTransactionEvents()) {
+                    fail("Got transaction event in a block update"); // only events for update should not have transactions.
+                }
+            }
+        });
 
         newChannel.initialize();
 

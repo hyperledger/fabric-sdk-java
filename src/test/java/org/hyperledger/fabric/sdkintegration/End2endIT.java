@@ -914,6 +914,7 @@ public class End2endIT {
                 assertEquals(1, envelopeCount);
                 out("current block number %d has %d envelope count:", blockNumber, returnedBlock.getEnvelopeCount());
                 int i = 0;
+                int transactionCount = 0;
                 for (BlockInfo.EnvelopeInfo envelopeInfo : returnedBlock.getEnvelopeInfos()) {
                     ++i;
 
@@ -929,6 +930,7 @@ public class End2endIT {
                     out("  Transaction number %d has submitter mspid: %s,  certificate: %s", i, envelopeInfo.getCreator().getMspid(), envelopeInfo.getCreator().getId());
 
                     if (envelopeInfo.getType() == TRANSACTION_ENVELOPE) {
+                        ++transactionCount;
                         BlockInfo.TransactionEnvelopeInfo transactionEnvelopeInfo = (BlockInfo.TransactionEnvelopeInfo) envelopeInfo;
 
                         out("  Transaction number %d has %d actions", i, transactionEnvelopeInfo.getTransactionActionInfoCount());
@@ -1037,6 +1039,9 @@ public class End2endIT {
                             }
                         }
                     }
+
+                    assertEquals(transactionCount, returnedBlock.getTransactionCount());
+
                 }
             }
             if (!TX_EXPECTED.isEmpty()) {

@@ -95,9 +95,18 @@ public class BlockEvent extends BlockInfo {
     }
 
     TransactionEvent getTransactionEvent(int index) throws InvalidProtocolBufferException {
+        TransactionEvent ret = null;
 
-        return isFiltered() ? new TransactionEvent(getEnvelopeInfo(index).filteredTx) :
-                new TransactionEvent((TransactionEnvelopeInfo) getEnvelopeInfo(index));
+        EnvelopeInfo envelopeInfo = getEnvelopeInfo(index);
+        if (envelopeInfo.getType() == EnvelopeType.TRANSACTION_ENVELOPE) {
+            if (isFiltered()) {
+                ret = new TransactionEvent(getEnvelopeInfo(index).filteredTx);
+            } else {
+                ret = new TransactionEvent((TransactionEnvelopeInfo) getEnvelopeInfo(index));
+            }
+        }
+
+        return ret;
     }
 
     public class TransactionEvent extends TransactionEnvelopeInfo {
@@ -147,7 +156,7 @@ public class BlockEvent extends BlockInfo {
 
     List<TransactionEvent> getTransactionEventsList() {
 
-        ArrayList<TransactionEvent> ret = new ArrayList<TransactionEvent>(getEnvelopeCount());
+        ArrayList<TransactionEvent> ret = new ArrayList<TransactionEvent>(getTransactionCount());
         for (TransactionEvent transactionEvent : getTransactionEvents()) {
             ret.add(transactionEvent);
         }
@@ -165,29 +174,37 @@ public class BlockEvent extends BlockInfo {
     class TransactionEventIterator implements Iterator<TransactionEvent> {
         final int max;
         int ci = 0;
+        int returned = 0;
 
         TransactionEventIterator() {
-            max = getEnvelopeCount();
-
+            max = getTransactionCount();
         }
 
         @Override
         public boolean hasNext() {
-            return ci < max;
+            return returned < max;
 
         }
 
         @Override
         public TransactionEvent next() {
 
+            TransactionEvent ret = null;
+            // Filter for only transactions but today it's not really needed.
+            //  Blocks with transactions only has transactions or a single pdate.
             try {
-                return getTransactionEvent(ci++);
+                do {
+
+                    ret = getTransactionEvent(ci++);
+
+                } while (ret == null);
+
             } catch (InvalidProtocolBufferException e) {
                 throw new InvalidProtocolBufferRuntimeException(e);
             }
-
+            ++returned;
+            return ret;
         }
-
     }
 
     class TransactionEventIterable implements Iterable<TransactionEvent> {
