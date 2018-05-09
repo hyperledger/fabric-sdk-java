@@ -220,8 +220,6 @@ public class End2endAndBackAgainIT {
             setupUsers(sampleStore);
             runFabricTest(sampleStore);
 
-
-
         } catch (Exception e) {
             e.printStackTrace();
             fail(e.getMessage());
@@ -617,27 +615,12 @@ public class End2endAndBackAgainIT {
             out("Retrieved channel %s from sample store.", name);
 
         } else {
-            // foo channel do manual reconstruction.
-
-            Properties clientTLSProperties = new Properties();
-
-            final String clientPEMTLSCertificate = sampleStore.getClientPEMTLSCertificate(sampleOrg);
-            if (clientPEMTLSCertificate != null) {
-                clientTLSProperties.put("clientCertBytes", clientPEMTLSCertificate.getBytes(UTF_8));
-            }
-            final String clientPEMTLSKey = sampleStore.getClientPEMTLSKey(sampleOrg);
-
-            if (clientPEMTLSKey != null) {
-                clientTLSProperties.put("clientKeyBytes", clientPEMTLSKey.getBytes(UTF_8));
-            }
 
             newChannel = client.newChannel(name);
 
             for (String ordererName : sampleOrg.getOrdererNames()) {
-                Properties ordererProperties = (Properties) clientTLSProperties.clone();
-                ordererProperties.putAll(testConfig.getOrdererProperties(ordererName));
                 newChannel.addOrderer(client.newOrderer(ordererName, sampleOrg.getOrdererLocation(ordererName),
-                        ordererProperties));
+                        testConfig.getOrdererProperties(ordererName)));
             }
 
             boolean everyOther = false;
@@ -645,7 +628,6 @@ public class End2endAndBackAgainIT {
             for (String peerName : sampleOrg.getPeerNames()) {
                 String peerLocation = sampleOrg.getPeerLocation(peerName);
                 Properties peerProperties = testConfig.getPeerProperties(peerName);
-                peerProperties.putAll(clientTLSProperties);
                 Peer peer = client.newPeer(peerName, peerLocation, peerProperties);
                 final PeerOptions peerEventingOptions = // we have two peers on one use block on other use filtered
                         everyOther ?
@@ -665,10 +647,8 @@ public class End2endAndBackAgainIT {
                 //Should have two peers with all roles but event source.
                 assertEquals(2, newChannel.getPeers(PeerRole.NO_EVENT_SOURCE).size());
                 for (String eventHubName : sampleOrg.getEventHubNames()) {
-                    Properties eventhubProperties = (Properties) clientTLSProperties.clone();
-                    eventhubProperties.putAll(testConfig.getEventHubProperties(eventHubName));
                     EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
-                            eventhubProperties);
+                            testConfig.getEventHubProperties(eventHubName));
                     newChannel.addEventHub(eventHub);
                 }
             } else {

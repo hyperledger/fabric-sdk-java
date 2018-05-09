@@ -23,6 +23,8 @@ import java.util.concurrent.TimeUnit;
 import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -180,6 +182,12 @@ class OrdererClient {
                     throw ste;
                 }
                 if (throwable[0] != null) {
+                    Throwable t = throwable[0];
+                    if (t instanceof StatusRuntimeException) {
+                        StatusRuntimeException sre = (StatusRuntimeException) t;
+                        Status status = sre.getStatus();
+                        logger.error(format("grpc status Code:%s, Description %s, ", status.getDescription(), status.getCode() + ""), sre.getCause());
+                    }
                     //get full stack trace
                     TransactionException ste = new TransactionException(format("Channel %s, send transaction failed on orderer %s. Reason: %s",
                             channelName, name, throwable[0].getMessage()), throwable[0]);

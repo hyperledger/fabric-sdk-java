@@ -807,9 +807,6 @@ public class End2endIT {
             ordererProperties.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {8L, TimeUnit.SECONDS});
             ordererProperties.put("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls", new Object[] {true});
 
-            if (!clientTLSProperties.isEmpty()) {
-                ordererProperties.putAll(clientTLSProperties.get(sampleOrg.getName()));
-            }
 
             orderers.add(client.newOrderer(orderName, sampleOrg.getOrdererLocation(orderName),
                     ordererProperties));
@@ -836,9 +833,6 @@ public class End2endIT {
                 peerProperties = new Properties();
             }
 
-            if (!clientTLSProperties.isEmpty()) {
-                peerProperties.putAll(clientTLSProperties.get(sampleOrg.getName()));
-            }
 
             //Example of setting specific options on grpc's NettyChannelBuilder
             peerProperties.put("grpc.NettyChannelBuilderOption.maxInboundMessageSize", 9000000);
@@ -871,9 +865,6 @@ public class End2endIT {
             eventHubProperties.put("grpc.NettyChannelBuilderOption.keepAliveTime", new Object[] {5L, TimeUnit.MINUTES});
             eventHubProperties.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {8L, TimeUnit.SECONDS});
 
-            if (!clientTLSProperties.isEmpty()) {
-                eventHubProperties.putAll(clientTLSProperties.get(sampleOrg.getName()));
-            }
 
             EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
                     eventHubProperties);

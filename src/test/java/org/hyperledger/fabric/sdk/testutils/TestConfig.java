@@ -295,7 +295,8 @@ public class TestConfig {
 
     }
 
-    private Properties getEndPointProperties(final String type, final String name) {
+    public Properties getEndPointProperties(final String type, final String name) {
+        Properties ret = new Properties();
 
         final String domainName = getDomainName(name);
 
@@ -306,9 +307,33 @@ public class TestConfig {
                     cert.getAbsolutePath()));
         }
 
-        Properties ret = new Properties();
+        if (!isRunningAgainstFabric10()) {
+            File clientCert;
+            File clientKey;
+            if ("orderer".equals(type)) {
+                clientCert = Paths.get(getTestChannelPath(), "crypto-config/ordererOrganizations/example.com/users/Admin@example.com/tls/client.crt").toFile();
+
+                clientKey = Paths.get(getTestChannelPath(), "crypto-config/ordererOrganizations/example.com/users/Admin@example.com/tls/client.key").toFile();
+            } else {
+                clientCert = Paths.get(getTestChannelPath(), "crypto-config/peerOrganizations/", domainName, "users/User1@" + domainName, "tls/client.crt").toFile();
+                clientKey = Paths.get(getTestChannelPath(), "crypto-config/peerOrganizations/", domainName, "users/User1@" + domainName, "tls/client.key").toFile();
+            }
+
+            if (!clientCert.exists()) {
+                throw new RuntimeException(String.format("Missing  client cert file for: %s. Could not find at location: %s", name,
+                        clientCert.getAbsolutePath()));
+            }
+
+            if (!clientKey.exists()) {
+                throw new RuntimeException(String.format("Missing  client key file for: %s. Could not find at location: %s", name,
+                        clientKey.getAbsolutePath()));
+            }
+            ret.setProperty("clientCertFile", clientCert.getAbsolutePath());
+            ret.setProperty("clientKeyFile", clientKey.getAbsolutePath());
+        }
+
         ret.setProperty("pemFile", cert.getAbsolutePath());
-        //      ret.setProperty("trustServerCertificate", "true"); //testing environment only NOT FOR PRODUCTION!
+
         ret.setProperty("hostnameOverride", name);
         ret.setProperty("sslProvider", "openSSL");
         ret.setProperty("negotiationType", "TLS");

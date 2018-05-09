@@ -130,7 +130,7 @@ public class NetworkConfig {
             return new Properties();
         } else {
 
-            return new Properties(node.properties);
+            return (Properties) node.properties.clone();
         }
 
     }

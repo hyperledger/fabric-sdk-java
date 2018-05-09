@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -103,8 +104,6 @@ public class NetworkConfigIT {
 
     private static Map<String, User> orgRegisteredUsers = new HashMap<>();
 
-
-
     @BeforeClass
     public static void doMainSetup() throws Exception {
         out("\n\n\nRUNNING: NetworkConfigIT.\n");
@@ -114,6 +113,45 @@ public class NetworkConfigIT {
 
         // Use the appropriate TLS/non-TLS network config file
         networkConfig = NetworkConfig.fromYamlFile(testConfig.getTestNetworkConfigFileYAML());
+
+        networkConfig.getOrdererNames().forEach(ordererName -> {
+            try {
+                Properties ordererProperties = networkConfig.getOrdererProperties(ordererName);
+                Properties testProp = testConfig.getEndPointProperties("orderer", ordererName);
+                ordererProperties.setProperty("clientCertFile", testProp.getProperty("clientCertFile"));
+                ordererProperties.setProperty("clientKeyFile", testProp.getProperty("clientKeyFile"));
+                networkConfig.setOrdererProperties(ordererName, ordererProperties);
+
+            } catch (InvalidArgumentException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        networkConfig.getPeerNames().forEach(peerName -> {
+            try {
+                Properties peerProperties = networkConfig.getPeerProperties(peerName);
+                Properties testProp = testConfig.getEndPointProperties("peer", peerName);
+                peerProperties.setProperty("clientCertFile", testProp.getProperty("clientCertFile"));
+                peerProperties.setProperty("clientKeyFile", testProp.getProperty("clientKeyFile"));
+                networkConfig.setPeerProperties(peerName, peerProperties);
+
+            } catch (InvalidArgumentException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        networkConfig.getEventHubNames().forEach(eventhubName -> {
+            try {
+                Properties eventHubsProperties = networkConfig.getEventHubsProperties(eventhubName);
+                Properties testProp = testConfig.getEndPointProperties("peer", eventhubName);
+                eventHubsProperties.setProperty("clientCertFile", testProp.getProperty("clientCertFile"));
+                eventHubsProperties.setProperty("clientKeyFile", testProp.getProperty("clientKeyFile"));
+                networkConfig.setEventHubProperties(eventhubName, eventHubsProperties);
+
+            } catch (InvalidArgumentException e) {
+                throw new RuntimeException(e);
+            }
+        });
 
         //Check if we get access to defined CAs!
         NetworkConfig.OrgInfo org = networkConfig.getOrganizationInfo("Org1");
