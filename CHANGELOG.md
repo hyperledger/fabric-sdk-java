@@ -1,4 +1,81 @@
-## v1.0.1\nFri Jul 28 09:24:28 EDT 2017
+## v1.1.0
+Wed May  9 20:48:37 EDT 2018
+
+* [3affdf9](https://github.com/hyperledger/fabric-sdk-java/commit/3affdf9) FAB-9985 JSDK v1.1.0 release
+* [5f92ae6](https://github.com/hyperledger/fabric-sdk-java/commit/5f92ae6) FAB-9025 Mutual auth for integration tests
+* [3eaa57d](https://github.com/hyperledger/fabric-sdk-java/commit/3eaa57d) FAB-9777 Trans not handled correctly in non trans
+* [f5f7043](https://github.com/hyperledger/fabric-sdk-java/commit/f5f7043) FAB-9565 Con profile and verify certs
+* [202de7a](https://github.com/hyperledger/fabric-sdk-java/commit/202de7a) FAB-9484 Update dependencies pom.xml
+* [d75fe66](https://github.com/hyperledger/fabric-sdk-java/commit/d75fe66) FAB-9489 Network Config property overrides
+* [479b498](https://github.com/hyperledger/fabric-sdk-java/commit/479b498) FAB-9489 Network Config property overrides
+* [8b976c7](https://github.com/hyperledger/fabric-sdk-java/commit/8b976c7) FAB-9418 Default for SSL neg/provider
+* [b8aa183](https://github.com/hyperledger/fabric-sdk-java/commit/b8aa183) FAB-8596 failing parsing network-config.json
+* [7b7df11](https://github.com/hyperledger/fabric-sdk-java/commit/7b7df11) FAB-9282 NetworkConfig support TLS HFCAClient
+* [982bdd5](https://github.com/hyperledger/fabric-sdk-java/commit/982bdd5) FAB-9354 add CODE_OF_CONDUCT.md
+* [19dc59a](https://github.com/hyperledger/fabric-sdk-java/commit/19dc59a) FAB-9063 Provide link to Fabric committers
+* [5c41e56](https://github.com/hyperledger/fabric-sdk-java/commit/5c41e56) FAB-8961 V1.1 release notes updates.
+* [6ef1bc8](https://github.com/hyperledger/fabric-sdk-java/commit/6ef1bc8) FAB-8937 testGetInfo liberal check
+* [4c4b546](https://github.com/hyperledger/fabric-sdk-java/commit/4c4b546) FAB-8897 Customize trans. event handling.
+* [ff4b881](https://github.com/hyperledger/fabric-sdk-java/commit/ff4b881) FAB-8861 Missing Blockinfo information
+* [03c428e](https://github.com/hyperledger/fabric-sdk-java/commit/03c428e) FAB-8842 Channel init retry
+* [8f65202](https://github.com/hyperledger/fabric-sdk-java/commit/8f65202) FAB-8523 Update fabric generated artifacts to v1.1
+* [dc2b94f](https://github.com/hyperledger/fabric-sdk-java/commit/dc2b94f) [FAB-8606](https://jira.hyperledger.org/browse/FAB-8606) Parse non-PKCS8 encoded TLS keys
+* [625e937](https://github.com/hyperledger/fabric-sdk-java/commit/625e937) [FAB-8581](https://jira.hyperledger.org/browse/FAB-8581) Increase timeouts on CI test
+* [c1babcf](https://github.com/hyperledger/fabric-sdk-java/commit/c1babcf) FAB-8392 Include META-INF in chaincode packaging.
+* [cd93543](https://github.com/hyperledger/fabric-sdk-java/commit/cd93543) [FAB-8451](https://jira.hyperledger.org/browse/FAB-8451) Fixing certificates close to expire
+* [a44c2aa](https://github.com/hyperledger/fabric-sdk-java/commit/a44c2aa) [FAB-7324](https://jira.hyperledger.org/browse/FAB-7324) Deploy Node CC using Java SDK
+* [7c768d6](https://github.com/hyperledger/fabric-sdk-java/commit/7c768d6) FAB-8218 Update dependencies.
+* [96ee2df](https://github.com/hyperledger/fabric-sdk-java/commit/96ee2df) FAB-7949 tlsbinding_event_reg
+* [09776f0](https://github.com/hyperledger/fabric-sdk-java/commit/09776f0) FAB-8077 Create client TLS from Fabric CA
+* [5c57df4](https://github.com/hyperledger/fabric-sdk-java/commit/5c57df4) FAB-7994 Fix getConfig block
+* [77cfdc7](https://github.com/hyperledger/fabric-sdk-java/commit/77cfdc7) [FAB-7128](https://jira.hyperledger.org/browse/FAB-7128) Update SDK to comply with swagger
+* [2adcdbc](https://github.com/hyperledger/fabric-sdk-java/commit/2adcdbc) FAB-8074 Misc fixes see description
+* [e478cb9](https://github.com/hyperledger/fabric-sdk-java/commit/e478cb9) FAB-7946-Post_v1.1.0-alpha
+* [9b87b73](https://github.com/hyperledger/fabric-sdk-java/commit/9b87b73) FAB-7872 Java SDK v1.1-alpha
+* [09f386c](https://github.com/hyperledger/fabric-sdk-java/commit/09f386c) [FAB-7383](https://jira.hyperledger.org/browse/FAB-7383) 2. Support affiliations REST API
+* [224f569](https://github.com/hyperledger/fabric-sdk-java/commit/224f569) FAB-6989 update dependencies
+* [9224fa3](https://github.com/hyperledger/fabric-sdk-java/commit/9224fa3) FAB-7702 GetConfigBlock
+* [9bf5095](https://github.com/hyperledger/fabric-sdk-java/commit/9bf5095) FAB-7693 Consistency set based off of payload bytes
+* [0efa9d3](https://github.com/hyperledger/fabric-sdk-java/commit/0efa9d3) [IN-15] Parametrized JSDK build process.
+* [25d8d39](https://github.com/hyperledger/fabric-sdk-java/commit/25d8d39) [FAB-7383](https://jira.hyperledger.org/browse/FAB-7383) 1. Support identities REST API
+* [ee34177](https://github.com/hyperledger/fabric-sdk-java/commit/ee34177) FAB-7652 filterblock
+* [41ec4c3](https://github.com/hyperledger/fabric-sdk-java/commit/41ec4c3) FAB-6066 Channel service_events
+* [c4957fd](https://github.com/hyperledger/fabric-sdk-java/commit/c4957fd) FAB-5632 Implement Network Config
+* [bf94912](https://github.com/hyperledger/fabric-sdk-java/commit/bf94912) FAB-6998 update-dep
+* [b8c81c2](https://github.com/hyperledger/fabric-sdk-java/commit/b8c81c2) [FAB-7515](https://jira.hyperledger.org/browse/FAB-7515) Adjust CA tests to match API
+* [270a75e](https://github.com/hyperledger/fabric-sdk-java/commit/270a75e) [FAB-7127](https://jira.hyperledger.org/browse/FAB-7127) Revoke missing gencrl
+* [213edec](https://github.com/hyperledger/fabric-sdk-java/commit/213edec) [FAB-6939](https://jira.hyperledger.org/browse/FAB-6939) Eclipse Setup Instructions
+* [c8cd86b](https://github.com/hyperledger/fabric-sdk-java/commit/c8cd86b) FAB-7233 Update protos
+* [a8d8951](https://github.com/hyperledger/fabric-sdk-java/commit/a8d8951) FAB-7009 Send orderer provide exception
+* [ef748a8](https://github.com/hyperledger/fabric-sdk-java/commit/ef748a8) FAB-6998 Update dependencies
+* [d4ff8c2](https://github.com/hyperledger/fabric-sdk-java/commit/d4ff8c2) [FAB-6972](https://jira.hyperledger.org/browse/FAB-6972) Update expired test certificates
+* [f678c01](https://github.com/hyperledger/fabric-sdk-java/commit/f678c01) [FAB-6887](https://jira.hyperledger.org/browse/FAB-6887) Support mutual TLS for peer/orderer
+* [0b3e5aa](https://github.com/hyperledger/fabric-sdk-java/commit/0b3e5aa) FAB-6901 Affiliation is not required.
+* [b9da935](https://github.com/hyperledger/fabric-sdk-java/commit/b9da935) [FAB-6888](https://jira.hyperledger.org/browse/FAB-6888) Reduce logging for Maven downloads
+* [97ca7c6](https://github.com/hyperledger/fabric-sdk-java/commit/97ca7c6) FAB-6601 Use DiagnosticFileDumper clean up trace
+* [eecc997](https://github.com/hyperledger/fabric-sdk-java/commit/eecc997) FAB-6411 generate CRL
+* [cfa29f3](https://github.com/hyperledger/fabric-sdk-java/commit/cfa29f3) FAB-6586 Allow for no eventHubs
+* [65a94a6](https://github.com/hyperledger/fabric-sdk-java/commit/65a94a6) FAB-6703 ChaincodeEvent handler fired once per block
+* [d0a28cf](https://github.com/hyperledger/fabric-sdk-java/commit/d0a28cf) [FAB-6670](https://jira.hyperledger.org/browse/FAB-6670) Update AttrReq class definition
+* [67eafc6](https://github.com/hyperledger/fabric-sdk-java/commit/67eafc6) [FAB-6603](https://jira.hyperledger.org/browse/FAB-6603) Java SDK Signatures with Standard JCA/JCE
+* [d963896](https://github.com/hyperledger/fabric-sdk-java/commit/d963896) FAB-6244 CompletableFuture can leak in Channel
+* [d366074](https://github.com/hyperledger/fabric-sdk-java/commit/d366074) FAB-6312 unregister misspelled unRegister in method
+* [38e0d38](https://github.com/hyperledger/fabric-sdk-java/commit/38e0d38) FAB-6245 Return of BlockInfo.getTransactionActionInfos
+* [85ba053](https://github.com/hyperledger/fabric-sdk-java/commit/85ba053) FAB-5827 Add integration test ecert attr.
+* [1ceab9a](https://github.com/hyperledger/fabric-sdk-java/commit/1ceab9a) FAB-2564 crypto configuration
+* [9282be9](https://github.com/hyperledger/fabric-sdk-java/commit/9282be9) FAB-6200 Java serialize channels.
+* [24390b4](https://github.com/hyperledger/fabric-sdk-java/commit/24390b4) FAB-6117 Update proto. snapshot fix
+* [8ccc1a7](https://github.com/hyperledger/fabric-sdk-java/commit/8ccc1a7) FAB-5827 Support attrib. req. for enrollment.
+* [7f6dc28](https://github.com/hyperledger/fabric-sdk-java/commit/7f6dc28) FAB-5943 Update protos check on duplicate channel.
+* [c63dd83](https://github.com/hyperledger/fabric-sdk-java/commit/c63dd83) FAB-5892 Facilitate Integration with configuration
+* [f94d5ff](https://github.com/hyperledger/fabric-sdk-java/commit/f94d5ff) FAB-5846 Infinite wait on slow channel update
+* [629d9a9](https://github.com/hyperledger/fabric-sdk-java/commit/629d9a9) FAB-5719 Aviod CC update on none supported vers
+* [7011ca4](https://github.com/hyperledger/fabric-sdk-java/commit/7011ca4) FAB-5387 Listener for custom chaincode events.
+* [6ac15e6](https://github.com/hyperledger/fabric-sdk-java/commit/6ac15e6) FAB-5039 provide failure reason.
+* [8eca761](https://github.com/hyperledger/fabric-sdk-java/commit/8eca761) FAB-5625 Java SDK v1.1 commencement
+
+## v1.0.1
+Fri Jul 28 09:24:28 EDT 2017
 
 * [1ddffdf](https://github.com/hyperledger/fabric-sdk-java/commit/1ddffdf) [FAB-5511](https://jira.hyperledger.org/browse/FAB-5511) fixed , Unnecessary code
 * [6878f89](https://github.com/hyperledger/fabric-sdk-java/commit/6878f89) FAB-5477 Jar manifest add attrib identifying build

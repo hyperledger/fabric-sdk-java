@@ -39,33 +39,6 @@ Please review the [v1.1 release notes](./docs/release_v1.1.0_notes.md) to famili
 
 `*************************************************`
 
-## 1.1.0-SNAPSHOT builds
-Work in progress 1.1.0 SNAPSHOT builds can be used by adding the following to your application's
-pom.xml
-```
-<repositories>
-        <repository>
-            <id>snapshots-repo</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-
-<dependencies>
-
-        <!-- https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java -->
-        <dependency>
-            <groupId>org.hyperledger.fabric-sdk-java</groupId>
-            <artifactId>fabric-sdk-java</artifactId>
-            <version>1.1.0-SNAPSHOT</version>
-        </dependency>
-
-</dependencies>
 ```
 
 ## Latest builds of Fabric and Fabric-ca v1.1.0
@@ -73,7 +46,7 @@ pom.xml
 To get a functioning Fabric v1.1.0 network needed by the SDK Integration tests.
 In the directory `src/test/fixture/sdkintegration` issue :
 
-`IMAGE_TAG_FABRIC=:x86_64-1.1.0 IMAGE_TAG_FABRIC_CA=:x86_64-1.1.0 ./fabric.sh restart`
+`./fabric.sh restart`
 
 This command needs to be rerun each time the Integration tests are run.
 
