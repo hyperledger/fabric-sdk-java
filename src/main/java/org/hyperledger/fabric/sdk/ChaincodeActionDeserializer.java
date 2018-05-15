@@ -21,6 +21,7 @@ import java.lang.ref.WeakReference;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.hyperledger.fabric.protos.ledger.rwset.Rwset.TxReadWriteSet;
+import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
 
 import static org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeAction;
@@ -52,6 +53,17 @@ class ChaincodeActionDeserializer {
 
         }
 
+        return ret;
+
+    }
+
+    Chaincode.ChaincodeID getChaincodeID() {
+        Chaincode.ChaincodeID ret = null;
+
+        ChaincodeAction chaincodeAction = getChaincodeAction();
+        if (chaincodeAction.hasChaincodeId()) {
+            ret = chaincodeAction.getChaincodeId();
+        }
         return ret;
 
     }

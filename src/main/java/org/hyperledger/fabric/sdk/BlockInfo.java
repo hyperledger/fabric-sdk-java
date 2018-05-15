@@ -24,6 +24,7 @@ import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.common.Common.Block;
 import org.hyperledger.fabric.protos.ledger.rwset.Rwset.TxReadWriteSet;
 import org.hyperledger.fabric.protos.msp.Identities;
+import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInput;
 import org.hyperledger.fabric.protos.peer.FabricTransaction;
 import org.hyperledger.fabric.protos.peer.PeerEvents;
@@ -578,6 +579,73 @@ public class BlockInfo {
 
                 return transactionAction.getPayload().getAction().getProposalResponsePayload().
                         getExtension().getResponseStatus();
+
+            }
+
+            /**
+             * get name of chaincode with this transaction action
+             *
+             * @return name of chaincode.  Maybe null if no chaincode or if block is filtered.
+             */
+            public String getChaincodeIDName() {
+                if (isFiltered()) {
+                    return null;
+                }
+                String name = null;
+
+                Chaincode.ChaincodeID ccid = transactionAction.getPayload().getAction().getProposalResponsePayload().
+                        getExtension().getChaincodeID();
+
+                if (ccid != null) {
+                    name = ccid.getName();
+                }
+
+                return name;
+
+            }
+
+            /**
+             * get path of chaincode with this transaction action
+             *
+             * @return path of chaincode.  Maybe null if no chaincode or if block is filtered.
+             */
+            public String getChaincodeIDPath() {
+                if (isFiltered()) {
+                    return null;
+                }
+                String path = null;
+
+                Chaincode.ChaincodeID ccid = transactionAction.getPayload().getAction().getProposalResponsePayload().
+                        getExtension().getChaincodeID();
+
+                if (ccid != null) {
+                    path = ccid.getPath();
+                }
+
+                return path;
+
+            }
+
+            /**
+             * get version of chaincode with this transaction action
+             *
+             * @return version of chaincode.  Maybe null if no chaincode or if block is filtered.
+             */
+
+            public String getChaincodeIDVersion() {
+                if (isFiltered()) {
+                    return null;
+                }
+                String version = null;
+
+                Chaincode.ChaincodeID ccid = transactionAction.getPayload().getAction().getProposalResponsePayload().
+                        getExtension().getChaincodeID();
+
+                if (ccid != null) {
+                    version = ccid.getVersion();
+                }
+
+                return version;
 
             }
 
