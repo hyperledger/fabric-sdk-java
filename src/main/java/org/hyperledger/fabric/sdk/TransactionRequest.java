@@ -56,6 +56,7 @@ public class TransactionRequest {
     protected long proposalWaitTime = config.getProposalWaitTime();
 
     protected Map<String, byte[]> transientMap;
+    protected ChaincodeCollectionConfiguration chaincodeCollectionConfiguration = null;
 
     /**
      * The user context to use on this request.
@@ -254,6 +255,25 @@ public class TransactionRequest {
      */
     public ChaincodeEndorsementPolicy getChaincodeEndorsementPolicy() {
         return this.endorsementPolicy;
+    }
+
+    /**
+     * get collection configuration for this chaincode.
+     *
+     * @return collection configuration if set.
+     */
+    public ChaincodeCollectionConfiguration getChaincodeCollectionConfiguration() {
+        return chaincodeCollectionConfiguration;
+
+    }
+
+    /**
+     * Set collection configuration for this chaincode.
+     *
+     * @param chaincodeCollectionConfiguration
+     */
+    public void setChaincodeCollectionConfiguration(ChaincodeCollectionConfiguration chaincodeCollectionConfiguration) {
+        this.chaincodeCollectionConfiguration = chaincodeCollectionConfiguration;
     }
 
     /**

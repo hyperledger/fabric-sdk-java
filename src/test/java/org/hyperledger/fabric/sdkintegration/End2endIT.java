@@ -99,6 +99,8 @@ public class End2endIT {
     private static final String FOO_CHANNEL_NAME = "foo";
     private static final String BAR_CHANNEL_NAME = "bar";
 
+    private static final int DEPLOYWAITTIME = testConfig.getDeployWaitTime();
+
     private static final byte[] EXPECTED_EVENT_DATA = "!".getBytes(UTF_8);
     private static final String EXPECTED_EVENT_NAME = "event";
     private static final Map<String, String> TX_EXPECTED;
@@ -464,7 +466,7 @@ public class End2endIT {
             ///////////////
             //// Instantiate chaincode.
             InstantiateProposalRequest instantiateProposalRequest = client.newInstantiationProposalRequest();
-            instantiateProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
+            instantiateProposalRequest.setProposalWaitTime(DEPLOYWAITTIME);
             instantiateProposalRequest.setChaincodeID(chaincodeID);
             instantiateProposalRequest.setChaincodeLanguage(CHAIN_CODE_LANG);
             instantiateProposalRequest.setFcn("init");
@@ -807,7 +809,6 @@ public class End2endIT {
             ordererProperties.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {8L, TimeUnit.SECONDS});
             ordererProperties.put("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls", new Object[] {true});
 
-
             orderers.add(client.newOrderer(orderName, sampleOrg.getOrdererLocation(orderName),
                     ordererProperties));
         }
@@ -832,7 +833,6 @@ public class End2endIT {
             if (peerProperties == null) {
                 peerProperties = new Properties();
             }
-
 
             //Example of setting specific options on grpc's NettyChannelBuilder
             peerProperties.put("grpc.NettyChannelBuilderOption.maxInboundMessageSize", 9000000);
@@ -864,7 +864,6 @@ public class End2endIT {
 
             eventHubProperties.put("grpc.NettyChannelBuilderOption.keepAliveTime", new Object[] {5L, TimeUnit.MINUTES});
             eventHubProperties.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {8L, TimeUnit.SECONDS});
-
 
             EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
                     eventHubProperties);

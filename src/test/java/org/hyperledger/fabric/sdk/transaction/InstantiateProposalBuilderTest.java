@@ -27,18 +27,6 @@ public class InstantiateProposalBuilderTest {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-
-    @Test
-    public void testSetTransientMapNull() throws Exception {
-
-        thrown.expect(InvalidArgumentException.class);
-        thrown.expectMessage("Transient map may not be null");
-
-        InstantiateProposalBuilder builder = InstantiateProposalBuilder.newBuilder();
-        builder.setTransientMap(null);
-
-    }
-
     @Test
     public void testBuild() throws Exception {
 

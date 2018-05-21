@@ -1532,6 +1532,7 @@ public class Channel implements Serializable {
             instantiateProposalbuilder.chaincodePath(instantiateProposalRequest.getChaincodePath());
             instantiateProposalbuilder.chaincodeVersion(instantiateProposalRequest.getChaincodeVersion());
             instantiateProposalbuilder.chaincodEndorsementPolicy(instantiateProposalRequest.getChaincodeEndorsementPolicy());
+            instantiateProposalbuilder.chaincodeCollectionConfiguration(instantiateProposalRequest.getChaincodeCollectionConfiguration());
             instantiateProposalbuilder.setTransientMap(instantiateProposalRequest.getTransientMap());
 
             FabricProposal.Proposal instantiateProposal = instantiateProposalbuilder.build();
@@ -1659,6 +1660,7 @@ public class Channel implements Serializable {
             upgradeProposalBuilder.chaincodePath(upgradeProposalRequest.getChaincodePath());
             upgradeProposalBuilder.chaincodeVersion(upgradeProposalRequest.getChaincodeVersion());
             upgradeProposalBuilder.chaincodEndorsementPolicy(upgradeProposalRequest.getChaincodeEndorsementPolicy());
+            upgradeProposalBuilder.chaincodeCollectionConfiguration(upgradeProposalRequest.getChaincodeCollectionConfiguration());
 
             SignedProposal signedProposal = getSignedProposal(transactionContext, upgradeProposalBuilder.build());
 

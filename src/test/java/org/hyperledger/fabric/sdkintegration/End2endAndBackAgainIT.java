@@ -83,6 +83,7 @@ import static org.junit.Assert.fail;
 public class End2endAndBackAgainIT {
 
     private static final TestConfig testConfig = TestConfig.getConfig();
+    private static final int DEPLOYWAITTIME = testConfig.getDeployWaitTime();
     private static final boolean IS_FABRIC_V10 = testConfig.isRunningAgainstFabric10();
     private static final String TEST_ADMIN_NAME = "admin";
     private static final String TESTUSER_1_NAME = "user1";
@@ -110,14 +111,6 @@ public class End2endAndBackAgainIT {
     ChaincodeID chaincodeID_11 = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
             .setVersion(CHAIN_CODE_VERSION_11)
             .setPath(CHAIN_CODE_PATH).build();
-
-//    @After
-//    public void clearConfig() {
-//        try {
-// //           configHelper.clearConfig();
-//        } catch (Exception e) {
-//        }
-//    }
 
     private static boolean checkInstalledChaincode(HFClient client, Peer peer, String ccName, String ccPath, String ccVersion) throws InvalidArgumentException, ProposalException {
 
@@ -400,7 +393,7 @@ public class End2endAndBackAgainIT {
 
                     UpgradeProposalRequest upgradeProposalRequest = client.newUpgradeProposalRequest();
                     upgradeProposalRequest.setChaincodeID(chaincodeID_11);
-                    upgradeProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
+                    upgradeProposalRequest.setProposalWaitTime(DEPLOYWAITTIME);
                     upgradeProposalRequest.setFcn("init");
                     upgradeProposalRequest.setArgs(new String[] {});    // no arguments don't change the ledger see chaincode.
 

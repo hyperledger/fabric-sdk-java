@@ -234,7 +234,11 @@ For v1.1 integration the commands use the v11 profiles in configtx.yaml.
  * configtxgen -outputCreateChannelTx bar.tx -profile TwoOrgsChannel_v11 -channelID bar
  * configtxgen -outputCreateChannelTx foo.tx -profile TwoOrgsChannel_v11 -channelID foo
 
- This should produce in the `v1.1` directory: bar.tx,foo.tx, orderer.block
+For v1.2 integration the commands use the v12 profiles in configtx.yaml.
+ * configtxgen --configPath . -outputBlock orderer.block -profile TwoOrgsOrdererGenesis_v12
+ * configtxgen --configPath .  -outputCreateChannelTx bar.tx -profile TwoOrgsChannel_v12 -channelID bar
+ * configtxgen --configPath .  -outputCreateChannelTx foo.tx -profile TwoOrgsChannel_v12 -channelID foo
+ This should produce in the `v1.2` directory: bar.tx,foo.tx, orderer.block
 
  **Note:** The above describes how this was done. If you redo this there are private key files
  which are produced with unique names which won't match what's expected in the integration tests.

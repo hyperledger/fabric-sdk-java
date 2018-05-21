@@ -14,7 +14,6 @@
 
 package org.hyperledger.fabric.sdk.transaction;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -26,8 +25,10 @@ import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeDeploymentSpec;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.sdk.ChaincodeCollectionConfiguration;
 import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
 import org.hyperledger.fabric.sdk.TransactionRequest;
+import org.hyperledger.fabric.sdk.exception.ChaincodeCollectionConfigurationException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 
@@ -45,14 +46,10 @@ public class InstantiateProposalBuilder extends LSCCProposalBuilder {
     private TransactionRequest.Type chaincodeType = TransactionRequest.Type.GO_LANG;
 
     private byte[] chaincodePolicy = null;
+    private byte[] chaincodeCollectionConfiguration = null;
     protected String action = "deploy";
 
     public void setTransientMap(Map<String, byte[]> transientMap) throws InvalidArgumentException {
-        if (null == transientMap) {
-
-            throw new InvalidArgumentException("Transient map may not be null");
-
-        }
         this.transientMap = transientMap;
     }
 
@@ -95,6 +92,12 @@ public class InstantiateProposalBuilder extends LSCCProposalBuilder {
         }
     }
 
+    public void chaincodeCollectionConfiguration(ChaincodeCollectionConfiguration chaincodeCollectionConfiguration) throws ChaincodeCollectionConfigurationException {
+        if (chaincodeCollectionConfiguration != null) {
+            this.chaincodeCollectionConfiguration = chaincodeCollectionConfiguration.getAsBytes();
+        }
+    }
+
     public InstantiateProposalBuilder argss(List<String> argList) {
         this.argList = argList;
         return this;
@@ -123,7 +126,6 @@ public class InstantiateProposalBuilder extends LSCCProposalBuilder {
     }
 
     private void createNetModeTransaction() throws InvalidArgumentException {
-        logger.debug("NetModeTransaction");
 
         if (chaincodeType == null) {
             throw new InvalidArgumentException("Chaincode type is required");
@@ -151,11 +153,20 @@ public class InstantiateProposalBuilder extends LSCCProposalBuilder {
                 chaincodeName, chaincodePath, chaincodeVersion, modlist, null);
 
         List<ByteString> argList = new ArrayList<>();
-        argList.add(ByteString.copyFrom(action, StandardCharsets.UTF_8));
-        argList.add(ByteString.copyFrom(context.getChannelID(), StandardCharsets.UTF_8));
+
+        argList.add(ByteString.copyFromUtf8(action)); // command
+        argList.add(ByteString.copyFromUtf8(context.getChannelID())); //channel name.
         argList.add(depspec.toByteString());
         if (chaincodePolicy != null) {
             argList.add(ByteString.copyFrom(chaincodePolicy));
+        } else if (null != chaincodeCollectionConfiguration) {
+            argList.add(ByteString.EMPTY); //place holder for chaincodePolicy
+        }
+
+        if (null != chaincodeCollectionConfiguration) {
+            argList.add(ByteString.EMPTY); //escc name place holder
+            argList.add(ByteString.EMPTY); //vscc name place holder
+            argList.add(ByteString.copyFrom(chaincodeCollectionConfiguration));
         }
 
         args(argList);

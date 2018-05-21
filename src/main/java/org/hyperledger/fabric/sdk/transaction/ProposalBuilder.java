@@ -136,11 +136,15 @@ public class ProposalBuilder {
                 ccType);
 
         //Convert to bytestring map.
-        Map<String, ByteString> bsm = new HashMap<>(transientMap.size());
+        Map<String, ByteString> bsm = Collections.EMPTY_MAP;
+        if (transientMap != null) {
 
-        for (Entry<String, byte[]> tme : transientMap.entrySet()) {
-            bsm.put(tme.getKey(), ByteString.copyFrom(tme.getValue()));
+            bsm = new HashMap<>(transientMap.size());
 
+            for (Entry<String, byte[]> tme : transientMap.entrySet()) {
+                bsm.put(tme.getKey(), ByteString.copyFrom(tme.getValue()));
+
+            }
         }
 
         ChaincodeProposalPayload payload = ChaincodeProposalPayload.newBuilder()

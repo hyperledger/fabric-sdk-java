@@ -50,15 +50,18 @@ package common;
 message MSPPrincipal {
 
     enum Classification {
-        ROLE = 0;  // Represents the one of the dedicated MSP roles, the
+        ROLE = 0; // Represents the one of the dedicated MSP roles, the
         // one of a member of MSP network, and the one of an
         // administrator of an MSP network
         ORGANIZATION_UNIT = 1; // Denotes a finer grained (affiliation-based)
         // groupping of entities, per MSP affiliation
         // E.g., this can well be represented by an MSP's
         // Organization unit
-        IDENTITY  = 2;    // Denotes a principal that consists of a single
+        IDENTITY  = 2; // Denotes a principal that consists of a single
         // identity
+        ANONYMITY = 3; // Denotes a principal that can be used to enforce
+        // an identity to be anonymous or nominal.
+        COMBINED = 4; // Denotes a combined principal
     }
 
     // Classification describes the way that one should process
@@ -119,6 +122,26 @@ message MSPRole {
 
 }
 
+// MSPIdentityAnonymity can be used to enforce an identity to be anonymous or nominal.
+message MSPIdentityAnonymity {
+
+    enum MSPIdentityAnonymityType {
+        NOMINAL = 0; // Represents a nominal MSP Identity
+        ANONYMOUS = 1; // Represents an anonymous MSP Identity
+    }
+
+    MSPIdentityAnonymityType anonymity_type = 1;
+
+}
+
+// CombinedPrincipal governs the organization of the Principal
+// field of a policy principal when principal_classification has
+// indicated that a combined form of principals is required
+message CombinedPrincipal {
+
+    // Principals refer to combined principals
+    repeated MSPPrincipal principals = 1;
+}
 
 // TODO: Bring msp.SerializedIdentity from fabric/msp/identities.proto here. Reason below.
 // SerializedIdentity represents an serialized version of an identity;

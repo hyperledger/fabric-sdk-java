@@ -1,0 +1,93 @@
+[
+  {
+    "StaticCollectionConfig": {
+      "name": "rick",
+      "blockToLive": 3,
+      "maximumPeerCount": 9,
+      "requiredPeerCount": 7,
+      "SignaturePolicyEnvelope": {
+        "identities": [
+          {
+            "user1": {
+              "role": {
+                "name": "member",
+                "mspId": "org1"
+              }
+            }
+          },
+          {
+            "user2": {
+              "role": {
+                "name": "member",
+                "mspId": "org2"
+              }
+            }
+          },
+          {
+            "admin": {
+              "role": {
+                "name": "admin",
+                "mspId": "masterOrg"
+              }
+            }
+          }
+        ],
+        "policy": {
+          "2-of": [
+            {
+              "1-of": [
+                {
+                  "signed-by": "user1"
+                },
+                {
+                  "1-of": [
+                    {
+                      "signed-by": "user2"
+                    },
+                    {
+                      "signed-by": "admin"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "1-of": [
+                {
+                  "2-of": [
+                    {
+                      "signed-by": "user1"
+                    },
+                    {
+                      "signed-by": "user2"
+                    },
+                    {
+                      "signed-by": "admin"
+                    }
+                  ]
+                },
+                {
+                  "2-of": [
+                    {
+                      "signed-by": "admin"
+                    },
+                    {
+                      "1-of": [
+                        {
+                          "signed-by": "user1"
+                        },
+                        {
+                          "signed-by": "user2"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+]

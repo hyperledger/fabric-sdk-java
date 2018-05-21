@@ -1,0 +1,33 @@
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+
+  - StaticCollectionConfig: # protobuf oneof identifies type. At this time the only option.
+       name: "COLLECTION_FOR_A" # how to reference this collection in chaincode api.
+       blockToLive: 9999 # number blocks that have the data kept in the database after which older database data is pruned.
+       maximumPeerCount: 0 # the maximum number of peers this collection can be disseminated to.
+       requiredPeerCount: 0 # the minimum number of peers this collection must be disseminated to.
+       SignaturePolicyEnvelope: # protobuf oneOf identifies type. At this time the only option.
+         identities:
+             - user1: {"role": {"name": "member", "mspId": "Org1MSP"}}  #name can be: member, admin, client, or peer
+             - user2: {"role": {"name": "member", "mspId": "Org2MSP"}}
+         policy:
+             1-of: # must be signed by at least one of these (OR) can be 2-of for both (AND).
+               - signed-by: "user1" #reference to user1 in identities section must sign
+               - signed-by: "user2" #reference to user2 in identities section must sign
+  - StaticCollectionConfig:
+       name: "COLLECTION_FOR_B"
+       blockToLive: 9999
+       maximumPeerCount: 0
+       requiredPeerCount: 0
+       SignaturePolicyEnvelope:
+         identities:
+             - user1: {"role": {"name": "member", "mspId": "Org1MSP"}}
+             - user2: {"role": {"name": "member", "mspId": "Org2MSP"}}
+         policy:
+             1-of:
+               - signed-by: "user1"
+               - signed-by: "user2"
