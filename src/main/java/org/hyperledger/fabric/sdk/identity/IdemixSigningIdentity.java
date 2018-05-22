@@ -78,6 +78,11 @@ public class IdemixSigningIdentity implements SigningIdentity {
 
     private static final Log logger = LogFactory.getLog(IdemixSigningIdentity.class);
 
+    public IdemixSigningIdentity(IdemixEnrollment enrollment) throws CryptoException, InvalidArgumentException {
+        this(enrollment.ipk, enrollment.revocationPk, enrollment.mspId, enrollment.sk, enrollment.cred,
+                enrollment.cri, enrollment.ou, enrollment.role);
+    }
+
     /**
      * Create new Idemix Signing Identity with a fresh pseudonym
      *

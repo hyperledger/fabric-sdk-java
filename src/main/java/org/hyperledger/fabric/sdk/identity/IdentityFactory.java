@@ -1,5 +1,7 @@
 package org.hyperledger.fabric.sdk.identity;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
@@ -12,11 +14,19 @@ public class IdentityFactory {
     public static SigningIdentity getSigningIdentity(CryptoSuite cryptoSuite, User user) {
         Enrollment enrollment = user.getEnrollment();
 
-        if (enrollment instanceof X509Enrollment) {
-            return new X509SigningIdentity(cryptoSuite, user);
+        try {
+            if (enrollment instanceof X509Enrollment) {
+                return new X509SigningIdentity(cryptoSuite, user);
+            }
+
+            if (enrollment instanceof IdemixEnrollment) {
+                return new IdemixSigningIdentity((IdemixEnrollment) enrollment);
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException(e.getMessage(), e);
         }
 
-        throw new IllegalStateException("Invalid enrollment. Expected X509Enrollment. " + enrollment);
+        throw new IllegalStateException("Invalid enrollment. Expected either X509Enrollment or IdemixEnrollment." + enrollment);
     }
 
 }

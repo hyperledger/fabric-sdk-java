@@ -232,9 +232,7 @@ public class TransactionContext {
     }
 
     public TransactionContext retryTransactionSameContext() {
-
         return new TransactionContext(channel, user, cryptoPrimitives);
-
     }
 
     public Identities.SerializedIdentity getSerializedIdentity() {

@@ -86,29 +86,29 @@ message CredRequest {
 // nonce - a fresh nonce used for the signature
 // nym - a fresh pseudonym (a commitment to to the user secret)
 message Signature {
-    ECP a_prime = 1;
-    ECP a_bar = 2;
-    ECP b_prime = 3;
-    bytes proof_c = 4;
-    bytes proof_s_sk = 5;
-    bytes proof_s_e = 6;
-    bytes proof_s_r2 = 7;
-    bytes proof_s_r3 = 8;
-    bytes proof_s_s_prime = 9;
-    repeated bytes proof_s_attrs = 10;
-    bytes nonce = 11;
-    ECP nym = 12;
-    bytes proof_s_r_nym = 13;
-    ECP2 revocation_epoch_pk = 14;
-    bytes revocation_pk_sig = 15;
-    int64 epoch = 16;
+	ECP a_prime = 1;
+	ECP a_bar = 2;
+	ECP b_prime = 3;
+	bytes proof_c = 4;
+	bytes proof_s_sk = 5;
+	bytes proof_s_e = 6;
+	bytes proof_s_r2 = 7;
+	bytes proof_s_r3 = 8;
+	bytes proof_s_s_prime = 9;
+	repeated bytes proof_s_attrs = 10;
+	bytes nonce = 11;
+	ECP nym = 12;
+	bytes proof_s_r_nym = 13;
+	ECP2 revocation_epoch_pk = 14;
+	bytes revocation_pk_sig = 15;
+	int64 epoch = 16;
 	NonRevocationProof non_revocation_proof = 17;
 }
 
 // NonRevocationProof contains proof that the credential is not revoked
 message NonRevocationProof {
-    int32 revocation_alg = 1;
-    bytes non_revocation_proof = 2;
+	int32 revocation_alg = 1;
+	bytes non_revocation_proof = 2;
 }
 
 // PlainSigNonRevokedProof is a non-revoked proof for the plain signature-based revocation algorithm.
@@ -116,9 +116,9 @@ message NonRevocationProof {
 // using the zero knowledge proof from Camenisch, Drijvers, Hajny: "Scalable Revocation Scheme for Anonymous Credentials
 // Based on n-times Unlinkable Proofs"
 message PlainSigNonRevokedProof {
-    ECP sigma_prime = 1;
-    ECP sigma_bar = 2;
-    bytes proof_s_r = 3;
+	ECP sigma_prime = 1;
+	ECP sigma_bar = 2;
+	bytes proof_s_r = 3;
 }
 
 // NymSignature specifies a signature object that signs a message
@@ -127,14 +127,14 @@ message PlainSigNonRevokedProof {
 // a CA (issuer), whereas NymSignature only proves that the the owner of the pseudonym
 // signed the message
 message NymSignature {
-    // proof_c is the Fiat-Shamir challenge of the ZKP
-    bytes proof_c = 1;
-    // proof_s_sk is the s-value proving knowledge of the user secret key
-    bytes proof_s_sk = 2;
-    //proof_s_r_nym is the s-value proving knowledge of the pseudonym secret
-    bytes proof_s_r_nym = 3;
-    // nonce is a fresh nonce used for the signature
-    bytes nonce = 4;
+	// proof_c is the Fiat-Shamir challenge of the ZKP
+	bytes proof_c = 1;
+	// proof_s_sk is the s-value proving knowledge of the user secret key
+	bytes proof_s_sk = 2;
+	//proof_s_r_nym is the s-value proving knowledge of the pseudonym secret
+	bytes proof_s_r_nym = 3;
+	// nonce is a fresh nonce used for the signature
+	bytes nonce = 4;
 }
 
 message CredentialRevocationInformation {
@@ -156,14 +156,14 @@ message CredentialRevocationInformation {
 
 // PlainSigRevocationData holds the algorithm-specific data for the plain signature-based revocation algorithm
 message PlainSigRevocationData {
-    // sigantures contains a list of signed revocation handles
-    repeated MessageSignature signatures = 1;
+	// sigantures contains a list of signed revocation handles
+	repeated MessageSignature signatures = 1;
 }
 
 message MessageSignature {
-    // revocation_handle is the revocation handle signed
-    bytes revocation_handle = 1;
+	// revocation_handle is the revocation handle signed
+	bytes revocation_handle = 1;
 
-    // rh_signature is the signature on the revocation handle
-    ECP rh_signature = 2;
+	// rh_signature is the signature on the revocation handle
+	ECP rh_signature = 2;
 }

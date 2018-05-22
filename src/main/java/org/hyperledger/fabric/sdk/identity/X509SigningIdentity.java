@@ -6,7 +6,7 @@ import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 public class X509SigningIdentity extends X509Identity implements SigningIdentity {
 
-    private CryptoSuite cryptoSuite;
+    private final CryptoSuite cryptoSuite;
 
     public X509SigningIdentity(CryptoSuite cryptoSuite, User user) {
         super(user);

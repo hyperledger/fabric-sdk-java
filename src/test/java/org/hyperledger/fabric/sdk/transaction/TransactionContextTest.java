@@ -21,6 +21,7 @@ import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.TestHFClient;
 import org.hyperledger.fabric.sdk.User;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -81,7 +82,7 @@ public class TransactionContextTest {
     // Helper methods
     // ==========================================================================================
 
-    private TransactionContext createTestContext() {
+    private TransactionContext createTestContext() throws InvalidArgumentException {
         Channel channel = createTestChannel("channel1");
 
         User user = hfclient.getUserContext();

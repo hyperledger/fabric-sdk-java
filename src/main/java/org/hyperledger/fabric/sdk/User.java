@@ -18,7 +18,6 @@ import java.util.Set;
 
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Utils;
-import org.hyperledger.fabric.sdk.identity.SigningIdentity;
 
 import static java.lang.String.format;
 

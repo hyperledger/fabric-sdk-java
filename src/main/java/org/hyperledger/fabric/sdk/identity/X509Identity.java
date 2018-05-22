@@ -6,7 +6,7 @@ import org.hyperledger.fabric.sdk.transaction.ProtoUtils;
 
 public class X509Identity implements Identity {
 
-    protected User user;
+    protected final User user;
 
     public X509Identity(User user) {
         if (user == null) {

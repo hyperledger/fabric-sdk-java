@@ -45,6 +45,7 @@ public class IdemixIdentity implements Identity {
     // MSP identifier
     private final String mspId;
 
+    // Issuer public key hash
     private final byte[] ipkHash;
 
     // Idemix Pseudonym

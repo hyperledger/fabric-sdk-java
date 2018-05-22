@@ -8,11 +8,11 @@ import org.hyperledger.fabric.sdk.Enrollment;
 
 public class X509Enrollment implements Enrollment, Serializable {
 
-    private PrivateKey key;
-    private String cert;
+    private final PrivateKey key;
+    private final String cert;
 
     public X509Enrollment(KeyPair signingKeyPair, String signedPem) {
-        key = signingKeyPair.getPrivate();
+        this.key = signingKeyPair.getPrivate();
         this.cert = signedPem;
     }
 
