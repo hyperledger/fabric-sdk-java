@@ -209,7 +209,7 @@ public class End2endAndBackAgainIT {
 //            if (sampleStoreFile.exists()) { //For testing start fresh
 //                sampleStoreFile.delete();
 //            }
-            sampleStore = new SampleStore(sampleStoreFile);
+            sampleStore = new SampleStore(sampleStoreFile, CryptoSuite.Factory.getCryptoSuite());
 
             setupUsers(sampleStore);
             runFabricTest(sampleStore);

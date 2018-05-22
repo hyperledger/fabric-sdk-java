@@ -32,19 +32,25 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
+import com.google.protobuf.ByteString;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
+import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.Orderer;
 import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.User;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.identity.SigningIdentity;
+import org.hyperledger.fabric.sdk.identity.X509Enrollment;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.junit.Assert;
 
 import static java.lang.String.format;
@@ -216,12 +222,16 @@ public class TestUtils {
         return new MockUser(name, mspId);
     }
 
-    public static MockEnrollment getMockEnrollment(String cert) {
-        return new MockEnrollment(new MockPrivateKey(), cert);
+    public static Enrollment getMockEnrollment(String cert) {
+        return new X509Enrollment(new MockPrivateKey(), cert);
     }
 
-    public static MockEnrollment getMockEnrollment(PrivateKey key, String cert) {
-        return new MockEnrollment(key, cert);
+    public static MockSigningIdentity getMockSigningIdentity(String cert, String mspId, Enrollment enrollment) {
+        return new MockSigningIdentity(cert, mspId, enrollment);
+    }
+
+    public static Enrollment getMockEnrollment(PrivateKey key, String cert) {
+        return new X509Enrollment(key, cert);
     }
 
     public static ArrayList tarBytesToEntryArrayList(byte[] bytes) throws Exception {
@@ -378,32 +388,6 @@ public class TestUtils {
 //            throw new RuntimeException(e);
 //        }
 //    }
-
-    public static class MockEnrollment implements Enrollment {
-        private PrivateKey privateKey;
-
-        public void setCert(String cert) {
-            this.cert = cert;
-        }
-
-        private String cert;
-
-        private MockEnrollment(PrivateKey key, String cert) {
-            this.privateKey = key;
-            this.cert = cert;
-        }
-
-        @Override
-        public PrivateKey getKey() {
-            return privateKey;
-        }
-
-        @Override
-        public String getCert() {
-            return cert;
-        }
-    }
-
     public static class MockUser implements User {
         private String name;
         private String mspId;
@@ -418,7 +402,7 @@ public class TestUtils {
         private MockUser(String name, String mspId) {
             this.name = name;
             this.mspId = mspId;
-            this.enrollment = getMockEnrollment(MOCK_CERT);
+            setEnrollment(getMockEnrollment(MOCK_CERT));
         }
 
         public void setEnrollment(Enrollment e) {
@@ -457,6 +441,40 @@ public class TestUtils {
 
         public void setEnrollmentSecret(String enrollmentSecret) {
             this.enrollmentSecret = enrollmentSecret;
+        }
+
+    }
+
+    public static class MockSigningIdentity implements SigningIdentity {
+        private String cert;
+        private String mspId;
+        private Enrollment enrollment;
+
+        public MockSigningIdentity(String cert, String mspId, Enrollment enrollment) {
+            this.cert = cert;
+            this.mspId = mspId;
+            this.enrollment = enrollment;
+        }
+
+        @Override
+        public byte[] sign(byte[] msg) throws CryptoException {
+            try {
+                return CryptoSuite.Factory.getCryptoSuite().sign(this.enrollment.getKey(), msg);
+            } catch (Exception e) {
+                throw new CryptoException(e.getMessage(), e);
+            }
+        }
+
+        @Override
+        public boolean verifySignature(byte[] msg, byte[] sig) throws CryptoException {
+            return false;
+        }
+
+        @Override
+        public Identities.SerializedIdentity createSerializedIdentity() {
+            return Identities.SerializedIdentity.newBuilder()
+                    .setIdBytes(ByteString.copyFromUtf8(cert))
+                    .setMspid(mspId).build();
         }
     }
 

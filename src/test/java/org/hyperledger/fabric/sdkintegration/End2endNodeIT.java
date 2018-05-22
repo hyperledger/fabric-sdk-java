@@ -8,6 +8,8 @@ import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.TransactionRequest.Type;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
+import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
 import org.junit.Test;
 
@@ -44,7 +46,7 @@ public class End2endNodeIT extends End2endIT {
     @Override
     @Test
     public void setup() throws Exception {
-        sampleStore = new SampleStore(sampleStoreFile);
+        sampleStore = new SampleStore(sampleStoreFile, CryptoSuite.Factory.getCryptoSuite());
         enrollUsersSetup(sampleStore);
         runFabricTest(sampleStore); // just run fabric tests.
     }

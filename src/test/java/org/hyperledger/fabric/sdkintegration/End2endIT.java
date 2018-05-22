@@ -184,7 +184,7 @@ public class End2endIT {
         if (sampleStoreFile.exists()) { //For testing start fresh
             sampleStoreFile.delete();
         }
-        sampleStore = new SampleStore(sampleStoreFile);
+        sampleStore = new SampleStore(sampleStoreFile, CryptoSuite.Factory.getCryptoSuite());
 
         enrollUsersSetup(sampleStore); //This enrolls users with fabric ca and setups sample store to get users later.
         runFabricTest(sampleStore); //Runs Fabric tests with constructing channels, joining peers, exercising chaincode

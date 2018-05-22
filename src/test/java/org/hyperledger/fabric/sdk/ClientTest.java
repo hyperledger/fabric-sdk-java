@@ -17,9 +17,9 @@ package org.hyperledger.fabric.sdk;
 
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.identity.SigningIdentity;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestUtils;
-import org.hyperledger.fabric.sdk.testutils.TestUtils.MockEnrollment;
 import org.hyperledger.fabric.sdk.testutils.TestUtils.MockUser;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -61,7 +61,7 @@ public class ClientTest {
         }
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test(expected = InvalidArgumentException.class)
     public void testSetNullChannel() throws InvalidArgumentException {
         hfclient.newChannel(null);
         Assert.fail("Expected null channel to throw exception.");
@@ -78,7 +78,7 @@ public class ClientTest {
         }
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test(expected = InvalidArgumentException.class)
     public void testBadURL() throws InvalidArgumentException {
         hfclient.newPeer("peer_", " ");
         Assert.fail("Expected peer with no channel throw exception");
@@ -95,13 +95,13 @@ public class ClientTest {
         }
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test(expected = InvalidArgumentException.class)
     public void testBadAddress() throws InvalidArgumentException {
         hfclient.newOrderer("xx", "xxxxxx");
         Assert.fail("Orderer allowed setting bad URL.");
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test(expected = InvalidArgumentException.class)
     public void testBadCryptoSuite() throws InvalidArgumentException {
         HFClient.createNewInstance()
                 .newOrderer("xx", "xxxxxx");
@@ -118,7 +118,7 @@ public class ClientTest {
 
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test(expected = InvalidArgumentException.class)
     public void testBadUserContextNull() throws Exception {
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
@@ -127,7 +127,7 @@ public class ClientTest {
 
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test(expected = InvalidArgumentException.class)
     public void testBadUserNameNull() throws Exception {
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
@@ -138,7 +138,7 @@ public class ClientTest {
 
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test(expected = InvalidArgumentException.class)
     public void testBadUserNameEmpty() throws Exception {
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
@@ -149,7 +149,7 @@ public class ClientTest {
 
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test(expected = InvalidArgumentException.class)
     public void testBadUserMSPIDNull() throws Exception {
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
@@ -160,7 +160,7 @@ public class ClientTest {
 
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test(expected = InvalidArgumentException.class)
     public void testBadUserMSPIDEmpty() throws Exception {
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
@@ -171,7 +171,7 @@ public class ClientTest {
 
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test(expected = InvalidArgumentException.class)
     public void testBadEnrollmentNull() throws Exception {
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
@@ -183,21 +183,21 @@ public class ClientTest {
 
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test(expected = InvalidArgumentException.class)
     public void testBadEnrollmentBadCert() throws Exception {
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
 
         MockUser mockUser = TestUtils.getMockUser(USER_NAME, USER_MSP_ID);
 
-        MockEnrollment mockEnrollment = TestUtils.getMockEnrollment(null);
+        Enrollment mockEnrollment = TestUtils.getMockEnrollment(null);
         mockUser.setEnrollment(mockEnrollment);
 
         client.setUserContext(mockUser);
 
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test(expected = InvalidArgumentException.class)
     public void testBadEnrollmentBadKey() throws Exception {
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
@@ -205,7 +205,7 @@ public class ClientTest {
 
         MockUser mockUser = TestUtils.getMockUser(USER_NAME, USER_MSP_ID);
 
-        MockEnrollment mockEnrollment = TestUtils.getMockEnrollment(null, "mockCert");
+        Enrollment mockEnrollment = TestUtils.getMockEnrollment(null, "mockCert");
         mockUser.setEnrollment(mockEnrollment);
 
         client.setUserContext(mockUser);
@@ -225,7 +225,7 @@ public class ClientTest {
 
             MockUser mockUser = TestUtils.getMockUser(USER_NAME, USER_MSP_ID);
 
-            MockEnrollment mockEnrollment = TestUtils.getMockEnrollment(null, "mockCert");
+            Enrollment mockEnrollment = TestUtils.getMockEnrollment(null, "mockCert");
             mockUser.setEnrollment(mockEnrollment);
 
             client.setUserContext(mockUser);

@@ -97,6 +97,7 @@ import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.NetworkConfig;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.helper.Utils;
+import org.hyperledger.fabric.sdk.identity.X509Enrollment;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric_ca.sdk.exception.AffiliationException;
@@ -490,7 +491,7 @@ public class HFCAClient {
             }
             logger.debug("Enrollment done.");
 
-            return new HFCAEnrollment(keypair, signedPem);
+            return new X509Enrollment(keypair, signedPem);
 
         } catch (EnrollmentException ee) {
             logger.error(format("url:%s, user:%s  error:%s", url, user, ee.getMessage()), ee);
@@ -633,7 +634,7 @@ public class HFCAClient {
             logger.debug(format("[HFCAClient] re-enroll returned pem:[%s]", signedPem));
 
             logger.debug(format("reenroll user %s done.", user.getName()));
-            return new HFCAEnrollment(keypair, signedPem);
+            return new X509Enrollment(keypair, signedPem);
 
         } catch (EnrollmentException ee) {
             logger.error(ee.getMessage(), ee);

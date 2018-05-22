@@ -290,7 +290,7 @@ public class EventHub implements Serializable {
         sender = events.chat(eventStreamLocal);
         try {
             blockListen(transactionContext);
-        } catch (CryptoException e) {
+        } catch (Exception e) {
             throw new EventHubException(e);
         }
 
@@ -338,7 +338,7 @@ public class EventHub implements Serializable {
 
     }
 
-    private void blockListen(TransactionContext transactionContext) throws CryptoException {
+    private void blockListen(TransactionContext transactionContext) throws CryptoException, InvalidArgumentException {
 
         this.transactionContext = transactionContext;
 

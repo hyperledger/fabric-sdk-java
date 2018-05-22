@@ -26,6 +26,9 @@ import io.netty.util.internal.StringUtil;
 import org.bouncycastle.util.encoders.Hex;
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.User;
+import org.hyperledger.fabric.sdk.identity.SigningIdentity;
+import org.hyperledger.fabric.sdk.identity.X509SigningIdentity;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 public class SampleUser implements User, Serializable {
     private static final long serialVersionUID = 8077132186383604355L;
@@ -41,8 +44,11 @@ public class SampleUser implements User, Serializable {
     private transient SampleStore keyValStore;
     private String keyValStoreName;
 
-    public SampleUser(String name, String org, SampleStore fs) {
+    private transient CryptoSuite cryptoSuite;
+
+    public SampleUser(String name, String org, SampleStore fs, CryptoSuite cryptoSuite) {
         this.name = name;
+        this.cryptoSuite = cryptoSuite;
 
         this.keyValStore = fs;
         this.organization = org;
@@ -210,5 +216,4 @@ public class SampleUser implements User, Serializable {
         saveState();
 
     }
-
 }

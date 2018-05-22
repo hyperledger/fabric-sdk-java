@@ -713,6 +713,13 @@ public class CryptoPrimitives implements CryptoSuite {
      * @throws CryptoException
      */
     private byte[] ecdsaSignToBytes(ECPrivateKey privateKey, byte[] data) throws CryptoException {
+        if (data == null) {
+            throw new CryptoException("Data that to be signed is null.");
+        }
+        if (data.length == 0) {
+            throw new CryptoException("Data to be signed was empty.");
+        }
+
         try {
             X9ECParameters params = ECNamedCurveTable.getByName(curveName);
             BigInteger curveN = params.getN();

@@ -19,6 +19,7 @@ import java.net.MalformedURLException;
 
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdkintegration.SampleStore;
 import org.hyperledger.fabric.sdkintegration.SampleUser;
 import org.hyperledger.fabric_ca.sdk.exception.AffiliationException;
@@ -55,14 +56,13 @@ public class HFCAAffiliationTest {
     }
 
     @Before
-    public void setup() throws CryptoException, InvalidArgumentException,
-            org.hyperledger.fabric.sdk.exception.InvalidArgumentException, MalformedURLException, EnrollmentException {
+    public void setup() throws Exception {
 
         File sampleStoreFile = new File(System.getProperty("java.io.tmpdir") + "/HFCSampletest.properties");
         if (sampleStoreFile.exists()) { // For testing start fresh
             sampleStoreFile.delete();
         }
-        sampleStore = new SampleStore(sampleStoreFile);
+        sampleStore = new SampleStore(sampleStoreFile, CryptoSuite.Factory.getCryptoSuite());
         sampleStoreFile.deleteOnExit();
 
         // SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface

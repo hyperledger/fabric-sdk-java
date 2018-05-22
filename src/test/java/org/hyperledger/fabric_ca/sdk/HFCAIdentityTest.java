@@ -62,7 +62,7 @@ public class HFCAIdentityTest {
         if (sampleStoreFile.exists()) { // For testing start fresh
             sampleStoreFile.delete();
         }
-        sampleStore = new SampleStore(sampleStoreFile);
+        sampleStore = new SampleStore(sampleStoreFile, crypto);
         sampleStoreFile.deleteOnExit();
 
         // SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface

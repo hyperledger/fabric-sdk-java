@@ -30,6 +30,7 @@ import java.util.Set;
 
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.identity.X509Enrollment;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdkintegration.SampleStore;
@@ -83,7 +84,7 @@ public class HFCAClientTest {
         if (sampleStoreFile.exists()) { // For testing start fresh
             sampleStoreFile.delete();
         }
-        sampleStore = new SampleStore(sampleStoreFile);
+        sampleStore = new SampleStore(sampleStoreFile, crypto);
         sampleStoreFile.deleteOnExit();
 
         // SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface
@@ -397,7 +398,7 @@ public class HFCAClientTest {
         HFCAClient client = HFCAClient.createNewInstance("client", "http://localhost:99", null);
         client.setCryptoSuite(crypto);
         KeyPair keypair = crypto.keyGen();
-        Enrollment enrollment = new HFCAEnrollment(keypair, "abc");
+        Enrollment enrollment = new X509Enrollment(keypair, "abc");
 
         client.revoke(admin, enrollment, "keyCompromise");
     }
@@ -412,7 +413,7 @@ public class HFCAClientTest {
         HFCAClient client = HFCAClient.createNewInstance("client", "http://localhost:99", null);
         client.setCryptoSuite(crypto);
         KeyPair keypair = crypto.keyGen();
-        Enrollment enrollment = new HFCAEnrollment(keypair, "abc");
+        Enrollment enrollment = new X509Enrollment(keypair, "abc");
 
         client.revoke(null, enrollment, "keyCompromise");
     }

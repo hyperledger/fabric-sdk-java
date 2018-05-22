@@ -128,7 +128,7 @@ public class HFCAClientIT {
         if (sampleStoreFile.exists()) { // For testing start fresh
             sampleStoreFile.delete();
         }
-        sampleStore = new SampleStore(sampleStoreFile);
+        sampleStore = new SampleStore(sampleStoreFile, crypto);
         sampleStoreFile.deleteOnExit();
 
         client = HFCAClient.createNewInstance(
@@ -152,7 +152,7 @@ public class HFCAClientIT {
             return; // needs v1.1
         }
 
-        SampleUser user = new SampleUser("mrAttributes", TEST_ADMIN_ORG, sampleStore);
+        SampleUser user = new SampleUser("mrAttributes", TEST_ADMIN_ORG, sampleStore, crypto);
 
         RegistrationRequest rr = new RegistrationRequest(user.getName(), TEST_USER1_AFFILIATION);
         String password = "mrAttributespassword";
@@ -194,7 +194,7 @@ public class HFCAClientIT {
             return; // needs v1.1
         }
 
-        SampleUser user = new SampleUser("mrAttributesDefault", TEST_ADMIN_ORG, sampleStore);
+        SampleUser user = new SampleUser("mrAttributesDefault", TEST_ADMIN_ORG, sampleStore, crypto);
 
         RegistrationRequest rr = new RegistrationRequest(user.getName(), TEST_USER1_AFFILIATION);
         String password = "mrAttributespassword";
@@ -230,7 +230,7 @@ public class HFCAClientIT {
      */
     @Test
     public void testRegisterAttributesNONE() throws Exception {
-        SampleUser user = new SampleUser("mrAttributesNone", TEST_ADMIN_ORG, sampleStore);
+        SampleUser user = new SampleUser("mrAttributesNone", TEST_ADMIN_ORG, sampleStore, crypto);
 
         RegistrationRequest rr = new RegistrationRequest(user.getName(), TEST_USER1_AFFILIATION);
         String password = "mrAttributespassword";
@@ -695,7 +695,7 @@ public class HFCAClientIT {
         thrown.expect(IdentityException.class);
         thrown.expectMessage("Failed to get User");
 
-        SampleUser user = new SampleUser("testuser4", TEST_ADMIN_ORG, sampleStore);
+        SampleUser user = new SampleUser("testuser4", TEST_ADMIN_ORG, sampleStore, client.getCryptoSuite());
 
         HFCAIdentity ident = client.newHFCAIdentity(user.getName());
 
@@ -752,7 +752,7 @@ public class HFCAClientIT {
         }
 
         thrown.expectMessage("Identity removal is disabled");
-        SampleUser user = new SampleUser("testuser5", "org2", sampleStore);
+        SampleUser user = new SampleUser("testuser5", "org2", sampleStore, client.getCryptoSuite());
 
         HFCAClient client2 = HFCAClient.createNewInstance(
                 testConfig.getIntegrationTestsSampleOrg(TEST_WITH_INTEGRATION_ORG2).getCALocation(),
@@ -1287,7 +1287,7 @@ public class HFCAClientIT {
         if (sampleStoreFile.exists()) { // For testing start fresh
             sampleStoreFile.delete();
         }
-        sampleStore = new SampleStore(sampleStoreFile);
+        sampleStore = new SampleStore(sampleStoreFile, crypto);
         sampleStoreFile.deleteOnExit();
 
         SampleUser user2 = getEnrolledUser(TEST_ADMIN_ORG);

@@ -43,6 +43,7 @@ import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type;
 import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeHeaderExtension;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
@@ -187,7 +188,7 @@ public final class ProtoUtils {
 
     public static ByteString getSignatureHeaderAsByteString(User user, TransactionContext transactionContext) {
 
-        final Identities.SerializedIdentity identity = ProtoUtils.createSerializedIdentity(user);
+        final Identities.SerializedIdentity identity = transactionContext.getSerializedIdentity();
 
         if (isDebugLevel) {
 
@@ -253,7 +254,7 @@ public final class ProtoUtils {
                 .setNanos((int) ((millis % 1000) * 1000000)).build();
     }
 
-    public static Envelope createSeekInfoEnvelope(TransactionContext transactionContext, SeekInfo seekInfo, byte[] tlsCertHash) throws CryptoException {
+    public static Envelope createSeekInfoEnvelope(TransactionContext transactionContext, SeekInfo seekInfo, byte[] tlsCertHash) throws CryptoException, InvalidArgumentException {
 
         ChannelHeader seekInfoHeader = createChannelHeader(Common.HeaderType.DELIVER_SEEK_INFO,
                 transactionContext.getTxID(), transactionContext.getChannelID(), transactionContext.getEpoch(),
@@ -282,7 +283,7 @@ public final class ProtoUtils {
 
     public static Envelope createSeekInfoEnvelope(TransactionContext transactionContext, SeekPosition startPosition,
                                                   SeekPosition stopPosition,
-                                                  SeekBehavior seekBehavior, byte[] tlsCertHash) throws CryptoException {
+                                                  SeekBehavior seekBehavior, byte[] tlsCertHash) throws CryptoException, InvalidArgumentException {
 
         return createSeekInfoEnvelope(transactionContext, SeekInfo.newBuilder()
                 .setStart(startPosition)
