@@ -35,23 +35,29 @@ import org.apache.log4j.Level;
 public class Config {
     private static final Log logger = LogFactory.getLog(Config.class);
 
-    private static final String DEFAULT_CONFIG = "config.properties";
-    public static final String ORG_HYPERLEDGER_FABRIC_SDK_CONFIGURATION = "org.hyperledger.fabric.sdk.configuration";
-    public static final String SECURITY_LEVEL = "org.hyperledger.fabric.sdk.security_level";
-    public static final String HASH_ALGORITHM = "org.hyperledger.fabric.sdk.hash_algorithm";
-    public static final String CACERTS = "org.hyperledger.fabric.sdk.cacerts";
-    public static final String PROPOSAL_WAIT_TIME = "org.hyperledger.fabric.sdk.proposal.wait.time";
+    private static final String BASE_PROP = "org.hyperledger.fabric_ca.sdk.";
 
-    public static final String ASYMMETRIC_KEY_TYPE = "org.hyperledger.fabric.sdk.crypto.asymmetric_key_type";
-    public static final String KEY_AGREEMENT_ALGORITHM = "org.hyperledger.fabric.sdk.crypto.key_agreement_algorithm";
-    public static final String SYMMETRIC_KEY_TYPE = "org.hyperledger.fabric.sdk.crypto.symmetric_key_type";
-    public static final String SYMMETRIC_KEY_BYTE_COUNT = "org.hyperledger.fabric.sdk.crypto.symmetric_key_byte_count";
-    public static final String SYMMETRIC_ALGORITHM = "org.hyperledger.fabric.sdk.crypto.symmetric_algorithm";
-    public static final String MAC_KEY_BYTE_COUNT = "org.hyperledger.fabric.sdk.crypto.mac_key_byte_count";
-    public static final String CERTIFICATE_FORMAT = "org.hyperledger.fabric.sdk.crypto.certificate_format";
-    public static final String SIGNATURE_ALGORITHM = "org.hyperledger.fabric.sdk.crypto.default_signature_algorithm";
-    public static final String MAX_LOG_STRING_LENGTH = "org.hyperledger.fabric.sdk.log.stringlengthmax";
-    public static final String LOGGERLEVEL = "org.hyperledger.fabric_ca.sdk.loglevel";  // ORG_HYPERLEDGER_FABRIC_CA_SDK_LOGLEVEL=TRACE,DEBUG
+    private static final String DEFAULT_CONFIG = "config.properties";
+    public static final String ORG_HYPERLEDGER_FABRIC_SDK_CONFIGURATION = BASE_PROP + "configuration";
+    public static final String SECURITY_LEVEL = BASE_PROP + "security_level";
+    public static final String HASH_ALGORITHM = BASE_PROP + "hash_algorithm";
+    public static final String CACERTS = "cacerts";
+    public static final String PROPOSAL_WAIT_TIME = BASE_PROP + "proposal.wait.time";
+
+    public static final String ASYMMETRIC_KEY_TYPE = BASE_PROP + "crypto.asymmetric_key_type";
+    public static final String KEY_AGREEMENT_ALGORITHM = BASE_PROP + "crypto.key_agreement_algorithm";
+    public static final String SYMMETRIC_KEY_TYPE = BASE_PROP + "crypto.symmetric_key_type";
+    public static final String SYMMETRIC_KEY_BYTE_COUNT = BASE_PROP + "crypto.symmetric_key_byte_count";
+    public static final String SYMMETRIC_ALGORITHM = BASE_PROP + "crypto.symmetric_algorithm";
+    public static final String MAC_KEY_BYTE_COUNT = BASE_PROP + "crypto.mac_key_byte_count";
+    public static final String CERTIFICATE_FORMAT = BASE_PROP + "crypto.certificate_format";
+    public static final String SIGNATURE_ALGORITHM = BASE_PROP + "crypto.default_signature_algorithm";
+    public static final String MAX_LOG_STRING_LENGTH = BASE_PROP + "log.stringlengthmax";
+    public static final String LOGGERLEVEL = BASE_PROP + "loglevel";  // ORG_HYPERLEDGER_FABRIC_CA_SDK_LOGLEVEL=TRACE,DEBUG
+
+    public static final String CONNECTION_REQUEST_TIMEOUT = BASE_PROP + "connection.connection_request_timeout"; //ORG_HYPERLEDGER_FABRIC_CA_SDK_CONNECTION_CONNECTION_REQUEST_TIMEOUT
+    public static final String CONNECT_TIMEOUT = BASE_PROP + "connection.connect_timeout"; //ORG_HYPERLEDGER_FABRIC_CA_SDK_CONNECTION_CONNECT_TIMEOUT
+    public static final String SOCKET_TIMEOUT = BASE_PROP + "connection.socket_timeout"; //ORG_HYPERLEDGER_FABRIC_CA_SDK_CONNECTION_SOCKET_TIMEOUT
 
     private static Config config;
     private static final Properties sdkProperties = new Properties();
@@ -84,6 +90,11 @@ public class Config {
             defaultProperty(SIGNATURE_ALGORITHM, "SHA256withECDSA");
             defaultProperty(SECURITY_LEVEL, "256");
             defaultProperty(HASH_ALGORITHM, "SHA2");
+
+            defaultProperty(CONNECTION_REQUEST_TIMEOUT, "-1");
+            defaultProperty(CONNECT_TIMEOUT, "-1");
+            defaultProperty(SOCKET_TIMEOUT, "-1");
+
             // TODO remove this once we have implemented MSP and get the peer certs from the channel
             defaultProperty(CACERTS, "/genesisblock/peercacert.pem");
 
@@ -256,4 +267,30 @@ public class Config {
         return Integer.parseInt(getProperty(MAX_LOG_STRING_LENGTH));
     }
 
+    /**
+     * milliseconds used when requesting a connection.
+     *
+     * @return
+     */
+
+    public int getConnectionRequestTimeout() {
+        return Integer.parseInt(getProperty(CONNECTION_REQUEST_TIMEOUT));
+    }
+
+    /**
+     * Determines the timeout in milliseconds until a connection is established.
+     * @return
+     */
+    public int getConnectTimeout() {
+        return Integer.parseInt(getProperty(CONNECT_TIMEOUT));
+    }
+
+    /**
+     * Defines the socket timeout (SO_TIMEOUT) in milliseconds, which is the timeout for waiting for data
+     * @return
+     */
+    public int getSocketTimeout() {
+
+        return Integer.parseInt(getProperty(SOCKET_TIMEOUT));
+    }
 }

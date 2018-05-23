@@ -71,6 +71,7 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.AuthCache;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -172,6 +173,10 @@ public class HFCAClient {
     public static final String HFCA_ATTRIBUTE_HFGENCRL = "hf.GenCRL";
 
     private static final Config config = Config.getConfig();  // DO NOT REMOVE THIS IS NEEDED TO MAKE SURE WE FIRST LOAD CONFIG!!!
+
+    private static final int CONNECTION_REQUEST_TIMEOUT = config.getConnectionRequestTimeout();
+    private static final int CONNECT_TIMEOUT = config.getConnectTimeout();
+    private static final int SOCKET_TIMEOUT = config.getSocketTimeout();
 
     private static final Log logger = LogFactory.getLog(HFCAClient.class);
 
@@ -1088,6 +1093,7 @@ public class HFCAClient {
         HttpClient client = httpClientBuilder.build();
 
         HttpPost httpPost = new HttpPost(url);
+        httpPost.setConfig(getRequestConfig());
 
         AuthCache authCache = new BasicAuthCache();
 
@@ -1142,6 +1148,7 @@ public class HFCAClient {
     JsonObject httpPost(String url, String body, User registrar) throws Exception {
         String authHTTPCert = getHTTPAuthCertificate(registrar.getEnrollment(), body);
         HttpPost httpPost = new HttpPost(url);
+        httpPost.setConfig(getRequestConfig());
         logger.debug(format("httpPost %s, body:%s, authHTTPCert: %s", url, body, authHTTPCert));
 
         final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
@@ -1163,6 +1170,7 @@ public class HFCAClient {
         String authHTTPCert = getHTTPAuthCertificate(registrar.getEnrollment(), "");
         url = getURL(url);
         HttpGet httpGet = new HttpGet(url);
+        httpGet.setConfig(getRequestConfig());
         logger.debug(format("httpGet %s, authHTTPCert: %s", url, authHTTPCert));
 
         final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
@@ -1182,6 +1190,7 @@ public class HFCAClient {
     JsonObject httpPut(String url, String body, User registrar) throws Exception {
         String authHTTPCert = getHTTPAuthCertificate(registrar.getEnrollment(), body);
         HttpPut httpPut = new HttpPut(url);
+        httpPut.setConfig(getRequestConfig());
         logger.debug(format("httpPutt %s, body:%s, authHTTPCert: %s", url, body, authHTTPCert));
 
         final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
@@ -1202,6 +1211,7 @@ public class HFCAClient {
     JsonObject httpDelete(String url, User registrar) throws Exception {
         String authHTTPCert = getHTTPAuthCertificate(registrar.getEnrollment(), "");
         HttpDelete httpDelete = new HttpDelete(url);
+        httpDelete.setConfig(getRequestConfig());
         logger.debug(format("httpPut %s, authHTTPCert: %s", url, authHTTPCert));
 
         final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
@@ -1459,6 +1469,18 @@ public class HFCAClient {
         jsonWriter.writeObject(toJsonFunc);
         jsonWriter.close();
         return stringWriter.toString();
+    }
+
+    private RequestConfig getRequestConfig() {
+
+        RequestConfig.Builder ret = RequestConfig.custom();
+
+        ret.setConnectionRequestTimeout(CONNECTION_REQUEST_TIMEOUT);
+        ret.setConnectTimeout(CONNECT_TIMEOUT);
+        ret.setSocketTimeout(SOCKET_TIMEOUT);
+
+        return ret.build();
+
     }
 
 }
