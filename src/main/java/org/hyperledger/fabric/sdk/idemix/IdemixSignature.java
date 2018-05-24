@@ -16,10 +16,12 @@
 
 package org.hyperledger.fabric.sdk.idemix;
 
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.google.common.primitives.Ints;
 import com.google.protobuf.ByteString;
 import org.apache.milagro.amcl.FP256BN.BIG;
 import org.apache.milagro.amcl.FP256BN.ECP;
@@ -27,6 +29,7 @@ import org.apache.milagro.amcl.FP256BN.FP12;
 import org.apache.milagro.amcl.FP256BN.PAIR;
 import org.apache.milagro.amcl.RAND;
 import org.hyperledger.fabric.protos.idemix.Idemix;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
 
 /**
  * IdemixSignature represents an idemix signature, which is a zero knowledge proof
@@ -47,6 +50,10 @@ public class IdemixSignature {
     private final BIG nonce;
     private final ECP nym;
     private final BIG proofSRNym;
+    private Idemix.ECP2 revocationPk;
+    private byte[] revocationPKSig;
+    private long epoch;
+    private Idemix.NonRevocationProof nonRevocationProof;
 
     private static final String SIGN_LABEL = "sign";
 
@@ -59,11 +66,28 @@ public class IdemixSignature {
      * @param ipk        the issuer public key
      * @param disclosure a bool-array that steers the disclosure of attributes
      * @param msg        the message to be signed
+     * @param rhIndex    the index of the attribute that represents the revocation handle
+     * @param cri        the credential revocation information that allows the signer to prove non-revocation
      */
-    IdemixSignature(IdemixCredential c, BIG sk, IdemixPseudonym pseudonym, IdemixIssuerPublicKey ipk, boolean[] disclosure, byte[] msg) {
-        if (c == null || sk == null || pseudonym == null || pseudonym.getNym() == null || pseudonym.getRandNym() == null || ipk == null || disclosure == null || msg == null) {
+    IdemixSignature(IdemixCredential c, BIG sk, IdemixPseudonym pseudonym, IdemixIssuerPublicKey ipk, boolean[] disclosure, byte[] msg, int rhIndex, Idemix.CredentialRevocationInformation cri) {
+        if (c == null || sk == null || pseudonym == null || pseudonym.getNym() == null || pseudonym.getRandNym() == null || ipk == null || disclosure == null || msg == null || cri == null) {
             throw new IllegalArgumentException("Cannot construct idemix signature from null input");
         }
+
+        if (disclosure.length != c.getAttrs().length) {
+            throw new IllegalArgumentException("Disclosure length must be the same as the number of attributes");
+        }
+
+        if (cri.getRevocationAlg() >= RevocationAlgorithm.values().length) {
+            throw new IllegalArgumentException("CRI specifies unknown revocation algorithm");
+        }
+
+        if (cri.getRevocationAlg() != RevocationAlgorithm.ALG_NO_REVOCATION.ordinal() && disclosure[rhIndex]) {
+            throw new IllegalArgumentException("Attribute " + rhIndex + " is disclosed but also used a revocation handle attribute, which should remain hidden");
+        }
+
+        RevocationAlgorithm revocationAlgorithm = RevocationAlgorithm.values()[cri.getRevocationAlg()];
+
         int[] hiddenIndices = hiddenIndices(disclosure);
         final RAND rng = IdemixUtils.getRand();
         // Start signature
@@ -94,6 +118,18 @@ public class IdemixSignature {
         BIG[] rAttrs = new BIG[hiddenIndices.length];
         for (int i = 0; i < hiddenIndices.length; i++) {
             rAttrs[i] = IdemixUtils.randModOrder(rng);
+        }
+
+        // Compute non-revoked proof
+        NonRevocationProver prover = NonRevocationProver.getNonRevocationProver(revocationAlgorithm);
+        int hiddenRHIndex = Ints.indexOf(hiddenIndices, rhIndex);
+        if (hiddenRHIndex < 0) {
+            // rhIndex is not present, set to last index position
+            hiddenRHIndex = hiddenIndices.length;
+        }
+        byte[] nonRevokedProofHashData = prover.getFSContribution(BIG.fromBytes(c.getAttrs()[rhIndex]), rAttrs[hiddenRHIndex], cri);
+        if (nonRevokedProofHashData == null) {
+            throw new RuntimeException("Failed to compute non-revoked proof");
         }
 
         ECP t1 = aPrime.mul2(re, ipk.getHRand(), rR2);
@@ -132,29 +168,12 @@ public class IdemixSignature {
 
         proofC = IdemixUtils.hashModOrder(finalProofData);
 
-        proofSSk = new BIG(rsk);
-        proofSSk.add(BIG.modmul(proofC, sk, IdemixUtils.GROUP_ORDER));
-        proofSSk.mod(IdemixUtils.GROUP_ORDER);
-
-        proofSE = new BIG(re);
-        proofSE.add(BIG.modneg(BIG.modmul(proofC, c.getE(), IdemixUtils.GROUP_ORDER), IdemixUtils.GROUP_ORDER));
-        proofSE.mod(IdemixUtils.GROUP_ORDER);
-
-        proofSR2 = new BIG(rR2);
-        proofSR2.add(BIG.modmul(proofC, r2, IdemixUtils.GROUP_ORDER));
-        proofSR2.mod(IdemixUtils.GROUP_ORDER);
-
-        proofSR3 = new BIG(rR3);
-        proofSR3.add(BIG.modneg(BIG.modmul(proofC, r3, IdemixUtils.GROUP_ORDER), IdemixUtils.GROUP_ORDER));
-        proofSR3.mod(IdemixUtils.GROUP_ORDER);
-
-        proofSSPrime = new BIG(rSPrime);
-        proofSSPrime.add(BIG.modmul(proofC, sPrime, IdemixUtils.GROUP_ORDER));
-        proofSSPrime.mod(IdemixUtils.GROUP_ORDER);
-
-        proofSRNym = new BIG(rRNym);
-        proofSRNym.add(BIG.modmul(proofC, pseudonym.getRandNym(), IdemixUtils.GROUP_ORDER));
-        proofSRNym.mod(IdemixUtils.GROUP_ORDER);
+        proofSSk = IdemixUtils.modAdd(rsk, BIG.modmul(proofC, sk, IdemixUtils.GROUP_ORDER), IdemixUtils.GROUP_ORDER);
+        proofSE = IdemixUtils.modSub(re, BIG.modmul(proofC, c.getE(), IdemixUtils.GROUP_ORDER), IdemixUtils.GROUP_ORDER);
+        proofSR2 = IdemixUtils.modAdd(rR2, BIG.modmul(proofC, r2, IdemixUtils.GROUP_ORDER), IdemixUtils.GROUP_ORDER);
+        proofSR3 = IdemixUtils.modSub(rR3, BIG.modmul(proofC, r3, IdemixUtils.GROUP_ORDER), IdemixUtils.GROUP_ORDER);
+        proofSSPrime = IdemixUtils.modAdd(rSPrime, BIG.modmul(proofC, sPrime, IdemixUtils.GROUP_ORDER), IdemixUtils.GROUP_ORDER);
+        proofSRNym = IdemixUtils.modAdd(rRNym, BIG.modmul(proofC, pseudonym.getRandNym(), IdemixUtils.GROUP_ORDER), IdemixUtils.GROUP_ORDER);
 
         nym = new ECP();
         nym.copy(pseudonym.getNym());
@@ -166,6 +185,11 @@ public class IdemixSignature {
             proofSAttrs[i].mod(IdemixUtils.GROUP_ORDER);
         }
 
+        // include non-revocation proof in signature
+        this.revocationPk = cri.getEpochPk();
+        this.revocationPKSig = cri.getEpochPkSig().toByteArray();
+        this.epoch = cri.getEpoch();
+        this.nonRevocationProof = prover.getNonRevocationProof(this.proofC);
     }
 
     /**
@@ -193,6 +217,11 @@ public class IdemixSignature {
         for (int i = 0; i < proto.getProofSAttrsCount(); i++) {
             proofSAttrs[i] = BIG.fromBytes(proto.getProofSAttrs(i).toByteArray());
         }
+
+        revocationPk = proto.getRevocationEpochPk();
+        revocationPKSig = proto.getRevocationPkSig().toByteArray();
+        epoch = proto.getEpoch();
+        nonRevocationProof = proto.getNonRevocationProof();
     }
 
     /**
@@ -201,10 +230,13 @@ public class IdemixSignature {
      * @param disclosure      an array indicating which attributes it expects to be disclosed
      * @param ipk             the issuer public key
      * @param msg             the message that should be signed in this signature
-     * @param attributeValues BIG array with attributeValues[i] contains the desired attribute value for the i-th undisclosed attribute in disclosure
+     * @param attributeValues BIG array where attributeValues[i] contains the desired attribute value for the i-th attribute if its disclosed
+     * @param rhIndex         index of the attribute that represents the revocation-handle
+     * @param revPk           the long term public key used to authenticate CRIs
+     * @param epoch           monotonically increasing counter representing a time window
      * @return true iff valid
      */
-    boolean verify(boolean[] disclosure, IdemixIssuerPublicKey ipk, byte[] msg, BIG[] attributeValues) {
+    boolean verify(boolean[] disclosure, IdemixIssuerPublicKey ipk, byte[] msg, BIG[] attributeValues, int rhIndex, PublicKey revPk, int epoch) throws CryptoException {
         if (disclosure == null || ipk == null || msg == null || attributeValues == null || attributeValues.length != ipk.getAttributeNames().length || disclosure.length != ipk.getAttributeNames().length) {
             return false;
         }
@@ -215,12 +247,25 @@ public class IdemixSignature {
         }
 
         int[] hiddenIndices = hiddenIndices(disclosure);
-
         if (proofSAttrs.length != hiddenIndices.length) {
             return false;
         }
-
         if (aPrime.is_infinity()) {
+            return false;
+        }
+        if (nonRevocationProof.getRevocationAlg() >= RevocationAlgorithm.values().length) {
+            throw new IllegalArgumentException("CRI specifies unknown revocation algorithm");
+        }
+
+        RevocationAlgorithm revocationAlgorithm = RevocationAlgorithm.values()[nonRevocationProof.getRevocationAlg()];
+
+        if (disclosure[rhIndex]) {
+            throw new IllegalArgumentException("Attribute " + rhIndex + " is disclosed but also used a revocation handle attribute, which should remain hidden");
+        }
+
+        // Verify EpochPK
+        if (!RevocationAuthority.verifyEpochPK(revPk, this.revocationPk, this.revocationPKSig, epoch, revocationAlgorithm)) {
+            // Signature is based on an invalid revocation epoch public key
             return false;
         }
 
@@ -260,6 +305,19 @@ public class IdemixSignature {
 
         ECP t3 = ipk.getHsk().mul2(proofSSk, ipk.getHRand(), proofSRNym);
         t3.sub(nym.mul(proofC));
+
+        // Check with non-revoked-verifier
+        NonRevocationVerifier nonRevokedVerifier = NonRevocationVerifier.getNonRevocationVerifier(revocationAlgorithm);
+        int hiddenRHIndex = Ints.indexOf(hiddenIndices, rhIndex);
+        if (hiddenRHIndex < 0) {
+            // rhIndex is not present, set to last index position
+            hiddenRHIndex = hiddenIndices.length;
+        }
+        BIG proofSRh = proofSAttrs[hiddenRHIndex];
+        byte[] nonRevokedProofBytes = nonRevokedVerifier.recomputeFSContribution(this.nonRevocationProof, proofC, IdemixUtils.transformFromProto(this.revocationPk), proofSRh);
+        if (nonRevokedProofBytes == null) {
+            return false;
+        }
 
         // create proofData such that it can contain the sign label, 7 elements in G1 (each of size 2*FIELD_BYTES+1),
         // the ipk hash, the disclosure array, and the message
@@ -304,7 +362,11 @@ public class IdemixSignature {
                 .setProofSR3(ByteString.copyFrom(IdemixUtils.bigToBytes(proofSR3)))
                 .setProofSRNym(ByteString.copyFrom(IdemixUtils.bigToBytes(proofSRNym)))
                 .setProofSSPrime(ByteString.copyFrom(IdemixUtils.bigToBytes(proofSSPrime)))
-                .setNonce(ByteString.copyFrom(IdemixUtils.bigToBytes(nonce)));
+                .setNonce(ByteString.copyFrom(IdemixUtils.bigToBytes(nonce)))
+                .setRevocationEpochPk(revocationPk)
+                .setRevocationPkSig(ByteString.copyFrom(revocationPKSig))
+                .setEpoch(epoch)
+                .setNonRevocationProof(nonRevocationProof);
 
         for (BIG attr : proofSAttrs) {
             builder.addProofSAttrs(ByteString.copyFrom(IdemixUtils.bigToBytes(attr)));
@@ -323,7 +385,7 @@ public class IdemixSignature {
         if (disclosure == null) {
             throw new IllegalArgumentException("cannot compute hidden indices of null disclosure");
         }
-        List<Integer> hiddenIndicesList = new ArrayList<Integer>();
+        List<Integer> hiddenIndicesList = new ArrayList<>();
         for (int i = 0; i < disclosure.length; i++) {
             if (!disclosure[i]) {
                 hiddenIndicesList.add(i);
@@ -331,7 +393,7 @@ public class IdemixSignature {
         }
         int[] hiddenIndices = new int[hiddenIndicesList.size()];
         for (int i = 0; i < hiddenIndicesList.size(); i++) {
-            hiddenIndices[i] = hiddenIndicesList.get(i).intValue();
+            hiddenIndices[i] = hiddenIndicesList.get(i);
         }
 
         return hiddenIndices;

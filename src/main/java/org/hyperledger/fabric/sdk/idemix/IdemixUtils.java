@@ -26,7 +26,9 @@ import com.google.protobuf.ByteString;
 import org.apache.milagro.amcl.FP256BN.BIG;
 import org.apache.milagro.amcl.FP256BN.ECP;
 import org.apache.milagro.amcl.FP256BN.ECP2;
+import org.apache.milagro.amcl.FP256BN.FP12;
 import org.apache.milagro.amcl.FP256BN.FP2;
+import org.apache.milagro.amcl.FP256BN.PAIR;
 import org.apache.milagro.amcl.FP256BN.ROM;
 import org.apache.milagro.amcl.HASH256;
 import org.apache.milagro.amcl.RAND;
@@ -39,17 +41,18 @@ import org.hyperledger.fabric.protos.idemix.Idemix;
 public final class IdemixUtils {
     private static final BIG gx = new BIG(ROM.CURVE_Gx);
     private static final BIG gy = new BIG(ROM.CURVE_Gy);
-    protected static final ECP genG1 = new ECP(gx, gy);
+    static final ECP genG1 = new ECP(gx, gy);
     private static final BIG pxa = new BIG(ROM.CURVE_Pxa);
     private static final BIG pxb = new BIG(ROM.CURVE_Pxb);
     private static final FP2 px = new FP2(pxa, pxb);
     private static final BIG pya = new BIG(ROM.CURVE_Pya);
     private static final BIG pyb = new BIG(ROM.CURVE_Pyb);
     private static final FP2 py = new FP2(pya, pyb);
-    protected static final ECP2 genG2 = new ECP2(px, py);
-    protected static final BIG GROUP_ORDER = new BIG(ROM.CURVE_Order);
-    protected static final int FIELD_BYTES = BIG.MODBYTES;
-    protected static final RAND RNG = getRand();
+    static final ECP2 genG2 = new ECP2(px, py);
+    static final FP12 genGT = PAIR.fexp(PAIR.ate(genG2, genG1));
+    static final BIG GROUP_ORDER = new BIG(ROM.CURVE_Order);
+    static final int FIELD_BYTES = BIG.MODBYTES;
+    private static final RAND RNG = getRand();
 
     private IdemixUtils() {
         // private constructor as there shouldn't be instances of this utility class
@@ -243,5 +246,31 @@ public final class IdemixUtils {
         w.getY().toBytes(valueY);
 
         return Idemix.ECP.newBuilder().setX(ByteString.copyFrom(valueX)).setY(ByteString.copyFrom(valueY)).build();
+    }
+
+    /**
+     * Takes input BIGs a, b, m and returns a+b modulo m
+     *
+     * @param a the first BIG to add
+     * @param b the second BIG to add
+     * @param m the modulus
+     * @return Returns a+b (mod m)
+     */
+    public static BIG modAdd(BIG a, BIG b, BIG m) {
+        BIG c = a.plus(b);
+        c.mod(m);
+        return c;
+    }
+
+    /**
+     * Modsub takes input BIGs a, b, m and returns a-b modulo m
+     *
+     * @param a the minuend of the modular subtraction
+     * @param b the subtrahend of the modular subtraction
+     * @param m the modulus
+     * @return returns a-b (mod m)
+     */
+    public static BIG modSub(BIG a, BIG b, BIG m) {
+        return modAdd(a, BIG.modneg(b, m), m);
     }
 }
