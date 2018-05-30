@@ -17,9 +17,11 @@ package org.hyperledger.fabric_ca.sdk;
 import java.io.File;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -30,6 +32,7 @@ import java.util.Set;
 
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.identity.IdemixEnrollment;
 import org.hyperledger.fabric.sdk.identity.X509Enrollment;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
@@ -492,4 +495,49 @@ public class HFCAClientTest {
         assertEquals("Number of CA certificates mismatch", expected.size(), count);
     }
 
+    @Test
+    public void testIdemixNullEnrollment() throws Exception {
+
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("enrollment is missing");
+
+        HFCAClient client = HFCAClient.createNewInstance("client", "http://localhost:99", null);
+        client.setCryptoSuite(crypto);
+        client.idemixEnroll(null, "idemixMSP");
+    }
+
+    @Test
+    public void testIdemixMissingMSPID() throws Exception {
+
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("mspID cannot be null or empty");
+
+        HFCAClient client = HFCAClient.createNewInstance("client", "http://localhost:99", null);
+        client.setCryptoSuite(crypto);
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ECDSA");
+        KeyPair pair = keyGen.generateKeyPair();
+        Enrollment enrollment = new X509Enrollment(pair, "");
+        client.idemixEnroll(enrollment, null);
+    }
+
+    @Test
+    public void testIdemixWrongEnrollment() throws Exception {
+
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("enrollment type must be x509");
+
+        HFCAClient client = HFCAClient.createNewInstance("client", "http://localhost:99", null);
+        client.setCryptoSuite(crypto);
+        Enrollment enrollment = new IdemixEnrollment(null, null, "mspid", null, null, null, "ou", false);
+        client.idemixEnroll(enrollment, "mspid");
+    }
+
+    @Test
+    public void testAddCAToURL() throws MalformedURLException, URISyntaxException, InvalidArgumentException {
+        final String url = "http://localhost:99";
+        HFCAClient client = HFCAClient.createNewInstance("ca1", url, null);
+        client.setCryptoSuite(crypto);
+        String url2 = client.addCAToURL(url);
+        assertEquals(url + "?ca=ca1", url2);
+    }
 }

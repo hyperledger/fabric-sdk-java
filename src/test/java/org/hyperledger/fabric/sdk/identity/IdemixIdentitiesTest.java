@@ -85,7 +85,6 @@ public class IdemixIdentitiesTest {
     private static byte[] message = {1, 2, 3, 4};
     private static byte[] sigTest = {1, 2, 3, 4};
 
-
     // Setup using a happy path
     @BeforeClass
     public static void setup() {
@@ -151,6 +150,7 @@ public class IdemixIdentitiesTest {
         proof = signingIdentity.getProof();
 
     }
+
 
     // Test creating a signing identity with MSP1Verifier (should fail)
     @Test(expected = IOException.class)

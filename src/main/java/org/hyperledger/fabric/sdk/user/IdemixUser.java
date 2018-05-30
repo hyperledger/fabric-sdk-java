@@ -7,13 +7,9 @@ import org.apache.milagro.amcl.FP256BN.BIG;
 import org.hyperledger.fabric.protos.idemix.Idemix;
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.User;
-import org.hyperledger.fabric.sdk.exception.CryptoException;
-import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.idemix.IdemixCredential;
 import org.hyperledger.fabric.sdk.idemix.IdemixIssuerPublicKey;
 import org.hyperledger.fabric.sdk.identity.IdemixEnrollment;
-import org.hyperledger.fabric.sdk.identity.IdemixSigningIdentity;
-import org.hyperledger.fabric.sdk.identity.SigningIdentity;
 
 public class IdemixUser implements User {
 

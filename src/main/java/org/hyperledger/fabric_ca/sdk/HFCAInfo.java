@@ -25,12 +25,25 @@ public class HFCAInfo {
     private final String caName;
     private final String caChain;
     private final String version;
+    private final String idemixIssuerPublicKey;
+    private final String idemixIssuerRevocationPublicKey;
 
     // Contains server/ca information
     HFCAInfo(String caName, String caChain, String version) {
         this.caName = caName;
         this.caChain = caChain;
         this.version = version;
+        this.idemixIssuerPublicKey = "";
+        this.idemixIssuerRevocationPublicKey = "";
+    }
+
+    // Contains server/ca information
+    HFCAInfo(String caName, String caChain, String version, String issuerPublicKey, String issuerRevocationPublicKey) {
+        this.caName = caName;
+        this.caChain = caChain;
+        this.version = version;
+        this.idemixIssuerPublicKey = issuerPublicKey;
+        this.idemixIssuerRevocationPublicKey = issuerRevocationPublicKey;
     }
 
     /**
@@ -38,7 +51,6 @@ public class HFCAInfo {
      *
      * @return The CA Name.
      */
-
     public String getCAName() {
         return caName;
     }
@@ -48,19 +60,39 @@ public class HFCAInfo {
      *
      * @return Certificate Chain in X509 PEM format.
      */
-
     public String getCACertificateChain() {
         return caChain;
     }
 
     /**
-     * Version of Fabric CA server
+     * Get the version of the Fabric CA server
      *
      * @return Version of Fabric CA server, value will be
      * null for Fabric CA prior to 1.1.0
      */
-
     public String getVersion() {
         return version;
     }
+
+    /**
+     * Get the idemix issuer public key.
+     *
+     * @return The idemix issuer public key, or null if not supported by
+     * this version of idemix.
+     */
+    public String getIdemixIssuerPublicKey() {
+        return idemixIssuerPublicKey;
+    }
+
+    /**
+     * Get the idemix issuer revocation public key.
+     *
+     * @return The idemix issuer revocation public key, or null if not supported by
+     * this version of idemix.
+     */
+    public String getIdemixIssuerRevocationPublicKey() {
+        return idemixIssuerRevocationPublicKey;
+    }
+
+
 }
