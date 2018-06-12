@@ -1,3 +1,23 @@
+## v1.2.0
+Thu Jul 26 12:22:31 EDT 2018
+
+* [e9dba4e](https://github.com/hyperledger/fabric-sdk-java/commit/e9dba4e) FAB-10606 JSDK v1.2 readme release notes
+* [3181254](https://github.com/hyperledger/fabric-sdk-java/commit/3181254) FAB-11326 SDchaincode to chaincode specify
+* [015c142](https://github.com/hyperledger/fabric-sdk-java/commit/015c142) FAB-11283 Minor logging issues.
+* [6607f60](https://github.com/hyperledger/fabric-sdk-java/commit/6607f60) FAB-11227 Update blocks trigger certificate loading
+* [4cf7f82](https://github.com/hyperledger/fabric-sdk-java/commit/4cf7f82) FAB-11177 Multithreaded test.
+* [c5c31b8](https://github.com/hyperledger/fabric-sdk-java/commit/c5c31b8) FAB-8805 JSDK Service Discovery
+* [a21df07](https://github.com/hyperledger/fabric-sdk-java/commit/a21df07) FAB-10966 upgrade dependencies
+* [f80259c](https://github.com/hyperledger/fabric-sdk-java/commit/f80259c) [FAB-9373](https://jira.hyperledger.org/browse/FAB-9373) Add SDK support for Certificate API
+* [edd54f8](https://github.com/hyperledger/fabric-sdk-java/commit/edd54f8) FAB-10075 Missing chaincodeID info in BlockInfo
+* [cb741fb](https://github.com/hyperledger/fabric-sdk-java/commit/cb741fb) FAB-9680 private_collection
+* [413a242](https://github.com/hyperledger/fabric-sdk-java/commit/413a242) FAB-10322 HFCAClient needs timeout settings
+* [8f6944a](https://github.com/hyperledger/fabric-sdk-java/commit/8f6944a) FAB-10254 Add Support for OWASP DependencyCheck
+* [2e8b029](https://github.com/hyperledger/fabric-sdk-java/commit/2e8b029) FAB-10254 Add Support for OWASP DependencyCheck
+* [cf57b40](https://github.com/hyperledger/fabric-sdk-java/commit/cf57b40) [FAB-10230](https://jira.hyperledger.org/browse/FAB-10230) Add self-signed TLS cert generation
+* [aca9559](https://github.com/hyperledger/fabric-sdk-java/commit/aca9559) [FAB-6584](https://jira.hyperledger.org/browse/FAB-6584) Add amcl crypto library
+* [2294b0a](https://github.com/hyperledger/fabric-sdk-java/commit/2294b0a) FAB-9986 JSDK v1.2 commencement
+
 ## v1.1.0
 Wed May  9 20:48:37 EDT 2018
 

@@ -26,7 +26,7 @@ The default is for Peers to have all roles.
 
 
 The new peer eventing services will by default just return the last block on the blockchain. Note this is *not* the **next** block that gets
-added to the chain.  The application can now specifiy both the starting and ending block number to be sent. Applications set these
+added to the chain.  The application can now specify both the starting and ending block number to be sent. Applications set these
 options when adding or joining peers to the channel with the PeerOption methods *startEvents*, *stopEvents* and *startEventsNewest* which
 is the default. [End2endAndBackAgainIT.java#L234-L257](https://github.com/hyperledger/fabric-sdk-java/blob/9224fa3f45a70392d1b244c080bf41bd561470d3/src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java#L234-L257)
 calls the method [`testPeerServiceEventingReplay`](https://github.com/hyperledger/fabric-sdk-java/blob/9224fa3f45a70392d1b244c080bf41bd561470d3/src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java#L719-L881) which restarts the channel with different start and stop values.
@@ -35,7 +35,7 @@ calls the method [`testPeerServiceEventingReplay`](https://github.com/hyperledge
 
 ### [FAB-7652 JSDK filterblock enablement](https://jira.hyperledger.org/browse/FAB-7652)
 
-Fabric supports on the new peer eventing service limits to what the events return thourgh ACLs.  The block event may contain the full Block or a FilteredBlock.
+Fabric supports on the new peer eventing service limits to what the events return though ACLs.  The block event may contain the full Block or a FilteredBlock.
 Applications requesting for a full Block without authority will get a permission failure.  Application by default will get the full block. To request
 request a FiltedBlock when adding or joining peers applications can add via PeerOptions.registerEventsForFilteredBlocks. An example of this is seen in
 [End2endAndBackAgainIT.java#L592-595](https://github.com/hyperledger/fabric-sdk-java/blob/9224fa3f45a70392d1b244c080bf41bd561470d3/src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java#L592-L595)
@@ -61,7 +61,7 @@ FilteredBlocks
 
  TransactionEnvelopeInfo all the methods on EnvelopeInfo
  - getTransactionActionInfoCount number transactions
- - getTransactionActionInfos an integrater over all the TransactionAction
+ - getTransactionActionInfos an iterator over all the TransactionAction
 
  TransactionActionInfo
  - getEvent chaincode events
@@ -69,7 +69,7 @@ FilteredBlocks
 
 ### [FAB-6603 Java SDK CryptoPrimitives should perform Signature operations using standard JCA/JCE](https://jira.hyperledger.org/browse/FAB-6603)
 Changes made to make the Java SDK crypto primitives to use more JCA/JCE compliant methods. These changes are internal and not
-directly apparant to the application. This allows specifying other JCA/JCE provider.
+directly apparent to the application. This allows specifying other JCA/JCE provider.
 
 ### [FAB-5632 Implement "Connection Profile" for java-sdk](https://jira.hyperledger.org/browse/FAB-5632)
 Allow creating channels from a yaml or json specified document. Examples of this can be found in [NetworkConfigIT.java#L65](https://github.com/hyperledger/fabric-sdk-java/blob/9224fa3f45a70392d1b244c080bf41bd561470d3/src/test/java/org/hyperledger/fabric/sdkintegration/NetworkConfigIT.java#L65)
@@ -91,8 +91,8 @@ Channels can be Java serialized and deserialized.  Examples of this can be found
 in [End2endIT.java#L257](https://github.com/hyperledger/fabric-sdk-java/blob/9224fa3f45a70392d1b244c080bf41bd561470d3/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java#L257)
 where the sample store stores channel bar. Later in [End2endAndBackAgainIT.java#L562](https://github.com/hyperledger/fabric-sdk-java/blob/9224fa3f45a70392d1b244c080bf41bd561470d3/src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java#L562-L565)
 it's restored.
-*Applications using this serialziation means will be tasked with any migrating future changes. The SDK will not do this.*
-It's advised to use a different persistene means for saving and restoring channels
+*Applications using this serialization means will be tasked with any migrating future changes. The SDK will not do this.*
+It's advised to use a different persistence means for saving and restoring channels
 
 ### [FAB-7324 JSDK Node CC example](https://jira.hyperledger.org/browse/FAB-7324)
 The JSDK added support for installing deploying Node chaincode.
@@ -121,9 +121,9 @@ Example of this which mostly shows the defaults is in [End2endIT.java#L517](http
 ## v1.1 Fabric/CA features
 
 ### [FAB-7383 Implement the Fabric-CA identities and affiliations API](https://jira.hyperledger.org/browse/FAB-7383)
-Fabric CA API added APIs for managing identies and affiliations. Examples how this can be done with Java SDK on how to
+Fabric CA API added APIs for managing identities and affiliations. Examples how this can be done with Java SDK on how to
 create, modify, read and delete are in [HFCAClientIT.java#L514-L658](https://github.com/hyperledger/fabric-sdk-java/blob/9224fa3f45a70392d1b244c080bf41bd561470d3/src/test/java/org/hyperledger/fabric_ca/sdkintegration/HFCAClientIT.java#L514-L658)
-for identies and [HFCAClientIT#L704](https://github.com/hyperledger/fabric-sdk-java/blob/09f386c340e157e2a4f3f5cdde85e340f4586923/src/test/java/org/hyperledger/fabric_ca/sdkintegration/HFCAClientIT.java#L704-L1015)
+for identities and [HFCAClientIT#L704](https://github.com/hyperledger/fabric-sdk-java/blob/09f386c340e157e2a4f3f5cdde85e340f4586923/src/test/java/org/hyperledger/fabric_ca/sdkintegration/HFCAClientIT.java#L704-L1015)
 for affiliations.
 
 ### [FAB-6411 Add Java SDK support for gencrl endpoint](https://jira.hyperledger.org/browse/FAB-6411)

@@ -1,4 +1,4 @@
-# Java SDK for Hyperledger Fabric 1.2
+k# Java SDK for Hyperledger Fabric 1.2
 Welcome to Java SDK for Hyperledger project. The SDK helps facilitate Java applications to manage the lifecycle of
  Hyperledger channels  and user chaincode. The SDK also provides a means to execute
   user chaincode, query blocks
@@ -11,7 +11,7 @@ Note, the SDK does ***not*** provide a means of persistence
   for the application defined channels and user artifacts on the client. This is left for the embedding application to best manage.
   Channels may be serialized via Java serialization in the context of a client.
   Channels deserialized are not in an initialized state.
-  Applications need to handle migration of serialzed files between versions.
+  Applications need to handle migration of serialized files between versions.
 
 The SDK also provides a client for Hyperledger's certificate authority.  The SDK is however not dependent on this
 particular implementation of a certificate authority. Other Certificate authority's maybe used by implementing the
@@ -22,23 +22,30 @@ SDK's `Enrollment` interface.
   only help you familiarize to get started with the SDK if you are new in this domain.
 
 
-## IMPORTANT: Version 1.2 IS WORK IN PROGRESS!
-If you don't require features of Fabric or Fabric CA version 1.2 you probably should consider the v1.1.x version of the SDK.
-To get the actual v1.1.0 SDK:
+## Release notes
 
+|Release | Notes |
+|--------|:-----:|
+|1.2     | [v1.2 release notes](./docs/release_v1.2.0_notes.md)|
+|1.1     | [v1.1 release notes](./docs/release_v1.1.0_notes.md)|
+
+
+
+## Checkout SDK from Github
 ```
 git clone https://github.com/hyperledger/fabric-sdk-java.git
 cd fabric-sdk-java/
-git checkout -b release-1.1
+git checkout -b release-1.2
 ```
 
-For Java applications use the latest published v1.1.x releases:
+## Java applications
+For Java applications use the latest published v1.2.x releases:
 ```
      <!-- https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java -->
      <dependency>
          <groupId>org.hyperledger.fabric-sdk-java</groupId>
          <artifactId>fabric-sdk-java</artifactId>
-         <version>1.1.0</version>
+         <version>1.2.0/version>
      </dependency>
 
 ```
@@ -54,38 +61,8 @@ For Java applications use the latest published v1.1.x releases:
 
 `*************************************************`
 
-## 1.2.0-SNAPSHOT builds
-Work in progress 1.2.0 SNAPSHOT builds can be used by adding the following to your application's
-pom.xml
-```
-<repositories>
-        <repository>
-            <id>snapshots-repo</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-
-<dependencies>
-
-        <!-- https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java -->
-        <dependency>
-            <groupId>org.hyperledger.fabric-sdk-java</groupId>
-            <artifactId>fabric-sdk-java</artifactId>
-            <version>1.2.0-SNAPSHOT</version>
-        </dependency>
-
-</dependencies>
-```
 
 
-
-You can clone these projects by going to the [Hyperledger repository](https://gerrit.hyperledger.org/r/#/admin/projects/).
 
 ## Latest Fabric Builds.
 Latest Fabric builds are seldom needed except for those working on the very latest Fabric features.
@@ -242,7 +219,7 @@ For v1.2 integration the commands use the v12 profiles in configtx.yaml.
 
  **Note:** The above describes how this was done. If you redo this there are private key files
  which are produced with unique names which won't match what's expected in the integration tests.
- One examle of this is the docker-compose.yaml (search for **_sk**)
+ One example of this is the docker-compose.yaml (search for **_sk**)
 
 
 ### GO Lang chaincode
