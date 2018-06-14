@@ -20,6 +20,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -48,9 +49,13 @@ import org.hyperledger.fabric_ca.sdk.Attribute;
 import org.hyperledger.fabric_ca.sdk.EnrollmentRequest;
 import org.hyperledger.fabric_ca.sdk.HFCAAffiliation;
 import org.hyperledger.fabric_ca.sdk.HFCAAffiliation.HFCAAffiliationResp;
+import org.hyperledger.fabric_ca.sdk.HFCACertificateRequest;
+import org.hyperledger.fabric_ca.sdk.HFCACertificateResponse;
 import org.hyperledger.fabric_ca.sdk.HFCAClient;
+import org.hyperledger.fabric_ca.sdk.HFCACredential;
 import org.hyperledger.fabric_ca.sdk.HFCAIdentity;
 import org.hyperledger.fabric_ca.sdk.HFCAInfo;
+import org.hyperledger.fabric_ca.sdk.HFCAX509Certificate;
 import org.hyperledger.fabric_ca.sdk.MockHFCAClient;
 import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
 import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
@@ -1092,6 +1097,157 @@ public class HFCAClientIT {
             assertTrue(format("Version '%s' didn't match expected pattern", version), version.matches("^\\d+\\.\\d+\\.\\d+($|-.*)"));
         }
 
+    }
+
+    // Tests getting certificates
+    @Test
+    public void testGetCertificates() throws Exception {
+
+        if (testConfig.isRunningAgainstFabric10()) {
+            return;
+        }
+
+        HFCACertificateRequest certReq = client.newHFCACertificateRequest();
+
+        SampleUser admin2 = sampleStore.getMember("admin2", "org2.department1");
+        RegistrationRequest rr = new RegistrationRequest(admin2.getName(), "org2.department1");
+        String password = "password";
+        rr.setSecret(password);
+        rr.addAttribute(new Attribute("hf.Registrar.Roles", "client,peer,user"));
+
+        client.register(rr, admin);
+        admin2.setEnrollment(client.enroll(admin2.getName(), password));
+
+        rr = new RegistrationRequest("testUser", "org2.department1");
+        rr.setSecret(password);
+        client.register(rr, admin);
+        Enrollment enroll = client.enroll("testUser", password);
+
+        // Get all certificates that 'admin2' is allowed to see because no attributes are set
+        // in the certificate request. This returns 2 certificates, one certificate for the caller
+        // itself 'admin2' and the other certificate for 'testuser2'. These are the only two users
+        // that fall under the caller's affiliation of 'org2.department1'.
+        HFCACertificateResponse resp = client.getHFCACertificates(admin2, certReq);
+        assertEquals(2, resp.getCerts().size());
+        assertTrue(resultContains(resp.getCerts(), new String[] {"admin", "testUser"}));
+
+        // Get certificate for a specific enrollment id
+        certReq.setEnrollmentID("admin2");
+        resp = client.getHFCACertificates(admin, certReq);
+        assertEquals(1, resp.getCerts().size());
+        assertTrue(resultContains(resp.getCerts(), new String[] {"admin"}));
+
+        // Get certificate for a specific serial number
+        certReq = client.newHFCACertificateRequest();
+        X509Certificate cert = getCert(enroll.getCert().getBytes());
+        String serial = cert.getSerialNumber().toString(16);
+        certReq.setSerial(serial);
+        resp = client.getHFCACertificates(admin, certReq);
+        assertEquals(1, resp.getCerts().size());
+        assertTrue(resultContains(resp.getCerts(), new String[] {"testUser"}));
+
+        // Get certificate for a specific AKI
+        certReq = client.newHFCACertificateRequest();
+        String oid = Extension.authorityKeyIdentifier.getId();
+        byte[] extensionValue = cert.getExtensionValue(oid);
+        ASN1OctetString aki0c = ASN1OctetString.getInstance(extensionValue);
+        AuthorityKeyIdentifier aki = AuthorityKeyIdentifier.getInstance(aki0c.getOctets());
+        String aki2 = DatatypeConverter.printHexBinary(aki.getKeyIdentifier());
+        certReq.setAki(aki2);
+        resp = client.getHFCACertificates(admin2, certReq);
+        assertEquals(2, resp.getCerts().size());
+
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+
+        // Get certificates that expired before a specific date
+        // In this case, using a really old date should return 0 certificates
+        certReq = client.newHFCACertificateRequest();
+        certReq.setExpiredEnd(formatter.parse("2014-30-31"));
+        resp = client.getHFCACertificates(admin, certReq);
+        assertEquals(0, resp.getCerts().size());
+
+        // Get certificates that expired before a specific date
+        // In this case, using a date far into the future should return all certificates
+        certReq = client.newHFCACertificateRequest();
+        Calendar cal = Calendar.getInstance();
+        Date date = new Date();
+        cal.setTime(date);
+        cal.add(Calendar.YEAR, 20);
+        date = cal.getTime();
+        certReq.setExpiredEnd(date);
+        resp = client.getHFCACertificates(admin2, certReq);
+        assertEquals(2, resp.getCerts().size());
+        assertTrue(resultContains(resp.getCerts(), new String[] {"admin2", "testUser"}));
+
+        // Get certificates that expired after specific date
+        // In this case, using a really old date should return all certificates that the caller is
+        // allowed to see because they all have a future expiration date
+        certReq = client.newHFCACertificateRequest();
+        certReq.setExpiredStart(formatter.parse("2014-03-31"));
+        resp = client.getHFCACertificates(admin2, certReq);
+        assertEquals(2, resp.getCerts().size());
+
+        // Get certificates that expired after specified date
+        // In this case, using a date far into the future should return zero certificates
+        certReq = client.newHFCACertificateRequest();
+        certReq.setExpiredStart(date);
+        resp = client.getHFCACertificates(admin, certReq);
+        assertEquals(0, resp.getCerts().size());
+
+        client.revoke(admin, "testUser", "baduser");
+
+        // Get certificates that were revoked after specific date
+        certReq = client.newHFCACertificateRequest();
+        certReq.setRevokedStart(formatter.parse("2014-03-31"));
+        resp = client.getHFCACertificates(admin2, certReq);
+        assertEquals(1, resp.getCerts().size());
+
+        certReq = client.newHFCACertificateRequest();
+        certReq.setRevokedEnd(formatter.parse("2014-03-31"));
+        resp = client.getHFCACertificates(admin2, certReq);
+        assertEquals(0, resp.getCerts().size());
+
+        certReq = client.newHFCACertificateRequest();
+        certReq.setRevoked(false);
+        resp = client.getHFCACertificates(admin2, certReq);
+        assertEquals(1, resp.getCerts().size());
+        assertTrue(resultContains(resp.getCerts(), new String[] {"admin2"}));
+        assertFalse(resultContains(resp.getCerts(), new String[] {"testUser"}));
+
+        certReq = client.newHFCACertificateRequest();
+        certReq.setRevoked(true);
+        resp = client.getHFCACertificates(admin2, certReq);
+        assertTrue(resultContains(resp.getCerts(), new String[] {"admin2", "testUser"}));
+        assertEquals(2, resp.getCerts().size());
+
+        certReq = client.newHFCACertificateRequest();
+        certReq.setExpired(false);
+        resp = client.getHFCACertificates(admin2, certReq);
+        assertEquals(2, resp.getCerts().size());
+    }
+
+    private boolean resultContains(Collection<HFCACredential> creds, String[] names) {
+        int numFound = 0;
+        for (HFCACredential cred : creds) {
+            for (int i = 0; i < names.length; i++) {
+                HFCAX509Certificate cert = (HFCAX509Certificate) cred;
+                if (cert.getX509().getSubjectDN().toString().contains(names[i])) {
+                    numFound++;
+                    break;
+                }
+            }
+        }
+        if (numFound == names.length) {
+            return true;
+        }
+        return false;
+    }
+
+    private X509Certificate getCert(byte[] certBytes) throws CertificateException {
+        BufferedInputStream pem = new BufferedInputStream(new ByteArrayInputStream(certBytes));
+        CertificateFactory certFactory = CertificateFactory.getInstance("X509");
+        X509Certificate certificate = (X509Certificate) certFactory.generateCertificate(pem);
+        return certificate;
     }
 
     @Test
