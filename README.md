@@ -251,6 +251,14 @@ For v1.2 integration the commands use the v12 profiles in configtx.yaml.
  * configtxgen --configPath .  -outputCreateChannelTx foo.tx -profile TwoOrgsChannel_v12 -channelID foo
  This should produce in the `v1.2` directory: bar.tx,foo.tx, orderer.block
 
+For v1.3 integration, cd to the `src/test/fixture/sdkintegration/e2e-2Orgs/v1.3` directory
+and execute the following commands:
+ * configtxgen -outputBlock orderer.block -profile TwoOrgsOrdererGenesis_v13
+ * configtxgen -outputCreateChannelTx foo.tx -profile TwoOrgsChannel_v13 -channelID foo
+ * configtxgen -outputCreateChannelTx bar.tx -profile TwoOrgsChannel_v13 -channelID bar
+
+ This should produce the following files in the same directory: orderer.block, foo.tx, and bar.tx
+
  **Note:** The above describes how this was done. If you redo this there are private key files
  which are produced with unique names which won't match what's expected in the integration tests.
  One example of this is the docker-compose.yaml (search for **_sk**)

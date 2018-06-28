@@ -51,7 +51,7 @@ public class TestHFClient {
         if (sampleStoreFile.exists()) { //For testing start fresh
             sampleStoreFile.delete();
         }
-        final SampleStore sampleStore = new SampleStore(sampleStoreFile, cryptoSuite);
+        final SampleStore sampleStore = new SampleStore(sampleStoreFile);
 
         //src/test/fixture/sdkintegration/e2e-2Orgs/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/
 

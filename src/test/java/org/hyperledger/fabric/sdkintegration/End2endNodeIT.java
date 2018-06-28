@@ -46,7 +46,7 @@ public class End2endNodeIT extends End2endIT {
     @Override
     @Test
     public void setup() throws Exception {
-        sampleStore = new SampleStore(sampleStoreFile, CryptoSuite.Factory.getCryptoSuite());
+        sampleStore = new SampleStore(sampleStoreFile);
         enrollUsersSetup(sampleStore);
         runFabricTest(sampleStore); // just run fabric tests.
     }

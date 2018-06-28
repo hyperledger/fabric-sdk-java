@@ -16,6 +16,7 @@
 
 package org.hyperledger.fabric.sdk.identity;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.PublicKey;
 import java.util.Arrays;
@@ -24,6 +25,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.milagro.amcl.FP256BN.BIG;
+import org.hyperledger.fabric.protos.common.MspPrincipal;
 import org.hyperledger.fabric.protos.idemix.Idemix;
 import org.hyperledger.fabric.protos.msp.Identities.SerializedIdentity;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
@@ -171,9 +173,15 @@ public class IdemixSigningIdentity implements SigningIdentity {
         if (cred.getAttrs().length != 4) {
             throw new CryptoException("Error: There are " + cred.getAttrs().length + " attributes and the expected are 4");
         }
-
         byte[] ouBytes = cred.getAttrs()[0];
+        byte[] ouProtoBytes = MspPrincipal.OrganizationUnit.newBuilder()
+                .setMspIdentifier(mspId)
+                .setOrganizationalUnitIdentifier(new String(ouBytes))
+                .build().toByteArray();
         byte[] roleBytes = cred.getAttrs()[1];
+        byte[] roleProtoBytes = MspPrincipal.MSPRole.newBuilder()
+                .setRoleValue(ByteBuffer.wrap(roleBytes).getInt())
+                .build().toByteArray();
         byte[] eIdBytes = cred.getAttrs()[2];
         byte[] rHBytes = cred.getAttrs()[3];
 

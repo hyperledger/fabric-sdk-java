@@ -106,7 +106,7 @@ public class UpdateChannelIT {
             File sampleStoreFile = new File(System.getProperty("java.io.tmpdir") + "/HFCSampletest.properties");
             sampleStoreFile.deleteOnExit();
 
-            final SampleStore sampleStore = new SampleStore(sampleStoreFile, client.getCryptoSuite());
+            final SampleStore sampleStore = new SampleStore(sampleStoreFile);
 
             //SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface
 

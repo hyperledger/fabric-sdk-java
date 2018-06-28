@@ -93,8 +93,7 @@ import static org.junit.Assert.fail;
 public class End2endIT {
 
     private static final TestConfig testConfig = TestConfig.getConfig();
-    private static final String TEST_ADMIN_NAME = "admin";
-    private static final String TESTUSER_1_NAME = "user1";
+    static final String TEST_ADMIN_NAME = "admin";
     private static final String TEST_FIXTURES_PATH = "src/test/fixture";
 
     private static final String FOO_CHANNEL_NAME = "foo";
@@ -124,6 +123,7 @@ public class End2endIT {
     String testTxID = null;  // save the CC invoke TxID and use in queries
     SampleStore sampleStore = null;
     private Collection<SampleOrg> testSampleOrgs;
+    static String testUser1 = "user1";
 
     static void out(String format, Object... args) {
 
@@ -184,8 +184,7 @@ public class End2endIT {
         if (sampleStoreFile.exists()) { //For testing start fresh
             sampleStoreFile.delete();
         }
-        sampleStore = new SampleStore(sampleStoreFile, CryptoSuite.Factory.getCryptoSuite());
-
+        sampleStore = new SampleStore(sampleStoreFile);
         enrollUsersSetup(sampleStore); //This enrolls users with fabric ca and setups sample store to get users later.
         runFabricTest(sampleStore); //Runs Fabric tests with constructing channels, joining peers, exercising chaincode
 
@@ -233,7 +232,6 @@ public class End2endIT {
         assertFalse(barChannel.isShutdown());
         assertTrue(barChannel.isInitialized());
         out("That's all folks!");
-
     }
 
     /**
@@ -251,6 +249,7 @@ public class End2endIT {
         ////////////////////////////
         // get users for all orgs
 
+        out("***** Enrolling Users *****");
         for (SampleOrg sampleOrg : testSampleOrgs) {
 
             HFCAClient ca = sampleOrg.getCAClient();
@@ -292,9 +291,7 @@ public class End2endIT {
                 admin.setMspId(mspid);
             }
 
-            sampleOrg.setAdmin(admin); // The admin of this org --
-
-            SampleUser user = sampleStore.getMember(TESTUSER_1_NAME, sampleOrg.getName());
+            SampleUser user = sampleStore.getMember(testUser1, sampleOrg.getName());
             if (!user.isRegistered()) {  // users need to be registered AND enrolled
                 RegistrationRequest rr = new RegistrationRequest(user.getName(), "org1.department1");
                 user.setEnrollmentSecret(ca.register(rr, admin));
@@ -303,23 +300,20 @@ public class End2endIT {
                 user.setEnrollment(ca.enroll(user.getName(), user.getEnrollmentSecret()));
                 user.setMspId(mspid);
             }
-            sampleOrg.addUser(user); //Remember user belongs to this Org
 
             final String sampleOrgName = sampleOrg.getName();
             final String sampleOrgDomainName = sampleOrg.getDomainName();
-
-            // src/test/fixture/sdkintegration/e2e-2Orgs/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/
 
             SampleUser peerOrgAdmin = sampleStore.getMember(sampleOrgName + "Admin", sampleOrgName, sampleOrg.getMSPID(),
                     Util.findFileSk(Paths.get(testConfig.getTestChannelPath(), "crypto-config/peerOrganizations/",
                             sampleOrgDomainName, format("/users/Admin@%s/msp/keystore", sampleOrgDomainName)).toFile()),
                     Paths.get(testConfig.getTestChannelPath(), "crypto-config/peerOrganizations/", sampleOrgDomainName,
                             format("/users/Admin@%s/msp/signcerts/Admin@%s-cert.pem", sampleOrgDomainName, sampleOrgDomainName)).toFile());
-
             sampleOrg.setPeerAdmin(peerOrgAdmin); //A special user that can create channels, join peers and install chaincode
 
+            sampleOrg.addUser(user);
+            sampleOrg.setAdmin(admin); // The admin of this org --
         }
-
     }
 
     static String getPEMStringFromPrivateKey(PrivateKey privateKey) throws IOException {
@@ -494,30 +488,29 @@ public class End2endIT {
             successful.clear();
             failed.clear();
 
-            if (isFooChain) {  //Send responses both ways with specifying peers and by using those on the channel.
-                responses = channel.sendInstantiationProposal(instantiateProposalRequest, channel.getPeers());
-            } else {
-                responses = channel.sendInstantiationProposal(instantiateProposalRequest);
-            }
-            for (ProposalResponse response : responses) {
-                if (response.isVerified() && response.getStatus() == ProposalResponse.Status.SUCCESS) {
-                    successful.add(response);
-                    out("Succesful instantiate proposal response Txid: %s from peer %s", response.getTransactionID(), response.getPeer().getName());
+                if (isFooChain) {  //Send responses both ways with specifying peers and by using those on the channel.
+                    responses = channel.sendInstantiationProposal(instantiateProposalRequest, channel.getPeers());
                 } else {
-                    failed.add(response);
+                    responses = channel.sendInstantiationProposal(instantiateProposalRequest);
                 }
-            }
-            out("Received %d instantiate proposal responses. Successful+verified: %d . Failed: %d", responses.size(), successful.size(), failed.size());
-            if (failed.size() > 0) {
-                for (ProposalResponse fail : failed) {
-
-                    out("Not enough endorsers for instantiate :" + successful.size() + "endorser failed with " + fail.getMessage() + ", on peer" + fail.getPeer());
-
+                for (ProposalResponse response : responses) {
+                    if (response.isVerified() && response.getStatus() == ProposalResponse.Status.SUCCESS) {
+                        successful.add(response);
+                        out("Succesful instantiate proposal response Txid: %s from peer %s", response.getTransactionID(), response.getPeer().getName());
+                    } else {
+                        failed.add(response);
+                    }
                 }
-                ProposalResponse first = failed.iterator().next();
-                fail("Not enough endorsers for instantiate :" + successful.size() + "endorser failed with " + first.getMessage() + ". Was verified:" + first.isVerified());
-            }
+                out("Received %d instantiate proposal responses. Successful+verified: %d . Failed: %d", responses.size(), successful.size(), failed.size());
+                if (failed.size() > 0) {
+                    for (ProposalResponse fail : failed) {
 
+                        out("Not enough endorsers for instantiate :" + successful.size() + "endorser failed with " + fail.getMessage() + ", on peer" + fail.getPeer());
+
+                    }
+                    ProposalResponse first = failed.iterator().next();
+                    fail("Not enough endorsers for instantiate :" + successful.size() + "endorser failed with " + first.getMessage() + ". Was verified:" + first.isVerified());
+                }
             ///////////////
             /// Send instantiate transaction to orderer
             out("Sending instantiateTransaction to orderer with a and b set to 100 and %s respectively", "" + (200 + delta));
@@ -556,7 +549,7 @@ public class End2endIT {
                     successful.clear();
                     failed.clear();
 
-                    client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME));
+                    client.setUserContext(sampleOrg.getUser(testUser1));
 
                     ///////////////
                     /// Send transaction proposal to all peers
@@ -803,7 +796,8 @@ public class End2endIT {
         boolean doPeerEventing = !testConfig.isRunningAgainstFabric10() && BAR_CHANNEL_NAME.equals(name);
 //        boolean doPeerEventing = !testConfig.isRunningAgainstFabric10() && FOO_CHANNEL_NAME.equals(name);
         //Only peer Admin org
-        client.setUserContext(sampleOrg.getPeerAdmin());
+        SampleUser peerAdmin = sampleOrg.getPeerAdmin();
+        client.setUserContext(peerAdmin);
 
         Collection<Orderer> orderers = new LinkedList<>();
 
@@ -826,10 +820,11 @@ public class End2endIT {
         Orderer anOrderer = orderers.iterator().next();
         orderers.remove(anOrderer);
 
-        ChannelConfiguration channelConfiguration = new ChannelConfiguration(new File(TEST_FIXTURES_PATH + "/sdkintegration/e2e-2Orgs/" + TestConfig.FAB_CONFIG_GEN_VERS + "/" + name + ".tx"));
+        String path = TEST_FIXTURES_PATH + "/sdkintegration/e2e-2Orgs/" + TestConfig.FAB_CONFIG_GEN_VERS + "/" + name + ".tx";
+        ChannelConfiguration channelConfiguration = new ChannelConfiguration(new File(path));
 
         //Create channel that has only one signer that is this orgs peer admin. If channel creation policy needed more signature they would need to be added too.
-        Channel newChannel = client.newChannel(name, anOrderer, channelConfiguration, client.getChannelConfigurationSignature(channelConfiguration, sampleOrg.getPeerAdmin()));
+        Channel newChannel = client.newChannel(name, anOrderer, channelConfiguration, client.getChannelConfigurationSignature(channelConfiguration, peerAdmin));
 
         out("Created channel %s", name);
 

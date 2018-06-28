@@ -41,9 +41,11 @@ import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInput;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec;
 import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type;
 import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeHeaderExtension;
+import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.identity.X509Enrollment;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
@@ -192,28 +194,31 @@ public final class ProtoUtils {
 
         if (isDebugLevel) {
 
-            String cert = user.getEnrollment().getCert();
-            // logger.debug(format(" User: %s Certificate:\n%s", user.getName(), cert));
+            Enrollment enrollment = user.getEnrollment();
+            String cert = enrollment.getCert();
+            logger.debug(format(" User: %s Certificate:\n%s", user.getName(), cert));
 
-            if (null == suite) {
+            if (enrollment instanceof X509Enrollment) {
+                if (null == suite) {
 
-                try {
-                    suite = CryptoSuite.Factory.getCryptoSuite();
-                } catch (Exception e) {
-                    //best try.
-                }
-
-            }
-            if (null != suite && suite instanceof CryptoPrimitives) {
-
-                CryptoPrimitives cp = (CryptoPrimitives) suite;
-                byte[] der = cp.certificateToDER(cert);
-                if (null != der && der.length > 0) {
-
-                    cert = toHexString(suite.hash(der));
+                    try {
+                        suite = CryptoSuite.Factory.getCryptoSuite();
+                    } catch (Exception e) {
+                        //best try.
+                    }
 
                 }
+                if (null != suite && suite instanceof CryptoPrimitives) {
 
+                    CryptoPrimitives cp = (CryptoPrimitives) suite;
+                    byte[] der = cp.certificateToDER(cert);
+                    if (null != der && der.length > 0) {
+
+                        cert = toHexString(suite.hash(der));
+
+                    }
+
+                }
             }
 
             logger.debug(format("SignatureHeader: nonce: %s, User:%s, MSPID: %s, idBytes: %s",

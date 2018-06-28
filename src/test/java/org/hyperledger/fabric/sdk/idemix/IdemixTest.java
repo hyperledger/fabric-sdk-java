@@ -37,28 +37,31 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class IdemixTest {
+    // Number of tasks to run
+    static final int TASKS = 10;
+    // How many taks we run at the same time
+    static final int THREAD_POOL = 25;
+    // How many iterations per task we do
+    static final int ITERATIONS = 10;
 
     @Test
     public void idemixTest() throws ExecutionException, InterruptedException {
-        int numberOfThreadTasks = 10;
-        // N tasks runned in pools of X threads.
-        int threadPool = 25;
-        ExecutorService serviceSingleTask =  Executors.newFixedThreadPool(threadPool);
-        ExecutorService serviceMultiTask =  Executors.newFixedThreadPool(threadPool);
+        ExecutorService serviceSingleTask =  Executors.newFixedThreadPool(THREAD_POOL);
+        ExecutorService serviceMultiTask =  Executors.newFixedThreadPool(THREAD_POOL);
 
         // Select attribute names and generate a Idemix Setup
         String[] attributeNames = {"Attr1", "Attr2", "Attr3", "Attr4", "Attr5"};
         IdemixSetup setup = new IdemixSetup(attributeNames);
 
-        // One single task running in parallel in a pool of threads.
-        IdemixTask taskS = new IdemixTask(setup, 50);
+        // One single task
+        IdemixTask taskS = new IdemixTask(setup);
         Future<Boolean> result = serviceSingleTask.submit(taskS);
         assertTrue(result.get());
 
         // i tasks running at the same time in parallel in different thread pools.
         List<Future<Boolean>> results = new ArrayList<>();
-        for (int i = numberOfThreadTasks; i > 0; i--) {
-            IdemixTask taskM = new IdemixTask(setup, 50);
+        for (int i = TASKS; i > 0; i--) {
+            IdemixTask taskM = new IdemixTask(setup);
             results.add(serviceMultiTask.submit(taskM));
         }
         for (Future<Boolean> f: results) {
@@ -121,11 +124,11 @@ public class IdemixTest {
 
     private class IdemixTask implements Callable<Boolean> {
         private IdemixSetup setup;
-        private int numberOfIterations;
+        private int iterations;
 
-        private IdemixTask(IdemixSetup idemixSetup, int numberOfIterations) {
+        private IdemixTask(IdemixSetup idemixSetup) {
             this.setup = idemixSetup;
-            this.numberOfIterations = numberOfIterations;
+            this.iterations = ITERATIONS;
         }
 
         private void test() throws CryptoException {
@@ -204,7 +207,7 @@ public class IdemixTest {
 
         @Override
         public Boolean call() throws CryptoException {
-            for (int i = numberOfIterations; i > 0; --i) {
+            for (int i = ITERATIONS; i > 0; --i) {
                 test();
             }
             return true;

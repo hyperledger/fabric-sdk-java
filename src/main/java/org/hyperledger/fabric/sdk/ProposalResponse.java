@@ -26,6 +26,7 @@ import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.helper.DiagnosticFileDumper;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
+import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 
 import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.helper.Utils.toHexString;
@@ -47,10 +48,15 @@ public class ProposalResponse extends ChaincodeResponse {
     private FabricProposalResponse.ProposalResponse proposalResponse;
     private Peer peer = null;
     private ChaincodeID chaincodeID = null;
+    private final TransactionContext transactionContext;
 
-    ProposalResponse(String transactionID, String chaincodeID, int status, String message) {
-        super(transactionID, chaincodeID, status, message);
+    ProposalResponse(TransactionContext transactionContext, int status, String message) {
+        super(transactionContext.getTxID(), transactionContext.getChannelID(), status, message);
+        this.transactionContext = transactionContext;
+    }
 
+    TransactionContext getTransactionContext() {
+        return transactionContext;
     }
 
     ProposalResponsePayloadDeserializer getProposalResponsePayloadDeserializer() throws InvalidArgumentException {

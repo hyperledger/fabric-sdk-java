@@ -62,7 +62,7 @@ public class HFCAAffiliationTest {
         if (sampleStoreFile.exists()) { // For testing start fresh
             sampleStoreFile.delete();
         }
-        sampleStore = new SampleStore(sampleStoreFile, CryptoSuite.Factory.getCryptoSuite());
+        sampleStore = new SampleStore(sampleStoreFile);
         sampleStoreFile.deleteOnExit();
 
         // SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface

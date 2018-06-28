@@ -30,7 +30,7 @@ public class End2endAndBackAgainNodeIT extends End2endAndBackAgainIT {
     @Test
     public void setup() throws Exception {
 
-        sampleStore = new SampleStore(sampleStoreFile, CryptoSuite.Factory.getCryptoSuite());
+        sampleStore = new SampleStore(sampleStoreFile);
 
         setupUsers(sampleStore);
         runFabricTest(sampleStore);

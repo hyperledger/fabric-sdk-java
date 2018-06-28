@@ -61,12 +61,6 @@ public class SampleStore {
         this.file = file.getAbsolutePath();
     }
 
-    public SampleStore(File file, CryptoSuite cryptoSuite) {
-
-        this.file = file.getAbsolutePath();
-        this.cryptoSuite = cryptoSuite;
-    }
-
     /**
      * Get the value associated with name.
      *

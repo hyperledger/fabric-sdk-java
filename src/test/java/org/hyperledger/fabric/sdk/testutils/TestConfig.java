@@ -69,7 +69,7 @@ public class TestConfig {
     private static final String INTEGRATIONTESTSTLS = PROPBASE + "integrationtests.tls";
     // location switching between fabric cryptogen and configtxgen artifacts for v1.0 and v1.1 in src/test/fixture/sdkintegration/e2e-2Orgs
     public static final String FAB_CONFIG_GEN_VERS =
-            Objects.equals(System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION"), "1.0.0") ? "v1.0" : "v1.2";
+            Objects.equals(System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION"), "1.0.0") ? "v1.0" : "v1.3";
 
     private static TestConfig config;
     private static final Properties sdkProperties = new Properties();

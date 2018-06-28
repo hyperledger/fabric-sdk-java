@@ -1,8 +1,9 @@
 package org.hyperledger.fabric.sdk.identity;
 
-import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+
+import javax.security.auth.DestroyFailedException;
 
 import org.apache.milagro.amcl.FP256BN.BIG;
 import org.hyperledger.fabric.protos.idemix.Idemix.CredentialRevocationInformation;
@@ -11,6 +12,8 @@ import org.hyperledger.fabric.sdk.idemix.IdemixCredential;
 import org.hyperledger.fabric.sdk.idemix.IdemixIssuerPublicKey;
 
 public class IdemixEnrollment implements Enrollment {
+
+    private static final String algo = "idemix";
 
 
     protected final IdemixIssuerPublicKey ipk;
@@ -21,9 +24,6 @@ public class IdemixEnrollment implements Enrollment {
     protected final CredentialRevocationInformation cri;
     protected final String ou;
     protected final boolean role;
-
-    private KeyPair key;
-    private String cert;
 
     public IdemixEnrollment(IdemixIssuerPublicKey ipk, PublicKey revocationPk, String mspId, BIG sk, IdemixCredential cred, CredentialRevocationInformation cri, String ou, boolean role) {
         this.ipk = ipk;

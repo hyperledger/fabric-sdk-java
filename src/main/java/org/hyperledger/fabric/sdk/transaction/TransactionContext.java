@@ -173,7 +173,7 @@ public class TransactionContext {
         return txID;
     }
 
-    byte[] sign(byte[] b) throws CryptoException, InvalidArgumentException {
+    public byte[] sign(byte[] b) throws CryptoException, InvalidArgumentException {
         return signingIdentity.sign(b);
     }
 
