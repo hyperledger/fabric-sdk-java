@@ -3370,6 +3370,8 @@ public class Channel implements Serializable {
 
         for (Peer peer : peers) {
 
+            proposalRequest.submitted = false;
+
             try {
 
                 Collection<ProposalResponse> proposalResponses = sendProposal(proposalRequest, Collections.singletonList(peer));

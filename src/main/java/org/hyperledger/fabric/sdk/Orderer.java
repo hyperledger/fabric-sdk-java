@@ -43,6 +43,7 @@ public class Orderer implements Serializable {
     private Channel channel;
     private transient volatile OrdererClient ordererClient = null;
     private transient byte[] clientTLSCertificateDigest;
+    private String channelName = "";
 
     Orderer(String name, String url, Properties properties) throws InvalidArgumentException {
 
@@ -104,6 +105,7 @@ public class Orderer implements Serializable {
     void unsetChannel() {
 
         channel = null;
+        channelName = "";
 
     }
 
@@ -127,6 +129,7 @@ public class Orderer implements Serializable {
         }
 
         this.channel = channel;
+        this.channelName = channel.getName();
 
     }
 
@@ -192,6 +195,7 @@ public class Orderer implements Serializable {
         }
         shutdown = true;
         channel = null;
+        channelName = "";
 
         if (ordererClient != null) {
             OrdererClient torderClientDeliver = ordererClient;
@@ -219,6 +223,6 @@ public class Orderer implements Serializable {
 
     @Override
     public String toString() {
-        return "Orderer: " + name + "(" + url + ")";
+        return "Orderer-" + channelName + "-" + name + "(" + url + ")";
     }
 } // end Orderer

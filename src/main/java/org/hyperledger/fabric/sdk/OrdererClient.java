@@ -48,6 +48,7 @@ class OrdererClient {
     private final ManagedChannelBuilder channelBuilder;
     private boolean shutdown = false;
     private static final Log logger = LogFactory.getLog(OrdererClient.class);
+    private static final boolean TRACELEVEL = logger.isTraceEnabled();
     private ManagedChannel managedChannel = null;
     private final String name;
     private final String url;
@@ -76,7 +77,7 @@ class OrdererClient {
             try {
                 tempOrdererWaitTimeMilliSecs = Long.parseLong(ordererWaitTimeMilliSecsString);
             } catch (NumberFormatException e) {
-                logger.warn(format("Orderer %s wait time %s not parsable.", name, ordererWaitTimeMilliSecsString), e);
+                logger.warn(format("Orderer %s wait time %s not parsable.", this.toString(), ordererWaitTimeMilliSecsString), e);
             }
 
             ordererWaitTimeMilliSecs = tempOrdererWaitTimeMilliSecs;
@@ -90,6 +91,7 @@ class OrdererClient {
             return;
         }
         shutdown = true;
+        logger.debug(format("Shutdown %s", this.toString()));
         ManagedChannel lchannel = managedChannel;
         managedChannel = null;
         if (lchannel == null) {
@@ -117,6 +119,7 @@ class OrdererClient {
     }
 
     Ab.BroadcastResponse sendTransaction(Common.Envelope envelope) throws Exception {
+        logger.trace(this.toString() + " OrdererClient.sendTransaction entered.");
         StreamObserver<Common.Envelope> nso = null;
 
         if (shutdown) {
@@ -124,12 +127,28 @@ class OrdererClient {
         }
 
         ManagedChannel lmanagedChannel = managedChannel;
+        if (TRACELEVEL && lmanagedChannel != null) {
+            logger.trace(format("%s  managed channel isTerminated: %b, isShutdown: %b, state: %s", this.toString(),
+                    lmanagedChannel.isTerminated(), lmanagedChannel.isShutdown(), lmanagedChannel.getState(false).name()));
+        }
 
         if (lmanagedChannel == null || lmanagedChannel.isTerminated() || lmanagedChannel.isShutdown()) {
+
+            if (lmanagedChannel != null && lmanagedChannel.isTerminated()) {
+                logger.warn(format("%s managed channel was marked terminated", this.toString()));
+            }
+            if (lmanagedChannel != null && lmanagedChannel.isShutdown()) {
+                logger.warn(format("%s managed channel was marked shutdown.", this.toString()));
+            }
 
             lmanagedChannel = channelBuilder.build();
             managedChannel = lmanagedChannel;
 
+        }
+
+        if (TRACELEVEL && lmanagedChannel != null) {
+            logger.trace(format("%s  managed channel isTerminated: %b, isShutdown: %b, state: %s", this.toString(),
+                    lmanagedChannel.isTerminated(), lmanagedChannel.isShutdown(), lmanagedChannel.getState(false).name()));
         }
 
         try {
@@ -143,11 +162,11 @@ class OrdererClient {
                 @Override
                 public void onNext(Ab.BroadcastResponse resp) {
                     // logger.info("Got Broadcast response: " + resp);
-                    logger.debug("resp status value: " + resp.getStatusValue() + ", resp: " + resp.getStatus());
+                    logger.debug(this.toString() + " resp status value: " + resp.getStatusValue() + ", resp: " + resp.getStatus());
                     if (resp.getStatus() == Common.Status.SUCCESS) {
                         ret[0] = resp;
                     } else {
-                        throwable[0] = new TransactionException(format("Channel %s orderer %s status returned failure code %d (%s) during order registration",
+                        throwable[0] = new TransactionException(format("Channel %s orderer %s status returned failure code %d (%s) during orderer next",
                                 channelName, name, resp.getStatusValue(), resp.getStatus().name()));
                     }
                     finishLatch.countDown();
@@ -157,6 +176,17 @@ class OrdererClient {
                 @Override
                 public void onError(Throwable t) {
                     if (!shutdown) {
+                        ManagedChannel lmanagedChannel = managedChannel;
+                        managedChannel = null;
+                        if (lmanagedChannel == null) {
+                            logger.error(this.toString() + " managed channel was null.");
+
+                        } else {
+
+                            logger.error(format("%s  managed channel isTerminated: %b, isShutdown: %b, state: %s", this.toString(),
+                                    lmanagedChannel.isTerminated(), lmanagedChannel.isShutdown(), lmanagedChannel.getState(false).name()));
+
+                        }
                         logger.error(format("Received error on channel %s, orderer %s, url %s, %s",
                                 channelName, name, url, t.getMessage()), t);
                     }
@@ -166,6 +196,7 @@ class OrdererClient {
 
                 @Override
                 public void onCompleted() {
+                    logger.trace(this.toString() + " onComplete received.");
                     finishLatch.countDown();
                 }
             };
@@ -177,7 +208,7 @@ class OrdererClient {
             try {
                 if (!finishLatch.await(ordererWaitTimeMilliSecs, TimeUnit.MILLISECONDS)) {
                     TransactionException ste = new TransactionException(format("Channel %s, send transactions failed on orderer %s. Reason:  timeout after %d ms.",
-                            channelName, name, ordererWaitTimeMilliSecs));
+                            channelName, this.toString(), ordererWaitTimeMilliSecs));
                     logger.error("sendTransaction error " + ste.getMessage(), ste);
                     throw ste;
                 }
@@ -190,14 +221,14 @@ class OrdererClient {
                     }
                     //get full stack trace
                     TransactionException ste = new TransactionException(format("Channel %s, send transaction failed on orderer %s. Reason: %s",
-                            channelName, name, throwable[0].getMessage()), throwable[0]);
-                    logger.error("sendTransaction error " + ste.getMessage(), ste);
+                            channelName, this.toString(), throwable[0].getMessage()), throwable[0]);
+                    logger.error(this.toString() + "sendTransaction error " + ste.getMessage(), ste);
                     throw ste;
                 }
-                logger.debug("Done waiting for reply! Got:" + ret[0]);
+                logger.debug(this.toString() + "Done waiting for reply! Got:" + ret[0]);
 
             } catch (InterruptedException e) {
-                logger.error(e);
+                logger.error(this.toString(), e);
 
             }
 
@@ -223,6 +254,8 @@ class OrdererClient {
 
     DeliverResponse[] sendDeliver(Common.Envelope envelope) throws TransactionException {
 
+        logger.trace(this.toString() + " OrdererClient.sendDeliver entered.");
+
         if (shutdown) {
             throw new TransactionException("Orderer client is shutdown");
         }
@@ -230,13 +263,31 @@ class OrdererClient {
         StreamObserver<Common.Envelope> nso = null;
 
         ManagedChannel lmanagedChannel = managedChannel;
+        if (TRACELEVEL && lmanagedChannel != null) {
+            logger.trace(format("%s  managed channel isTerminated: %b, isShutdown: %b, state: %s", this.toString(),
+                    lmanagedChannel.isTerminated(), lmanagedChannel.isShutdown(), lmanagedChannel.getState(false).name()));
+        }
 
         if (lmanagedChannel == null || lmanagedChannel.isTerminated() || lmanagedChannel.isShutdown()) {
 
+            if (lmanagedChannel != null && lmanagedChannel.isTerminated()) {
+                logger.warn(format("%s managed channel was marked terminated", this.toString()));
+            }
+            if (lmanagedChannel != null && lmanagedChannel.isShutdown()) {
+                logger.warn(format("%s managed channel was marked shutdown.", this.toString()));
+            }
             lmanagedChannel = channelBuilder.build();
             managedChannel = lmanagedChannel;
 
         }
+
+        if (TRACELEVEL && lmanagedChannel != null) {
+            logger.trace(format("%s  managed channel isTerminated: %b, isShutdown: %b, state: %s", this.toString(),
+                    lmanagedChannel.isTerminated(), lmanagedChannel.isShutdown(), lmanagedChannel.getState(false).name()));
+        }
+        /*
+        return lchannel != null && !lchannel.isShutdown() && !lchannel.isTerminated() && ConnectivityState.READY.equals(lchannel.getState(true));
+         */
 
         try {
 
@@ -254,9 +305,10 @@ class OrdererClient {
                 public void onNext(DeliverResponse resp) {
 
                     // logger.info("Got Broadcast response: " + resp);
-                    logger.debug("resp status value: " + resp.getStatusValue() + ", resp: " + resp.getStatus() + ", type case: " + resp.getTypeCase());
+                    logger.debug(this.toString() + "sendDeliver resp status value: " + resp.getStatusValue() + ", resp: " + resp.getStatus() + ", type case: " + resp.getTypeCase());
 
                     if (done) {
+                        logger.trace(this.toString() + " sendDeliver done!");
                         return;
                     }
 
@@ -275,6 +327,18 @@ class OrdererClient {
                 @Override
                 public void onError(Throwable t) {
                     if (!shutdown) {
+
+                        ManagedChannel lmanagedChannel = managedChannel;
+                        managedChannel = null;
+                        if (lmanagedChannel == null) {
+                            logger.error(this.toString() + " managed channel was null.");
+
+                        } else {
+
+                            logger.error(format("%s  managed channel isTerminated: %b, isShutdown: %b, state: %s", this.toString(),
+                                    lmanagedChannel.isTerminated(), lmanagedChannel.isShutdown(), lmanagedChannel.getState(false).name()));
+
+                        }
                         logger.error(format("Received error on channel %s, orderer %s, url %s, %s",
                                 channelName, name, url, t.getMessage()), t);
                     }
@@ -284,7 +348,7 @@ class OrdererClient {
 
                 @Override
                 public void onCompleted() {
-                    logger.trace("onCompleted");
+                    logger.trace(this.toString() + "onCompleted.");
                     finishLatch.countDown();
                 }
             };
@@ -296,20 +360,20 @@ class OrdererClient {
             try {
                 if (!finishLatch.await(ordererWaitTimeMilliSecs, TimeUnit.MILLISECONDS)) {
                     TransactionException ex = new TransactionException(format(
-                            "Channel %s sendDeliver time exceeded for orderer %s, timed out at %d ms.", channelName, name, ordererWaitTimeMilliSecs));
+                            "Channel %s sendDeliver time exceeded for orderer %s, timed out at %d ms.", channelName, this.toString(), ordererWaitTimeMilliSecs));
                     logger.error(ex.getMessage(), ex);
                     throw ex;
                 }
-                logger.trace("Done waiting for reply!");
+                logger.trace(this.toString() + " Done waiting for reply!");
 
             } catch (InterruptedException e) {
-                logger.error(e);
+                logger.error(this.toString() + " " + e.getMessage(), e);
             }
 
             if (!throwableList.isEmpty()) {
                 Throwable throwable = throwableList.get(0);
                 TransactionException e = new TransactionException(format(
-                        "Channel %s sendDeliver failed on orderer %s. Reason: %s", channelName, name, throwable.getMessage()), throwable);
+                        "Channel %s sendDeliver failed on orderer %s. Reason: %s", channelName, this.toString(), throwable.getMessage()), throwable);
                 logger.error(e.getMessage(), e);
                 throw e;
             }
@@ -317,20 +381,27 @@ class OrdererClient {
             return retList.toArray(new DeliverResponse[retList.size()]);
         } catch (Throwable t) {
             managedChannel = null;
+            logger.error(this.toString() + " received error " + t.getMessage(), t);
             throw t;
 
         } finally {
             if (null != nso) {
 
                 try {
+                    logger.debug(this.toString() + "completed.");
                     nso.onCompleted();
                 } catch (Exception e) {  //Best effort only report on debug
                     logger.debug(format("Exception completing sendDeliver with channel %s,  name %s, url %s %s",
-                            channelName, name, url, e.getMessage()), e);
+                            channelName, this.toString(), url, e.getMessage()), e);
                 }
 
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "OrdererClient-" + channelName + "-" + name + "(" + url + ")";
     }
 
     boolean isChannelActive() {

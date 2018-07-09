@@ -28,7 +28,7 @@
         <tag>fabric-sdk-java-1.0</tag>
     </scm>
     <properties>
-        <grpc.version>1.13.1</grpc.version><!-- CURRENT_GRPC_VERSION -->
+        <grpc.version>1.13.2</grpc.version><!-- CURRENT_GRPC_VERSION -->
         <protobuf.version>3.6.0</protobuf.version>
         <bouncycastle.version>1.60</bouncycastle.version>
         <httpclient.version>4.5.6</httpclient.version>
@@ -36,6 +36,7 @@
         <alpn-boot-version>8.1.7.v20160121</alpn-boot-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jacoco.version>0.7.9</jacoco.version>
+        <log4j.version>1.2.17</log4j.version>
         <org.hyperledger.fabric.sdktest.ITSuite>IntegrationSuite.java</org.hyperledger.fabric.sdktest.ITSuite>
         <gpg.executable>gpg2</gpg.executable>
     </properties>
@@ -97,7 +98,7 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-codec-http2</artifactId>
-            <version>4.1.25.Final</version>
+            <version>4.1.26.Final</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java -->
         <dependency>
@@ -142,8 +143,16 @@
         <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
-            <version>1.2.17</version>
+            <version>${log4j.version}</version>
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/log4j/apache-log4j-extras -->
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>apache-log4j-extras</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+
 
         <!--<dependency>-->
         <!--<groupId>org.apache.logging.log4j</groupId>-->
