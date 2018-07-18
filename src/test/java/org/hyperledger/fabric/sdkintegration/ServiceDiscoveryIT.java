@@ -99,6 +99,10 @@ public class ServiceDiscoveryIT {
         }
         foo.setServiceDiscoveryProperties(sdprops);
 
+        final byte[] bytes = foo.serializeChannel(); // Next 3 lines are for testing purposes only!
+        foo.shutdown(false);
+        foo = client.deSerializeChannel(bytes);
+
         foo.initialize(); // initialize the channel.
 
         Set<String> expect = new HashSet<>(Arrays.asList(protocol + "//localhost:7050")); //discovered orderer

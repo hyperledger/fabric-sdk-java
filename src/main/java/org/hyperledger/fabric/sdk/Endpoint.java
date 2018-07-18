@@ -419,9 +419,9 @@ class Endpoint {
         } else if (properties.containsKey("clientKeyFile") || properties.containsKey("clientCertFile")) {
             if ((properties.getProperty("clientKeyFile") != null) && (properties.getProperty("clientCertFile") != null)) {
                 try {
-                    logger.trace(format("Endpoint %s reading clientKeyFile: %s", url, properties.getProperty("clientKeyFile")));
+                    logger.trace(format("Endpoint %s reading clientKeyFile: %s", url, new File(properties.getProperty("clientKeyFile")).getAbsolutePath()));
                     ckb = Files.readAllBytes(Paths.get(properties.getProperty("clientKeyFile")));
-                    logger.trace(format("Endpoint %s reading clientCertFile: %s", url, properties.getProperty("clientCertFile")));
+                    logger.trace(format("Endpoint %s reading clientCertFile: %s", url, new File(properties.getProperty("clientCertFile")).getAbsolutePath()));
                     ccb = Files.readAllBytes(Paths.get(properties.getProperty("clientCertFile")));
                 } catch (IOException e) {
                     throw new RuntimeException("Failed to parse TLS client key and/or cert", e);

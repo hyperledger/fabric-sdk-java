@@ -50,6 +50,7 @@ import static java.lang.String.format;
 
 class ServiceDiscovery {
     private static final Log logger = LogFactory.getLog(ServiceDiscovery.class);
+    private static final boolean DEBUG = logger.isDebugEnabled();
     private static final Config config = Config.getConfig();
     private static final int SERVICE_DISCOVERY_WAITTIME = config.getServiceDiscoveryWaitTime();
     private static final Random random = new Random();
@@ -121,8 +122,14 @@ class ServiceDiscovery {
 
         Map<String, SDOrderer> ordererEndpoints = Collections.EMPTY_MAP;
 
-        Collection<SDOrderer> getOrdererEndpoints() {
+        Set<String> getOrdererEndpoints() {
+            return Collections.unmodifiableSet(ordererEndpoints.keySet());
+        }
+
+        Collection<SDOrderer> getSDOrderers() {
+
             return ordererEndpoints.values();
+
         }
 
         Set<String> getPeerEndpoints() {
@@ -179,6 +186,8 @@ class ServiceDiscovery {
 
     SDNetwork networkDiscovery(TransactionContext ltransactionContext, boolean force) {
 
+        logger.trace(format("Network discovery force: %b", force));
+
         ArrayList<Peer> speers = new ArrayList<>(serviceDiscoveryPeers);
         Collections.shuffle(speers);
         SDNetwork ret = sdNetwork;
@@ -197,10 +206,10 @@ class ServiceDiscovery {
 
                 final byte[] clientTLSCertificateDigest = serviceDiscoveryPeer.getClientTLSCertificateDigest();
 
-                logger.info(format("Doing discovery on peer: %s", serviceDiscoveryPeer));
+                logger.info(format("Channel %s doing discovery with peer: %s", channelName, serviceDiscoveryPeer.toString()));
 
                 if (null == clientTLSCertificateDigest) {
-                    throw new RuntimeException(format("Peer %s requires mutual tls for service discovery.", channelName));
+                    throw new RuntimeException(format("Channel %s, peer %s requires mutual tls for service discovery.", channelName, serviceDiscoveryPeer));
                 }
 
                 ByteString clientIdent = ltransactionContext.getIdentity().toByteString();
@@ -223,10 +232,17 @@ class ServiceDiscovery {
                 serviceDiscoveryPeer.hasConnected();
                 final List<Protocol.QueryResult> resultsList = response.getResultsList();
                 Protocol.QueryResult queryResult;
+                Protocol.QueryResult queryResult2;
 
                 queryResult = resultsList.get(0); //configquery
                 if (queryResult.getResultCase().getNumber() == Protocol.QueryResult.ERROR_FIELD_NUMBER) {
-                    throw new RuntimeException(format("Error %s", queryResult.getError().getContent()));
+                    logger.warn(format("Channel %s peer: %s error during service discovery %s", channelName, serviceDiscoveryPeer.toString(), queryResult.getError().getContent()));
+                    continue;
+                }
+                queryResult2 = resultsList.get(1);
+                if (queryResult2.getResultCase().getNumber() == Protocol.QueryResult.ERROR_FIELD_NUMBER) {
+                    logger.warn(format("Channel %s peer %s service discovery error %s", channelName, serviceDiscoveryPeer.toString(), queryResult2.getError().getContent()));
+                    continue;
                 }
                 Protocol.ConfigResult configResult = queryResult.getConfigResult();
 
@@ -262,10 +278,11 @@ class ServiceDiscovery {
                 Map<String, SDOrderer> ordererEndpoints = new HashMap<>();
                 Map<String, Protocol.Endpoints> orderersMap = configResult.getOrderersMap();
                 for (Map.Entry<String, Protocol.Endpoints> i : orderersMap.entrySet()) {
-                    String mspid = i.getKey();
+                    final String mspid = i.getKey();
 
                     Protocol.Endpoints value = i.getValue();
                     for (Protocol.Endpoint l : value.getEndpointList()) {
+                        logger.trace(format("Channel %s discovered orderer MSPID: %s, endpoint: %s:%s", channelName, mspid, l.getHost(), l.getPort()));
                         String endpoint = remapEndpoint((l.getHost() + ":" + l.getPort()).trim().toLowerCase());
 
                         final SDOrderer sdOrderer = new SDOrderer(mspid, endpoint, lsdNetwork.getTlsCerts(mspid), lsdNetwork.getTlsIntermediateCerts(mspid));
@@ -275,22 +292,18 @@ class ServiceDiscovery {
                 }
                 lsdNetwork.ordererEndpoints = ordererEndpoints;
 
-                queryResult = resultsList.get(1);
-                if (queryResult.getResultCase().getNumber() == Protocol.QueryResult.ERROR_FIELD_NUMBER) {
-                    throw new RuntimeException(format("Error %s", queryResult.getError().getContent()));
-
-                }
-
-                Protocol.PeerMembershipResult membership = queryResult.getMembers();
+                Protocol.PeerMembershipResult membership = queryResult2.getMembers();
 
                 lsdNetwork.endorsers = new HashMap<>();
 
                 for (Map.Entry<String, Protocol.Peers> peerses : membership.getPeersByOrgMap().entrySet()) {
-                    String mspId = peerses.getKey();
+                    final String mspId = peerses.getKey();
                     Protocol.Peers peers = peerses.getValue();
 
                     for (Protocol.Peer pp : peers.getPeersList()) {
+
                         SDEndorser ppp = new SDEndorser(pp, lsdNetwork.getTlsCerts(mspId), lsdNetwork.getTlsIntermediateCerts(mspId));
+                        logger.trace(format("Channel %s discovered peer MSPID: %s, endpoint: %s", channelName, mspId, ppp.getEndpoint()));
                         lsdNetwork.endorsers.put(ppp.getEndpoint(), ppp);
 
                     }
@@ -302,10 +315,12 @@ class ServiceDiscovery {
                 break;
 
             } catch (Exception e) {
-                logger.error(e);
+                logger.warn(format("Channel %s peer %s service discovery error %s", channelName, serviceDiscoveryPeer, e));
 
             }
         }
+
+        logger.debug(format("Channel %s service discovery completed: %b", channelName, ret != null));
 
         return ret;
 
@@ -344,6 +359,24 @@ class ServiceDiscovery {
 
     Map<String, SDChaindcode> discoverEndorserEndpoints(TransactionContext transactionContext, Set<String> chaincodeNames) throws ServiceDiscoveryException {
 
+        if (null == chaincodeNames) {
+            logger.warn("Discover of chaincode names was null.");
+            return Collections.emptyMap();
+        }
+        if (chaincodeNames.isEmpty()) {
+            logger.warn("Discover of chaincode names was empty.");
+            return Collections.emptyMap();
+        }
+        if (DEBUG) {
+            StringBuilder cns = new StringBuilder(1000);
+            String sep = "";
+            for (String s : chaincodeNames) {
+                cns.append(sep).append(s);
+                sep = ",";
+            }
+            logger.debug(format("Channel %s doing discovery for chaincodes: %s", channelName, cns.toString()));
+        }
+
         ArrayList<Peer> speers = new ArrayList<>(serviceDiscoveryPeers);
         Collections.shuffle(speers);
         final Map<String, SDChaindcode> ret = new HashMap<>();
@@ -353,13 +386,14 @@ class ServiceDiscovery {
         for (Peer serviceDiscoveryPeer : speers) {
             serviceDiscoveryException = null;
             try {
+                logger.debug(format("Channel %s doing discovery for chaincodes on peer: %s", channelName, serviceDiscoveryPeer.toString()));
 
                 TransactionContext ltransactionContext = transactionContext.retryTransactionSameContext();
 
                 final byte[] clientTLSCertificateDigest = serviceDiscoveryPeer.getClientTLSCertificateDigest();
 
                 if (null == clientTLSCertificateDigest) {
-                    throw new RuntimeException(format("Peer %s requires mutual tls for service discovery.", serviceDiscoveryPeer));
+                    logger.warn(format("Channel %s peer %s requires mutual tls for service discovery.", channelName, serviceDiscoveryPeer.toString()));
                 }
 
                 ByteString clientIdent = ltransactionContext.getIdentity().toByteString();
@@ -393,9 +427,10 @@ class ServiceDiscovery {
                 Protocol.SignedRequest sr = Protocol.SignedRequest.newBuilder()
                         .setPayload(payloadBytes).setSignature(signatureBytes).build();
 
+                logger.debug(format("Channel %s peer %s sending chaincode query request", channelName, serviceDiscoveryPeer.toString()));
                 final Protocol.Response response = serviceDiscoveryPeer.sendDiscoveryRequestAsync(sr).get(SERVICE_DISCOVERY_WAITTIME, TimeUnit.MILLISECONDS);
+                logger.debug(format("Channel %s peer %s completed chaincode query request", channelName, serviceDiscoveryPeer.toString()));
                 serviceDiscoveryPeer.hasConnected();
-                final List<Protocol.QueryResult> resultsList = response.getResultsList();
 
                 for (Protocol.QueryResult queryResult : response.getResultsList()) {
 
@@ -404,7 +439,7 @@ class ServiceDiscovery {
                     }
 
                     if (queryResult.getResultCase().getNumber() != Protocol.QueryResult.CC_QUERY_RES_FIELD_NUMBER) {
-                        throw new ServiceDiscoveryException(format("Error expected chaincode endorsement query but go:t %s : ", queryResult.getResultCase().toString()));
+                        throw new ServiceDiscoveryException(format("Error expected chaincode endorsement query but got %s : ", queryResult.getResultCase().toString()));
                     }
 
                     Protocol.ChaincodeQueryResult ccQueryRes = queryResult.getCcQueryRes();
@@ -449,7 +484,34 @@ class ServiceDiscovery {
                                 layouts.add(new SDLayout(quantity, sdEndorsers));
                             }
                         }
-                        ret.put(es.getChaincode(), new SDChaindcode(es.getChaincode(), layouts));
+                        if (layouts.isEmpty()) {
+                            logger.warn(format("Channel %s chaincode %s discovered no layouts!", channelName, chaincode));
+                        } else {
+
+                            if (DEBUG) {
+                                StringBuilder sb = new StringBuilder(1000);
+                                sb.append("Channel ").append(channelName)
+                                        .append(" found ").append(layouts.size()).append(" layouts for chaincode: ").append(es.getChaincode());
+
+                                String sep = " ";
+                                for (SDLayout layout : layouts) {
+                                    sb.append(sep)
+                                            .append("SDLayout[")
+                                            .append("required: ").append(layout.getRequired()).append(", endorsers: [");
+
+                                    String sep2 = "";
+                                    for (SDEndorser sdEndorser : layout.getSDEndorsers()) {
+                                        sb.append(sep2).append(sdEndorser.toString());
+                                        sep2 = ", ";
+                                    }
+                                    sb.append("]");
+                                    sep = ", ";
+                                }
+
+                                logger.debug(sb.toString());
+                            }
+                            ret.put(es.getChaincode(), new SDChaindcode(es.getChaincode(), layouts));
+                        }
                     }
 
                 }
@@ -459,16 +521,19 @@ class ServiceDiscovery {
                 }
 
             } catch (ServiceDiscoveryException e) {
-                logger.warn(format("Service discovery error on peer %s. Error: %s", serviceDiscoveryPeer, e.getMessage()));
+                logger.warn(format("Service discovery error on peer %s. Error: %s", serviceDiscoveryPeer.toString(), e.getMessage()));
                 serviceDiscoveryException = e;
             } catch (Exception e) {
-                logger.warn(format("Service discovery error on peer %s. Error: %s", serviceDiscoveryPeer, e.getMessage()));
+                logger.warn(format("Service discovery error on peer %s. Error: %s", serviceDiscoveryPeer.toString(), e.getMessage()));
                 serviceDiscoveryException = new ServiceDiscoveryException(e);
             }
         }
 
         if (null != serviceDiscoveryException) {
             throw serviceDiscoveryException;
+        }
+        if (ret.size() != chaincodeNames.size()) {
+            logger.warn((format("Channel %s failed to find all layouts for chaincodes. Expected: %d and found: %d", chaincodeNames.size(), ret.size())));
         }
 
         return ret;
@@ -579,13 +644,17 @@ class ServiceDiscovery {
         }
 
         int ignoreList(Collection<String> names) {
-            layouts.removeIf(sdLayout -> !sdLayout.ignoreList(names));
+            if (names != null && !names.isEmpty()) {
+                layouts.removeIf(sdLayout -> !sdLayout.ignoreList(names));
+            }
             return layouts.size();
         }
 
         void endorsedList(Collection<String> names) {
-            for (SDLayout sdLayout : layouts) {
-                sdLayout.endorsedList(names);
+            if (!names.isEmpty()) {
+                for (SDLayout sdLayout : layouts) {
+                    sdLayout.endorsedList(names);
+                }
             }
         }
 
@@ -602,6 +671,24 @@ class ServiceDiscovery {
             }
             return ret;
         }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder(1000);
+            sb.append("SDChaindcode(name: ").append(name);
+            if (null != layouts && !layouts.isEmpty()) {
+                sb.append(", layouts: [");
+                String sep = "";
+                for (SDLayout sdLayout : layouts) {
+                    sb.append(sep).append(sdLayout + "");
+                    sep = " ,";
+                }
+                sb.append("]");
+            }
+            sb.append(")");
+            return sb.toString();
+        }
+
     }
 
     public static class SDLayout {
@@ -609,6 +696,28 @@ class ServiceDiscovery {
         final List<SDEndorser> sdEndorsers;
         final int required;
         int endorsed = 0;
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder(1000);
+
+            sb.append("SDLayout(")
+                    .append("required: ").append(getRequired()).append(", endorsed:").append(endorsed);
+
+            if (sdEndorsers != null && !sdEndorsers.isEmpty()) {
+                sb.append(", endorsers: [");
+                String sep2 = "";
+                for (SDEndorser sdEndorser : getSDEndorsers()) {
+                    sb.append(sep2).append(sdEndorser.toString());
+                    sep2 = ", ";
+                }
+                sb.append("]");
+            }
+            sb.append(")");
+
+            return sb.toString();
+
+        }
 
         SDLayout(int quantity, List<SDEndorser> protocolPeers) {
             required = quantity;
@@ -809,6 +918,10 @@ class ServiceDiscovery {
             return mspid;
         }
 
+        @Override
+        public String toString() {
+            return "SDEndorser-" + mspid + "-" + endPoint;
+        }
     }
 
     static List<SDEndorser> topNbyHeight(int required, List<SDEndorser> endorsers) {
@@ -846,6 +959,7 @@ class ServiceDiscovery {
         if (channel.isShutdown()) {
             return null;
         }
+        logger.trace(format("Full network discovery force %b", force));
         try {
             SDNetwork osdNetwork = sdNetwork;
             SDNetwork lsdNetwork = networkDiscovery(transactionContext.retryTransactionSameContext(), force);
@@ -866,11 +980,14 @@ class ServiceDiscovery {
 
         } catch (Exception e) {
             logger.warn("Service discovery got error:" + e.getMessage(), e);
+        } finally {
+            logger.trace("Full network discovery completed.");
         }
         return null;
     }
 
     void shutdown() {
+        logger.trace("Service discovery shutdown.");
         try {
             final ScheduledFuture<?> lseviceDiscovery = seviceDiscovery;
             seviceDiscovery = null;

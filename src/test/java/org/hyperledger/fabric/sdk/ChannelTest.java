@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -253,12 +254,13 @@ public class ChannelTest {
             }
 
             @Override
-            protected void parseConfigBlock() {
+            protected Map<String, MSP> parseConfigBlock(boolean force) {
 
+                return null;
             }
 
             @Override
-            protected void loadCACertificates() {
+            protected void loadCACertificates(boolean force) {
 
             }
         }

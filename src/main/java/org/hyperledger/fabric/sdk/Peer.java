@@ -368,7 +368,7 @@ public class Peer implements Serializable {
 
                 @Override
                 public void reconnect(Long startBLockNumber) throws TransactionException {
-                    logger.trace("reconnecting startBLockNumber" + startBLockNumber);
+                    logger.trace("reconnecting startBLockNumber: " + startBLockNumber == null ? "newest" : startBLockNumber);
                     ++reconnectCount;
 
                     if (startBLockNumber == null) {
