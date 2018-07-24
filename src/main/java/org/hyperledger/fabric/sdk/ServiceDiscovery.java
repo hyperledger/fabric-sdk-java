@@ -315,8 +315,7 @@ class ServiceDiscovery {
                 break;
 
             } catch (Exception e) {
-                logger.warn(format("Channel %s peer %s service discovery error %s", channelName, serviceDiscoveryPeer, e));
-
+                logger.warn(format("Channel %s peer %s service discovery error %s", channelName, serviceDiscoveryPeer, e.getMessage()));
             }
         }
 
@@ -948,6 +947,7 @@ class ServiceDiscovery {
                 return t;
             }).scheduleAtFixedRate(() -> {
 
+                logger.debug(format("Channel %s starting service rediscovery after %d seconds.", channelName, SERVICE_DISCOVER_FREQ_SECONDS));
                 fullNetworkDiscovery(true);
 
             }, SERVICE_DISCOVER_FREQ_SECONDS, SERVICE_DISCOVER_FREQ_SECONDS, TimeUnit.SECONDS);
@@ -959,7 +959,7 @@ class ServiceDiscovery {
         if (channel.isShutdown()) {
             return null;
         }
-        logger.trace(format("Full network discovery force %b", force));
+        logger.trace(format("Full network discovery force: %b", force));
         try {
             SDNetwork osdNetwork = sdNetwork;
             SDNetwork lsdNetwork = networkDiscovery(transactionContext.retryTransactionSameContext(), force);
@@ -981,7 +981,7 @@ class ServiceDiscovery {
         } catch (Exception e) {
             logger.warn("Service discovery got error:" + e.getMessage(), e);
         } finally {
-            logger.trace("Full network discovery completed.");
+            logger.trace("Full network rediscovery completed.");
         }
         return null;
     }

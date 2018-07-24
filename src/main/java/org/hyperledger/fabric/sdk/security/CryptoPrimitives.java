@@ -278,10 +278,11 @@ public class CryptoPrimitives implements CryptoSuite {
             PemReader pr = new PemReader(new StringReader(new String(pemKey)));
             PemObject po = pr.readPemObject();
             PEMParser pem = new PEMParser(new StringReader(new String(pemKey)));
-            logger.debug("found private key with type " + po.getType());
+
             if (po.getType().equals("PRIVATE KEY")) {
                 pk = new JcaPEMKeyConverter().getPrivateKey((PrivateKeyInfo) pem.readObject());
             } else {
+                logger.trace("Found private key with type " + po.getType());
                 PEMKeyPair kp = (PEMKeyPair) pem.readObject();
                 pk = new JcaPEMKeyConverter().getPrivateKey(kp.getPrivateKeyInfo());
             }

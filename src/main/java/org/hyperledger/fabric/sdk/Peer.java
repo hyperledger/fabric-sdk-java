@@ -57,6 +57,7 @@ public class Peer implements Serializable {
     private transient PeerEventServiceClient peerEventingClient;
     private transient boolean shutdown = false;
     private Channel channel;
+    private String channelName;
     private transient TransactionContext transactionContext;
     private transient long lastConnectTime;
     private transient long reconnectCount;
@@ -115,6 +116,7 @@ public class Peer implements Serializable {
 
     void unsetChannel() {
         channel = null;
+        channelName = null;
     }
 
     BlockEvent getLastBlockEvent() {
@@ -168,6 +170,7 @@ public class Peer implements Serializable {
         }
 
         this.channel = channel;
+        this.channelName = channel.getName();
 
     }
 
@@ -368,7 +371,7 @@ public class Peer implements Serializable {
 
                 @Override
                 public void reconnect(Long startBLockNumber) throws TransactionException {
-                    logger.trace("reconnecting startBLockNumber: " + startBLockNumber == null ? "newest" : startBLockNumber);
+                    logger.trace(format("Channel %s %s reconnecting. Starting block number: %s", channelName, toString(), startBLockNumber == null ? "newest" : startBLockNumber));
                     ++reconnectCount;
 
                     if (startBLockNumber == null) {
