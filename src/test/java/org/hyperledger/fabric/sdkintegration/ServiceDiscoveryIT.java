@@ -146,7 +146,10 @@ public class ServiceDiscoveryIT {
         transactionPropResp =
                 foo.sendTransactionProposalToEndorsers(transactionProposalRequest,
                         createDiscoveryOptions().ignoreEndpoints("blah.blah.blah.com:90", "blah.com:80",
-                                "localhost:7051") // aka peer0.org1.example.com our discovery peer. Lets ignore it in endorsers selection and see if other discovered peer endorses.
+                                // aka peer0.org1.example.com our discovery peer. Lets ignore it in endorsers selection and see if other discovered peer endorses.
+                                "localhost:7051")
+                        // if chaincode makes additional chaincode calls or uses collections you should add them with setServiceDiscoveryChaincodeInterests
+                        //         .setServiceDiscoveryChaincodeInterests(Channel.ServiceDiscoveryChaincodeCalls.createServiceDiscoveryChaincodeCalls("someOtherChaincodeName").addCollections("collection1", "collection2"))
                 );
         assertEquals(transactionPropResp.size(), 1);
         final ProposalResponse proposalResponse = transactionPropResp.iterator().next();

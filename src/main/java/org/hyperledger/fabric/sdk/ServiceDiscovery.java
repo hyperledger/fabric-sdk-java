@@ -41,6 +41,7 @@ import org.hyperledger.fabric.protos.discovery.Protocol;
 import org.hyperledger.fabric.protos.gossip.Message;
 import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.msp.MspConfig;
+import org.hyperledger.fabric.sdk.Channel.ServiceDiscoveryChaincodeCalls;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
 import org.hyperledger.fabric.sdk.exception.ServiceDiscoveryException;
 import org.hyperledger.fabric.sdk.helper.Config;
@@ -75,7 +76,14 @@ class ServiceDiscovery {
                 return sdChaindcode;
             }
         }
-        Map<String, SDChaindcode> dchaindcodeMap = discoverEndorserEndpoints(transactionContext, Collections.singleton(name));
+
+        final ServiceDiscoveryChaincodeCalls serviceDiscoveryChaincodeCalls = new ServiceDiscoveryChaincodeCalls(name);
+        LinkedList<ServiceDiscoveryChaincodeCalls> cc = new LinkedList<>();
+        cc.add(serviceDiscoveryChaincodeCalls);
+        List<List<ServiceDiscoveryChaincodeCalls>> ccl = new LinkedList<>();
+        ccl.add(cc);
+
+        Map<String, SDChaindcode> dchaindcodeMap = discoverEndorserEndpoints(transactionContext, ccl);
         final SDChaindcode sdChaindcode = dchaindcodeMap.get(name);
         if (null == sdChaindcode) {
             throw new ServiceDiscoveryException(format("Failed to find and endorsers for chaincode %s. See logs for details", name));
@@ -87,7 +95,7 @@ class ServiceDiscovery {
 
         final SDNetwork lsdNetwork = fullNetworkDiscovery(false);
         if (null == lsdNetwork) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
 
         }
 
@@ -118,9 +126,9 @@ class ServiceDiscovery {
             return Collections.unmodifiableCollection(endorsers.values());
         }
 
-        Map<String, SDEndorser> endorsers = Collections.EMPTY_MAP;
+        Map<String, SDEndorser> endorsers = Collections.emptyMap();
 
-        Map<String, SDOrderer> ordererEndpoints = Collections.EMPTY_MAP;
+        Map<String, SDOrderer> ordererEndpoints = Collections.emptyMap();
 
         Set<String> getOrdererEndpoints() {
             return Collections.unmodifiableSet(ordererEndpoints.keySet());
@@ -143,7 +151,7 @@ class ServiceDiscovery {
             if (null == chaincodeNames) {
 
                 if (null == endorsers) {
-                    chaincodeNames = Collections.EMPTY_SET;
+                    chaincodeNames = Collections.emptySet();
                     return chaincodeNames;
                 }
 
@@ -163,7 +171,7 @@ class ServiceDiscovery {
         Collection<byte[]> getTlsCerts(String mspid) {
             final Collection<byte[]> bytes = tlsCerts.get(mspid);
             if (null == bytes) {
-                return Collections.EMPTY_LIST;
+                return Collections.emptyList();
 
             }
             return Collections.unmodifiableCollection(bytes);
@@ -172,7 +180,7 @@ class ServiceDiscovery {
         Collection<byte[]> getTlsIntermediateCerts(String mspid) {
             final Collection<byte[]> bytes = tlsIntermCerts.get(mspid);
             if (null == bytes) {
-                return Collections.EMPTY_LIST;
+                return Collections.emptyList();
 
             }
             return Collections.unmodifiableCollection(bytes);
@@ -296,11 +304,11 @@ class ServiceDiscovery {
 
                 lsdNetwork.endorsers = new HashMap<>();
 
-                for (Map.Entry<String, Protocol.Peers> peerses : membership.getPeersByOrgMap().entrySet()) {
-                    final String mspId = peerses.getKey();
-                    Protocol.Peers peers = peerses.getValue();
+                for (Map.Entry<String, Protocol.Peers> peers : membership.getPeersByOrgMap().entrySet()) {
+                    final String mspId = peers.getKey();
+                    Protocol.Peers peer = peers.getValue();
 
-                    for (Protocol.Peer pp : peers.getPeersList()) {
+                    for (Protocol.Peer pp : peer.getPeersList()) {
 
                         SDEndorser ppp = new SDEndorser(pp, lsdNetwork.getTlsCerts(mspId), lsdNetwork.getTlsIntermediateCerts(mspId));
                         logger.trace(format("Channel %s discovered peer MSPID: %s, endpoint: %s", channelName, mspId, ppp.getEndpoint()));
@@ -356,7 +364,7 @@ class ServiceDiscovery {
         }
     }
 
-    Map<String, SDChaindcode> discoverEndorserEndpoints(TransactionContext transactionContext, Set<String> chaincodeNames) throws ServiceDiscoveryException {
+    Map<String, SDChaindcode> discoverEndorserEndpoints(TransactionContext transactionContext, List<List<ServiceDiscoveryChaincodeCalls>> chaincodeNames) throws ServiceDiscoveryException {
 
         if (null == chaincodeNames) {
             logger.warn("Discover of chaincode names was null.");
@@ -369,10 +377,14 @@ class ServiceDiscovery {
         if (DEBUG) {
             StringBuilder cns = new StringBuilder(1000);
             String sep = "";
-            for (String s : chaincodeNames) {
-                cns.append(sep).append(s);
-                sep = ",";
+            cns.append("[");
+            for (List<ServiceDiscoveryChaincodeCalls> s : chaincodeNames) {
+
+                ServiceDiscoveryChaincodeCalls n = s.get(0);
+                cns.append(sep).append(n.write(s.subList(1, s.size())));
+                sep = ", ";
             }
+            cns.append("]");
             logger.debug(format("Channel %s doing discovery for chaincodes: %s", channelName, cns.toString()));
         }
 
@@ -393,6 +405,7 @@ class ServiceDiscovery {
 
                 if (null == clientTLSCertificateDigest) {
                     logger.warn(format("Channel %s peer %s requires mutual tls for service discovery.", channelName, serviceDiscoveryPeer.toString()));
+                    continue;
                 }
 
                 ByteString clientIdent = ltransactionContext.getIdentity().toByteString();
@@ -401,13 +414,16 @@ class ServiceDiscovery {
 
                 List<Protocol.Query> fq = new ArrayList<>(chaincodeNames.size());
 
-                for (String chaincodeName : chaincodeNames) {
-                    if (ret.containsKey(chaincodeName)) {
+                for (List<ServiceDiscoveryChaincodeCalls> chaincodeName : chaincodeNames) {
+
+                    if (ret.containsKey(chaincodeName.get(0).getName())) {
                         continue;
                     }
+                    LinkedList<Protocol.ChaincodeCall> chaincodeCalls = new LinkedList<>();
+                    chaincodeName.forEach(serviceDiscoveryChaincodeCalls -> chaincodeCalls.add(serviceDiscoveryChaincodeCalls.build()));
                     List<Protocol.ChaincodeInterest> cinn = new ArrayList<>(1);
-                    Protocol.ChaincodeCall.newBuilder().setName(chaincodeName).build();
-                    Protocol.ChaincodeInterest cci = Protocol.ChaincodeInterest.newBuilder().addChaincodes(Protocol.ChaincodeCall.newBuilder().setName(chaincodeName).build()).build();
+                    chaincodeName.forEach(ServiceDiscoveryChaincodeCalls::build);
+                    Protocol.ChaincodeInterest cci = Protocol.ChaincodeInterest.newBuilder().addAllChaincodes(chaincodeCalls).build();
                     cinn.add(cci);
                     Protocol.ChaincodeQuery chaincodeQuery = Protocol.ChaincodeQuery.newBuilder().addAllInterests(cinn).build();
 
@@ -532,7 +548,7 @@ class ServiceDiscovery {
             throw serviceDiscoveryException;
         }
         if (ret.size() != chaincodeNames.size()) {
-            logger.warn((format("Channel %s failed to find all layouts for chaincodes. Expected: %d and found: %d", chaincodeNames.size(), ret.size())));
+            logger.warn((format("Channel %s failed to find all layouts for chaincodes. Expected: %d and found: %d", channelName, chaincodeNames.size(), ret.size())));
         }
 
         return ret;
@@ -756,7 +772,7 @@ class ServiceDiscovery {
             return true;
         }
 
-        boolean endorsedList(Collection<String> names) {
+        void endorsedList(Collection<String> names) {
             HashSet<String> bnames = new HashSet<>(names);
             for (Iterator<SDEndorser> i = sdEndorsers.iterator(); i.hasNext();
                     ) { //checkstyle oddity.
@@ -766,8 +782,6 @@ class ServiceDiscovery {
                     ++endorsed;
                 }
             }
-
-            return true;
         }
 
         Set<String> meetsEndorsmentPolicy(Set<String> endpoints) {
@@ -904,7 +918,7 @@ class ServiceDiscovery {
 
         Set<String> getChaincodeNames() {
             if (chaincodesList == null) {
-                return Collections.EMPTY_SET;
+                return Collections.emptySet();
             }
 
             HashSet<String> ret = new HashSet<>(chaincodesList.size());
@@ -921,11 +935,12 @@ class ServiceDiscovery {
         public String toString() {
             return "SDEndorser-" + mspid + "-" + endPoint;
         }
+
     }
 
     static List<SDEndorser> topNbyHeight(int required, List<SDEndorser> endorsers) {
         ArrayList<SDEndorser> ret = new ArrayList<>(endorsers);
-        Collections.sort(ret, Comparator.comparingLong(SDEndorser::getLedgerHeight));
+        ret.sort(Comparator.comparingLong(SDEndorser::getLedgerHeight));
         return ret.subList(Math.max(ret.size() - required, 0), ret.size());
     }
 
@@ -968,7 +983,14 @@ class ServiceDiscovery {
             }
 
             if (osdNetwork != lsdNetwork) { // means it changed.
-                chaindcodeMap = discoverEndorserEndpoints(transactionContext.retryTransactionSameContext(), lsdNetwork.getChaincodesNames());
+                final Set<String> chaincodesNames = lsdNetwork.getChaincodesNames();
+                List<List<ServiceDiscoveryChaincodeCalls>> lcc = new LinkedList<>();
+                chaincodesNames.forEach(s -> {
+                    List<ServiceDiscoveryChaincodeCalls> lc = new LinkedList<>();
+                    lc.add(new ServiceDiscoveryChaincodeCalls(s));
+                    lcc.add(lc);
+                });
+                chaindcodeMap = discoverEndorserEndpoints(transactionContext.retryTransactionSameContext(), lcc);
                 if (channel.isShutdown()) {
                     return null;
                 }
@@ -1006,7 +1028,7 @@ class ServiceDiscovery {
         super.finalize();
     }
 
-    static final String REMAP2HOST = System.getProperty("org.hyperledger.fabric.sdk.test.endpoint_remap_discovery_host_name");
+    private static final String REMAP2HOST = System.getProperty("org.hyperledger.fabric.sdk.test.endpoint_remap_discovery_host_name");
 
     private static String remapEndpoint(String endpoint) {
         String ret = endpoint;

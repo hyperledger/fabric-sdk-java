@@ -107,7 +107,7 @@
         <!-- See http://checkstyle.sf.net/config_sizes.html -->
         <module name="MethodLength">
             <property name="tokens" value="METHOD_DEF"/>
-            <property name="max" value="200"/>
+            <property name="max" value="300"/>
             <property name="countEmpty" value="false"/>
         </module>
         <module name="ParameterNumber">

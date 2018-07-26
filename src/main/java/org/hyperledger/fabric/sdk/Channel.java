@@ -74,6 +74,7 @@ import org.hyperledger.fabric.protos.common.Configtx.ConfigSignature;
 import org.hyperledger.fabric.protos.common.Configtx.ConfigUpdateEnvelope;
 import org.hyperledger.fabric.protos.common.Configtx.ConfigValue;
 import org.hyperledger.fabric.protos.common.Ledger;
+import org.hyperledger.fabric.protos.discovery.Protocol;
 import org.hyperledger.fabric.protos.msp.MspConfig;
 import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.orderer.Ab.BroadcastResponse;
@@ -92,6 +93,7 @@ import org.hyperledger.fabric.protos.peer.Query.ChaincodeQueryResponse;
 import org.hyperledger.fabric.protos.peer.Query.ChannelQueryResponse;
 import org.hyperledger.fabric.sdk.BlockEvent.TransactionEvent;
 import org.hyperledger.fabric.sdk.Peer.PeerRole;
+import org.hyperledger.fabric.sdk.ServiceDiscovery.SDChaindcode;
 import org.hyperledger.fabric.sdk.ServiceDiscovery.SDEndorser;
 import org.hyperledger.fabric.sdk.ServiceDiscovery.SDEndorserState;
 import org.hyperledger.fabric.sdk.ServiceDiscovery.SDNetwork;
@@ -1114,9 +1116,7 @@ public class Channel implements Serializable {
                 chaincodeEventUpgradeListenerHandle = registerChaincodeEventListener(Pattern.compile("^lscc$"), Pattern.compile("^upgrade$"), (handle, blockEvent, chaincodeEvent) -> {
                     logger.debug(format("Channel %s got upgrade chaincode event", name));
                     if (!isShutdown() && isChaincodeUpgradeEvent(blockEvent.getBlockNumber())) {
-                        getExecutorService().execute(() -> {
-                            serviceDiscovery.fullNetworkDiscovery(true);
-                        });
+                        getExecutorService().execute(() -> serviceDiscovery.fullNetworkDiscovery(true));
                     }
                 });
             }
@@ -1159,7 +1159,7 @@ public class Channel implements Serializable {
         });
 
         for (ServiceDiscovery.SDOrderer sdOrderer : sdNetwork.getSDOrderers()) {
-            Orderer orderer = ordererEndpointMap.get(sdOrderer);
+            Orderer orderer = ordererEndpointMap.get(sdOrderer.getEndPoint());
             if (shutdown) {
                 return;
             }
@@ -1571,7 +1571,7 @@ public class Channel implements Serializable {
      */
 
     public SDPeerAddition setSDPeerAddition(SDPeerAddition sdPeerAddition) {
-        SDPeerAddition ret = sdPeerAddition;
+        SDPeerAddition ret = this.sdPeerAddition;
 
         this.sdPeerAddition = sdPeerAddition;
 
@@ -3112,21 +3112,16 @@ public class Channel implements Serializable {
      */
     public Collection<ProposalResponse> sendTransactionProposalToEndorsers(TransactionProposalRequest transactionProposalRequest, DiscoveryOptions discoveryOptions) throws ProposalException, InvalidArgumentException, ServiceDiscoveryException {
         final String chaincodeName = transactionProposalRequest.getChaincodeID().getName();
-
         checkChannelState();
-
         if (null == transactionProposalRequest) {
             throw new InvalidArgumentException("The proposalRequest is null");
         }
-
         if (isNullOrEmpty(transactionProposalRequest.getFcn())) {
             throw new InvalidArgumentException("The proposalRequest's fcn is null or empty.");
         }
-
         if (transactionProposalRequest.getChaincodeID() == null) {
             throw new InvalidArgumentException("The proposalRequest's chaincode ID is null");
         }
-
         logger.debug(format("Channel %s sendTransactionProposalToEndorsers chaincode name: %s", name, chaincodeName));
 
         TransactionContext transactionContext = getTransactionContext(transactionProposalRequest.getUserContext());
@@ -3144,26 +3139,40 @@ public class Channel implements Serializable {
         } catch (CryptoException e) {
             throw new InvalidArgumentException(e);
         }
+        SDChaindcode sdChaindcode;
+        final List<ServiceDiscoveryChaincodeCalls> serviceDiscoveryChaincodeInterests = discoveryOptions.getServiceDiscoveryChaincodeInterests();
 
-        if (discoveryOptions.forceDiscovery) {
-            logger.trace("Forcing discovery.");
-            serviceDiscovery.networkDiscovery(transactionContext, true);
+        if (null != serviceDiscoveryChaincodeInterests && !serviceDiscoveryChaincodeInterests.isEmpty()) {
+            final String firstname = serviceDiscoveryChaincodeInterests.get(0).getName();
+            if (!firstname.equals(chaincodeName)) {
+                serviceDiscoveryChaincodeInterests.add(0, new ServiceDiscoveryChaincodeCalls(chaincodeName));
+            }
+            List<List<ServiceDiscoveryChaincodeCalls>> ccl = new LinkedList<>();
+            ccl.add(serviceDiscoveryChaincodeInterests);
+            final Map<String, SDChaindcode> sdChaindcodeMap = serviceDiscovery.discoverEndorserEndpoints(transactionContext, ccl);
+            if (sdChaindcodeMap == null) {
+                throw new ServiceDiscoveryException(format("Channel %s failed doing service discovery for chaincode %s ", name, chaincodeName));
+            }
+            sdChaindcode = sdChaindcodeMap.get(chaincodeName);
+
+        } else {
+            if (discoveryOptions.forceDiscovery) {
+                logger.trace("Forcing discovery.");
+                serviceDiscovery.networkDiscovery(transactionContext, true);
+            }
+            sdChaindcode = serviceDiscovery.discoverEndorserEndpoint(transactionContext, chaincodeName);
         }
-
-        ServiceDiscovery.SDChaindcode sdChaindcode = serviceDiscovery.discoverEndorserEndpoint(transactionContext, chaincodeName);
-
         logger.trace(format("Channel %s chaincode %s discovered: %s", name, chaincodeName, "" + sdChaindcode));
 
         if (null == sdChaindcode) {
-            throw new ProposalException(format("Channel %s failed to find and endorsers for chaincode %s", name, chaincodeName));
+            throw new ServiceDiscoveryException(format("Channel %s failed to find and endorsers for chaincode %s", name, chaincodeName));
         }
 
         if (sdChaindcode.getLayouts() == null || sdChaindcode.getLayouts().isEmpty()) {
-
-            throw new ProposalException(format("Channel %s failed to find and endorsers for chaincode %s no layouts found.", name, chaincodeName));
+            throw new ServiceDiscoveryException(format("Channel %s failed to find and endorsers for chaincode %s no layouts found.", name, chaincodeName));
         }
 
-        ServiceDiscovery.SDChaindcode sdChaindcodeNI = new ServiceDiscovery.SDChaindcode(sdChaindcode); //copy. no ignored.
+        SDChaindcode sdChaindcodeNI = new SDChaindcode(sdChaindcode); //copy. no ignored.
 
         final boolean inspectResults = discoveryOptions.inspectResults;
 
@@ -3174,10 +3183,8 @@ public class Channel implements Serializable {
         if (IS_TRACE_LEVEL && null != discoveryOptions.getIgnoreList() && !discoveryOptions.getIgnoreList().isEmpty()) {
             logger.trace(format("SDchaincode after ignore list: %s", sdChaindcodeNI));
         }
-
         final EndorsementSelector lendorsementSelector = discoveryOptions.endorsementSelector != null ?
                 discoveryOptions.endorsementSelector : this.endorsementSelector;
-
         try {
 
             final Map<String, ProposalResponse> goodResponses = new HashMap<>(); // all good endorsements by endpoint
@@ -3210,9 +3217,7 @@ public class Channel implements Serializable {
                     Set<String> needed = sdChaindcode.meetsEndorsmentPolicy(goodResponses.keySet());
                     if (needed != null) {
                         ArrayList<ProposalResponse> ret = new ArrayList<>(needed.size());
-                        needed.forEach(s -> {
-                            ret.add(goodResponses.get(s));
-                        });
+                        needed.forEach(s -> ret.add(goodResponses.get(s)));
 
                         if (IS_DEBUG_LEVEL) {
 
@@ -3321,9 +3326,7 @@ public class Channel implements Serializable {
                 Set<String> needed = sdChaindcode.meetsEndorsmentPolicy(goodResponses.keySet());
                 if (needed != null) {
                     ArrayList<ProposalResponse> ret = new ArrayList<>(needed.size());
-                    needed.forEach(s -> {
-                        ret.add(goodResponses.get(s));
-                    });
+                    needed.forEach(s -> ret.add(goodResponses.get(s)));
 
                     if (IS_DEBUG_LEVEL) {
 
@@ -3791,7 +3794,7 @@ public class Channel implements Serializable {
                 }
                 if (!ready) {
                     for (Iterator<NOfEvents> ni = nOfEvents.iterator(); ni.hasNext();
-                            ) { // for check style
+                    ) { // for check style
                         NOfEvents e = ni.next();
                         if (e.seen(eventHub)) {
                             ni.remove();
@@ -3829,7 +3832,7 @@ public class Channel implements Serializable {
                 if (!ready) {
 
                     for (Iterator<NOfEvents> ni = nOfEvents.iterator(); ni.hasNext();
-                            ) { // for check style
+                    ) { // for check style
                         NOfEvents e = ni.next();
                         if (e.seen(peer)) {
                             ni.remove();
@@ -4018,11 +4021,124 @@ public class Channel implements Serializable {
         }
     }
 
+    /**
+     * Additional metadata used by service discovery to find the endorsements needed.
+     * Specify which chaincode is invoked and what collections are used.
+     */
+
+    public static class ServiceDiscoveryChaincodeCalls {
+        String name;
+        List<String> collections;
+
+        ServiceDiscoveryChaincodeCalls(String chaincodeName) {
+            this.name = chaincodeName;
+        }
+
+        /**
+         * The collections used by this chaincode.
+         *
+         * @param collectionName name of collection.
+         * @return
+         */
+
+        public ServiceDiscoveryChaincodeCalls addCollections(String... collectionName) {
+            if (collections == null) {
+                collections = new LinkedList<>();
+            }
+            collections.addAll(new ArrayList<>(Arrays.asList(collectionName)));
+            return this;
+        }
+
+        String write(List<ServiceDiscoveryChaincodeCalls> dep) {
+
+            StringBuilder cns = new StringBuilder(1000);
+            cns.append("ServiceDiscoveryChaincodeCalls(name: ").append(name);
+
+            String sep = "";
+
+            final List<String> collections = getCollections();
+            if (!collections.isEmpty()) {
+                cns.append(", collections:[");
+                String sep2 = "";
+                for (String collection : collections) {
+                    cns.append(sep2).append(collection);
+                    sep2 = ", ";
+                }
+                cns.append("]");
+            }
+            if (dep != null && !dep.isEmpty()) {
+                cns.append(" ,dependents:[");
+                String sep2 = "";
+
+                for (ServiceDiscoveryChaincodeCalls chaincodeCalls : dep) {
+                    cns.append(sep2).append(chaincodeCalls.write(null));
+                    sep2 = ", ";
+                }
+
+                cns.append("]");
+
+            }
+            cns.append(")");
+
+            return cns.toString();
+
+        }
+
+        /**
+         * Create ch
+         *
+         * @param name
+         * @return
+         * @throws InvalidArgumentException
+         */
+
+        public static ServiceDiscoveryChaincodeCalls createServiceDiscoveryChaincodeCalls(String name) throws InvalidArgumentException {
+            if (isNullOrEmpty(name)) {
+                throw new InvalidArgumentException("The name paramter must be non null nor an empty string.");
+            }
+            return new ServiceDiscoveryChaincodeCalls(name);
+        }
+
+        private Protocol.ChaincodeCall ret = null;
+
+        Protocol.ChaincodeCall build() {
+
+            if (ret == null) {
+
+                final Protocol.ChaincodeCall.Builder builder = Protocol.ChaincodeCall.newBuilder().setName(name);
+                if (collections != null && !collections.isEmpty()) {
+                    builder.addAllCollectionNames(collections);
+                }
+                ret = builder.build();
+            }
+
+            return ret;
+
+        }
+
+        String getName() {
+            return name;
+        }
+
+        List<String> getCollections() {
+            return collections == null ? Collections.EMPTY_LIST : collections;
+        }
+    }
+
+    /**
+     * Options for doing service discovery.
+     */
     public static class DiscoveryOptions {
         Set<String> ignoreList = new HashSet<>();
         EndorsementSelector endorsementSelector = null;
         boolean inspectResults = false;
         boolean forceDiscovery = false;
+
+        List<ServiceDiscoveryChaincodeCalls> getServiceDiscoveryChaincodeInterests() {
+            return serviceDiscoveryChaincodeInterests;
+        }
+
+        List<ServiceDiscoveryChaincodeCalls> serviceDiscoveryChaincodeInterests = null;
 
         /**
          * Create transaction options.
@@ -4037,10 +4153,24 @@ public class Channel implements Serializable {
             return inspectResults;
         }
 
-        public void setInspectResults(boolean inspectResults) {
+        /**
+         * Set to true to inspect proposals results on error.
+         *
+         * @param inspectResults
+         * @return
+         */
+        public DiscoveryOptions setInspectResults(boolean inspectResults) {
             this.inspectResults = inspectResults;
+            return this;
         }
 
+        /**
+         * Set the handler which selects the endorser endpoints from the alternatives provided by service discovery.
+         *
+         * @param endorsementSelector
+         * @return
+         * @throws InvalidArgumentException
+         */
         public DiscoveryOptions setEndorsementSelector(EndorsementSelector endorsementSelector) throws InvalidArgumentException {
             if (endorsementSelector == null) {
                 throw new InvalidArgumentException("endorsementSelector parameter is null.");
@@ -4048,6 +4178,29 @@ public class Channel implements Serializable {
             this.endorsementSelector = endorsementSelector;
             return this;
         }
+
+        /**
+         * Set which other chaincode calls are made by this chaincode and they're collections.
+         *
+         * @param serviceDiscoveryChaincodeInterests
+         * @return DiscoveryOptions
+         */
+
+        public DiscoveryOptions setServiceDiscoveryChaincodeInterests(ServiceDiscoveryChaincodeCalls... serviceDiscoveryChaincodeInterests) {
+
+            if (this.serviceDiscoveryChaincodeInterests == null) {
+                this.serviceDiscoveryChaincodeInterests = new LinkedList<>();
+            }
+            this.serviceDiscoveryChaincodeInterests.addAll(new ArrayList<>(Arrays.asList(serviceDiscoveryChaincodeInterests)));
+            return this;
+        }
+
+        /**
+         * Force new service discovery
+         *
+         * @param forceDiscovery
+         * @return
+         */
 
         public DiscoveryOptions setForceDiscovery(boolean forceDiscovery) {
             this.forceDiscovery = forceDiscovery;
@@ -4495,10 +4648,7 @@ public class Channel implements Serializable {
                     ServiceDiscovery lserviceDiscovery = serviceDiscovery;
                     if (null != lserviceDiscovery) {
 
-                        client.getExecutorService().execute(() -> {
-                            lserviceDiscovery.fullNetworkDiscovery(true);
-
-                        });
+                        client.getExecutorService().execute(() -> lserviceDiscovery.fullNetworkDiscovery(true));
                     }
 
                 } else {
@@ -4579,7 +4729,7 @@ public class Channel implements Serializable {
                         synchronized (txListeners) {
 
                             for (Iterator<Map.Entry<String, LinkedList<TL>>> it = txListeners.entrySet().iterator(); it.hasNext();
-                                    ) {
+                            ) {
 
                                 Map.Entry<String, LinkedList<TL>> es = it.next();
 
@@ -4750,7 +4900,7 @@ public class Channel implements Serializable {
                     }
                 }
 
-                List<MatchPair> matches = new LinkedList<MatchPair>(); //Find matches.
+                List<MatchPair> matches = new LinkedList<>(); //Find matches.
 
                 synchronized (chainCodeListeners) {
 
@@ -4865,10 +5015,7 @@ public class Channel implements Serializable {
         orderers.clear();
 
         if (null != eventQueueThread) {
-
-            if (eventQueueThread != null) {
-                eventQueueThread.interrupt();
-            }
+            eventQueueThread.interrupt();
             eventQueueThread = null;
         }
         ScheduledFuture<?> lsweeper = sweeper;
