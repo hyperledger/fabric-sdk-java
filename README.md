@@ -1,4 +1,4 @@
-k# Java SDK for Hyperledger Fabric 1.2
+# Java SDK for Hyperledger Fabric 1.3
 Welcome to Java SDK for Hyperledger project. The SDK helps facilitate Java applications to manage the lifecycle of
  Hyperledger channels  and user chaincode. The SDK also provides a means to execute
   user chaincode, query blocks
@@ -22,6 +22,12 @@ SDK's `Enrollment` interface.
   only help you familiarize to get started with the SDK if you are new in this domain.
 
 
+## IMPORTANT: Version 1.3 IS WORK IN PROGRESS!
+If you don't require features of Fabric or Fabric CA version 1.3 you probably should consider the v1.2.x version of the SDK.
+To get the actual v1.2.0 SDK:  [v1.2.0](https://github.com/hyperledger/fabric-sdk-java/tree/33760188370ed4653cca93e727e509e774c5c8c1)
+If you are trying to use new features of Fabric you will probably have to build Fabric to get those features.
+
+
 ## Release notes
 
 |Release | Notes |
@@ -39,13 +45,13 @@ git checkout -b release-1.2
 ```
 
 ## Java applications
-For Java applications use the latest published v1.2.x releases:
+For Java applications use the latest published v1.3.x releases:
 ```
      <!-- https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java -->
      <dependency>
          <groupId>org.hyperledger.fabric-sdk-java</groupId>
          <artifactId>fabric-sdk-java</artifactId>
-         <version>1.2.0/version>
+         <version>1.3.0-SNAPHOST/version>
      </dependency>
 
 ```
@@ -61,6 +67,34 @@ For Java applications use the latest published v1.2.x releases:
 
 `*************************************************`
 
+## 1.3.0-SNAPSHOT builds
+Work in progress 1.3.0 SNAPSHOT builds can be used by adding the following to your application's
+pom.xml
+```
+<repositories>
+        <repository>
+            <id>snapshots-repo</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+<dependencies>
+
+        <!-- https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java -->
+        <dependency>
+            <groupId>org.hyperledger.fabric-sdk-java</groupId>
+            <artifactId>fabric-sdk-java</artifactId>
+            <version>1.3.0-SNAPSHOT</version>
+        </dependency>
+
+</dependencies>
+```
 
 
 
@@ -68,9 +102,9 @@ For Java applications use the latest published v1.2.x releases:
 Latest Fabric builds are seldom needed except for those working on the very latest Fabric features.
 Some information to help with that can been found in [Developer Instructions](./docs/DeveloperInstructions.md)
 
-## Latest builds of Fabric and Fabric-ca v1.2.0
+## Latest builds of Fabric and Fabric-ca v1.3.0
 
-To get a functioning Fabric v1.2.0 network needed by the SDK Integration tests once it's built.
+To get a functioning Fabric v1.3.0 network needed by the SDK Integration tests once it's built.
 In the directory `src/test/fixture/sdkintegration` issue :
 
 `./fabric.sh restart`
@@ -274,7 +308,7 @@ JIRA Fields should be:
   <dt>Component</dt>
   <dd>fabric-sdk-java</dd>
   <dt>Fix Versions</dt>
-    <dd>v1.1</dd>
+    <dd>v1.3</dd>
 </dl>
 
 Pleases provide as much information that you can with the issue you're experiencing: stack traces logs.
