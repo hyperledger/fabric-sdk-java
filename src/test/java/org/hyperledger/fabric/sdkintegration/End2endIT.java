@@ -846,17 +846,22 @@ public class End2endIT {
             peerProperties.put("grpc.NettyChannelBuilderOption.maxInboundMessageSize", 9000000);
 
             Peer peer = client.newPeer(peerName, peerLocation, peerProperties);
-            if (doPeerEventing && everyother) {
+            if (testConfig.isFabricVersionAtOrAfter("1.3")) {
                 newChannel.joinPeer(peer, createPeerOptions().setPeerRoles(EnumSet.of(PeerRole.ENDORSING_PEER, PeerRole.LEDGER_QUERY, PeerRole.CHAINCODE_QUERY, PeerRole.EVENT_SOURCE))); //Default is all roles.
+
             } else {
-                // Set peer to not be all roles but eventing.
-                newChannel.joinPeer(peer, createPeerOptions().setPeerRoles(EnumSet.of(PeerRole.ENDORSING_PEER, PeerRole.LEDGER_QUERY, PeerRole.CHAINCODE_QUERY)));
+                if (doPeerEventing && everyother) {
+                    newChannel.joinPeer(peer, createPeerOptions().setPeerRoles(EnumSet.of(PeerRole.ENDORSING_PEER, PeerRole.LEDGER_QUERY, PeerRole.CHAINCODE_QUERY, PeerRole.EVENT_SOURCE))); //Default is all roles.
+                } else {
+                    // Set peer to not be all roles but eventing.
+                    newChannel.joinPeer(peer, createPeerOptions().setPeerRoles(EnumSet.of(PeerRole.ENDORSING_PEER, PeerRole.LEDGER_QUERY, PeerRole.CHAINCODE_QUERY)));
+                }
             }
             out("Peer %s joined channel %s", peerName, name);
             everyother = !everyother;
         }
         //just for testing ...
-        if (doPeerEventing) {
+        if (doPeerEventing || testConfig.isFabricVersionAtOrAfter("1.3")) {
             // Make sure there is one of each type peer at the very least.
             assertFalse(newChannel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).isEmpty());
             assertFalse(newChannel.getPeers(PeerRole.NO_EVENT_SOURCE).isEmpty());

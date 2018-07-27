@@ -608,7 +608,7 @@ public class End2endAndBackAgainIT {
                 assertFalse(newChannel.getPeers(PeerRole.NO_EVENT_SOURCE).isEmpty());
 
             }
-            assertEquals(2, newChannel.getEventHubs().size());
+            assertEquals(testConfig.isFabricVersionAtOrAfter("1.3") ? 0 : 2, newChannel.getEventHubs().size());
             out("Retrieved channel %s from sample store.", name);
 
         } else {

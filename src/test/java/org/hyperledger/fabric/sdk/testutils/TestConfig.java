@@ -83,12 +83,27 @@ public class TestConfig {
     private final boolean runningFabricTLS;
     private static final HashMap<String, SampleOrg> sampleOrgs = new HashMap<>();
 
+    private static final String ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION
+            = System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION") == null ? "1.3.0" : System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION");
+
     static {
         //set to fake out discovery during testing to local docker  see Endpoint.java's createEndpoint method.
         System.setProperty("org.hyperledger.fabric.sdk.test.endpoint_remap_discovery_host_name", "localhost"); // for testing only remaps all endpoint names.
     }
 
+    int[] fabricVersion = new int[3];
+
     private TestConfig() {
+
+        final String[] fvs = ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION.split("\\.");
+        if (fvs.length != 3) {
+            throw new AssertionError("Expected environment variable 'ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION' to be three numbers sperated by dots (1.0.0)  but got: " + ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION);
+
+        }
+        fabricVersion[0] = Integer.parseInt(fvs[0].trim());
+        fabricVersion[1] = Integer.parseInt(fvs[1].trim());
+        fabricVersion[2] = Integer.parseInt(fvs[2].trim());
+
         File loadFile;
         FileInputStream configProps;
 
@@ -169,11 +184,14 @@ public class TestConfig {
                     sampleOrg.addOrdererLocation(nl[0], grpcTLSify(nl[1]));
                 }
 
-                String eventHubNames = sdkProperties.getProperty(INTEGRATIONTESTS_ORG + orgName + ".eventhub_locations");
-                ps = eventHubNames.split("[ \t]*,[ \t]*");
-                for (String peer : ps) {
-                    String[] nl = peer.split("[ \t]*@[ \t]*");
-                    sampleOrg.addEventHubLocation(nl[0], grpcTLSify(nl[1]));
+                if (isFabricVersionBefore("1.3")) { // Eventhubs supported.
+
+                    String eventHubNames = sdkProperties.getProperty(INTEGRATIONTESTS_ORG + orgName + ".eventhub_locations");
+                    ps = eventHubNames.split("[ \t]*,[ \t]*");
+                    for (String peer : ps) {
+                        String[] nl = peer.split("[ \t]*@[ \t]*");
+                        sampleOrg.addEventHubLocation(nl[0], grpcTLSify(nl[1]));
+                    }
                 }
 
                 sampleOrg.setCALocation(httpTLSify(sdkProperties.getProperty((INTEGRATIONTESTS_ORG + org.getKey() + ".ca_location"))));
@@ -197,6 +215,42 @@ public class TestConfig {
             }
 
         }
+
+    }
+
+    public boolean isFabricVersionAtOrAfter(String version) {
+
+        final int[] vers = parseVersion(version);
+        for (int i = 0; i < 3; ++i) {
+            if (vers[i] > fabricVersion[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean isFabricVersionBefore(String version) {
+
+        return !isFabricVersionAtOrAfter(version);
+    }
+
+    private static int[] parseVersion(String version) {
+        if (null == version || version.isEmpty()) {
+            throw new AssertionError("Version is bad :" + version);
+        }
+        String[] split = version.split("[ \\t]*\\.[ \\t]*");
+        if (split.length < 1 || split.length > 3) {
+            throw new AssertionError("Version is bad :" + version);
+        }
+        int[] ret = new int[3];
+        int i = 0;
+        for (; i < split.length; ++i) {
+            ret[i] = Integer.parseInt(split[i]);
+        }
+        for (; i < 3; ++i) {
+            ret[i] = 0;
+        }
+        return ret;
 
     }
 
@@ -385,7 +439,7 @@ public class TestConfig {
         String pname = "src/test/fixture/sdkintegration/network_configs/";
         File ret = new File(pname, fname);
 
-        if (!"localhost".equals(LOCALHOST)) {
+        if (!"localhost".equals(LOCALHOST) || isFabricVersionAtOrAfter("1.3")) {
             // change on the fly ...
             File temp = null;
 
@@ -405,6 +459,11 @@ public class TestConfig {
                 sourceText = sourceText.replaceAll("http://localhost", "http://" + LOCALHOST);
                 sourceText = sourceText.replaceAll("grpcs://localhost", "grpcs://" + LOCALHOST);
                 sourceText = sourceText.replaceAll("grpc://localhost", "grpc://" + LOCALHOST);
+
+                if (isFabricVersionAtOrAfter("1.3")) {
+                    //eventUrl: grpc://localhost:8053
+                    sourceText = sourceText.replaceAll("(?m)^[ \\t]*eventUrl:", "# eventUrl:");
+                }
 
                 Files.write(Paths.get(temp.getAbsolutePath()), sourceText.getBytes(StandardCharsets.UTF_8),
                         StandardOpenOption.CREATE_NEW, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);

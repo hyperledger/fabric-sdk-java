@@ -46,7 +46,7 @@ export IMAGE_TAG_FABRIC_CA=:x86_64-1.0.0
 # set which Fabric  generated configuations is used.
 export FAB_CONFIG_GEN_VERS="v1.0"
 else
-export ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION="1.2.0"
+export ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION="1.3.0"
 #everything just defaults for latest (v1.1)
 export ORG_HYPERLEDGER_FABRIC_SDKTEST_ITSUITE=""
 #unset to use what's in docker's .env file.
