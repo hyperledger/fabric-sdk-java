@@ -189,6 +189,7 @@ public class ServiceDiscoveryIT {
 
         assertEquals(expectedTransactionId, evenTransactionId.toString());
 
+        out("That's all folks!");
     }
 
     static void out(String format, Object... args) {

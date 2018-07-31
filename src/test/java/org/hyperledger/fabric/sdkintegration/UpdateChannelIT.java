@@ -192,6 +192,8 @@ public class UpdateChannelIT {
             //Ok now do actual channel update.
             fooChannel.updateChannelConfiguration(updateChannelConfiguration, client.getUpdateChannelConfigurationSignature(updateChannelConfiguration, ordererAdmin));
 
+            Thread.sleep(3000); // give time for events to happen
+
             //Let's add some additional verification...
 
             client.setUserContext(sampleOrg.getPeerAdmin());
@@ -219,8 +221,6 @@ public class UpdateChannelIT {
             }
 
             out("\n");
-
-            Thread.sleep(3000); // give time for events to happen
 
             assertTrue(eventCountFilteredBlock > 0); // make sure we got blockevent that were tested.
             assertTrue(eventCountBlock > 0); // make sure we got blockevent that were tested.

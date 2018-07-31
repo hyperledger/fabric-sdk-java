@@ -57,7 +57,7 @@ message MSPPrincipal {
         // groupping of entities, per MSP affiliation
         // E.g., this can well be represented by an MSP's
         // Organization unit
-        IDENTITY  = 2; // Denotes a principal that consists of a single
+        IDENTITY = 2; // Denotes a principal that consists of a single
         // identity
         ANONYMITY = 3; // Denotes a principal that can be used to enforce
         // an identity to be anonymous or nominal.

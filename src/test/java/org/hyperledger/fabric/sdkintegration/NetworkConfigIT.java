@@ -295,6 +295,7 @@ public class NetworkConfigIT {
         channel.shutdown(true); // Force channel to shutdown clean up resources.
 
         out("testUpdate1 - done");
+        out("That's all folks!");
     }
 
     private static void queryChaincodeForExpectedValue(HFClient client, Channel channel, final String expect, ChaincodeID chaincodeID) {

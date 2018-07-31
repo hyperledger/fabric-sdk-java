@@ -1408,6 +1408,7 @@ public class HFCAClientIT {
 
         mockClient.setHttpPostResponse("{\"success\":true}");
         mockClient.reenroll(user);
+        out("That's all folks!");
     }
 
     @Ignore

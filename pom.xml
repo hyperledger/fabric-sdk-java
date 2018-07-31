@@ -313,6 +313,7 @@
                     <show>public</show>
                     <doctitle>Hyperledger Fabric Java SDK</doctitle>
                     <nohelp>true</nohelp>
+                    <failOnError>true</failOnError>
                 </configuration>
             </plugin>
             <plugin>
@@ -623,6 +624,7 @@
                             <show>public</show>
                             <doctitle>Hyperledger Fabric Java SDK</doctitle>
                             <nohelp>true</nohelp>
+                            <failOnError>true</failOnError>
                         </configuration>
                         <executions>
                             <execution>
