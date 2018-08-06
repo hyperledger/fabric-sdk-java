@@ -1,11 +1,17 @@
 ## Maintainers
 
+### Active Maintainers
+| Name | GitHub | Gerrit | email |
+|---|---|---|---|
+| Rick Rineholt | cr22rc | rickr | cr22rc@gmail.com |
+
+
+### Retired Maintainers
 | Name | GitHub | Gerrit | email |
 |---|---|---|---|
 | Jim Zhang | jimthematrix | jimthematrix | jim_the_matrix@hotmail.com |
 | Muhammad Altaf | malik-altaf | malik-altaf | muhammada@fast.au.fujitsu.com |
 | Pardha Vishnumolakala| psaradhi | pardha | psaradhi@gmail.com |
-| Rick Rineholt | cr22rc | rickr | cr22rc@gmail.com |
 | Satheesh Kathamuthu | xspeedcruiser | satheeshk | satheesh.ceg@gmail.com |
 
 Also: <a href="https://github.com/hyperledger/fabric/blob/master/docs/source/MAINTAINERS.rst">Please see the Release Manager section here</a>
