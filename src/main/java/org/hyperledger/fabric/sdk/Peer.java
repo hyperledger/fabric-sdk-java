@@ -55,7 +55,7 @@ public class Peer implements Serializable {
     private final String url;
     private transient volatile EndorserClient endorserClent;
     private transient PeerEventServiceClient peerEventingClient;
-    private transient boolean shutdown = false;
+    private transient volatile boolean shutdown = false;
     private Channel channel;
     private String channelName;
     private transient TransactionContext transactionContext;
@@ -346,7 +346,7 @@ public class Peer implements Serializable {
         final ExecutorService executorService = getExecutorService();
         final PeerOptions peerOptions = null != failedPeerEventServiceClient.getPeerOptions() ? failedPeerEventServiceClient.getPeerOptions() :
                 PeerOptions.createPeerOptions();
-        if (executorService != null && !executorService.isShutdown() && !executorService.isTerminated()) {
+        if (!shutdown && executorService != null && !executorService.isShutdown() && !executorService.isTerminated()) {
 
             executorService.execute(() -> ldisconnectedHandler.disconnected(new PeerEventingServiceDisconnectEvent() {
                 @Override
@@ -412,8 +412,7 @@ public class Peer implements Serializable {
         Endpoint endpoint = Endpoint.createEndpoint(url, properties);
         foundClientTLSCertificateDigest = true;
         clientTLSCertificateDigest = endpoint.getClientTLSCertificateDigest();
-        EndorserClient localEndorserClient = new EndorserClient(endpoint.getChannelBuilder());
-        endorserClent = localEndorserClient;
+        endorserClent = new EndorserClient(endpoint.getChannelBuilder());
     }
 
     void setHasConnected() {

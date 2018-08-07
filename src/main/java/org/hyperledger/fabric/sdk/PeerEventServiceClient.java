@@ -66,9 +66,8 @@ class PeerEventServiceClient {
     StreamObserver<Envelope> nso = null;
     StreamObserver<DeliverResponse> so = null;
     private Channel.ChannelEventQue channelEventQue;
-    private boolean shutdown = false;
+    private volatile boolean shutdown = false;
     private transient ManagedChannel managedChannel = null;
-    private transient TransactionContext transactionContext;
     private transient Peer peer;
 
     /**
@@ -168,7 +167,8 @@ class PeerEventServiceClient {
     void connectEnvelope(Envelope envelope) throws TransactionException {
 
         if (shutdown) {
-            throw new TransactionException("Peer eventing client is shutdown");
+            logger.warn(format("Peer %s not connecting is shutdown ", peer));
+            return;
         }
 
         ManagedChannel lmanagedChannel = managedChannel;
@@ -338,10 +338,10 @@ class PeerEventServiceClient {
     }
 
     void connect(TransactionContext transactionContext) throws TransactionException {
-
-        this.transactionContext = transactionContext;
+        if (shutdown) {
+            return;
+        }
         peerVent(transactionContext);
-
     }
 
     //=========================================================
