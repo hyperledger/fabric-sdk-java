@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -185,13 +186,11 @@ public class NetworkConfigTest {
         Assert.assertEquals(CLIENT_ORG_NAME, config.getClientOrganization().getName());
     }
 
-    // TODO: At least one orderer must be specified
-    @Ignore
     @Test
     public void testNewChannel() throws Exception {
 
         // Should be able to instantiate a new instance of "Channel" with the definition in the network configuration'
-        JsonObject jsonConfig = getJsonConfig1(1, 0, 0);
+        JsonObject jsonConfig = getJsonConfig1(1, 0, 1);
 
         NetworkConfig config = NetworkConfig.fromJsonObject(jsonConfig);
 
@@ -201,6 +200,7 @@ public class NetworkConfigTest {
         Channel channel = client.loadChannelFromConfig(CHANNEL_NAME, config);
         assertNotNull(channel);
         Assert.assertEquals(CHANNEL_NAME, channel.getName());
+        Assert.assertEquals(channel.getPeers(EnumSet.of(Peer.PeerRole.SERVICE_DISCOVERY)).size(), 1);
     }
 
     @Test
@@ -243,29 +243,6 @@ public class NetworkConfigTest {
         //TestHFClient.setupClient(client);
 
         //client.getChannel(CHANNEL_NAME);
-    }
-
-    @Test
-    public void testGetChannelNoOrderers() throws Exception {
-
-        thrown.expect(NetworkConfigurationException.class);
-        thrown.expectMessage("Error constructing");
-
-        // Should not be able to instantiate a new instance of "Channel" with no orderers configured
-        JsonObject jsonConfig = getJsonConfig1(1, 0, 1);
-
-        //HFClient client = HFClient.loadFromConfig(jsonConfig);
-        //TestHFClient.setupClient(client);
-
-        //client.getChannel(CHANNEL_NAME);
-
-        NetworkConfig config = NetworkConfig.fromJsonObject(jsonConfig);
-
-        HFClient client = HFClient.createNewInstance();
-        TestHFClient.setupClient(client);
-
-        client.loadChannelFromConfig(CHANNEL_NAME, config);
-
     }
 
     @Test
@@ -354,7 +331,6 @@ public class NetworkConfigTest {
         }
 
     }
-
 
     @Test
     public void testLoadFromConfigFileYamlOverrides() throws Exception {
@@ -491,9 +467,9 @@ public class NetworkConfigTest {
         JsonObject peers = null;
         if (nPeers > 0) {
             JsonObjectBuilder builder = Json.createObjectBuilder();
-            builder.add("peer0.org1.example.com", createJsonChannelPeer("Org1", true, true, true, true));
+            builder.add("peer0.org1.example.com", createJsonChannelPeer("Org1", true, true, true, true, true));
             if (nPeers > 1) {
-                builder.add("peer0.org2.example.com", createJsonChannelPeer("Org2", true, false, true, false));
+                builder.add("peer0.org2.example.com", createJsonChannelPeer("Org2", true, false, true, false, false));
             }
             peers = builder.build();
         }
@@ -597,7 +573,7 @@ public class NetworkConfigTest {
         return mainConfig.build();
     }
 
-    private static JsonObject createJsonChannelPeer(String name, Boolean endorsingPeer, Boolean chaincodeQuery, Boolean ledgerQuery, Boolean eventSource) {
+    private static JsonObject createJsonChannelPeer(String name, Boolean endorsingPeer, Boolean chaincodeQuery, Boolean ledgerQuery, Boolean eventSource, Boolean discover) {
 
         return Json.createObjectBuilder()
                 .add("name", name)
@@ -605,6 +581,7 @@ public class NetworkConfigTest {
                 .add("chaincodeQuery", chaincodeQuery)
                 .add("ledgerQuery", ledgerQuery)
                 .add("eventSource", eventSource)
+                .add("discover", discover)
                 .build();
     }
 
