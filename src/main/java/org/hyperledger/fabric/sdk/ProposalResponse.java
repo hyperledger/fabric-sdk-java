@@ -27,6 +27,9 @@ import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.helper.DiagnosticFileDumper;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
+import static java.lang.String.format;
+import static org.hyperledger.fabric.sdk.helper.Utils.toHexString;
+
 public class ProposalResponse extends ChaincodeResponse {
 
     private static final Log logger = LogFactory.getLog(ProposalResponse.class);
@@ -37,6 +40,7 @@ public class ProposalResponse extends ChaincodeResponse {
             ? config.getDiagnosticFileDumper() : null;
 
     private boolean isVerified = false;
+    private boolean hasBeenVerified = false;
 
     private WeakReference<ProposalResponsePayloadDeserializer> proposalResponsePayload;
     private FabricProposal.Proposal proposal;
@@ -95,50 +99,86 @@ public class ProposalResponse extends ChaincodeResponse {
      *
      * @return true/false depending on result of signature verification
      */
-    public boolean verify(CryptoSuite crypto) {
+    boolean verify(CryptoSuite crypto) {
+        logger.trace(format("%s verifying transaction: %s endorsement.", peer, getTransactionID()));
 
-        if (isVerified()) { // check if this proposalResponse was already verified   by client code
-            return isVerified();
+        if (hasBeenVerified) { // check if this proposalResponse was already verified   by client code
+            logger.trace(format("%s transaction: %s was already verified returned %b", peer, getTransactionID(), isVerified));
+            return this.isVerified;
         }
-
-        if (isInvalid()) {
-            this.isVerified = false;
-        }
-
-        FabricProposalResponse.Endorsement endorsement = this.proposalResponse.getEndorsement();
-        ByteString sig = endorsement.getSignature();
 
         try {
-            Identities.SerializedIdentity endorser = Identities.SerializedIdentity
-                    .parseFrom(endorsement.getEndorser());
-            ByteString plainText = proposalResponse.getPayload().concat(endorsement.getEndorser());
-
-            if (config.extraLogLevel(10)) {
-
-                if (null != diagnosticFileDumper) {
-                    StringBuilder sb = new StringBuilder(10000);
-                    sb.append("payload TransactionBuilderbytes in hex: " + DatatypeConverter.printHexBinary(proposalResponse.getPayload().toByteArray()));
-                    sb.append("\n");
-                    sb.append("endorser bytes in hex: "
-                            + DatatypeConverter.printHexBinary(endorsement.getEndorser().toByteArray()));
-                    sb.append("\n");
-                    sb.append("plainText bytes in hex: " + DatatypeConverter.printHexBinary(plainText.toByteArray()));
-
-                    logger.trace("payload TransactionBuilderbytes:  " +
-                            diagnosticFileDumper.createDiagnosticFile(sb.toString()));
-                }
-
+            if (isInvalid()) {
+                this.isVerified = false;
+                logger.debug(format("%s for transaction %s returned invalid. Setting verify to false", peer, getTransactionID()));
+                return false;
             }
 
-            this.isVerified = crypto.verify(endorser.getIdBytes().toByteArray(), config.getSignatureAlgorithm(),
-                    sig.toByteArray(), plainText.toByteArray()
-            );
-        } catch (InvalidProtocolBufferException | CryptoException e) {
-            logger.error("verify: Cannot retrieve peer identity from ProposalResponse. Error is: " + e.getMessage(), e);
-            this.isVerified = false;
-        }
+            FabricProposalResponse.Endorsement endorsement = this.proposalResponse.getEndorsement();
+            ByteString sig = endorsement.getSignature();
+            byte[] endorserCertifcate = null;
+            byte[] signature = null;
+            byte[] data = null;
 
-        return this.isVerified;
+            try {
+                Identities.SerializedIdentity endorser = Identities.SerializedIdentity
+                        .parseFrom(endorsement.getEndorser());
+                ByteString plainText = proposalResponse.getPayload().concat(endorsement.getEndorser());
+
+                if (config.extraLogLevel(10)) {
+
+                    if (null != diagnosticFileDumper) {
+                        StringBuilder sb = new StringBuilder(10000);
+                        sb.append("payload TransactionBuilderbytes in hex: " + DatatypeConverter.printHexBinary(proposalResponse.getPayload().toByteArray()));
+                        sb.append("\n");
+                        sb.append("endorser bytes in hex: "
+                                + DatatypeConverter.printHexBinary(endorsement.getEndorser().toByteArray()));
+                        sb.append("\n");
+                        sb.append("plainText bytes in hex: " + DatatypeConverter.printHexBinary(plainText.toByteArray()));
+
+                        logger.trace("payload TransactionBuilderbytes:  " +
+                                diagnosticFileDumper.createDiagnosticFile(sb.toString()));
+                    }
+
+                }
+
+                if (sig == null || sig.isEmpty()) { // we shouldn't get here ...
+                    logger.warn(format("%s %s returned signature is empty verify set to false.", peer, getTransactionID()));
+                    this.isVerified = false;
+                } else {
+
+                    endorserCertifcate = endorser.getIdBytes().toByteArray();
+                    signature = sig.toByteArray();
+                    data = plainText.toByteArray();
+
+                    this.isVerified = crypto.verify(endorserCertifcate, config.getSignatureAlgorithm(),
+                            signature, data);
+                    if (!this.isVerified) {
+                        logger.warn(format("%s transaction: %s verify: Failed to verify. Endorsers certificate: %s, " +
+                                        "signature: %s, signing algorithm: %s, signed data: %s.",
+                                peer, getTransactionID(), toHexString(endorserCertifcate), toHexString(signature),
+                                config.getSignatureAlgorithm(), toHexString(data)
+                        ));
+                    }
+                }
+
+            } catch (InvalidProtocolBufferException | CryptoException e) {
+                logger.error(format("%s transaction: %s verify: Failed to verify. Endorsers certificate: %s, " +
+                                "signature: %s, signing algorithm: %s, signed data: %s.",
+                        peer, getTransactionID(), toHexString(endorserCertifcate), toHexString(signature),
+                        config.getSignatureAlgorithm(), toHexString(data)
+                ), e);
+
+                logger.error(format("%s transaction: %s verify: Cannot retrieve peer identity from ProposalResponse. Error is: %s", peer, getTransactionID(), e.getMessage()), e);
+                this.isVerified = false;
+            }
+
+            logger.debug(format("%s finished verify for transaction %s returning %b", peer, getTransactionID(), this.isVerified));
+
+            return this.isVerified;
+        } finally {
+            hasBeenVerified = true;
+        }
     } // verify
 
     public FabricProposal.Proposal getProposal() {
@@ -150,7 +190,7 @@ public class ProposalResponse extends ChaincodeResponse {
         try {
             this.proposal = FabricProposal.Proposal.parseFrom(signedProposal.getProposalBytes());
         } catch (InvalidProtocolBufferException e) {
-            throw new ProposalException("Proposal exception", e);
+            throw new ProposalException(format("%s transaction: %s Proposal exception", peer, getTransactionID()), e);
 
         }
     }
