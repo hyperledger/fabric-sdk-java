@@ -651,11 +651,6 @@ public class NetworkConfig {
                 }
             }
 
-            if (!foundOrderer) {
-                // orderers is a required field
-                throw new NetworkConfigurationException(format("Error constructing channel %s. At least one orderer must be specified", channelName));
-            }
-
             // peers is an object containing a nested object for each peer
             JsonObject jsonPeers = getJsonObject(jsonChannel, "peers");
             boolean foundPeer = false;
@@ -682,10 +677,10 @@ public class NetworkConfig {
 
                     // Set the various roles
                     PeerOptions peerOptions = PeerOptions.createPeerOptions();
-                    setPeerRole(channelName, peerOptions, jsonPeer, PeerRole.ENDORSING_PEER);
-                    setPeerRole(channelName, peerOptions, jsonPeer, PeerRole.CHAINCODE_QUERY);
-                    setPeerRole(channelName, peerOptions, jsonPeer, PeerRole.LEDGER_QUERY);
-                    setPeerRole(channelName, peerOptions, jsonPeer, PeerRole.EVENT_SOURCE);
+
+                    for (PeerRole peerRole : PeerRole.values()) {
+                        setPeerRole(channelName, peerOptions, jsonPeer, peerRole);
+                    }
 
                     foundPeer = true;
 
@@ -716,7 +711,7 @@ public class NetworkConfig {
     }
 
     private static void setPeerRole(String channelName, PeerOptions peerOptions, JsonObject jsonPeer, PeerRole role) throws NetworkConfigurationException {
-        String propName = role.getPropertyName();
+        String propName = roleNameRemap(role);
         JsonValue val = jsonPeer.get(propName);
         if (val != null) {
             Boolean isSet = getJsonValueAsBoolean(val);
@@ -728,6 +723,17 @@ public class NetworkConfig {
                 peerOptions.addPeerRole(role);
             }
         }
+    }
+
+    private static Map<PeerRole, String> roleNameRemapHash = new HashMap<PeerRole, String>() {
+        {
+            put(PeerRole.SERVICE_DISCOVERY, "discover");
+        }
+    };
+
+    private static String roleNameRemap(PeerRole peerRole) {
+        String remap = roleNameRemapHash.get(peerRole);
+        return remap == null ? peerRole.getPropertyName() : remap;
     }
 
     // Returns a new Orderer instance for the specified orderer name
