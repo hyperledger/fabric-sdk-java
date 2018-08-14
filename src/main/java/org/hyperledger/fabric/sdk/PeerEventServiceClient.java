@@ -62,7 +62,6 @@ class PeerEventServiceClient {
     private final PeerOptions peerOptions;
     private final boolean filterBlock;
     private byte[] clientTLSCertificateDigest;
-    Properties properties = new Properties();
     StreamObserver<Envelope> nso = null;
     StreamObserver<DeliverResponse> so = null;
     private Channel.ChannelEventQue channelEventQue;
@@ -91,7 +90,6 @@ class PeerEventServiceClient {
             peerEventRegistrationWaitTimeMilliSecs = PEER_EVENT_REGISTRATION_WAIT_TIME;
 
         } else {
-            this.properties = properties;
 
             String peerEventRegistrationWaitTime = properties.getProperty("peerEventRegistrationWaitTime", Long.toString(PEER_EVENT_REGISTRATION_WAIT_TIME));
 
@@ -359,8 +357,6 @@ class PeerEventServiceClient {
             } else {
                 start.setNewest(Ab.SeekNewest.getDefaultInstance());
             }
-
-            //   properties.
 
             envelope = createSeekInfoEnvelope(transactionContext,
                     start.build(),

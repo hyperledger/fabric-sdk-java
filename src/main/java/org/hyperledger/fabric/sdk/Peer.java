@@ -405,7 +405,10 @@ public class Peer implements Serializable {
         return reconnectCount;
     }
 
-    void setTLSCertificateKeyPair(TLSCertificateKeyPair tlsCertificateKeyPair) {
+    synchronized void setTLSCertificateKeyPair(TLSCertificateKeyPair tlsCertificateKeyPair) {
+        if (properties == null) {
+            properties = new Properties();
+        }
         properties.put("clientKeyBytes", tlsCertificateKeyPair.getKeyPemBytes());
         properties.put("clientCertBytes", tlsCertificateKeyPair.getCertPEMBytes());
 
