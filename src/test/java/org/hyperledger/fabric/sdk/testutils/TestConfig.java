@@ -83,10 +83,6 @@ public class TestConfig {
     private final boolean runningFabricTLS;
     private static final HashMap<String, SampleOrg> sampleOrgs = new HashMap<>();
 
-    static {
-        //set to fake out discovery during testing to local docker  see Endpoint.java's createEndpoint method.
-        System.setProperty("org.hyperledger.fabric.sdk.test.endpoint_remap_discovery_host_name", "localhost"); // for testing only remaps all endpoint names.
-    }
 
     private TestConfig() {
         File loadFile;

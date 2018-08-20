@@ -1363,17 +1363,14 @@ public class Channel implements Serializable {
 
     }
 
-    static byte[] combineCerts(Collection<byte[]>... certCollections) throws IOException {
+    private static byte[] combineCerts(Collection<byte[]>... certCollections) throws IOException {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             for (Collection<byte[]> certCollection : certCollections) {
 
                 for (byte[] cert : certCollection) {
                     outputStream.write(cert);
-
                 }
-
             }
-
             return outputStream.toByteArray();
         }
     }
@@ -3101,6 +3098,28 @@ public class Channel implements Serializable {
         return sendProposal(transactionProposalRequest, getEndorsingPeers());
     }
 
+    private static class PeerExactMatch { // use original equals of Peer and not what's overrident
+        final Peer peer;
+
+        private PeerExactMatch(Peer peer) {
+            this.peer = peer;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof PeerExactMatch)) {
+                return false;
+            }
+
+            return peer == ((PeerExactMatch) obj).peer;
+        }
+
+        @Override
+        public int hashCode() {
+            return System.identityHashCode(peer);
+        }
+    }
+
     /**
      * Send a transaction  proposal.
      *
@@ -3172,30 +3191,45 @@ public class Channel implements Serializable {
             throw new ServiceDiscoveryException(format("Channel %s failed to find and endorsers for chaincode %s no layouts found.", name, chaincodeName));
         }
 
-        SDChaindcode sdChaindcodeNI = new SDChaindcode(sdChaindcode); //copy. no ignored.
+        SDChaindcode sdChaindcodeEndorsementCopy = new SDChaindcode(sdChaindcode); //copy. no ignored.
 
         final boolean inspectResults = discoveryOptions.inspectResults;
 
-        if (sdChaindcodeNI.ignoreList(discoveryOptions.getIgnoreList()) < 1) { // apply ignore list
+        if (sdChaindcodeEndorsementCopy.ignoreList(discoveryOptions.getIgnoreList()) < 1) { // apply ignore list
             throw new ServiceDiscoveryException("Applying ignore list reduced to no available endorser options.");
         }
 
         if (IS_TRACE_LEVEL && null != discoveryOptions.getIgnoreList() && !discoveryOptions.getIgnoreList().isEmpty()) {
-            logger.trace(format("SDchaincode after ignore list: %s", sdChaindcodeNI));
+            logger.trace(format("SDchaincode after ignore list: %s", sdChaindcodeEndorsementCopy));
         }
-        final EndorsementSelector lendorsementSelector = discoveryOptions.endorsementSelector != null ?
+        final ServiceDiscovery.EndorsementSelector lendorsementSelector = discoveryOptions.endorsementSelector != null ?
                 discoveryOptions.endorsementSelector : this.endorsementSelector;
         try {
 
-            final Map<String, ProposalResponse> goodResponses = new HashMap<>(); // all good endorsements by endpoint
-            final Map<String, ProposalResponse> allTried = new HashMap<>(); // all tried by endpoint
+            final Map<SDEndorser, ProposalResponse> goodResponses = new HashMap<>(); // all good endorsements by endpoint
+            final Map<SDEndorser, ProposalResponse> allTried = new HashMap<>(); // all tried by endpoint
 
             boolean done = false;
             int attempts = 1; //safety valve
 
             do {
-                logger.trace(format("Attempts: %d,  chaincode discovery state: %s", attempts, sdChaindcodeNI));
-                final SDEndorserState sdEndorserState = lendorsementSelector.endorserSelector(sdChaindcodeNI);
+                if (IS_TRACE_LEVEL) {
+                    logger.trace(format("Attempts: %d,  chaincode discovery state: %s", attempts, sdChaindcodeEndorsementCopy));
+                }
+                final SDEndorserState sdEndorserState = lendorsementSelector.endorserSelector(sdChaindcodeEndorsementCopy);
+
+                if (IS_TRACE_LEVEL) {
+
+                    StringBuilder sb = new StringBuilder(1000);
+                    String sep = "";
+                    for (SDEndorser sdEndorser : sdEndorserState.getSdEndorsers()) {
+                        sb.append(sep).append(sdEndorser);
+                        sep = ", ";
+                    }
+
+                    logger.trace(format("Attempts: %d,  chaincode discovery state: %s. Endorser selector picked: %s. With selected endorsers: %s", attempts, sdChaindcodeEndorsementCopy.name, sdEndorserState.getPickedLayout(), sb.toString()));
+
+                }
 
                 Collection<SDEndorser> ep = sdEndorserState.getSdEndorsers();
                 ep = new ArrayList<>(ep); // just in case it's not already a copy
@@ -3211,11 +3245,13 @@ public class Channel implements Serializable {
                 }
 
                 //Safety check make sure the selector isn't giving back endpoints to retry
-                ep.removeIf(sdEndorser -> goodResponses.keySet().contains(sdEndorser.getEndpoint()));
+                ep.removeIf(sdEndorser -> goodResponses.keySet().contains(sdEndorser));
 
                 if (ep.isEmpty()) { // this would be odd but lets go with it.
-                    Set<String> needed = sdChaindcode.meetsEndorsmentPolicy(goodResponses.keySet());
-                    if (needed != null) {
+                    logger.debug(format("Channel %s, chaincode %s attempts: %d endorser selector returned no additional endorements needed.", name, chaincodeName, attempts));
+
+                    Collection<SDEndorser> needed = sdChaindcode.meetsEndorsmentPolicy(goodResponses.keySet());
+                    if (needed != null) { // means endorsment meet with those in the needed.
                         ArrayList<ProposalResponse> ret = new ArrayList<>(needed.size());
                         needed.forEach(s -> ret.add(goodResponses.get(s)));
 
@@ -3244,16 +3280,17 @@ public class Channel implements Serializable {
                     }
                 }
 
-                HashMap<String, Peer> stringPeerHashMap = new HashMap<>(peerEndpointMap);
-                ArrayList<Peer> endorsers = new ArrayList<>(ep.size());
-                for (SDEndorser endpoint : ep) {
+                Map<String, Peer> lpeerEndpointMap = new HashMap<>(peerEndpointMap);
+                Map<SDEndorser, Peer> endorsers = new HashMap<>(ep.size());
+                Map<PeerExactMatch, SDEndorser> peer2sdEndorser = new HashMap<>(ep.size());
+                for (SDEndorser sdEndorser : ep) {
 
-                    Peer epeer = stringPeerHashMap.get(endpoint.getEndpoint());
+                    Peer epeer = lpeerEndpointMap.get(sdEndorser.getEndpoint());
                     if (epeer != null && !epeer.hasConnected()) {
                         // mostly because gossip may have malicious data so if we've not connected update TLS props from chaincode discovery.
                         final Properties properties = epeer.getProperties();
 
-                        final byte[] bytes = combineCerts(endpoint.getTLSCerts(), endpoint.getTLSIntermediateCerts());
+                        final byte[] bytes = combineCerts(sdEndorser.getTLSCerts(), sdEndorser.getTLSIntermediateCerts());
                         properties.put("pemBytes", bytes);
                         epeer.setProperties(properties);
 
@@ -3262,12 +3299,12 @@ public class Channel implements Serializable {
 
                             @Override
                             public String getMspId() {
-                                return endpoint.getMspid();
+                                return sdEndorser.getMspid();
                             }
 
                             @Override
                             public String getEndpoint() {
-                                return endpoint.getEndpoint();
+                                return sdEndorser.getEndpoint();
                             }
 
                             @Override
@@ -3283,12 +3320,12 @@ public class Channel implements Serializable {
                             @Override
                             public byte[][] getTLSCerts() {
 
-                                return endpoint.getTLSCerts().toArray(new byte[endpoint.getTLSCerts().size()][]);
+                                return sdEndorser.getTLSCerts().toArray(new byte[sdEndorser.getTLSCerts().size()][]);
                             }
 
                             @Override
                             public byte[][] getTLSIntermediateCerts() {
-                                return endpoint.getTLSIntermediateCerts().toArray(new byte[endpoint.getTLSIntermediateCerts().size()][]);
+                                return sdEndorser.getTLSIntermediateCerts().toArray(new byte[sdEndorser.getTLSIntermediateCerts().size()][]);
                             }
 
                             @Override
@@ -3297,36 +3334,37 @@ public class Channel implements Serializable {
                             }
                         });
                     }
-                    endorsers.add(epeer);
+                    endorsers.put(sdEndorser, epeer);
+                    peer2sdEndorser.put(new PeerExactMatch(epeer), sdEndorser); // reverse
                 }
 
-                final Collection<ProposalResponse> proposalResponses = sendProposalToPeers(endorsers, invokeProposal, transactionContext);
-                HashSet<String> loopGood = new HashSet<>();
-                HashSet<String> loopBad = new HashSet<>();
+                final Collection<ProposalResponse> proposalResponses = sendProposalToPeers(endorsers.values(), invokeProposal, transactionContext);
+                HashSet<SDEndorser> loopGood = new HashSet<>();
+                HashSet<SDEndorser> loopBad = new HashSet<>();
 
                 for (ProposalResponse proposalResponse : proposalResponses) {
-                    final String endpoint = proposalResponse.getPeer().getEndpoint();
-                    allTried.put(endpoint, proposalResponse);
+                    final SDEndorser sdEndorser = peer2sdEndorser.get(new PeerExactMatch(proposalResponse.getPeer()));
+                    allTried.put(sdEndorser, proposalResponse);
 
                     final ChaincodeResponse.Status status = proposalResponse.getStatus();
 
                     if (ChaincodeResponse.Status.SUCCESS.equals(status)) {
 
-                        goodResponses.put(endpoint, proposalResponse);
-                        logger.trace(format("Channel %s, chaincode %s attempts %d good endorsements: %s", name, chaincodeName, attempts, endpoint));
-                        loopGood.add(endpoint);
+                        goodResponses.put(sdEndorser, proposalResponse);
+                        logger.trace(format("Channel %s, chaincode %s attempts %d good endorsements: %s", name, chaincodeName, attempts, sdEndorser));
+                        loopGood.add(sdEndorser);
 
                     } else {
-                        logger.debug(format("Channel %s, chaincode %s attempts %d bad endorsements: %s", name, chaincodeName, attempts, endpoint));
-                        loopBad.add(endpoint);
+                        logger.debug(format("Channel %s, chaincode %s attempts %d bad endorsements: %s", name, chaincodeName, attempts, sdEndorser));
+                        loopBad.add(sdEndorser);
                     }
                 }
 
                 //Always check on original
-                Set<String> needed = sdChaindcode.meetsEndorsmentPolicy(goodResponses.keySet());
-                if (needed != null) {
-                    ArrayList<ProposalResponse> ret = new ArrayList<>(needed.size());
-                    needed.forEach(s -> ret.add(goodResponses.get(s)));
+                Collection<SDEndorser> required = sdChaindcode.meetsEndorsmentPolicy(goodResponses.keySet());
+                if (required != null) {
+                    ArrayList<ProposalResponse> ret = new ArrayList<>(required.size());
+                    required.forEach(s -> ret.add(goodResponses.get(s)));
 
                     if (IS_DEBUG_LEVEL) {
 
@@ -3335,26 +3373,22 @@ public class Channel implements Serializable {
                         for (ProposalResponse proposalResponse : ret) {
                             sb.append(sep).append(proposalResponse.getPeer());
                             sep = ", ";
-
                         }
-
                         logger.debug(format("Channel %s, chaincode %s got all needed endorsements: %s", name, chaincodeName, sb.toString()));
-
                     }
-
                     return ret; // the happy path :)!
 
                 } else { //still don't have the needed endorsements.
 
-                    sdChaindcodeNI.endorsedList(loopGood);
+                    sdChaindcodeEndorsementCopy.endorsedList(loopGood); // mark the good ones in the working copy.
 
-                    if (sdChaindcodeNI.ignoreList(loopBad) < 1) { // apply ignore list
+                    if (sdChaindcodeEndorsementCopy.ignoreListSDEndorser(loopBad) < 1) { // apply ignore list
                         done = true; // no more layouts
                     }
                 }
 
             } while (!done && ++attempts <= 5);
-            logger.trace(format("Endorsements not achieved chaincode: %s, done: %b, attempts: %d", chaincodeName, done, attempts));
+            logger.debug(format("Endorsements not achieved chaincode: %s, done: %b, attempts: %d", chaincodeName, done, attempts));
             if (inspectResults) {
                 return allTried.values();
             } else {
@@ -3523,10 +3557,10 @@ public class Channel implements Serializable {
         }
     }
 
-    private transient EndorsementSelector endorsementSelector = ServiceDiscovery.DEFAULT_ENDORSEMENT_SELECTION;
+    private transient ServiceDiscovery.EndorsementSelector endorsementSelector = ServiceDiscovery.DEFAULT_ENDORSEMENT_SELECTION;
 
-    public EndorsementSelector setSDEndorserSelector(EndorsementSelector endorsementSelector) {
-        EndorsementSelector ret = this.endorsementSelector;
+    public ServiceDiscovery.EndorsementSelector setSDEndorserSelector(ServiceDiscovery.EndorsementSelector endorsementSelector) {
+        ServiceDiscovery.EndorsementSelector ret = this.endorsementSelector;
         this.endorsementSelector = endorsementSelector;
         return ret;
 
@@ -4130,7 +4164,7 @@ public class Channel implements Serializable {
      */
     public static class DiscoveryOptions {
         Set<String> ignoreList = new HashSet<>();
-        EndorsementSelector endorsementSelector = null;
+        ServiceDiscovery.EndorsementSelector endorsementSelector = null;
         boolean inspectResults = false;
         boolean forceDiscovery = false;
 
@@ -4171,7 +4205,7 @@ public class Channel implements Serializable {
          * @return
          * @throws InvalidArgumentException
          */
-        public DiscoveryOptions setEndorsementSelector(EndorsementSelector endorsementSelector) throws InvalidArgumentException {
+        public DiscoveryOptions setEndorsementSelector(ServiceDiscovery.EndorsementSelector endorsementSelector) throws InvalidArgumentException {
             if (endorsementSelector == null) {
                 throw new InvalidArgumentException("endorsementSelector parameter is null.");
             }

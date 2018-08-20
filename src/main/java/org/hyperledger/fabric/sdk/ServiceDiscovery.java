@@ -22,10 +22,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -42,17 +42,22 @@ import org.hyperledger.fabric.protos.gossip.Message;
 import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.msp.MspConfig;
 import org.hyperledger.fabric.sdk.Channel.ServiceDiscoveryChaincodeCalls;
+import org.hyperledger.fabric.sdk.ServiceDiscovery.SDLayout.SDGroup;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
 import org.hyperledger.fabric.sdk.exception.ServiceDiscoveryException;
 import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.helper.DiagnosticFileDumper;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 
 import static java.lang.String.format;
 
-class ServiceDiscovery {
+public class ServiceDiscovery {
     private static final Log logger = LogFactory.getLog(ServiceDiscovery.class);
     private static final boolean DEBUG = logger.isDebugEnabled();
     private static final Config config = Config.getConfig();
+    private static final boolean IS_TRACE_LEVEL = logger.isTraceEnabled();
+    private static final DiagnosticFileDumper diagnosticFileDumper = IS_TRACE_LEVEL
+            ? config.getDiagnosticFileDumper() : null;
     private static final int SERVICE_DISCOVERY_WAITTIME = config.getServiceDiscoveryWaitTime();
     private static final Random random = new Random();
     private final Collection<Peer> serviceDiscoveryPeers;
@@ -236,7 +241,18 @@ class ServiceDiscovery {
                 Protocol.SignedRequest sr = Protocol.SignedRequest.newBuilder()
                         .setPayload(payloadBytes).setSignature(signatureBytes).build();
 
+                if (IS_TRACE_LEVEL && null != diagnosticFileDumper) { // dump protobuf we sent
+                    logger.trace(format("Service discovery channel %s %s service chaincode query sent %s", channelName, serviceDiscoveryPeer,
+                            diagnosticFileDumper.createDiagnosticProtobufFile(sr.toByteArray())));
+                }
+
                 final Protocol.Response response = serviceDiscoveryPeer.sendDiscoveryRequestAsync(sr).get(SERVICE_DISCOVERY_WAITTIME, TimeUnit.MILLISECONDS);
+
+                if (IS_TRACE_LEVEL && null != diagnosticFileDumper) { // dump protobuf we get
+                    logger.trace(format("Service discovery channel %s %s service discovery returned %s", channelName, serviceDiscoveryPeer,
+                            diagnosticFileDumper.createDiagnosticProtobufFile(response.toByteArray())));
+                }
+
                 serviceDiscoveryPeer.hasConnected();
                 final List<Protocol.QueryResult> resultsList = response.getResultsList();
                 Protocol.QueryResult queryResult;
@@ -291,7 +307,7 @@ class ServiceDiscovery {
                     Protocol.Endpoints value = i.getValue();
                     for (Protocol.Endpoint l : value.getEndpointList()) {
                         logger.trace(format("Channel %s discovered orderer MSPID: %s, endpoint: %s:%s", channelName, mspid, l.getHost(), l.getPort()));
-                        String endpoint = remapEndpoint((l.getHost() + ":" + l.getPort()).trim().toLowerCase());
+                        String endpoint = (l.getHost() + ":" + l.getPort()).trim().toLowerCase();
 
                         final SDOrderer sdOrderer = new SDOrderer(mspid, endpoint, lsdNetwork.getTlsCerts(mspid), lsdNetwork.getTlsIntermediateCerts(mspid));
 
@@ -441,20 +457,34 @@ class ServiceDiscovery {
                 ByteString signatureBytes = ltransactionContext.signByteStrings(payloadBytes);
                 Protocol.SignedRequest sr = Protocol.SignedRequest.newBuilder()
                         .setPayload(payloadBytes).setSignature(signatureBytes).build();
+                if (IS_TRACE_LEVEL && null != diagnosticFileDumper) { // dump protobuf we sent
+                    logger.trace(format("Service discovery channel %s %s service chaincode query sent %s", channelName, serviceDiscoveryPeer,
+                            diagnosticFileDumper.createDiagnosticProtobufFile(sr.toByteArray())));
+                }
 
                 logger.debug(format("Channel %s peer %s sending chaincode query request", channelName, serviceDiscoveryPeer.toString()));
                 final Protocol.Response response = serviceDiscoveryPeer.sendDiscoveryRequestAsync(sr).get(SERVICE_DISCOVERY_WAITTIME, TimeUnit.MILLISECONDS);
+                if (IS_TRACE_LEVEL && null != diagnosticFileDumper) { // dump protobuf we get
+                    logger.trace(format("Service discovery channel %s %s service chaincode query returned %s", channelName, serviceDiscoveryPeer,
+                            diagnosticFileDumper.createDiagnosticProtobufFile(response.toByteArray())));
+                }
                 logger.debug(format("Channel %s peer %s completed chaincode query request", channelName, serviceDiscoveryPeer.toString()));
                 serviceDiscoveryPeer.hasConnected();
 
                 for (Protocol.QueryResult queryResult : response.getResultsList()) {
 
                     if (queryResult.getResultCase().getNumber() == Protocol.QueryResult.ERROR_FIELD_NUMBER) {
-                        throw new ServiceDiscoveryException(format("Error %s", queryResult.getError().getContent()));
+
+                        ServiceDiscoveryException discoveryException = new ServiceDiscoveryException(format("Error %s", queryResult.getError().getContent()));
+                        logger.error(discoveryException.getMessage());
+                        continue;
                     }
 
                     if (queryResult.getResultCase().getNumber() != Protocol.QueryResult.CC_QUERY_RES_FIELD_NUMBER) {
-                        throw new ServiceDiscoveryException(format("Error expected chaincode endorsement query but got %s : ", queryResult.getResultCase().toString()));
+                        ServiceDiscoveryException discoveryException = new ServiceDiscoveryException(format("Error expected chaincode endorsement query but got %s : ", queryResult.getResultCase().toString()));
+                        logger.error(discoveryException.getMessage());
+                        continue;
+
                     }
 
                     Protocol.ChaincodeQueryResult ccQueryRes = queryResult.getCcQueryRes();
@@ -466,11 +496,18 @@ class ServiceDiscovery {
                         final String chaincode = es.getChaincode();
                         List<SDLayout> layouts = new LinkedList<>();
                         for (Protocol.Layout layout : es.getLayoutsList()) {
+                            SDLayout sdLayout = null;
                             Map<String, Integer> quantitiesByGroupMap = layout.getQuantitiesByGroupMap();
                             for (Map.Entry<String, Integer> qmap : quantitiesByGroupMap.entrySet()) {
                                 final String key = qmap.getKey();
                                 final int quantity = qmap.getValue();
+                                if (quantity < 1) {
+                                    continue;
+                                }
                                 Protocol.Peers peers = es.getEndorsersByGroupsMap().get(key);
+                                if (peers == null || peers.getPeersCount() == 0) {
+                                    continue;
+                                }
 
                                 List<SDEndorser> sdEndorsers = new LinkedList<>();
 
@@ -496,7 +533,11 @@ class ServiceDiscovery {
                                     sdEndorsers.add(nppp);
 
                                 }
-                                layouts.add(new SDLayout(quantity, sdEndorsers));
+                                if (sdLayout == null) {
+                                    sdLayout = new SDLayout();
+                                    layouts.add(sdLayout);
+                                }
+                                sdLayout.addGroup(key, quantity, sdEndorsers);
                             }
                         }
                         if (layouts.isEmpty()) {
@@ -508,20 +549,15 @@ class ServiceDiscovery {
                                 sb.append("Channel ").append(channelName)
                                         .append(" found ").append(layouts.size()).append(" layouts for chaincode: ").append(es.getChaincode());
 
-                                String sep = " ";
-                                for (SDLayout layout : layouts) {
-                                    sb.append(sep)
-                                            .append("SDLayout[")
-                                            .append("required: ").append(layout.getRequired()).append(", endorsers: [");
+                                sb.append(", layouts: [");
 
-                                    String sep2 = "";
-                                    for (SDEndorser sdEndorser : layout.getSDEndorsers()) {
-                                        sb.append(sep2).append(sdEndorser.toString());
-                                        sep2 = ", ";
-                                    }
-                                    sb.append("]");
+                                String sep = "";
+                                for (SDLayout layout : layouts) {
+                                    sb.append(sep).append(layout);
+
                                     sep = ", ";
                                 }
+                                sb.append("]");
 
                                 logger.debug(sb.toString());
                             }
@@ -562,48 +598,163 @@ class ServiceDiscovery {
     static final EndorsementSelector ENDORSEMENT_SELECTION_LEAST_REQUIRED_BLOCKHEIGHT = sdChaindcode -> {
         List<SDLayout> layouts = sdChaindcode.getLayouts();
 
-        SDLayout pickedLayout = layouts.get(0);
+        class LGroup { // local book keeping.
+            int stillRequred;
+            final Set<SDEndorser> endorsers = new HashSet<>();
 
-        if (layouts.size() > 1) { // pick layout by least number of endorsers ..  least number of peers hit and smaller block!
+            LGroup(SDGroup group) {
+                endorsers.addAll(group.getEndorsers());
+                this.stillRequred = group.getStillRequired();
+            }
 
-            ArrayList<SDLayout> leastEndorsers = new ArrayList<>();
-            for (SDLayout sdLayout : layouts) {
+            // return true if still required
+            boolean endorsed(Set<SDEndorser> endorsed) {
+                for (SDEndorser sdEndorser : endorsed) {
+                    if (endorsers.contains(sdEndorser)) {
+                        endorsers.remove(sdEndorser);
+                        stillRequred = Math.max(0, stillRequred - 1);
+                    }
+                }
+                return stillRequred > 0;
 
-                if (leastEndorsers.size() == 0 || leastEndorsers.get(0).getStillRequired() > sdLayout.getStillRequired()) {
-                    leastEndorsers = new ArrayList<>();
-                    leastEndorsers.add(sdLayout);
-                } else if (leastEndorsers.get(0).getStillRequired() == sdLayout.getStillRequired()) {
-                    leastEndorsers.add(sdLayout);
+            }
+        }
 
+        SDLayout pickedLayout = null;
+
+        Map<SDLayout, Set<SDEndorser>> layoutEndorsers = new HashMap<>();
+
+        // if (layouts.size() > 1) { // pick layout by least number of endorsers ..  least number of peers hit and smaller block!
+
+        for (SDLayout sdLayout : layouts) {
+
+            Set<LGroup> remainingGroups = new HashSet<>();
+            for (SDGroup sdGroup : sdLayout.getSDLGroups()) {
+                remainingGroups.add(new LGroup(sdGroup));
+            }
+            // These are required as there is no choice.
+            Set<SDEndorser> required = new HashSet<>();
+            for (LGroup lgroup : remainingGroups) {
+                if (lgroup.stillRequred == lgroup.endorsers.size()) {
+                    required.addAll(lgroup.endorsers);
                 }
             }
-            if (leastEndorsers.size() == 1) {
-                pickedLayout = leastEndorsers.get(0);
-            } else {
-                long maxHeight = -1L; // go with the highest total block height of the required.
+            //add those that there are no choice.
 
-                for (SDLayout layout : leastEndorsers) { // means required was the same.
-                    List<SDEndorser> sdEndorsers = topNbyHeight(layout.getStillRequired(), layout.getSDEndorsers());
-                    long score = 0;
-                    for (SDEndorser sdEndorser : sdEndorsers) {
-                        score += sdEndorser.getLedgerHeight();
+            if (required.size() > 0) {
+                Set<LGroup> remove = new HashSet<>(remainingGroups.size());
+                for (LGroup lGroup : remainingGroups) {
+                    if (!lGroup.endorsed(required)) {
+                        remove.add(lGroup);
                     }
-                    if (score > maxHeight) {
-                        maxHeight = score;
-                        pickedLayout = layout;
+                }
+                remainingGroups.removeAll(remove);
+                Set<SDEndorser> sdEndorsers = layoutEndorsers.computeIfAbsent(sdLayout, k -> new HashSet<>());
+                sdEndorsers.addAll(required);
+            }
+
+            if (remainingGroups.isEmpty()) { // no more groups here done for this layout.
+                continue; // done with this layout there really were no choices.
+            }
+
+            //Now go through groups finding which endorsers can satisfy the most groups.
+
+            do {
+
+                Map<SDEndorser, Integer> matchCount = new HashMap<>();
+
+                for (LGroup group : remainingGroups) {
+                    for (SDEndorser sdEndorser : group.endorsers) {
+                        Integer count = matchCount.get(sdEndorser);
+                        if (count == null) {
+                            matchCount.put(sdEndorser, 1);
+                        } else {
+                            matchCount.put(sdEndorser, ++count);
+                        }
                     }
+                }
+
+                Set<SDEndorser> theMost = new HashSet<>();
+                int maxMatch = 0;
+                for (Map.Entry<SDEndorser, Integer> m : matchCount.entrySet()) {
+                    int count = m.getValue();
+                    SDEndorser sdEndorser = m.getKey();
+                    if (count > maxMatch) {
+                        theMost.clear();
+                        theMost.add(sdEndorser);
+                        maxMatch = count;
+                    } else if (count == maxMatch) {
+                        theMost.add(sdEndorser);
+                    }
+                }
+
+                Set<SDEndorser> theVeryMost = new HashSet<>(1);
+                long max = 0L;
+                // Tie breaker: Pick one with greatest ledger height.
+                for (SDEndorser sd : theMost) {
+                    if (sd.getLedgerHeight() > max) {
+                        max = sd.getLedgerHeight();
+                        theVeryMost.clear();
+                        theVeryMost.add(sd);
+                    }
+
+                }
+
+                Set<LGroup> remove2 = new HashSet<>(remainingGroups.size());
+                for (LGroup lGroup : remainingGroups) {
+                    if (!lGroup.endorsed(theVeryMost)) {
+                        remove2.add(lGroup);
+                    }
+                }
+                Set<SDEndorser> sdEndorsers = layoutEndorsers.computeIfAbsent(sdLayout, k -> new HashSet<>());
+                sdEndorsers.addAll(theVeryMost);
+                remainingGroups.removeAll(remove2);
+
+            } while (!remainingGroups.isEmpty());
+
+            // Now pick the layout with least endorsers
+
+        }
+        //Pick layout which needs least endorsements.
+        int min = Integer.MAX_VALUE;
+        Set<SDLayout> theLeast = new HashSet<>();
+
+        for (Map.Entry<SDLayout, Set<SDEndorser>> l : layoutEndorsers.entrySet()) {
+            SDLayout sdLayoutK = l.getKey();
+            Integer count = l.getValue().size();
+            if (count < min) {
+                theLeast.clear();
+                theLeast.add(sdLayoutK);
+                min = count;
+            } else if (count == min) {
+                theLeast.add(sdLayoutK);
+            }
+        }
+
+        if (theLeast.size() == 1) {
+            pickedLayout = theLeast.iterator().next();
+
+        } else {
+            long max = 0L;
+            // Tie breaker: Pick one with greatest ledger height.
+            for (SDLayout sdLayout : theLeast) {
+                int height = 0;
+                for (SDEndorser sdEndorser : layoutEndorsers.get(sdLayout)) {
+                    height += sdEndorser.getLedgerHeight();
+                }
+                if (height > max) {
+                    max = height;
+                    pickedLayout = sdLayout;
                 }
             }
         }
 
-        List<SDEndorser> top = topNbyHeight(pickedLayout.getStillRequired(), pickedLayout.getSDEndorsers());
-        ArrayList<SDEndorser> retlist = new ArrayList<>(pickedLayout.getStillRequired());
-        retlist.addAll(top);
         final SDEndorserState sdEndorserState = new SDEndorserState();
-        sdEndorserState.setPickedEndorsers(retlist);
+        sdEndorserState.setPickedEndorsers(layoutEndorsers.get(pickedLayout));
         sdEndorserState.setPickedLayout(pickedLayout);
 
         return sdEndorserState;
+
     };
 
     public static final EndorsementSelector DEFAULT_ENDORSEMENT_SELECTION = ENDORSEMENT_SELECTION_LEAST_REQUIRED_BLOCKHEIGHT;
@@ -616,29 +767,30 @@ class ServiceDiscovery {
 
         SDLayout pickedLayout = layouts.get(0);
 
-        if (layouts.size() > 1) {
+        if (layouts.size() > 1) { // more than one pick a random one.
             pickedLayout = layouts.get(random.nextInt(layouts.size()));
         }
 
-        List<SDEndorser> pickedEndorsers = pickedLayout.getSDEndorsers();
-        final int required = pickedLayout.getStillRequired();
+        Map<String, SDEndorser> retMap = new HashMap<>(); //hold results.
 
-        if (required != pickedEndorsers.size()) {
-            List<SDEndorser> shuffle = new ArrayList<>(pickedEndorsers);
-            Collections.shuffle(shuffle);
-            pickedEndorsers = shuffle.subList(0, required);
+        for (SDGroup group : pickedLayout.getSDLGroups()) { // go through groups getting random required endorsers
+            List<SDEndorser> endorsers = new ArrayList<>(group.getEndorsers());
+            int required = group.getStillRequired(); // what's needed in that group.
+            Collections.shuffle(endorsers); // randomize.
+            List<SDEndorser> sdEndorsers = endorsers.subList(0, required); // pick top endorsers.
+            sdEndorsers.forEach(sdEndorser -> {
+                retMap.putIfAbsent(sdEndorser.getEndpoint(), sdEndorser); // put if endpoint is not in there already.
+            });
         }
-        List<SDEndorser> retlist = new ArrayList<>(required);
-        retlist.addAll(pickedEndorsers);
 
-        final SDEndorserState sdEndorserState = new SDEndorserState();
-        sdEndorserState.setPickedEndorsers(retlist);
+        final SDEndorserState sdEndorserState = new SDEndorserState(); //returned result.
+        sdEndorserState.setPickedEndorsers(retMap.values());
         sdEndorserState.setPickedLayout(pickedLayout);
 
         return sdEndorserState;
     };
 
-    static class SDChaindcode {
+    public static class SDChaindcode {
         final String name;
         final List<SDLayout> layouts;
 
@@ -654,10 +806,11 @@ class ServiceDiscovery {
             this.layouts = layouts;
         }
 
-        List<SDLayout> getLayouts() {
-            return layouts;
+        public List<SDLayout> getLayouts() {
+            return Collections.unmodifiableList(layouts);
         }
 
+        // returns number of layouts left.
         int ignoreList(Collection<String> names) {
             if (names != null && !names.isEmpty()) {
                 layouts.removeIf(sdLayout -> !sdLayout.ignoreList(names));
@@ -665,23 +818,34 @@ class ServiceDiscovery {
             return layouts.size();
         }
 
-        void endorsedList(Collection<String> names) {
-            if (!names.isEmpty()) {
-                for (SDLayout sdLayout : layouts) {
-                    sdLayout.endorsedList(names);
-                }
+        int ignoreListSDEndorser(Collection<SDEndorser> sdEndorsers) {
+            if (sdEndorsers != null && !sdEndorsers.isEmpty()) {
+                layouts.removeIf(sdLayout -> !sdLayout.ignoreListSDEndorser(sdEndorsers));
             }
+            return layouts.size();
         }
 
-        // return the set
-        Set<String> meetsEndorsmentPolicy(Set<String> endpoints) {
-
-            Set<String> ret = null;
+        boolean endorsedList(Collection<SDEndorser> sdEndorsers) {
+            boolean ret = false;
 
             for (SDLayout sdLayout : layouts) {
-                final Set<String> needed = sdLayout.meetsEndorsmentPolicy(endpoints);
+                if (sdLayout.endorsedList(sdEndorsers)) {
+                    ret = true;
+                }
+            }
+            return ret;
+        }
+
+        // return the set needed or null if the policy was not meet.
+        Collection<SDEndorser> meetsEndorsmentPolicy(Set<SDEndorser> endpoints) {
+
+            Collection<SDEndorser> ret = null; // not meet.
+
+            for (SDLayout sdLayout : layouts) {
+                final Collection<SDEndorser> needed = sdLayout.meetsEndorsmentPolicy(endpoints);
+
                 if (needed != null && (ret == null || ret.size() > needed.size())) {
-                    ret = needed;
+                    ret = needed;  // needed is less so lets go with that.
                 }
             }
             return ret;
@@ -708,104 +872,237 @@ class ServiceDiscovery {
 
     public static class SDLayout {
 
-        final List<SDEndorser> sdEndorsers;
-        final int required;
-        int endorsed = 0;
+        final List<SDGroup> groups = new LinkedList<>();
+
+        SDLayout() {
+
+        }
+
+        //Copy constructor
+        SDLayout(SDLayout sdLayout) {
+            for (SDGroup group : sdLayout.groups) {
+                new SDGroup(group);
+            }
+        }
 
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder(1000);
 
-            sb.append("SDLayout(")
-                    .append("required: ").append(getRequired()).append(", endorsed:").append(endorsed);
+            sb.append("SDLayout: {");
 
-            if (sdEndorsers != null && !sdEndorsers.isEmpty()) {
-                sb.append(", endorsers: [");
+            if (!groups.isEmpty()) {
+                sb.append("groups: [");
                 String sep2 = "";
-                for (SDEndorser sdEndorser : getSDEndorsers()) {
-                    sb.append(sep2).append(sdEndorser.toString());
+                for (SDGroup group : groups) {
+                    sb.append(sep2).append(group.toString());
                     sep2 = ", ";
                 }
                 sb.append("]");
+            } else {
+                sb.append(", groups: []");
             }
-            sb.append(")");
+            sb.append("}");
 
             return sb.toString();
 
         }
 
-        SDLayout(int quantity, List<SDEndorser> protocolPeers) {
-            required = quantity;
-            this.sdEndorsers = protocolPeers;
-        }
-
-        SDLayout(SDLayout sdLayout) {
-            required = sdLayout.required;
-            this.sdEndorsers = new LinkedList<>(sdLayout.sdEndorsers);
-            endorsed = 0;
-        }
-
-        public int getRequired() {
-            return required;
-        }
-
-        List<SDEndorser> getSDEndorsers() {
-            return sdEndorsers;
-        }
-
-        int getStillRequired() {
-            return required - endorsed;
-        }
-
+        //return true if the groups still exist to get endorsement.
         boolean ignoreList(Collection<String> names) {
+            boolean ret = true;
             HashSet<String> bnames = new HashSet<>(names);
-            for (Iterator<SDEndorser> i = sdEndorsers.iterator(); i.hasNext();
-                    ) { //checkstyle oddity.
-                final SDEndorser endorser = i.next();
-                if (bnames.contains(endorser.getEndpoint())) {
-                    i.remove();
-                    if (sdEndorsers.size() < getStillRequired()) {
-                        return false; // not enough endorsers
-                    }
+
+            for (SDGroup group : groups) {
+                if (!group.ignoreList(bnames)) {
+                    ret = false; // group can no longer be satisfied.
                 }
             }
-            return true;
+            return ret;
         }
 
-        void endorsedList(Collection<String> names) {
-            HashSet<String> bnames = new HashSet<>(names);
-            for (Iterator<SDEndorser> i = sdEndorsers.iterator(); i.hasNext();
-                    ) { //checkstyle oddity.
-                final SDEndorser endorser = i.next();
-                if (bnames.contains(endorser.getEndpoint())) {
-                    i.remove();
-                    ++endorsed;
+        boolean ignoreListSDEndorser(Collection<SDEndorser> names) {
+            boolean ret = true;
+            HashSet<SDEndorser> bnames = new HashSet<>(names);
+
+            for (SDGroup group : groups) {
+                if (!group.ignoreListSDEndorser(bnames)) {
+                    ret = false; // group can no longer be satisfied.
                 }
             }
+            return ret;
         }
 
-        Set<String> meetsEndorsmentPolicy(Set<String> endpoints) {
-            Set<String> needed = new HashSet<>();
-            for (SDEndorser sdEndorser : sdEndorsers) {
-                if (endpoints.contains(sdEndorser.getEndpoint())) {
-                    needed.add(sdEndorser.getEndpoint());
-                    if (needed.size() >= required) {
-                        return needed;
-                    }
+        // endorsement has been meet.
+        boolean endorsedList(Collection<SDEndorser> sdEndorsers) {
+
+            int endorsementMeet = 0;
+            for (SDGroup group : groups) {
+                if (group.endorsedList(sdEndorsers)) {
+                    ++endorsementMeet;
                 }
+            }
+            return endorsementMeet >= groups.size();
+        }
+
+        //       Returns null when not meet and endorsers needed if it is.
+        Collection<SDEndorser> meetsEndorsmentPolicy(Set<SDEndorser> endpoints) {
+            Set<SDEndorser> ret = new HashSet<>();
+
+            for (SDGroup group : groups) {
+                Collection<SDEndorser> sdEndorsers = group.meetsEndorsmentPolicy(endpoints, null);
+                if (null == sdEndorsers) {
+                    return null; // group was not satisfied
+                }
+                ret.addAll(sdEndorsers); // add all these endorsers.
+            }
+
+            return ret;
+        }
+
+        public Collection<SDGroup> getSDLGroups() {
+            return new ArrayList<>(groups);
+
+        }
+
+        public class SDGroup {
+            final int required; // the number that's needed for the group to be endorsed.
+            final List<SDEndorser> endorsers = new LinkedList<>();
+            private final String name; // name of the groups - just for debug sake.
+            private int endorsed = 0; // number that have been now endorsed.
+
+            {
+                SDLayout.this.groups.add(this);
+            }
+
+            SDGroup(String name, int required, List<SDEndorser> endorsers) {
+                this.name = name;
+                this.required = required;
+                this.endorsers.addAll(endorsers);
 
             }
 
-            return null;
+            SDGroup(SDGroup group) { //copy constructor
+                name = group.name;
+                required = group.required;
+                endorsers.addAll(group.endorsers);
+                endorsed = 0; // on copy reset to no endorsements
+            }
+
+            public int getStillRequired() {
+                return required - endorsed;
+            }
+
+            public String getName() {
+                return name;
+            }
+
+            public int getRequired() {
+                return required;
+            }
+
+            public Collection<SDEndorser> getEndorsers() {
+                return new ArrayList<>(endorsers);
+            }
+
+            //returns true if there are still sufficent endorsers for this group.
+            boolean ignoreList(Collection<String> names) {
+                HashSet<String> bnames = new HashSet<>(names);
+                endorsers.removeIf(endorser -> bnames.contains(endorser.getEndpoint()));
+                return endorsers.size() >= required;
+            }
+
+            //returns true if there are still sufficent endorsers for this group.
+            boolean ignoreListSDEndorser(Collection<SDEndorser> sdEndorsers) {
+                HashSet<SDEndorser> bnames = new HashSet<>(sdEndorsers);
+                endorsers.removeIf(endorser -> bnames.contains(endorser));
+                return endorsers.size() >= required;
+            }
+
+            // retrun true if th endorsements have been meet.
+            boolean endorsedList(Collection<SDEndorser> sdEndorsers) {
+                //This is going to look odd so here goes: Service discovery can't guarantee the endpoint certs are valid
+                // and so there may be multiple endpoints with different MSP ids. However if we have gotten an
+                // endorsement from an endpoint that means it's been satisfied and can be removed.
+
+                if (endorsed >= required) {
+                    return true;
+                }
+                if (!sdEndorsers.isEmpty()) {
+                    final Set<String> enames = new HashSet<>(sdEndorsers.size());
+                    sdEndorsers.forEach(sdEndorser -> enames.add(sdEndorser.getEndpoint()));
+
+                    endorsers.removeIf(endorser -> {
+                        if (enames.contains(endorser.getEndpoint())) {
+                            endorsed = Math.min(required, endorsed++);
+                            return true; // remove it.
+                        }
+                        return false; // needs to stay in the list.
+                    });
+                }
+
+                return endorsed >= required;
+            }
+
+            @Override
+            public String toString() {
+                StringBuilder sb = new StringBuilder(512);
+                sb.append("SDGroup: { name: ").append(name).append(", required: ").append(required);
+
+                if (!endorsers.isEmpty()) {
+                    sb.append(", endorsers: [");
+                    String sep2 = "";
+                    for (SDEndorser sdEndorser : endorsers) {
+                        sb.append(sep2).append(sdEndorser.toString());
+                        sep2 = ", ";
+                    }
+                    sb.append("]");
+                } else {
+                    sb.append(", endorsers: []");
+                }
+                sb.append("}");
+                return sb.toString();
+            }
+
+            // Returns
+            Collection<SDEndorser> meetsEndorsmentPolicy(Set<SDEndorser> allEndorsed, Collection<SDEndorser> requiredYet) {
+
+                Set<SDEndorser> ret = new HashSet<>(this.endorsers.size());
+                for (SDEndorser hasBeenEndorsed : allEndorsed) {
+                    for (SDEndorser sdEndorser : endorsers) {
+                        if (hasBeenEndorsed.equals(sdEndorser)) {
+                            ret.add(sdEndorser);
+                            if (ret.size() >= required) {
+                                return ret; // got what we needed.
+                            }
+                        }
+                    }
+                }
+                if (null != requiredYet) {
+
+                    for (SDEndorser sdEndorser : endorsers) {
+                        if (!allEndorsed.contains(sdEndorser)) {
+                            requiredYet.add(sdEndorser);
+                        }
+                    }
+                }
+                return null; // group has not meet endorsement.
+            }
+
+        }
+
+        void addGroup(String key, int required, List<SDEndorser> endorsers) {
+            new SDGroup(key, required, endorsers);
+
         }
     }
 
     public static class SDEndorserState {
 
-        Collection<SDEndorser> sdEndorsers = new ArrayList<>();
+        private Collection<SDEndorser> sdEndorsers = new ArrayList<>();
         private SDLayout pickedLayout;
 
-        void setPickedEndorsers(Collection<SDEndorser> sdEndorsers) {
+        public void setPickedEndorsers(Collection<SDEndorser> sdEndorsers) {
             this.sdEndorsers = sdEndorsers;
 
         }
@@ -814,7 +1111,7 @@ class ServiceDiscovery {
             return sdEndorsers;
         }
 
-        void setPickedLayout(SDLayout pickedLayout) {
+        public void setPickedLayout(SDLayout pickedLayout) {
             this.pickedLayout = pickedLayout;
         }
 
@@ -833,6 +1130,11 @@ class ServiceDiscovery {
         private final Collection<byte[]> tlsCerts;
         private final Collection<byte[]> tlsIntermediateCerts;
 
+        SDEndorser() { // for testing only
+            tlsCerts = null;
+            tlsIntermediateCerts = null;
+        }
+
         SDEndorser(Protocol.Peer peerRet, Collection<byte[]> tlsCerts, Collection<byte[]> tlsIntermediateCerts) {
             this.tlsCerts = tlsCerts;
             this.tlsIntermediateCerts = tlsIntermediateCerts;
@@ -842,11 +1144,11 @@ class ServiceDiscovery {
             parseIdentity(peerRet);
         }
 
-        public Collection<byte[]> getTLSCerts() {
+        Collection<byte[]> getTLSCerts() {
             return tlsCerts;
         }
 
-        public Collection<byte[]> getTLSIntermediateCerts() {
+        Collection<byte[]> getTLSIntermediateCerts() {
             return tlsIntermediateCerts;
         }
 
@@ -868,7 +1170,7 @@ class ServiceDiscovery {
             }
         }
 
-        String parseEndpoint(Protocol.Peer peerRet) throws InvalidProtocolBufferRuntimeException {
+        private String parseEndpoint(Protocol.Peer peerRet) throws InvalidProtocolBufferRuntimeException {
 
             if (null == endPoint) {
                 try {
@@ -882,7 +1184,7 @@ class ServiceDiscovery {
                     Message.AliveMessage aliveMsg = gossipMessageMemberInfo.getAliveMsg();
                     endPoint = aliveMsg.getMembership().getEndpoint();
                     if (endPoint != null) {
-                        endPoint = remapEndpoint(endPoint.toLowerCase().trim()); //makes easier on comparing.
+                        endPoint = endPoint.toLowerCase().trim(); //makes easier on comparing.
                     }
                 } catch (InvalidProtocolBufferException e) {
                     throw new InvalidProtocolBufferRuntimeException(e);
@@ -893,7 +1195,7 @@ class ServiceDiscovery {
 
         }
 
-        long parseLedgerHeight(Protocol.Peer peerRet) throws InvalidProtocolBufferRuntimeException {
+        private long parseLedgerHeight(Protocol.Peer peerRet) throws InvalidProtocolBufferRuntimeException {
 
             if (-1L == ledgerHeight) {
                 try {
@@ -914,6 +1216,25 @@ class ServiceDiscovery {
             }
 
             return ledgerHeight;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) {
+                return true;
+            }
+
+            if (!(obj instanceof SDEndorser)) {
+                return false;
+            }
+            SDEndorser other = (SDEndorser) obj;
+            return Objects.equals(mspid, other.getMspid()) && Objects.equals(endPoint, other.getEndpoint());
+        }
+
+        @Override
+        public int hashCode() {
+
+            return Objects.hash(mspid, endPoint);
         }
 
         Set<String> getChaincodeNames() {
@@ -938,7 +1259,7 @@ class ServiceDiscovery {
 
     }
 
-    static List<SDEndorser> topNbyHeight(int required, List<SDEndorser> endorsers) {
+    private static List<SDEndorser> topNbyHeight(int required, List<SDEndorser> endorsers) {
         ArrayList<SDEndorser> ret = new ArrayList<>(endorsers);
         ret.sort(Comparator.comparingLong(SDEndorser::getLedgerHeight));
         return ret.subList(Math.max(ret.size() - required, 0), ret.size());
@@ -1028,21 +1349,10 @@ class ServiceDiscovery {
         super.finalize();
     }
 
-    private static final String REMAP2HOST = System.getProperty("org.hyperledger.fabric.sdk.test.endpoint_remap_discovery_host_name");
+    public interface EndorsementSelector {
+        SDEndorserState endorserSelector(SDChaindcode sdChaindcode);
 
-    private static String remapEndpoint(String endpoint) {
-        String ret = endpoint;
-
-        if (REMAP2HOST != null && !REMAP2HOST.isEmpty()) {
-
-            final String[] split = endpoint.split(":");
-            final String port = split[1];
-
-            ret = REMAP2HOST + ":" + port;
-
-        }
-
-        return ret;
-
+        EndorsementSelector ENDORSEMENT_SELECTION_RANDOM = ServiceDiscovery.ENDORSEMENT_SELECTION_RANDOM;
+        EndorsementSelector ENDORSEMENT_SELECTION_LEAST_REQUIRED_BLOCKHEIGHT = ServiceDiscovery.ENDORSEMENT_SELECTION_LEAST_REQUIRED_BLOCKHEIGHT;
     }
 }

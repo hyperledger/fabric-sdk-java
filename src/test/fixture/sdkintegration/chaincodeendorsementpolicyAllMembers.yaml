@@ -1,0 +1,15 @@
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+
+identities:  # list roles to be used in the policy
+  user1: {"role": {"name": "member", "mspId": "Org1MSP"}} # role member in org with mspid Org1MSP
+  user2: {"role": {"name": "member", "mspId": "Org2MSP"}}
+
+policy: # the policy  each MUST sign
+  2-of: # signed by one of these groups  can be <n>-of  where <n> is any digit 2-of, 3-of etc..
+  - signed-by: "user1"
+  - signed-by: "user2"

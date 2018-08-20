@@ -70,7 +70,7 @@ public class TestUtils {
     public static Object setField(Object o, String fieldName, Object value) {
         Object oldVal = null;
         try {
-            final Field field = o.getClass().getDeclaredField(fieldName);
+            final Field field = getFieldInt(o.getClass(), fieldName);
             field.setAccessible(true);
             oldVal = field.get(o);
             field.set(o, value);
@@ -94,7 +94,7 @@ public class TestUtils {
         Method[] methods = o.getClass().getDeclaredMethods();
         List<Method> reduce = new ArrayList<>(Arrays.asList(methods));
         for (Iterator<Method> i = reduce.iterator(); i.hasNext();
-                ) {
+        ) {
             Method m = i.next();
             if (!methodName.equals(m.getName())) {
                 i.remove();
