@@ -527,10 +527,10 @@ public class HFClient {
     }
 
     /**
-     * Query the channels for peers
+     * Query the joined channels for peers
      *
      * @param peer the peer to query
-     * @return A set of strings with the peer names.
+     * @return A set of strings with the names of the channels the peer has joined.
      * @throws InvalidArgumentException
      * @throws ProposalException
      */

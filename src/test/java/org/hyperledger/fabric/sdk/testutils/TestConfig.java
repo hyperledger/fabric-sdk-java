@@ -86,11 +86,6 @@ public class TestConfig {
     private static final String ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION
             = System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION") == null ? "1.3.0" : System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION");
 
-    static {
-        //set to fake out discovery during testing to local docker  see Endpoint.java's createEndpoint method.
-        System.setProperty("org.hyperledger.fabric.sdk.test.endpoint_remap_discovery_host_name", "localhost"); // for testing only remaps all endpoint names.
-    }
-
     int[] fabricVersion = new int[3];
 
     private TestConfig() {
