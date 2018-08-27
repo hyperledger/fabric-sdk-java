@@ -21,6 +21,7 @@ import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import io.netty.util.internal.StringUtil;
@@ -31,6 +32,7 @@ import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 import org.hyperledger.fabric.sdk.Channel.PeerOptions;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.exception.PeerEventingServiceException;
 import org.hyperledger.fabric.sdk.exception.PeerException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
 import org.hyperledger.fabric.sdk.helper.Config;
@@ -60,7 +62,7 @@ public class Peer implements Serializable {
     private String channelName;
     private transient TransactionContext transactionContext;
     private transient long lastConnectTime;
-    private transient long reconnectCount;
+    private transient AtomicLong reconnectCount;
     private transient BlockEvent lastBlockEvent;
     private transient long lastBlockNumber;
     private transient byte[] clientTLSCertificateDigest;
@@ -75,6 +77,7 @@ public class Peer implements Serializable {
     }
 
     Peer(String name, String grpcURL, Properties properties) throws InvalidArgumentException {
+        reconnectCount = new AtomicLong(0L);
 
         Exception e = checkGrpcUrl(grpcURL);
         if (e != null) {
@@ -89,7 +92,6 @@ public class Peer implements Serializable {
         this.url = grpcURL;
         this.name = name;
         this.properties = properties == null ? null : (Properties) properties.clone(); //keep our own copy.
-        reconnectCount = 0L;
 
     }
 
@@ -361,7 +363,7 @@ public class Peer implements Serializable {
 
                 @Override
                 public long getReconnectCount() {
-                    return reconnectCount;
+                    return reconnectCount.longValue();
                 }
 
                 @Override
@@ -372,7 +374,7 @@ public class Peer implements Serializable {
                 @Override
                 public void reconnect(Long startBLockNumber) throws TransactionException {
                     logger.trace(format("Channel %s %s reconnecting. Starting block number: %s", channelName, toString(), startBLockNumber == null ? "newest" : startBLockNumber));
-                    ++reconnectCount;
+                    reconnectCount.getAndIncrement();
 
                     if (startBLockNumber == null) {
                         peerOptions.startEventsNewest();
@@ -398,11 +400,11 @@ public class Peer implements Serializable {
 
     void resetReconnectCount() {
         connected = true;
-        reconnectCount = 0L;
+        reconnectCount = new AtomicLong(0L);
     }
 
     long getReconnectCount() {
-        return reconnectCount;
+        return reconnectCount.longValue();
     }
 
     synchronized void setTLSCertificateKeyPair(TLSCertificateKeyPair tlsCertificateKeyPair) {
@@ -482,6 +484,16 @@ public class Peer implements Serializable {
             public synchronized void disconnected(final PeerEventingServiceDisconnectEvent event) {
 
                 BlockEvent lastBlockEvent = event.getLatestBLockReceived();
+                Throwable thrown = event.getExceptionThrown();
+
+                long sleepTime = PEER_EVENT_RETRY_WAIT_TIME;
+
+                if (thrown instanceof PeerEventingServiceException) {
+                    // means we connected and got an error or connected but timout waiting on the response
+                    // not going away.. sleep longer.
+                    sleepTime = Math.min(5000L, PEER_EVENT_RETRY_WAIT_TIME + event.getReconnectCount() * 100L); //wait longer if we connected.
+                    //don't flood server.
+                }
 
                 Long startBlockNumber = null;
 
@@ -490,12 +502,10 @@ public class Peer implements Serializable {
                     startBlockNumber = lastBlockEvent.getBlockNumber();
                 }
 
-                if (0 != event.getReconnectCount()) {
-                    try {
-                        Thread.sleep(PEER_EVENT_RETRY_WAIT_TIME);
-                    } catch (InterruptedException e) {
-
-                    }
+                try {
+                    Thread.sleep(sleepTime);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
 
                 try {
@@ -606,6 +616,7 @@ public class Peer implements Serializable {
         in.defaultReadObject();
         disconnectedHandler = getDefaultDisconnectHandler();
         connected = false;
+        reconnectCount = new AtomicLong(0L);
 
     }
 } // end Peer
