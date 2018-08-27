@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -35,6 +36,7 @@ import org.hyperledger.fabric.protos.peer.DeliverGrpc;
 import org.hyperledger.fabric.protos.peer.PeerEvents.DeliverResponse;
 import org.hyperledger.fabric.sdk.Channel.PeerOptions;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.exception.PeerEventingServiceException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
 import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
@@ -148,7 +150,7 @@ class PeerEventServiceClient {
                 }
             }
         }
-        peer = null;
+
         channelEventQue = null;
 
     }
@@ -170,6 +172,8 @@ class PeerEventServiceClient {
             logger.warn(format("Peer %s not connecting is shutdown ", peer));
             return;
         }
+
+        final AtomicBoolean retry = new AtomicBoolean(true); // make sure we only retry connection once for each connection attempt.
 
         ManagedChannel lmanagedChannel = managedChannel;
 
@@ -210,8 +214,16 @@ class PeerEventServiceClient {
                             peer.resetReconnectCount();
                         } else {
 
-                            throwableList.add(new TransactionException(format("Channel %s peer %s Status returned failure code %d (%s) during peer service event registration",
-                                    channelName, peer.getName(), resp.getStatusValue(), resp.getStatus().name())));
+                            final long rec = peer.getReconnectCount();
+
+                            PeerEventingServiceException peerEventingServiceException = new PeerEventingServiceException(format("Channel %s peer %s attempts %s Status returned failure code %d (%s) during peer service event registration",
+                                    channelName, peer.getName(), rec, resp.getStatusValue(), resp.getStatus().name()));
+                            peerEventingServiceException.setResponse(resp);
+                            if (rec % 10 == 0) {
+                                logger.warn(peerEventingServiceException.getMessage());
+                            }
+
+                            throwableList.add(peerEventingServiceException);
                         }
 
                     } else if (typeCase == FILTERED_BLOCK || typeCase == BLOCK) {
@@ -226,10 +238,8 @@ class PeerEventServiceClient {
                         peer.setLastConnectTime(System.currentTimeMillis());
                         long reconnectCount = peer.getReconnectCount();
                         if (reconnectCount > 1) {
-
                             logger.info(format("Peer eventing service reconnected after %d attempts on channel %s, peer %s, url %s",
                                     reconnectCount, channelName, name, url));
-
                         }
                         peer.resetReconnectCount();
 
@@ -241,8 +251,11 @@ class PeerEventServiceClient {
                         logger.error(format("Channel %s peer %s got event block with unknown type: %s, %d",
                                 channelName, peer.getName(), typeCase.name(), typeCase.getNumber()));
 
-                        throwableList.add(new TransactionException(format("Channel %s peer %s Status got unknown type %s, %d",
-                                channelName, peer.getName(), typeCase.name(), typeCase.getNumber())));
+                        PeerEventingServiceException peerEventingServiceException = new PeerEventingServiceException(format("Channel %s peer %s got event block with unknown type: %s, %d",
+                                channelName, peer.getName(), typeCase.name(), typeCase.getNumber()));
+                        peerEventingServiceException.setResponse(resp);
+
+                        throwableList.add(peerEventingServiceException);
 
                     }
                     finishLatch.countDown();
@@ -253,7 +266,12 @@ class PeerEventServiceClient {
                 public void onError(Throwable t) {
                     ManagedChannel llmanagedChannel = managedChannel;
                     if (llmanagedChannel != null) {
-                        llmanagedChannel.shutdownNow();
+                        try {
+                            llmanagedChannel.shutdownNow();
+                        } catch (Exception e) {
+                            logger.warn(format("Received error on peer eventing service on channel %s, peer %s, url %s, attempts %d. %s shut down of grpc channel.",
+                                    channelName, name, url, peer == null ? -1 : peer.getReconnectCount(), e.getMessage()), e);
+                        }
                         managedChannel = null;
                     }
                     if (!shutdown) {
@@ -268,7 +286,9 @@ class PeerEventServiceClient {
 
                         }
 
-                        peer.reconnectPeerEventServiceClient(PeerEventServiceClient.this, t);
+                        if (retry.getAndSet(false)) {
+                            peer.reconnectPeerEventServiceClient(PeerEventServiceClient.this, t);
+                        }
 
                     }
                     finishLatch.countDown();
@@ -290,8 +310,9 @@ class PeerEventServiceClient {
 
             // try {
             if (!finishLatch.await(peerEventRegistrationWaitTimeMilliSecs, TimeUnit.MILLISECONDS)) {
-                TransactionException ex = new TransactionException(format(
+                PeerEventingServiceException ex = new PeerEventingServiceException(format(
                         "Channel %s connect time exceeded for peer eventing service %s, timed out at %d ms.", channelName, name, peerEventRegistrationWaitTimeMilliSecs));
+                ex.setTimedOut(peerEventRegistrationWaitTimeMilliSecs);
                 throwableList.add(0, ex);
 
             }
@@ -304,7 +325,9 @@ class PeerEventServiceClient {
                     managedChannel = null;
                 }
                 Throwable throwable = throwableList.get(0);
-                peer.reconnectPeerEventServiceClient(this, throwable);
+                if (retry.getAndSet(false)) {
+                    peer.reconnectPeerEventServiceClient(this, throwable);
+                }
 
             }
 
@@ -316,7 +339,9 @@ class PeerEventServiceClient {
             }
             logger.error(e); // not likely
 
-            peer.reconnectPeerEventServiceClient(this, e);
+            if (retry.getAndSet(false)) {
+                peer.reconnectPeerEventServiceClient(this, e);
+            }
 
         } finally {
             if (null != nso) {
