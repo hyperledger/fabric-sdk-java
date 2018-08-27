@@ -115,6 +115,7 @@ import org.hyperledger.fabric.sdk.transaction.InstantiateProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.JoinPeerProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.ProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.ProtoUtils;
+import org.hyperledger.fabric.sdk.transaction.QueryCollectionsConfigBuilder;
 import org.hyperledger.fabric.sdk.transaction.QueryInstalledChaincodesBuilder;
 import org.hyperledger.fabric.sdk.transaction.QueryInstantiatedChaincodesBuilder;
 import org.hyperledger.fabric.sdk.transaction.QueryPeerChannelsBuilder;
@@ -3080,6 +3081,78 @@ public class Channel implements Serializable {
             ChaincodeQueryResponse chaincodeQueryResponse = ChaincodeQueryResponse.parseFrom(fabricResponseResponse.getPayload());
 
             return chaincodeQueryResponse.getChaincodesList();
+
+        } catch (ProposalException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ProposalException(format("Query for peer %s channels failed. " + e.getMessage(), name), e);
+
+        }
+
+    }
+
+    /**
+     * Get information on the collections used by the chaincode.
+     *
+     * @param chaincodeName The name of the chaincode to query.
+     * @param peer          Peer to query.
+     * @param userContext   The context of the user to sign the request.
+     * @return CollectionConfigPackage with information on the collection used by the chaincode.
+     * @throws InvalidArgumentException
+     * @throws ProposalException
+     */
+
+    public CollectionConfigPackage queryCollectionsConfig(String chaincodeName, Peer peer, User userContext) throws InvalidArgumentException, ProposalException {
+
+        if (Utils.isNullOrEmpty(chaincodeName)) {
+            throw new InvalidArgumentException("Parameter chaincodeName expected to be non null or empty string.");
+        }
+        checkChannelState();
+        checkPeer(peer);
+        User.userContextCheck(userContext);
+
+        try {
+
+            TransactionContext context = getTransactionContext(userContext);
+
+            QueryCollectionsConfigBuilder queryCollectionsConfigBuilder = QueryCollectionsConfigBuilder.newBuilder()
+                    .context(context).chaincodeName(chaincodeName);
+
+            FabricProposal.Proposal q = queryCollectionsConfigBuilder.build();
+
+            SignedProposal qProposal = getSignedProposal(context, q);
+            Collection<ProposalResponse> proposalResponses = sendProposalToPeers(Collections.singletonList(peer), qProposal, context);
+
+            if (null == proposalResponses) {
+                throw new ProposalException(format("Peer %s channel query return with null for responses", peer.getName()));
+            }
+
+            if (proposalResponses.size() != 1) {
+
+                throw new ProposalException(format("Peer %s channel query expected one response but got back %d  responses ", peer.getName(), proposalResponses.size()));
+            }
+
+            ProposalResponse proposalResponse = proposalResponses.iterator().next();
+
+            FabricProposalResponse.ProposalResponse fabricResponse = proposalResponse.getProposalResponse();
+            if (null == fabricResponse) {
+                throw new ProposalException(format("Peer %s channel query return with empty fabric response", peer.getName()));
+
+            }
+
+            final Response fabricResponseResponse = fabricResponse.getResponse();
+
+            if (null == fabricResponseResponse) { //not likely but check it.
+                throw new ProposalException(format("Peer %s channel query return with empty fabricResponseResponse", peer.getName()));
+            }
+
+            if (200 != fabricResponseResponse.getStatus()) {
+                throw new ProposalException(format("Peer %s channel query expected 200, actual returned was: %d. "
+                        + fabricResponseResponse.getMessage(), peer.getName(), fabricResponseResponse.getStatus()));
+
+            }
+
+            return new CollectionConfigPackage(fabricResponseResponse.getPayload());
 
         } catch (ProposalException e) {
             throw e;

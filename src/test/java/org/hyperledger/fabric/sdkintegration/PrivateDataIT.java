@@ -19,8 +19,11 @@ package org.hyperledger.fabric.sdkintegration;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
@@ -30,6 +33,7 @@ import org.hyperledger.fabric.sdk.ChaincodeCollectionConfiguration;
 import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.ChaincodeResponse.Status;
 import org.hyperledger.fabric.sdk.Channel;
+import org.hyperledger.fabric.sdk.CollectionConfigPackage;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.InstallProposalRequest;
 import org.hyperledger.fabric.sdk.InstantiateProposalRequest;
@@ -179,6 +183,16 @@ public class PrivateDataIT {
         runChannel(client, barChannel, sampleOrg, 10);
         assertFalse(barChannel.isShutdown());
         assertTrue(barChannel.isInitialized());
+
+        Set<String> expect = new HashSet<>(Arrays.asList("COLLECTION_FOR_A", "COLLECTION_FOR_B"));
+        Set<String> got = new HashSet<>();
+
+        CollectionConfigPackage queryCollectionsConfig = barChannel.queryCollectionsConfig(CHAIN_CODE_NAME, barChannel.getPeers().iterator().next(), sampleOrg.getPeerAdmin());
+        for (CollectionConfigPackage.CollectionConfig collectionConfig : queryCollectionsConfig.getCollectionConfigs()) {
+            got.add(collectionConfig.getName());
+
+        }
+        assertEquals(expect, got);
 
         out("That's all folks!");
     }
