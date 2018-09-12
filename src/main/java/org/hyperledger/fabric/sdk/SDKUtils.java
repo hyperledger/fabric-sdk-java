@@ -21,18 +21,25 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.protobuf.ByteString;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.DERSequenceGenerator;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 import static java.lang.String.format;
 
 public class SDKUtils {
+    private static final Log logger = LogFactory.getLog(SDKUtils.class);
+    private static final boolean IS_DEBUG_LEVEL = logger.isDebugEnabled();
+
     private SDKUtils() {
 
     }
@@ -135,6 +142,36 @@ public class SDKUtils {
                 Set<ProposalResponse> set = ret.computeIfAbsent(payloadBytes, k -> new HashSet<>());
                 set.add(proposalResponse);
             }
+        }
+
+        if (IS_DEBUG_LEVEL && ret.size() > 1) {
+
+            StringBuilder sb = new StringBuilder(1000);
+
+            int i = 0;
+            String sep = "";
+
+            for (Map.Entry<ByteString, Set<ProposalResponse>> entry : ret.entrySet()) {
+                ByteString bytes = entry.getKey();
+                Set<ProposalResponse> presp = entry.getValue();
+
+                sb.append(sep)
+                        .append("Consistency set: ").append(i++).append(" bytes size: ").append(bytes.size())
+                        .append(" bytes: ")
+                        .append(Utils.toHexString(bytes.toByteArray())).append(" [");
+
+                String psep = "";
+
+                for (ProposalResponse proposalResponse : presp) {
+                    sb.append(psep).append(proposalResponse.getPeer());
+                    psep = ", ";
+                }
+                sb.append("]");
+                sep = ", ";
+            }
+
+            logger.debug(sb.toString());
+
         }
 
         return ret.values();

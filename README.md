@@ -22,18 +22,13 @@ SDK's `Enrollment` interface.
   only help you familiarize to get started with the SDK if you are new in this domain.
 
 
-## IMPORTANT: Version 1.3 IS WORK IN PROGRESS!
-If you don't require features of Fabric or Fabric CA version 1.3 you probably should consider the v1.2.x version of the SDK.
-To get the actual v1.2.0 SDK:  [v1.2.0](https://github.com/hyperledger/fabric-sdk-java/tree/33760188370ed4653cca93e727e509e774c5c8c1)
-If you are trying to use new features of Fabric you will probably have to build Fabric to get those features.
-
-
 ## Release notes
 
-|Release | Notes |
-|--------|:-----:|
-|1.2     | [v1.2 release notes](./docs/release_v1.2.0_notes.md)|
-|1.1     | [v1.1 release notes](./docs/release_v1.1.0_notes.md)|
+|Release | Notes |Summary|
+|--------|:------|:------|
+|1.3     | [v1.3 release notes](./docs/release_v1.3.0_notes.md)|<ul><li>Java chaincode support</li><li>Query chaincode collection configuration</li><li>Identity Mixer transaction unlinkabilty support</li></ul> |
+|1.2     | [v1.2 release notes](./docs/release_v1.2.0_notes.md)|<ul><li>Private data collection support</li><li>Service discovery</li><li>Fabric CA certificate API </ul>|
+|1.1     | [v1.1 release notes](./docs/release_v1.1.0_notes.md)|<ul><li>Channel service events</li><li>FilterBlocks</li><li>JCA/JCE compliance</li><li>Chaincode events</li><li>Node chaincode</li></ul>|
 
 
 
@@ -41,7 +36,7 @@ If you are trying to use new features of Fabric you will probably have to build 
 ```
 git clone https://github.com/hyperledger/fabric-sdk-java.git
 cd fabric-sdk-java/
-git checkout -b release-1.2
+git checkout -b release-1.3
 ```
 
 ## Java applications
@@ -51,7 +46,7 @@ For Java applications use the latest published v1.3.x releases:
      <dependency>
          <groupId>org.hyperledger.fabric-sdk-java</groupId>
          <artifactId>fabric-sdk-java</artifactId>
-         <version>1.3.0-SNAPHOST/version>
+         <version>1.3.0/version>
      </dependency>
 
 ```
@@ -66,36 +61,6 @@ For Java applications use the latest published v1.3.x releases:
 
 
 `*************************************************`
-
-## 1.3.0-SNAPSHOT builds
-Work in progress 1.3.0 SNAPSHOT builds can be used by adding the following to your application's
-pom.xml
-```
-<repositories>
-        <repository>
-            <id>snapshots-repo</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-
-<dependencies>
-
-        <!-- https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java -->
-        <dependency>
-            <groupId>org.hyperledger.fabric-sdk-java</groupId>
-            <artifactId>fabric-sdk-java</artifactId>
-            <version>1.3.0-SNAPSHOT</version>
-        </dependency>
-
-</dependencies>
-```
-
 
 
 ## Latest Fabric Builds.
@@ -123,6 +88,10 @@ To build this project, the following dependencies must be met
  * JDK 1.8 or above
  * Apache Maven 3.5.0
 
+To run the integration tests Fabric and Fabric CA is needed which require
+ * Docker 18.03
+ * Docker compose 1.21.2
+
 ## Using the SDK
 
 ### Compiling
@@ -149,15 +118,27 @@ Use this `maven` command to run the integration tests:
  * _mvn clean install -DskipITs=false -Dmaven.test.failure.ignore=false javadoc:javadoc_
 
 ### End to end test scenario
-The _src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java_ integration test is an example of installing, instantiating, invoking and querying a chaincode.
-It constructs the Hyperledger channel, deploys the `GO` chaincode, invokes the chaincode to do a transfer amount operation and queries the resulting blockchain world state.
 
-The _src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java_  Shows recreating the channel objects created in End2endIT.java and
-upgrading chaincode and invoking the up graded chaincode.
-
-Between End2endIT.java and End2endAndBackAgainIT.java this code shows almost all that the SDK can do.
- To learn the SDK you must have some understanding first of the Fabric. Then it's best to study these two integrations tests and better yet work with them in a debugger to follow the code. ( *a live demo* )
+ Following the below integration tests/example code shows almost all that the SDK can do.
+ To learn the SDK you must have some understanding first of Fabric Hyperledger. Then it's best to study the integrations tests and better yet work with them in a debugger to follow the code ( *a live demo* ).
+ Start first with End2endIT.java and then End2endAndBackAgainIT.java samples before exploring the other samples.
  Then once you understand them you can cut and paste from there to your own application. ( _the code is done for you!_ )
+
+ **Note** These samples are for testing, validating your environment and showing how to use the APIs. Most show a **simple** balance transfer.
+  **They are not meant to represent best practices in design or use of chaincode or the use of the SDK**.
+
+
+ |Integration Test | Summary and notes|
+ |--------|:------|
+ |[End2endIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java)|<ul><li>Register and enroll users with Fabric certificate authority.</li><li>Constructing channel first time.</li><li>Installing chaincode.</li><li>Instantiating chaincode.</li><li>Executing chaincode.</li><li>Querying channel for block information.</li><li>Chaincode event listener</li><li>Traversing block for information.</li><li>Prerequisite for all other testcases.</li></ul> |
+ |[End2endAndBackAgainIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java)| <ul><li>Recreate channel.</li><li>Update chaincode.</li><li>Checking installed and instantiated chaincode.</li></ul> |
+ |[End2endNodeIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endNodeIT.java)| <ul><li>Shows running End2endIT.java but with Node chaincode.</li><li>Note subclasses En2endIT class.</li></ul> |
+ |[End2endJavaIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endJavaIT.java)| <ul><li>Shows running End2endIT.java but with Java chaincode.</li><li>Note subclasses En2endIT class.</li></ul> |
+ |[End2endIdemixIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIdemixIT.java)| <ul><li>Shows running End2endIT.java but with Idemix credentials.</li><li>Note subclasses En2endIT class.</li></ul> |
+ |[NetworkConfigIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/NetworkConfigIT.java)| <ul><li>Shows recreating channel with [common connection profile](https://jira.hyperledger.org/browse/FABN-808).</li></ul> |
+ |[PrivateDataIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/PrivateDataIT.java)| <ul><li>Shows instantiating and installing chaincode that defines private data.</li><li>Information on Fabric private data can be found [read the docs.](https://hyperledger-fabric.readthedocs.io/en/release-1.2/private-data/private-data.html)</li></ul> |
+ |[UpdateChannelIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/UpdateChannelIT.java)| <ul><li>Shows updating channel configuration.</li><li>Details on channel configurations can be found on read the docs [Channel Configuration](https://hyperledger-fabric.readthedocs.io/en/release-1.2/configtx.html#)</li></ul> |
+ |[ServiceDiscoveryIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/ServiceDiscoveryIT.java)| <ul><li>Shows service discovery.</li><li>Details on service discovery can be found on read the docs [Service Discovery](https://hyperledger-fabric.readthedocs.io/en/release-1.3/discovery-overview.html)</li><li>Note: requires adding entries in host file to remap docker fabric Peer and Orderers address to localhost</li></ul> |
 
 ### End to end test environment
 The test defines one Fabric orderer and two organizations (peerOrg1, peerOrg2), each of which has 2 peers, one fabric-ca service.
@@ -253,9 +234,9 @@ For v1.2 integration the commands use the v12 profiles in configtx.yaml.
 
 For v1.3 integration, cd to the `src/test/fixture/sdkintegration/e2e-2Orgs/v1.3` directory
 and execute the following commands:
- * configtxgen -outputBlock orderer.block -profile TwoOrgsOrdererGenesis_v13
- * configtxgen -outputCreateChannelTx foo.tx -profile TwoOrgsChannel_v13 -channelID foo
- * configtxgen -outputCreateChannelTx bar.tx -profile TwoOrgsChannel_v13 -channelID bar
+ * configtxgen --configPath . -outputBlock orderer.block -profile TwoOrgsOrdererGenesis_v13
+ * configtxgen --configPath . -outputCreateChannelTx foo.tx -profile TwoOrgsChannel_v13 -channelID foo
+ * configtxgen --configPath . -outputCreateChannelTx bar.tx -profile TwoOrgsChannel_v13 -channelID bar
 
  This should produce the following files in the same directory: orderer.block, foo.tx, and bar.tx
 
@@ -269,29 +250,38 @@ Go lang chaincode dependencies must be contained in vendor folder.
  For an explanation of this see [Vendor folder explanation](https://blog.gopheracademy.com/advent-2015/vendor-folder/)
 
 
-## Basic Troubleshooting
+## Basic Troubleshooting and frequently asked questions:
 
-**Firewalls, load balancers, network proxies**
+### Where can I find the Javadoc?
+
+Look in the [Maven repository](http://central.maven.org/maven2/org/hyperledger/fabric-sdk-java/fabric-sdk-java/)
+for the release in question there should be a file fabric-sdk-java-_&lt;release&gt;_-javadoc.jar
+
+For SNAPSHOT builds look in [Sonatype repository](https://oss.sonatype.org/content/repositories/snapshots/org/hyperledger/fabric-sdk-java/fabric-sdk-java/)
+Find the release _&lt;release&gt;_-SNAPSHOT directory then search for the latest fabric-sdk-java-&lt;_release_&gt;&#45;_&lt;latest timestamp&gt;_-javadoc.jar
+
+
+### Is Android supported?
+No.
+
+### Is there an API to query for all channels that exist?
+No.
+
+### Firewalls, load balancers, network proxies
 
 These can sometimes silently kill a network connections and prevent them from auto reconnecting. To fix this look at
 adding to Peers, EventHub's and Orderer's connection properties:
 `grpc.NettyChannelBuilderOption.keepAliveTime`, `grpc.NettyChannelBuilderOption.keepAliveTimeout`,
 `grpc.NettyChannelBuilderOption.keepAliveWithoutCalls`. Examples of this are in End2endIT.java
 
+### grpc message frame size exceeds maximum
 
-**identity or token do not match**
+The message being returned from the fabric server is too large for the default grpc frame size.
+On the Peer, Orderer, orEventHub add the property `grpc.NettyChannelBuilderOption.maxInboundMessageSize`
+See [End2endIT's constructChannel](https://github.com/hyperledger/fabric-sdk-java/blob/b649868113e969d851720c972f660114b64247bc/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java#L846)
 
-Keep in mind that you can perform the enrollment process with the membership services server only once, as the enrollmentSecret is a one-time-use password. If you have performed a FSUser registration/enrollment with the membership services and subsequently deleted the crypto tokens stored on the client side, the next time you try to enroll, errors similar to the ones below will be seen.
 
-``Error: identity or token do not match``
-
-``Error: FSUser is already registered``
-
-To address this, remove any stored crypto material from the CA server by following the instructions <a href="https://github.com/hyperledger/fabric/blob/master/docs/Setup/Chaincode-setup.md#removing-temporary-files-when-security-is-enabled">here</a> which typically involves deleting the /var/hyperledger/production directory and restarting the membership services. You will also need to remove any of the crypto tokens stored on the client side by deleting the KeyValStore . That KeyValStore is configurable and is set to ${FSUser.home}/test.properties within the unit tests.
-
-When running the unit tests, you will always need to clean the membership services database and delete the KeyValStore file, otherwise, the unit tests will fail.
-
-**java.security.InvalidKeyException: Illegal key size**
+### java.security.InvalidKeyException: Illegal key size
 
 If you get this error, this means your JDK does not capable of handling unlimited strength crypto algorithms. To fix this issue, You will need to download the JCE libraries for your version of JDK. Please follow the instructions <a href="http://stackoverflow.com/questions/6481627/java-security-illegal-key-size-or-default-parameters">here</a> to download and install the JCE for your version of the JDK.
 
@@ -323,12 +313,15 @@ Pleases provide as much information that you can with the issue you're experienc
 
 Please provide the output of **java -XshowSettings:properties -version**
 
-Logging for the SDK can be enabled with setting environment variables:
+### Logging for the SDK can be enabled with setting environment variables:
 
 ORG_HYPERLEDGER_FABRIC_SDK_LOGLEVEL=TRACE
 
 ORG_HYPERLEDGER_FABRIC_CA_SDK_LOGLEVEL=TRACE
 
+ORG_HYPERLEDGER_FABRIC_SDK_DIAGNOSTICFILEDIR=&lt;*full path to directory*&gt; &#35; *dumps protobuf and diagnostic data. Can be produce large amounts of data!*
+
+### Fabric debug
 Fabric debug is by default enabled in the SDK docker-compose.yaml file with
 
 On Orderer:

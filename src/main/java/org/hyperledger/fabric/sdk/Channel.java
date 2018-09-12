@@ -4192,6 +4192,20 @@ public class Channel implements Serializable {
         return sendTransaction(proposalResponses, orderers, client.getUserContext());
     }
 
+    /**
+     * NofEvents may be used with @see {@link TransactionOptions#nOfEvents(NOfEvents)}  to control how reporting Peer service events and Eventhubs will
+     * complete the future acknowledging the transaction has been seen by those Peers.
+     * <p/>
+     * You can use the method @see {@link #nofNoEvents} to create an NOEvents that will result in the future being completed immediately
+     * when the Orderer has accepted the transaction. Note in this case the transaction event will be set to null.
+     * <p/>
+     * NofEvents can add Peer Eventing services and Eventhubs that should complete the future. By default all will need to
+     * see the transactions to complete the future.  The method @see {@link #setN(int)} can set how many in the group need to see the transaction
+     * completion. Essentially setting it to 1 is any.
+     * </p>
+     * NofEvents may also contain other NofEvent grouping. They can be nested.
+     */
+
     public static class NOfEvents {
 
         public NOfEvents setN(int n) {
@@ -4213,6 +4227,13 @@ public class Channel implements Serializable {
         private HashSet<Peer> peers = new HashSet<>();
         private HashSet<NOfEvents> nOfEvents = new HashSet<>();
 
+        /**
+         * Peers that need to see the transaction event to complete.
+         *
+         * @param peers The peers that need to see the transaction event to complete.
+         * @return This NofEvents.
+         */
+
         public NOfEvents addPeers(Peer... peers) {
             if (peers == null || peers.length == 0) {
                 throw new IllegalArgumentException("Peers added must be not null or empty.");
@@ -4223,10 +4244,22 @@ public class Channel implements Serializable {
 
         }
 
+        /**
+         * Peers that need to see the transaction event to complete.
+         *
+         * @param peers The peers that need to see the transaction event to complete.
+         * @return This NofEvents.
+         */
         public NOfEvents addPeers(Collection<Peer> peers) {
             addPeers(peers.toArray(new Peer[peers.size()]));
             return this;
         }
+
+        /**
+         * EventHubs that need to see the transaction event to complete.
+         * @param eventHubs The peers that need to see the transaction event to complete.
+         * @return This NofEvents.
+         */
 
         public NOfEvents addEventHubs(EventHub... eventHubs) {
             if (eventHubs == null || eventHubs.length == 0) {
@@ -4238,10 +4271,21 @@ public class Channel implements Serializable {
 
         }
 
+        /**
+         * EventHubs that need to see the transaction event to complete.
+         * @param eventHubs The peers that need to see the transaction event to complete.
+         * @return This NofEvents.
+         */
         public NOfEvents addEventHubs(Collection<EventHub> eventHubs) {
             addEventHubs(eventHubs.toArray(new EventHub[eventHubs.size()]));
             return this;
         }
+
+        /**
+         * NOfEvents that need to see the transaction event to complete.
+         * @param nOfEvents  The nested event group that need to set the transacton event to complete.
+         * @return This NofEvents.
+         */
 
         public NOfEvents addNOfs(NOfEvents... nOfEvents) {
             if (nOfEvents == null || nOfEvents.length == 0) {
@@ -4272,6 +4316,12 @@ public class Channel implements Serializable {
             }
             return false;
         }
+
+        /**
+         * NOfEvents that need to see the transaction event to complete.
+         * @param nofs  The nested event group that need to set the transacton event to complete.
+         * @return This NofEvents.
+         */
 
         public NOfEvents addNOfs(Collection<NOfEvents> nofs) {
             addNOfs(nofs.toArray(new NOfEvents[nofs.size()]));
@@ -4395,6 +4445,11 @@ public class Channel implements Serializable {
             return new NOfEvents();
         }
 
+        /**
+         * Special NofEvents indicating that no transaction events are needed to complete the Future.
+         * This will result in the Future being completed as soon has the Orderer has seen the transaction.
+         */
+
         public static NOfEvents nofNoEvents = new NOfEvents() {
             @Override
             public NOfEvents addNOfs(NOfEvents... nOfEvents) {
@@ -4451,6 +4506,10 @@ public class Channel implements Serializable {
     public CompletableFuture<TransactionEvent> sendTransaction(Collection<ProposalResponse> proposalResponses, Collection<Orderer> orderers, User userContext) {
         return sendTransaction(proposalResponses, createTransactionOptions().orderers(orderers).userContext(userContext));
     }
+
+    /**
+     * TransactionOptions class can be used to change how the SDK processes the Transaction.
+     */
 
     public static class TransactionOptions {
         List<Orderer> orderers;
@@ -4510,7 +4569,7 @@ public class Channel implements Serializable {
          * This maybe set to NOfEvents.nofNoEvents that will complete the future as soon as a successful submission
          * to an Orderer, but the completed Transaction event in that case will be null.
          *
-         * @param nOfEvents
+         * @param nOfEvents @see {@link NOfEvents}
          * @return This TransactionOptions
          */
         public TransactionOptions nOfEvents(NOfEvents nOfEvents) {

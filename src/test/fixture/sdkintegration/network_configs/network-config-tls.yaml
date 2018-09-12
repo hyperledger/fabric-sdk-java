@@ -135,7 +135,7 @@ organizations:
     # this way. The SDK should allow applications to set the org admin identity via APIs, and only use
     # this route as an alternative when it exists.
     adminPrivateKey:
-      #path: src/test/fixture/sdkintegration/e2e-2Orgs/v1.1/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/6b32e59640c594cf633ad8c64b5958ef7e5ba2a205cfeefd44a9e982ce624d93_sk
+      #path: src/test/fixture/sdkintegration/e2e-2Orgs/v1.3/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/6b32e59640c594cf633ad8c64b5958ef7e5ba2a205cfeefd44a9e982ce624d93_sk
       pem: |
             -----BEGIN PRIVATE KEY-----
             MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgpANnM2zJ/oz7c31B
@@ -144,7 +144,7 @@ organizations:
             -----END PRIVATE KEY-----
 
     signedCert:
-      path: src/test/fixture/sdkintegration/e2e-2Orgs/v1.1/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/Admin@org1.example.com-cert.pem
+      path: src/test/fixture/sdkintegration/e2e-2Orgs/v1.3/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/Admin@org1.example.com-cert.pem
       #pem: |
       #      -----BEGIN CERTIFICATE-----
       #      MIICGjCCAcCgAwIBAgIRAPDmqtljAyXFJ06ZnQjXqbMwCgYIKoZIzj0EAwIwczEL
@@ -191,7 +191,7 @@ orderers:
       grpc.keepalive_time_ms: 360000
       grpc.keepalive_timeout_ms: 180000
 
-    # src/test/fixture/sdkintegration/e2e-2Orgs/v1.1/crypto-config/ordererOrganizations/example.com/tlsca
+    # src/test/fixture/sdkintegration/e2e-2Orgs/v1.3/crypto-config/ordererOrganizations/example.com/tlsca
     tlsCACerts:
       pem: |
         -----BEGIN CERTIFICATE-----
@@ -259,7 +259,7 @@ peers:
       hostnameOverride: peer1.org1.example.com
 
     tlsCACerts:
-      path: src/test/fixture/sdkintegration/e2e-2Orgs/v1.1/crypto-config/peerOrganizations/org1.example.com/peers/peer1.org1.example.com/tls/server.crt
+      path: src/test/fixture/sdkintegration/e2e-2Orgs/v1.3/crypto-config/peerOrganizations/org1.example.com/peers/peer1.org1.example.com/tls/server.crt
 
 
 
@@ -274,7 +274,7 @@ peers:
       hostnameOverride: peer0.org2.example.com
 
     tlsCACerts:
-      path: src/test/fixture/sdkintegration/e2e-2Orgs/v1.1/crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/server.crt
+      path: src/test/fixture/sdkintegration/e2e-2Orgs/v1.3/crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/server.crt
 
 #
 # Fabric-CA is a special kind of Certificate Authority provided by Hyperledger Fabric which allows
@@ -299,7 +299,7 @@ certificateAuthorities:
 
     tlsCACerts:
       # Comma-Separated list of paths
-      path: src/test/fixture/sdkintegration/e2e-2Orgs/v1.1/crypto-config/peerOrganizations/org1.example.com/ca/ca.org1.example.com-cert.pem
+      path: src/test/fixture/sdkintegration/e2e-2Orgs/v1.3/crypto-config/peerOrganizations/org1.example.com/ca/ca.org1.example.com-cert.pem
 
       # Client key and cert for TLS mutual auth with Fabric CA. If the target Fabric CA server
       # does not have TLS mutual auth turned on, then this section is not needed
@@ -319,7 +319,7 @@ certificateAuthorities:
          enrollSecret: adminpw
     tlsCACerts:
       # Comma-Separated list of paths
-      path: src/test/fixture/sdkintegration/e2e-2Orgs/v1.1/crypto-config/peerOrganizations/org2.example.com/ca/ca.org2.example.com-cert.pem
+      path: src/test/fixture/sdkintegration/e2e-2Orgs/v1.3/crypto-config/peerOrganizations/org2.example.com/ca/ca.org2.example.com-cert.pem
 
       # Client key and cert for TLS mutual auth with Fabric CA. If the target Fabric CA server
       # does not have TLS mutual auth turned on, then this section is not needed
