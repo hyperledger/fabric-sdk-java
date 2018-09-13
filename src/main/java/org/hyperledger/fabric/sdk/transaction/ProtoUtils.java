@@ -196,7 +196,7 @@ public final class ProtoUtils {
 
             Enrollment enrollment = user.getEnrollment();
             String cert = enrollment.getCert();
-            logger.debug(format(" User: %s Certificate:\n%s", user.getName(), cert));
+            logger.debug(format(" User: %s Certificate: %s", user.getName(), cert == null ? "null" : toHexString(cert.getBytes(UTF_8))));
 
             if (enrollment instanceof X509Enrollment) {
                 if (null == suite) {

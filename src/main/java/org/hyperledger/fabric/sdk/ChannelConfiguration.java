@@ -20,11 +20,19 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+
+import static java.lang.String.format;
+import static org.hyperledger.fabric.sdk.helper.Utils.toHexString;
 
 /**
  * A wrapper for the Hyperledger Channel configuration
  */
 public class ChannelConfiguration {
+    private static final Log logger = LogFactory.getLog(ChannelConfiguration.class);
+    private static final boolean IS_TRACE_LEVEL = logger.isTraceEnabled();
     private byte[] configBytes = null;
 
     /**
@@ -41,9 +49,15 @@ public class ChannelConfiguration {
      * @param configFile The file containing the channel configuration.
      * @throws IOException
      */
-    public ChannelConfiguration(File configFile) throws IOException {
-        InputStream is = new FileInputStream(configFile);
-        configBytes = IOUtils.toByteArray(is);
+    public ChannelConfiguration(File configFile) throws IOException, InvalidArgumentException {
+        if (configFile == null) {
+            throw new InvalidArgumentException("ChannelConfiguration configFile must be non-null");
+        }
+        logger.trace(format("Creating ChannelConfiguration from file %s", configFile.getAbsolutePath()));
+
+        try (InputStream is = new FileInputStream(configFile)) {
+            configBytes = IOUtils.toByteArray(is);
+        }
     }
 
     /**
@@ -51,7 +65,11 @@ public class ChannelConfiguration {
      *
      * @param configAsBytes the byte array containing the serialized channel configuration
      */
-    public ChannelConfiguration(byte[] configAsBytes) {
+    public ChannelConfiguration(byte[] configAsBytes) throws InvalidArgumentException {
+        if (configAsBytes == null) {
+            throw new InvalidArgumentException("ChannelConfiguration configAsBytes must be non-null");
+        }
+        logger.trace("Creating ChannelConfiguration from bytes");
         this.configBytes = configAsBytes;
     }
 
@@ -60,7 +78,11 @@ public class ChannelConfiguration {
      *
      * @param channelConfigurationAsBytes the byte array containing the serialized channel configuration
      */
-    public void setChannelConfiguration(byte[] channelConfigurationAsBytes) {
+    public void setChannelConfiguration(byte[] channelConfigurationAsBytes) throws InvalidArgumentException {
+        if (channelConfigurationAsBytes == null) {
+            throw new InvalidArgumentException("ChannelConfiguration channelConfigurationAsBytes must be non-null");
+        }
+        logger.trace("Creating setChannelConfiguration from bytes");
         this.configBytes = channelConfigurationAsBytes;
     }
 
@@ -68,6 +90,11 @@ public class ChannelConfiguration {
      * @return the channel configuration serialized per protobuf and ready for inclusion into channel configuration
      */
     public byte[] getChannelConfigurationAsBytes() {
-        return this.configBytes;
+        if (configBytes == null) {
+            logger.error("ChannelConfiguration configBytes is null!");
+        } else if (IS_TRACE_LEVEL) {
+            logger.trace(format("getChannelConfigurationAsBytes: %s", toHexString(configBytes)));
+        }
+        return configBytes;
     }
 }

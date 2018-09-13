@@ -28,7 +28,7 @@
         <tag>fabric-sdk-java-1.0</tag>
     </scm>
     <properties>
-        <grpc.version>1.14.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
+        <grpc.version>1.15.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
         <protobuf.version>3.6.1</protobuf.version>
         <bouncycastle.version>1.60</bouncycastle.version>
         <httpclient.version>4.5.6</httpclient.version>

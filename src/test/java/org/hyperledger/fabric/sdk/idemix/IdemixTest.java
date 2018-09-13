@@ -24,11 +24,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
 import org.apache.milagro.amcl.FP256BN.BIG;
 import org.apache.milagro.amcl.FP256BN.ECP;
 import org.apache.milagro.amcl.RAND;
 import org.hyperledger.fabric.protos.idemix.Idemix;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.testutils.TestConfig;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -46,8 +48,11 @@ public class IdemixTest {
 
     @Test
     public void idemixTest() throws ExecutionException, InterruptedException {
-        ExecutorService serviceSingleTask =  Executors.newFixedThreadPool(THREAD_POOL);
-        ExecutorService serviceMultiTask =  Executors.newFixedThreadPool(THREAD_POOL);
+        if (!TestConfig.getConfig().getRunIdemixMTTest()) {
+            return;
+        }
+        ExecutorService serviceSingleTask = Executors.newFixedThreadPool(THREAD_POOL);
+        ExecutorService serviceMultiTask = Executors.newFixedThreadPool(THREAD_POOL);
 
         // Select attribute names and generate a Idemix Setup
         String[] attributeNames = {"Attr1", "Attr2", "Attr3", "Attr4", "Attr5"};
@@ -64,7 +69,7 @@ public class IdemixTest {
             IdemixTask taskM = new IdemixTask(setup);
             results.add(serviceMultiTask.submit(taskM));
         }
-        for (Future<Boolean> f: results) {
+        for (Future<Boolean> f : results) {
             assertTrue(f.get());
         }
     }
@@ -190,7 +195,7 @@ public class IdemixTest {
             assertFalse(signature.verify(disclosure, setup.key.getIpk(), msg, setup.attrs, 0, setup.revocationKeyPair.getPublic(), epoch));
 
             // test signature verification with different issuer public key
-            assertFalse(signature.verify(disclosure2, new IdemixIssuerKey(new String[]{"Attr1, Attr2, Attr3, Attr4, Attr5"}).getIpk(), msg, setup.attrs, 0, setup.revocationKeyPair.getPublic(), epoch));
+            assertFalse(signature.verify(disclosure2, new IdemixIssuerKey(new String[] {"Attr1, Attr2, Attr3, Attr4, Attr5"}).getIpk(), msg, setup.attrs, 0, setup.revocationKeyPair.getPublic(), epoch));
 
             // test signature verification with different message
             byte[] msg2 = {1, 1, 1};

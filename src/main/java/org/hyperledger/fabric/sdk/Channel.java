@@ -139,6 +139,7 @@ public class Channel implements Serializable {
     private static final long serialVersionUID = -3266164166893832538L;
     private static final Log logger = LogFactory.getLog(Channel.class);
     private static final boolean IS_DEBUG_LEVEL = logger.isDebugEnabled();
+    private static final boolean IS_WARN_LEVEL = logger.isWarnEnabled();
     private static final boolean IS_TRACE_LEVEL = logger.isTraceEnabled();
 
     private static final Config config = Config.getConfig();
@@ -5663,7 +5664,7 @@ public class Channel implements Serializable {
 
             final boolean ret = sweepTime < System.currentTimeMillis() || fired.get() || future.isDone();
 
-            if (IS_DEBUG_LEVEL && ret) {
+            if (IS_WARN_LEVEL && ret) {
 
                 StringBuilder sb = new StringBuilder(10000);
                 sb.append("Non reporting event hubs:");
@@ -5683,11 +5684,10 @@ public class Channel implements Serializable {
                     sep = ",";
                 }
 
-                logger.debug(format("Force removing transaction listener after %d ms for transaction %s. %s" +
+                logger.warn(format("Force removing transaction listener after %d ms for transaction %s. %s" +
                                 ". sweep timeout: %b, fired: %b, future done:%b",
                         System.currentTimeMillis() - createTime, txID, sb.toString(),
                         sweepTime < System.currentTimeMillis(), fired.get(), future.isDone()));
-
             }
 
             return ret;

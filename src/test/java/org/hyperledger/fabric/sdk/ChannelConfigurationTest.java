@@ -22,7 +22,7 @@ public class ChannelConfigurationTest {
     private static final String TEST_BYTES_2 = "00112233445566778899";
 
     @Test
-    public void testChannelConfigurationByeArray() {
+    public void testChannelConfigurationByeArray() throws Exception {
         // Test empty constructor
         new ChannelConfiguration();
 

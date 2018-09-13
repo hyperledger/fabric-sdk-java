@@ -410,8 +410,18 @@ public class End2endIT {
 
                     ////For GO language and serving just a single user, chaincodeSource is mostly likely the users GOPATH
                     installProposalRequest.setChaincodeSourceLocation(Paths.get(TEST_FIXTURES_PATH, CHAIN_CODE_FILEPATH).toFile());
+
+                    if (testConfig.isFabricVersionAtOrAfter("1.1")) { // Fabric 1.1 added support for  META-INF in the chaincode image.
+
+                        //This sets an index on the variable a in the chaincode // see http://hyperledger-fabric.readthedocs.io/en/master/couchdb_as_state_database.html#using-couchdb-from-chaincode
+                        // The file IndexA.json as part of the META-INF will be packaged with the source to create the index.
+                        installProposalRequest.setChaincodeMetaInfLocation(new File("src/test/fixture/meta-infs/end2endit"));
+                    }
                 } else {
                     // On bar chain install from an input stream.
+
+                    // For inputstream if indicies are desired the application needs to make sure the META-INF is provided in the stream.
+                    // The SDK does not change anything in the stream.
 
                     if (CHAIN_CODE_LANG.equals(Type.GO_LANG)) {
 
@@ -488,29 +498,29 @@ public class End2endIT {
             successful.clear();
             failed.clear();
 
-                if (isFooChain) {  //Send responses both ways with specifying peers and by using those on the channel.
-                    responses = channel.sendInstantiationProposal(instantiateProposalRequest, channel.getPeers());
+            if (isFooChain) {  //Send responses both ways with specifying peers and by using those on the channel.
+                responses = channel.sendInstantiationProposal(instantiateProposalRequest, channel.getPeers());
+            } else {
+                responses = channel.sendInstantiationProposal(instantiateProposalRequest);
+            }
+            for (ProposalResponse response : responses) {
+                if (response.isVerified() && response.getStatus() == ProposalResponse.Status.SUCCESS) {
+                    successful.add(response);
+                    out("Succesful instantiate proposal response Txid: %s from peer %s", response.getTransactionID(), response.getPeer().getName());
                 } else {
-                    responses = channel.sendInstantiationProposal(instantiateProposalRequest);
+                    failed.add(response);
                 }
-                for (ProposalResponse response : responses) {
-                    if (response.isVerified() && response.getStatus() == ProposalResponse.Status.SUCCESS) {
-                        successful.add(response);
-                        out("Succesful instantiate proposal response Txid: %s from peer %s", response.getTransactionID(), response.getPeer().getName());
-                    } else {
-                        failed.add(response);
-                    }
-                }
-                out("Received %d instantiate proposal responses. Successful+verified: %d . Failed: %d", responses.size(), successful.size(), failed.size());
-                if (failed.size() > 0) {
-                    for (ProposalResponse fail : failed) {
+            }
+            out("Received %d instantiate proposal responses. Successful+verified: %d . Failed: %d", responses.size(), successful.size(), failed.size());
+            if (failed.size() > 0) {
+                for (ProposalResponse fail : failed) {
 
-                        out("Not enough endorsers for instantiate :" + successful.size() + "endorser failed with " + fail.getMessage() + ", on peer" + fail.getPeer());
+                    out("Not enough endorsers for instantiate :" + successful.size() + "endorser failed with " + fail.getMessage() + ", on peer" + fail.getPeer());
 
-                    }
-                    ProposalResponse first = failed.iterator().next();
-                    fail("Not enough endorsers for instantiate :" + successful.size() + "endorser failed with " + first.getMessage() + ". Was verified:" + first.isVerified());
                 }
+                ProposalResponse first = failed.iterator().next();
+                fail("Not enough endorsers for instantiate :" + successful.size() + "endorser failed with " + first.getMessage() + ". Was verified:" + first.isVerified());
+            }
             ///////////////
             /// Send instantiate transaction to orderer
             out("Sending instantiateTransaction to orderer with a and b set to 100 and %s respectively", "" + (200 + delta));

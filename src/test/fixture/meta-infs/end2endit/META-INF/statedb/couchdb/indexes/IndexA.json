@@ -1,0 +1,10 @@
+{
+  "ddoc": "indexADDoc",
+  "index": {
+    "fields": [
+      "a"
+    ]
+  },
+  "name": "indexA",
+  "type": "json"
+}
