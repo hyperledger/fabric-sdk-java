@@ -1,3 +1,15 @@
+## v1.2.1
+Fri Sep 14 17:53:10 EDT 2018
+
+* [53bf28d](https://github.com/hyperledger/fabric-sdk-java/commit/53bf28d) FABJ-350 Java SDK v.1.2.1
+* [2175cc0](https://github.com/hyperledger/fabric-sdk-java/commit/2175cc0) FABJ-356 Peer eventing services too many reconnects
+* [17747e8](https://github.com/hyperledger/fabric-sdk-java/commit/17747e8) FAB-11570 Endorsing error
+* [7621b1d](https://github.com/hyperledger/fabric-sdk-java/commit/7621b1d) Retire inactive maintainers
+* [89c18a6](https://github.com/hyperledger/fabric-sdk-java/commit/89c18a6) FABJ-346 Don't verify invalid endorsements.
+* [cfae2a0](https://github.com/hyperledger/fabric-sdk-java/commit/cfae2a0) FABJ-345 Network Config add service discovery role
+* [77d3338](https://github.com/hyperledger/fabric-sdk-java/commit/77d3338) FABJ-343 Prevent peer reconnecting on shutdown.
+* [58e5898](https://github.com/hyperledger/fabric-sdk-java/commit/58e5898) FABJ-350 Java SDK v.1.2.1
+
 ## v1.2.0
 Thu Jul 26 12:22:31 EDT 2018
 

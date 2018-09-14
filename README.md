@@ -1,4 +1,4 @@
-k# Java SDK for Hyperledger Fabric 1.2
+# Java SDK for Hyperledger Fabric 1.2
 Welcome to Java SDK for Hyperledger project. The SDK helps facilitate Java applications to manage the lifecycle of
  Hyperledger channels  and user chaincode. The SDK also provides a means to execute
   user chaincode, query blocks
@@ -229,27 +229,21 @@ Go lang chaincode dependencies must be contained in vendor folder.
 
 ## Basic Troubleshooting
 
-**Firewalls, load balancers, network proxies**
+### Firewalls, load balancers, network proxies
 
 These can sometimes silently kill a network connections and prevent them from auto reconnecting. To fix this look at
 adding to Peers, EventHub's and Orderer's connection properties:
 `grpc.NettyChannelBuilderOption.keepAliveTime`, `grpc.NettyChannelBuilderOption.keepAliveTimeout`,
 `grpc.NettyChannelBuilderOption.keepAliveWithoutCalls`. Examples of this are in End2endIT.java
 
+### grpc messsage frame size exceeds maximum
 
-**identity or token do not match**
+The message being returned from the fabric server is too large for the default grpc frame size.
+On the Peer, Orderer, orEventHub add the property `grpc.NettyChannelBuilderOption.maxInboundMessageSize`
+See [End2endIT's constructChannel](https://github.com/hyperledger/fabric-sdk-java/blob/b649868113e969d851720c972f660114b64247bc/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java#L846)
 
-Keep in mind that you can perform the enrollment process with the membership services server only once, as the enrollmentSecret is a one-time-use password. If you have performed a FSUser registration/enrollment with the membership services and subsequently deleted the crypto tokens stored on the client side, the next time you try to enroll, errors similar to the ones below will be seen.
 
-``Error: identity or token do not match``
-
-``Error: FSUser is already registered``
-
-To address this, remove any stored crypto material from the CA server by following the instructions <a href="https://github.com/hyperledger/fabric/blob/master/docs/Setup/Chaincode-setup.md#removing-temporary-files-when-security-is-enabled">here</a> which typically involves deleting the /var/hyperledger/production directory and restarting the membership services. You will also need to remove any of the crypto tokens stored on the client side by deleting the KeyValStore . That KeyValStore is configurable and is set to ${FSUser.home}/test.properties within the unit tests.
-
-When running the unit tests, you will always need to clean the membership services database and delete the KeyValStore file, otherwise, the unit tests will fail.
-
-**java.security.InvalidKeyException: Illegal key size**
+### java.security.InvalidKeyException: Illegal key size
 
 If you get this error, this means your JDK does not capable of handling unlimited strength crypto algorithms. To fix this issue, You will need to download the JCE libraries for your version of JDK. Please follow the instructions <a href="http://stackoverflow.com/questions/6481627/java-security-illegal-key-size-or-default-parameters">here</a> to download and install the JCE for your version of the JDK.
 
@@ -268,25 +262,27 @@ if you don't already have one.
 
 JIRA Fields should be:
 <dl>
+  <dt>Project</dt>
+    <dd>Fabric SDK Java (FABJ)</dd>
   <dt>Type</dt>
   <dd>Bug <i>or</i> New Feature</dd>
-
-  <dt>Component</dt>
-  <dd>fabric-sdk-java</dd>
   <dt>Fix Versions</dt>
-    <dd>v1.1</dd>
+    <dd>v1.2</dd>
 </dl>
 
 Pleases provide as much information that you can with the issue you're experiencing: stack traces logs.
 
 Please provide the output of **java -XshowSettings:properties -version**
 
-Logging for the SDK can be enabled with setting environment variables:
+### Logging for the SDK can be enabled with setting environment variables:
 
 ORG_HYPERLEDGER_FABRIC_SDK_LOGLEVEL=TRACE
 
 ORG_HYPERLEDGER_FABRIC_CA_SDK_LOGLEVEL=TRACE
 
+ORG_HYPERLEDGER_FABRIC_SDK_DIAGNOSTICFILEDIR=&lt;*full path to directory*&gt; &#35; *dumps protobuf and diagnostic data. Can be produce large amounts of data!*
+
+### Fabric debug
 Fabric debug is by default enabled in the SDK docker-compose.yaml file with
 
 On Orderer:
