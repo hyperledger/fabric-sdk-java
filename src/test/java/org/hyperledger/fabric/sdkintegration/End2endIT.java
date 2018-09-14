@@ -94,7 +94,7 @@ public class End2endIT {
 
     private static final TestConfig testConfig = TestConfig.getConfig();
     private static final String TEST_ADMIN_NAME = "admin";
-    private static final String TESTUSER_1_NAME = "user1";
+    private static final String TESTUSER_1_NAME = "user2";
     private static final String TEST_FIXTURES_PATH = "src/test/fixture";
 
     private static final String FOO_CHANNEL_NAME = "foo";
@@ -158,7 +158,6 @@ public class End2endIT {
         //   assertEquals(256, Config.getConfig().getSecurityLevel());
         resetConfig();
         configHelper.customizeConfig();
-
         testSampleOrgs = testConfig.getIntegrationTestsSampleOrgs();
         //Set up hfca for each sample org
 
@@ -826,7 +825,8 @@ public class End2endIT {
         Orderer anOrderer = orderers.iterator().next();
         orderers.remove(anOrderer);
 
-        ChannelConfiguration channelConfiguration = new ChannelConfiguration(new File(TEST_FIXTURES_PATH + "/sdkintegration/e2e-2Orgs/" + TestConfig.FAB_CONFIG_GEN_VERS + "/" + name + ".tx"));
+//        ChannelConfiguration channelConfiguration = new ChannelConfiguration(new File(TEST_FIXTURES_PATH + "/sdkintegration/e2e-2Orgs/" + TestConfig.FAB_CONFIG_GEN_VERS + "/" + name + ".tx"));
+        ChannelConfiguration channelConfiguration = new ChannelConfiguration(new File("/home/liqinlong/Downloads/gopath/src/github.com/hyperledger/fabric/examples/diy/channel-artifacts/" + name + ".tx"));
 
         //Create channel that has only one signer that is this orgs peer admin. If channel creation policy needed more signature they would need to be added too.
         Channel newChannel = client.newChannel(name, anOrderer, channelConfiguration, client.getChannelConfigurationSignature(channelConfiguration, sampleOrg.getPeerAdmin()));
@@ -848,7 +848,6 @@ public class End2endIT {
             Peer peer = client.newPeer(peerName, peerLocation, peerProperties);
             if (testConfig.isFabricVersionAtOrAfter("1.3")) {
                 newChannel.joinPeer(peer, createPeerOptions().setPeerRoles(EnumSet.of(PeerRole.ENDORSING_PEER, PeerRole.LEDGER_QUERY, PeerRole.CHAINCODE_QUERY, PeerRole.EVENT_SOURCE))); //Default is all roles.
-
             } else {
                 if (doPeerEventing && everyother) {
                     newChannel.joinPeer(peer, createPeerOptions().setPeerRoles(EnumSet.of(PeerRole.ENDORSING_PEER, PeerRole.LEDGER_QUERY, PeerRole.CHAINCODE_QUERY, PeerRole.EVENT_SOURCE))); //Default is all roles.

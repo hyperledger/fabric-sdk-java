@@ -35,7 +35,7 @@ function clean(){
 }
 
 function up(){
-
+  echo "ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION ===> $ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION"
   if [ "$ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION" == "1.0.0" ]; then
     docker-compose up --force-recreate ca0 ca1 peer1.org1.example.com peer1.org2.example.com ccenv
   else
