@@ -77,7 +77,7 @@ public class IdemixUser implements User {
         return this.enrollment.getOu();
     }
 
-    public boolean getRole() {
-        return this.enrollment.getRole();
+    public int getRoleMask() {
+        return this.enrollment.getRoleMask();
     }
 }

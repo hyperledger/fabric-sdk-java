@@ -54,12 +54,12 @@ public class IdemixIdentity implements Identity {
     // Organization Unit attribute
     private final String ou;
 
-    // Role attribute
-    private final boolean role;
+    // Role mask its a bitmask that represent all the roles attached to this identity
+    private final int roleMask;
 
     // Proof of possession of Idemix credential
     // with respect to the pseudonym (nym)
-    // and the corresponding attributes (ou, role)
+    // and the corresponding attributes (ou, roleMask)
     private final IdemixSignature associationProof;
 
     /**
@@ -89,7 +89,7 @@ public class IdemixIdentity implements Identity {
             MspPrincipal.MSPRole role = MspPrincipal.MSPRole.parseFrom(idemixProto.getRole());
 
             this.ou = ou.getOrganizationalUnitIdentifier();
-            this.role = role.getRole().getNumber() == 1;
+            this.roleMask = IdemixRoles.getRoleMask(role);
             this.ipkHash = ou.getCertifiersIdentifier().toByteArray();
 
             logger.trace("Deserializing Proof");
@@ -106,10 +106,10 @@ public class IdemixIdentity implements Identity {
      * @param mspId is MSP ID sting
      * @param nym   is Identity Mixer Pseudonym
      * @param ou    is OU attribute
-     * @param role  is Role attribute
+     * @param roleMask  is a bitmask that represent all the roles attached to this identity
      * @param proof is Proof
      */
-    public IdemixIdentity(String mspId, IdemixIssuerPublicKey ipk, ECP nym, String ou, boolean role, IdemixSignature proof)
+    public IdemixIdentity(String mspId, IdemixIssuerPublicKey ipk, ECP nym, String ou, int roleMask, IdemixSignature proof)
             throws InvalidArgumentException {
 
         if (mspId == null) {
@@ -145,7 +145,7 @@ public class IdemixIdentity implements Identity {
         this.ipkHash = ipk.getHash();
         this.pseudonym = nym;
         this.ou = ou;
-        this.role = role;
+        this.roleMask = roleMask;
         this.associationProof = proof;
     }
 
@@ -160,8 +160,10 @@ public class IdemixIdentity implements Identity {
                 .setOrganizationalUnitIdentifier(this.ou)
                 .build();
 
+        //Warning, this does not support multi-roleMask.
+        //Serialize the bitmask is the correct way to support multi-roleMask in the future
         MspPrincipal.MSPRole role = MspPrincipal.MSPRole.newBuilder()
-                .setRole(this.role ? MspPrincipal.MSPRole.MSPRoleType.ADMIN : MspPrincipal.MSPRole.MSPRoleType.MEMBER)
+                .setRole(IdemixRoles.getMSPRoleFromIdemixRole(this.roleMask))
                 .setMspIdentifier(this.mspId)
                 .build();
 
@@ -183,8 +185,8 @@ public class IdemixIdentity implements Identity {
         return this.ou;
     }
 
-    public boolean getRoleValue() {
-        return this.role;
+    public int getRoleMask() {
+        return this.roleMask;
     }
 
     @Override
@@ -194,7 +196,7 @@ public class IdemixIdentity implements Identity {
                 " Issuer Public Key Hash: " + Arrays.toString(this.ipkHash) +
                 " Pseudonym: " + this.pseudonym.toRawString() +
                 " OU: " + this.ou +
-                " Role: " + this.role +
+                " Role mask: " + this.roleMask +
                 " Association Proof: " + this.associationProof.toProto().toString() +
                 " ]";
     }

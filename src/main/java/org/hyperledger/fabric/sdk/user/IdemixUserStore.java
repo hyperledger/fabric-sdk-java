@@ -49,7 +49,7 @@ public class IdemixUserStore {
         IdemixCredential cred = new IdemixCredential(Idemix.Credential.parseFrom(signerConfig.getCred()));
         Idemix.CredentialRevocationInformation cri = Idemix.CredentialRevocationInformation.parseFrom(signerConfig.getCredentialRevocationInformation());
 
-        IdemixEnrollment enrollment = new IdemixEnrollment(this.ipk, revocationPk, this.mspId, sk, cred, cri, signerConfig.getOrganizationalUnitIdentifier(), signerConfig.getIsAdmin());
+        IdemixEnrollment enrollment = new IdemixEnrollment(this.ipk, revocationPk, this.mspId, sk, cred, cri, signerConfig.getOrganizationalUnitIdentifier(), signerConfig.getRole());
         return new IdemixUser(id, this.mspId, enrollment);
     }
 

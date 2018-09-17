@@ -32,6 +32,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.milagro.amcl.FP256BN.BIG;
 import org.apache.milagro.amcl.FP256BN.ECP;
 import org.bouncycastle.util.io.pem.PemReader;
+import org.hyperledger.fabric.protos.common.MspPrincipal;
 import org.hyperledger.fabric.protos.idemix.Idemix;
 import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.msp.MspConfig.IdemixMSPSignerConfig;
@@ -44,6 +45,7 @@ import org.hyperledger.fabric.sdk.idemix.IdemixSignature;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -61,8 +63,6 @@ public class IdemixIdentitiesTest {
     private static final String MSP1OU1 = "MSP1OU1";
     private static final String OU1 = "OU1";
     private static final String OU2 = "OU2";
-    private static final boolean roleAdmin = true;
-    private static final boolean roleMember = false;
     private static final String MSP1OU1Admin = "MSP1OU1Admin";
     private static final String MSP1OU2 = "MSP1OU2";
     private static final String MSP1Verifier = "MSP1Verifier";
@@ -136,7 +136,7 @@ public class IdemixIdentitiesTest {
         assertNotNull(cri);
 
         try {
-            signingIdentity = new IdemixSigningIdentity(ipk, revocationPk, MSP1OU1, sk, cred, cri, OU1, roleMember);
+            signingIdentity = new IdemixSigningIdentity(ipk, revocationPk, MSP1OU1, sk, cred, cri, OU1, IdemixRoles.MEMBER.getValue());
         } catch (CryptoException | InvalidArgumentException e) {
             fail("Could not create Idemix Signing Identity" + e.getMessage());
         }
@@ -190,7 +190,7 @@ public class IdemixIdentitiesTest {
     @Test(expected = InvalidArgumentException.class)
     public void testIdemixSigningIdentityInputNullPk() throws InvalidArgumentException {
         try {
-            new IdemixSigningIdentity(null, revocationPk, MSP1OU1, sk, cred, cri, OU1, roleMember);
+            new IdemixSigningIdentity(null, revocationPk, MSP1OU1, sk, cred, cri, OU1, IdemixRoles.MEMBER.getValue());
         } catch (CryptoException e) {
             fail("Unexpected Crypto exception");
         }
@@ -198,32 +198,32 @@ public class IdemixIdentitiesTest {
 
     @Test(expected = InvalidArgumentException.class)
     public void testIdemixSigningIdentityInputNullRevPk() throws InvalidArgumentException, CryptoException {
-        new IdemixSigningIdentity(ipk, null, MSP1OU1, sk, cred, cri, OU1, roleMember);
+        new IdemixSigningIdentity(ipk, null, MSP1OU1, sk, cred, cri, OU1, IdemixRoles.MEMBER.getValue());
     }
 
     @Test(expected = InvalidArgumentException.class)
     public void testIdemixSigningIdentityInputNullMsp() throws InvalidArgumentException, CryptoException {
-        new IdemixSigningIdentity(ipk, revocationPk, null, sk, cred, cri, OU1, roleMember);
+        new IdemixSigningIdentity(ipk, revocationPk, null, sk, cred, cri, OU1, IdemixRoles.MEMBER.getValue());
     }
 
     @Test(expected = InvalidArgumentException.class)
     public void testIdemixSigningIdentityInputEmptymsp() throws InvalidArgumentException, CryptoException {
-        new IdemixSigningIdentity(ipk, revocationPk, "", sk, cred, cri, OU1, roleMember);
+        new IdemixSigningIdentity(ipk, revocationPk, "", sk, cred, cri, OU1, IdemixRoles.MEMBER.getValue());
     }
 
     @Test(expected = InvalidArgumentException.class)
     public void testIdemixSigningIdentityInputNullSk() throws InvalidArgumentException, CryptoException {
-        new IdemixSigningIdentity(ipk, revocationPk, MSP1OU1, null, cred, cri, OU1, roleMember);
+        new IdemixSigningIdentity(ipk, revocationPk, MSP1OU1, null, cred, cri, OU1, IdemixRoles.MEMBER.getValue());
     }
 
     @Test(expected = InvalidArgumentException.class)
     public void testIdemixSigningIdentityInputNullCri() throws InvalidArgumentException, CryptoException {
-        new IdemixSigningIdentity(ipk, revocationPk, MSP1OU1, sk, cred, null, OU1, roleMember);
+        new IdemixSigningIdentity(ipk, revocationPk, MSP1OU1, sk, cred, null, OU1, IdemixRoles.MEMBER.getValue());
     }
 
     @Test(expected = InvalidArgumentException.class)
     public void testIdemixSigningIdentityInputNullCred() throws InvalidArgumentException, CryptoException {
-        new IdemixSigningIdentity(ipk, revocationPk, MSP1OU1, sk, null, cri, OU1, roleMember);
+        new IdemixSigningIdentity(ipk, revocationPk, MSP1OU1, sk, null, cri, OU1, IdemixRoles.MEMBER.getValue());
     }
 
     // Test Signing and Verification with Signing Identity
@@ -291,33 +291,33 @@ public class IdemixIdentitiesTest {
 
     @Test(expected = InvalidArgumentException.class)
     public void testIdemixIdentityInputNullMsp() throws InvalidArgumentException {
-        new IdemixIdentity(null, ipk, nymPublic, OU1, roleMember, proof);
+        new IdemixIdentity(null, ipk, nymPublic, OU1, IdemixRoles.MEMBER.getValue(), proof);
     }
 
     @Test(expected = InvalidArgumentException.class)
     public void testIdemixIdentityInputNullNym() throws InvalidArgumentException {
-        new IdemixIdentity(MSP1OU1, ipk, null, OU1, roleMember, proof);
+        new IdemixIdentity(MSP1OU1, ipk, null, OU1, IdemixRoles.MEMBER.getValue(), proof);
     }
 
     @Test(expected = InvalidArgumentException.class)
     public void testIdemixIdentityInputNullOu() throws InvalidArgumentException {
-        new IdemixIdentity(MSP1OU1, ipk, nymPublic, null, roleMember, proof);
+        new IdemixIdentity(MSP1OU1, ipk, nymPublic, null, IdemixRoles.MEMBER.getValue(), proof);
     }
 
     @Test(expected = InvalidArgumentException.class)
     public void testIdemixIdentityInputNullProof() throws InvalidArgumentException {
-        new IdemixIdentity(MSP1OU1, ipk, nymPublic, OU1, roleMember, null);
+        new IdemixIdentity(MSP1OU1, ipk, nymPublic, OU1, IdemixRoles.MEMBER.getValue(), null);
     }
 
     @Test(expected = InvalidArgumentException.class)
     public void testIdemixIdentityInputNullIpk() throws InvalidArgumentException {
-        new IdemixIdentity(MSP1OU1, null, nymPublic, OU1, roleMember, proof);
+        new IdemixIdentity(MSP1OU1, null, nymPublic, OU1, IdemixRoles.MEMBER.getValue(), proof);
     }
 
     @Test
     public void testIdemixIdentity() {
         try {
-            new IdemixIdentity(MSP1OU1, ipk, nymPublic, OU1, roleMember, proof);
+            new IdemixIdentity(MSP1OU1, ipk, nymPublic, OU1, IdemixRoles.MEMBER.getValue(), proof);
         } catch (InvalidArgumentException e) {
             fail("Unexpected Invalid Argument exception" + e.getMessage());
         }
@@ -422,7 +422,7 @@ public class IdemixIdentitiesTest {
 
         Idemix.CredentialRevocationInformation cri = Idemix.CredentialRevocationInformation.parseFrom(signerConfig.getCredentialRevocationInformation());
 
-        return new IdemixSigningIdentity(ipk, revPk, mspId, sk, cred, cri, signerConfig.getOrganizationalUnitIdentifier(), signerConfig.getIsAdmin());
+        return new IdemixSigningIdentity(ipk, revPk, mspId, sk, cred, cri, signerConfig.getOrganizationalUnitIdentifier(), signerConfig.getRole());
     }
 
     /**
@@ -452,8 +452,7 @@ public class IdemixIdentitiesTest {
         Path path = Paths.get(configPath + id);
         byte[] data = Files.readAllBytes(path);
 
-        Idemix.IssuerPublicKey ipk = Idemix.IssuerPublicKey.parseFrom(data);
-        return ipk;
+        return Idemix.IssuerPublicKey.parseFrom(data);
     }
 
     /**
@@ -475,5 +474,26 @@ public class IdemixIdentitiesTest {
     private static byte[] convertPemToDer(String pem) throws IOException {
         PemReader pemReader = new PemReader(new StringReader(pem));
         return pemReader.readPemObject().getContent();
+    }
+
+    /**
+     * Test for IdemixRoles bitmasking
+     */
+    @Test(expected = IllegalArgumentException.class)
+    public void testIdemixRoles() {
+        IdemixRoles[] roles = {IdemixRoles.ADMIN, IdemixRoles.CLIENT};
+        int role = IdemixRoles.getRoleMask(roles);
+
+        assertTrue(IdemixRoles.checkRole(role, IdemixRoles.ADMIN));
+        assertFalse(IdemixRoles.checkRole(role, IdemixRoles.PEER));
+        assertFalse(IdemixRoles.checkRole(role, IdemixRoles.MEMBER));
+        assertTrue(IdemixRoles.checkRole(role, IdemixRoles.CLIENT));
+
+        assertEquals(IdemixRoles.getIdemixRoleFromMSPRole(MspPrincipal.MSPRole.MSPRoleType.MEMBER), IdemixRoles.MEMBER.getValue());
+        assertEquals(IdemixRoles.getMSPRoleFromIdemixRole(IdemixRoles.ADMIN.getValue()), MspPrincipal.MSPRole.MSPRoleType.ADMIN);
+
+        // Throws exception illegal argument
+        IdemixRoles.getMSPRoleFromIdemixRole(100);
+        IdemixRoles.getIdemixRoleFromMSPRole(-1);
     }
 }

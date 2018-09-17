@@ -100,6 +100,7 @@ import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.x509.AuthorityKeyIdentifier;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.util.io.pem.PemReader;
+import org.hyperledger.fabric.protos.common.MspPrincipal;
 import org.hyperledger.fabric.protos.idemix.Idemix;
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.NetworkConfig;
@@ -110,6 +111,7 @@ import org.hyperledger.fabric.sdk.idemix.IdemixCredential;
 import org.hyperledger.fabric.sdk.idemix.IdemixIssuerPublicKey;
 import org.hyperledger.fabric.sdk.idemix.IdemixUtils;
 import org.hyperledger.fabric.sdk.identity.IdemixEnrollment;
+import org.hyperledger.fabric.sdk.identity.IdemixRoles;
 import org.hyperledger.fabric.sdk.identity.X509Enrollment;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
@@ -1171,7 +1173,7 @@ public class HFCAClient {
             if (Utils.isNullOrEmpty(ou)) {
                 throw new InvalidArgumentException("fabric-ca-server did not return a 'ou' attribute in the response from " + HFCA_IDEMIXCRED);
             }
-            boolean role = attrs.getBoolean("Role");
+            int role = attrs.getInt("Role"); // Encoded IdemixRole from Fabric-Ca
 
             // Return the idemix enrollment
             return new IdemixEnrollment(ipk, rpk, mspID, sk, cred, cri, ou, role);

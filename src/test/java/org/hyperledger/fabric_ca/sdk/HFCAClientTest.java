@@ -33,9 +33,11 @@ import java.util.Set;
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.identity.IdemixEnrollment;
+import org.hyperledger.fabric.sdk.identity.IdemixRoles;
 import org.hyperledger.fabric.sdk.identity.X509Enrollment;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
+import org.hyperledger.fabric.sdk.testutils.TestUtils;
 import org.hyperledger.fabric.sdkintegration.SampleStore;
 import org.hyperledger.fabric.sdkintegration.SampleUser;
 import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
@@ -528,7 +530,7 @@ public class HFCAClientTest {
 
         HFCAClient client = HFCAClient.createNewInstance("client", "http://localhost:99", null);
         client.setCryptoSuite(crypto);
-        Enrollment enrollment = new IdemixEnrollment(null, null, "mspid", null, null, null, "ou", false);
+        Enrollment enrollment = new IdemixEnrollment(null, null, "mspid", null, null, null, "ou", (Integer) TestUtils.getField(IdemixRoles.MEMBER, "value"));
         client.idemixEnroll(enrollment, "mspid");
     }
 
