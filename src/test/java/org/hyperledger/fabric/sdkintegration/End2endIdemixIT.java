@@ -35,6 +35,7 @@ import static org.junit.Assert.assertTrue;
 public class End2endIdemixIT extends End2endIT {
 
     {
+        CHAIN_CODE_FILEPATH = "sdkintegration/gocc/sampleIdemix";
         testName = "End2endIdemixIT";  //Just print out what test is really running.
         CHAIN_CODE_NAME = "idemix_example_go";
         testUser1 = "idemixUser";

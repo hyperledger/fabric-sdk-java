@@ -67,7 +67,7 @@ Organizations:
             - host: peer0.org2.example.com
               port: 8051
 
-    - &Org3
+    - &Org1Idemix
         # defaultorg defines the organization which is used in the sampleconfig
         # of the fabric.git development environment
         name: idemixMSP1
@@ -85,7 +85,7 @@ Organizations:
             - host: peer0.org3.example.com
               port: 7051
 
-    - &Org4
+    - &Org2Idemix
         # defaultorg defines the organization which is used in the sampleconfig
         # of the fabric.git development environment
         name: idemixMSP2
@@ -271,7 +271,7 @@ Capabilities:
         # determined to be desired for all peers running v1.0.x, but the
         # modification of which would cause incompatibilities.  Users should
         # leave this flag set to true.
-        V1_2: true
+        V1_3: true
         # V1_1_PVTDATA_EXPERIMENTAL is an Application capability to enable the
         # private data capability.  It is only supported when using peers built
         # with experimental build tag.  When set to true, private data
@@ -310,7 +310,6 @@ Profiles:
                 Organizations:
                     - *Org1
                     - *Org2
-                    - *Org3
 
     TwoOrgsChannel:
         Consortium: SampleConsortium
@@ -319,7 +318,6 @@ Profiles:
             Organizations:
                 - *Org1
                 - *Org2
-                - *Org3
 
 ################################################################################
 #
@@ -419,8 +417,8 @@ Profiles:
                 Organizations:
                     - *Org1
                     - *Org2
-                    - *Org3
-                    - *Org4
+                    - *Org1Idemix
+                    - *Org2Idemix
         Application:
             <<: *ApplicationDefaults
             Organizations:
@@ -435,8 +433,8 @@ Profiles:
             Organizations:
                 - *Org1
                 - *Org2
-                - *Org3
-                - *Org4
+                - *Org1Idemix
+                - *Org2Idemix
             Capabilities:
                 <<: *ApplicationCapabilities1_3
 
