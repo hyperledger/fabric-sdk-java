@@ -210,6 +210,9 @@ public class HFCAClient {
     private final boolean isSSL;
     private final Properties properties;
 
+    // Cache the payload type, so don't need to make get cainfo call everytime
+    private Boolean newPayloadType;
+
     /**
      * The Certificate Authority name.
      *
@@ -1334,12 +1337,12 @@ public class HFCAClient {
     }
 
     JsonObject httpPost(String url, String body, User registrar) throws Exception {
-        String authHTTPCert = getHTTPAuthCertificate(registrar.getEnrollment(), body);
+        String authHTTPCert = getHTTPAuthCertificate(registrar.getEnrollment(), "POST", url, body);
         return post(url, body, authHTTPCert);
     }
 
     JsonObject httpPost(String url, String body, Enrollment enrollment) throws Exception {
-        String authHTTPCert = getHTTPAuthCertificate(enrollment, body);
+        String authHTTPCert = getHTTPAuthCertificate(enrollment,  "POST", url, body);
         return post(url, body, authHTTPCert);
     }
 
@@ -1369,8 +1372,8 @@ public class HFCAClient {
     }
 
     JsonObject httpGet(String url, User registrar, Map<String, String> queryMap) throws Exception {
-        String authHTTPCert = getHTTPAuthCertificate(registrar.getEnrollment(), "");
         String getURL = getURL(url, queryMap);
+        String authHTTPCert = getHTTPAuthCertificate(registrar.getEnrollment(),  "GET", getURL, "");
         HttpGet httpGet = new HttpGet(getURL);
         httpGet.setConfig(getRequestConfig());
         logger.debug(format("httpGet %s, authHTTPCert: %s", url, authHTTPCert));
@@ -1390,7 +1393,7 @@ public class HFCAClient {
     }
 
     JsonObject httpPut(String url, String body, User registrar) throws Exception {
-        String authHTTPCert = getHTTPAuthCertificate(registrar.getEnrollment(), body);
+        String authHTTPCert = getHTTPAuthCertificate(registrar.getEnrollment(), "PUT", url, body);
         String putURL = addCAToURL(url);
         HttpPut httpPut = new HttpPut(putURL);
         httpPut.setConfig(getRequestConfig());
@@ -1412,7 +1415,7 @@ public class HFCAClient {
     }
 
     JsonObject httpDelete(String url, User registrar) throws Exception {
-        String authHTTPCert = getHTTPAuthCertificate(registrar.getEnrollment(), "");
+        String authHTTPCert = getHTTPAuthCertificate(registrar.getEnrollment(), "DELETE", url, "");
         String deleteURL = addCAToURL(url);
         HttpDelete httpDelete = new HttpDelete(deleteURL);
         httpDelete.setConfig(getRequestConfig());
@@ -1518,11 +1521,37 @@ public class HFCAClient {
         return result;
     }
 
-    String getHTTPAuthCertificate(Enrollment enrollment, String body) throws Exception {
+    String getHTTPAuthCertificate(Enrollment enrollment, String method, String url, String body) throws Exception {
         Base64.Encoder b64 = Base64.getEncoder();
         String cert = b64.encodeToString(enrollment.getCert().getBytes(UTF_8));
         body = b64.encodeToString(body.getBytes(UTF_8));
-        String signString = body + "." + cert;
+        String signString;
+        // Cache the version, so don't need to make info call everytime the same client is used
+        if (newPayloadType == null) {
+            newPayloadType = true;
+
+            // If CA version is less than 1.4.0, use old payload
+            String caVersion = info().getVersion();
+            logger.info(format("CA Version: %s", caVersion));
+
+            if (Utils.isNullOrEmpty(caVersion)) {
+                newPayloadType = false;
+            }
+
+            String version = caVersion + ".";
+            if (version.startsWith("1.1.") || version.startsWith("1.2.") || version.startsWith("1.3.")) {
+                newPayloadType = false;
+            }
+        }
+
+        if (newPayloadType) {
+            url = addCAToURL(url);
+            String file = b64.encodeToString(new URL(url).getFile().getBytes(UTF_8));
+            signString = method + "." + file + "." + body + "." + cert;
+        } else {
+            signString = body + "." + cert;
+        }
+
         byte[] signature = cryptoSuite.sign(enrollment.getKey(), signString.getBytes(UTF_8));
         return cert + "." + b64.encodeToString(signature);
     }
