@@ -16,7 +16,9 @@ package org.hyperledger.fabric.sdk.transaction;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -31,6 +33,7 @@ import org.hyperledger.fabric.protos.common.Common.Envelope;
 import org.hyperledger.fabric.protos.common.Common.HeaderType;
 import org.hyperledger.fabric.protos.common.Common.Payload;
 import org.hyperledger.fabric.protos.common.Common.SignatureHeader;
+import org.hyperledger.fabric.protos.common.Configtx;
 import org.hyperledger.fabric.protos.msp.Identities;
 import org.hyperledger.fabric.protos.orderer.Ab.SeekInfo;
 import org.hyperledger.fabric.protos.orderer.Ab.SeekInfo.SeekBehavior;
@@ -297,4 +300,332 @@ public final class ProtoUtils {
                 .build(), tlsCertHash);
 
     }
+
+    // not an api
+
+    public static boolean computeUpdate(String channelId, Configtx.Config original, Configtx.Config update, Configtx.ConfigUpdate.Builder configUpdateBuilder) {
+
+        Configtx.ConfigGroup.Builder readSetBuilder = Configtx.ConfigGroup.newBuilder();
+        Configtx.ConfigGroup.Builder writeSetBuilder = Configtx.ConfigGroup.newBuilder();
+
+        if (computeGroupUpdate(original.getChannelGroup(), update.getChannelGroup(), readSetBuilder, writeSetBuilder)) {
+            configUpdateBuilder.setReadSet(readSetBuilder.build())
+                    .setWriteSet(writeSetBuilder.build())
+                    .setChannelId(channelId);
+
+            return true;
+        }
+
+        return false;
+
+    }
+
+    private static boolean computeGroupUpdate(Configtx.ConfigGroup original, Configtx.ConfigGroup updated,
+                                              Configtx.ConfigGroup.Builder readSetBuilder, Configtx.ConfigGroup.Builder writeSetBuilder) {
+
+        Map<String, Configtx.ConfigPolicy> readSetPolicies = new HashMap<>();
+        Map<String, Configtx.ConfigPolicy> writeSetPolicies = new HashMap<>();
+        Map<String, Configtx.ConfigPolicy> sameSetPolicies = new HashMap<>();
+
+        boolean policiesMembersUpdated = computePoliciesMapUpdate(original.getPoliciesMap(), updated.getPoliciesMap(),
+                writeSetPolicies, sameSetPolicies);
+
+        Map<String, Configtx.ConfigValue> readSetValues = new HashMap<>();
+        Map<String, Configtx.ConfigValue> writeSetValues = new HashMap<>();
+        Map<String, Configtx.ConfigValue> sameSetValues = new HashMap<>();
+
+        boolean valuesMembersUpdated = computeValuesMapUpdate(original.getValuesMap(), updated.getValuesMap(),
+                writeSetValues, sameSetValues);
+
+        Map<String, Configtx.ConfigGroup> readSetGroups = new HashMap<>();
+        Map<String, Configtx.ConfigGroup> writeSetGroups = new HashMap<>();
+        Map<String, Configtx.ConfigGroup> sameSetGroups = new HashMap<>();
+
+        boolean groupsMembersUpdated = computeGroupsMapUpdate(original.getGroupsMap(), updated.getGroupsMap(),
+                readSetGroups, writeSetGroups, sameSetGroups);
+
+        if (!policiesMembersUpdated && !valuesMembersUpdated && !groupsMembersUpdated && original.getModPolicy().equals(updated.getModPolicy())) {
+            // nothing changed.
+
+            if (writeSetValues.isEmpty() && writeSetPolicies.isEmpty() && writeSetGroups.isEmpty() && readSetGroups.isEmpty()) {
+
+                readSetBuilder.setVersion(original.getVersion());
+                writeSetBuilder.setVersion(original.getVersion());
+
+                return false;
+            } else {
+
+                readSetBuilder.setVersion(original.getVersion())
+                        .putAllGroups(readSetGroups);
+                writeSetBuilder.setVersion(original.getVersion())
+                        .putAllPolicies(writeSetPolicies)
+                        .putAllValues(writeSetValues)
+                        .putAllGroups(writeSetGroups);
+                return true;
+
+            }
+
+        }
+
+        for (Map.Entry<String, Configtx.ConfigPolicy> i : sameSetPolicies.entrySet()) {
+            final String name = i.getKey();
+            final Configtx.ConfigPolicy value = i.getValue();
+            readSetPolicies.put(name, value);
+            writeSetPolicies.put(name, value);
+
+        }
+
+        for (Map.Entry<String, Configtx.ConfigValue> i : sameSetValues.entrySet()) {
+            final String name = i.getKey();
+            final Configtx.ConfigValue value = i.getValue();
+            readSetValues.put(name, value);
+            writeSetValues.put(name, value);
+
+        }
+
+        for (Map.Entry<String, Configtx.ConfigGroup> i : sameSetGroups.entrySet()) {
+            final String name = i.getKey();
+            final Configtx.ConfigGroup value = i.getValue();
+            readSetGroups.put(name, value);
+            writeSetGroups.put(name, value);
+
+        }
+
+        readSetBuilder.setVersion(original.getVersion())
+                .putAllPolicies(readSetPolicies)
+                .putAllValues(readSetValues)
+                .putAllGroups(readSetGroups);
+        writeSetBuilder.setVersion(original.getVersion() + 1)
+                .putAllPolicies(writeSetPolicies)
+                .putAllValues(writeSetValues)
+                .setModPolicy(updated.getModPolicy())
+                .putAllGroups(writeSetGroups);
+
+        return true;
+    }
+
+    public static boolean computeGroupsMapUpdate(Map<String, Configtx.ConfigGroup> original, Map<String, Configtx.ConfigGroup>
+            updated, Map<String, Configtx.ConfigGroup> readSet, Map<String, Configtx.ConfigGroup> writeSet, Map<String,
+            Configtx.ConfigGroup> sameSet) {
+        boolean updatedMembers = false;
+
+        for (Map.Entry<String, Configtx.ConfigGroup> i : original.entrySet()) {
+            final String groupName = i.getKey();
+            final Configtx.ConfigGroup originalGroup = i.getValue();
+
+            if (!updated.containsKey(groupName) || null == updated.get(groupName)) {
+                updatedMembers = true; //missing from updated ie deleted.
+
+            } else {
+                final Configtx.ConfigGroup updatedGroup = updated.get(groupName);
+
+                Configtx.ConfigGroup.Builder readSetBuilder = Configtx.ConfigGroup.newBuilder();
+                Configtx.ConfigGroup.Builder writeSetBuilder = Configtx.ConfigGroup.newBuilder();
+
+                if (!computeGroupUpdate(originalGroup, updatedGroup, readSetBuilder, writeSetBuilder)) {
+                    sameSet.put(groupName, readSetBuilder.build());
+
+                } else {
+                    readSet.put(groupName, readSetBuilder.build());
+                    writeSet.put(groupName, writeSetBuilder.build());
+                }
+
+            }
+
+        }
+
+        for (Map.Entry<String, Configtx.ConfigGroup> i : updated.entrySet()) {
+            final String groupName = i.getKey();
+            final Configtx.ConfigGroup updatedConfigGroup = i.getValue();
+
+            if (!original.containsKey(groupName) || null == original.get(groupName)) {
+                updatedMembers = true;
+                // final Configtx.ConfigGroup originalConfigGroup = original.get(groupName);
+                Configtx.ConfigGroup.Builder readSetBuilder = Configtx.ConfigGroup.newBuilder();
+                Configtx.ConfigGroup.Builder writeSetBuilder = Configtx.ConfigGroup.newBuilder();
+                computeGroupUpdate(Configtx.ConfigGroup.newBuilder().build(), updatedConfigGroup, readSetBuilder, writeSetBuilder);
+                writeSet.put(groupName, Configtx.ConfigGroup.newBuilder()
+                        .setVersion(0)
+                        .setModPolicy(updatedConfigGroup.getModPolicy())
+                        .putAllPolicies(writeSetBuilder.getPoliciesMap())
+                        .putAllValues(writeSetBuilder.getValuesMap())
+                        .putAllGroups(writeSetBuilder.getGroupsMap())
+                        .build()
+
+                );
+
+            }
+
+        }
+
+        return updatedMembers;
+    }
+
+    private static boolean computeValuesMapUpdate(Map<String, Configtx.ConfigValue> original, Map<String, Configtx.ConfigValue> updated,
+                                                  Map<String, Configtx.ConfigValue> writeSet, Map<String, Configtx.ConfigValue> sameSet) {
+
+        boolean updatedMembers = false;
+
+        for (Map.Entry<String, Configtx.ConfigValue> i : original.entrySet()) {
+            final String valueName = i.getKey();
+            final Configtx.ConfigValue originalValue = i.getValue();
+            if (!updated.containsKey(valueName) || null == updated.get(valueName)) {
+                updatedMembers = true; //missing from updated ie deleted.
+
+            } else { // is in both...
+
+                final Configtx.ConfigValue updatedValue = updated.get(valueName);
+                if (originalValue.getModPolicy().equals(updatedValue.getModPolicy()) &&
+                        originalValue.getValue().equals(updatedValue.getValue())) { //same value
+
+                    sameSet.put(valueName, Configtx.ConfigValue.newBuilder().setVersion(originalValue.getVersion()).build());
+
+                } else { // new value put in writeset.
+
+                    writeSet.put(valueName, Configtx.ConfigValue.newBuilder()
+                            .setVersion(originalValue.getVersion() + 1)
+                            .setModPolicy(updatedValue.getModPolicy())
+                            .setValue(updatedValue.getValue())
+                            .build());
+
+                }
+
+            }
+
+        }
+
+        for (Map.Entry<String, Configtx.ConfigValue> i : updated.entrySet()) {
+            final String valueName = i.getKey();
+            final Configtx.ConfigValue updatedValue = i.getValue();
+
+            if (!original.containsKey(valueName) || null == original.get(valueName)) {
+
+                updatedMembers = true;
+
+                writeSet.put(valueName, Configtx.ConfigValue.newBuilder()
+                        .setVersion(0)
+                        .setModPolicy(updatedValue.getModPolicy())
+                        .setValue(updatedValue.getValue())
+                        .build());
+
+            }
+        }
+
+        return updatedMembers;
+
+    }
+
+    private static boolean computePoliciesMapUpdate(Map<String, Configtx.ConfigPolicy> original, Map<String, Configtx.ConfigPolicy> updated,
+                                                    Map<String, Configtx.ConfigPolicy> writeSet, Map<String, Configtx.ConfigPolicy> sameSet) {
+
+        boolean updatedMembers = false;
+
+        for (Map.Entry<String, Configtx.ConfigPolicy> i : original.entrySet()) {
+            final String policyName = i.getKey();
+            final Configtx.ConfigPolicy originalPolicy = i.getValue();
+            if (!updated.containsKey(policyName) || null == updated.get(policyName)) {
+                updatedMembers = true; //missing from updated ie deleted.
+
+            } else { // is in both...
+
+                final Configtx.ConfigPolicy updatedPolicy = updated.get(policyName);
+                if (originalPolicy.getModPolicy().equals(updatedPolicy.getModPolicy()) &&
+                        originalPolicy.toByteString().equals(updatedPolicy.toByteString())) { //same policy
+
+                    sameSet.put(policyName, Configtx.ConfigPolicy.newBuilder().setVersion(originalPolicy.getVersion()).build());
+
+                } else { // new policy put in writeset.
+
+                    writeSet.put(policyName, Configtx.ConfigPolicy.newBuilder()
+                            .setVersion(originalPolicy.getVersion() + 1)
+                            .setModPolicy(updatedPolicy.getModPolicy())
+                            .setPolicy(updatedPolicy.getPolicy().newBuilderForType().build())
+                            .build());
+
+                }
+
+            }
+
+        }
+
+        for (Map.Entry<String, Configtx.ConfigPolicy> i : updated.entrySet()) {
+            final String policyName = i.getKey();
+            final Configtx.ConfigPolicy updatedPolicy = i.getValue();
+
+            if (!original.containsKey(policyName) || null == original.get(policyName)) {
+
+                updatedMembers = true;
+
+                writeSet.put(policyName, Configtx.ConfigPolicy.newBuilder()
+                        .setVersion(0)
+                        .setModPolicy(updatedPolicy.getModPolicy())
+                        .setPolicy(updatedPolicy.getPolicy().newBuilderForType().build())
+                        .build());
+
+            }
+        }
+
+        return updatedMembers;
+    }
+
+//     Keep for now as this can be handy in the future....
+//    static void printConfigGroup(Configtx.Config configGroup) throws InvalidProtocolBufferException {
+//        //     final JsonFormat.Parser parser = JsonFormat.parser();
+//        final JsonFormat.Printer printer = JsonFormat.printer();
+//        // Read the input stream and convert to JSON
+//
+//        JsonReader reader = Json.createReader(new StringReader(printer.print(configGroup)));
+//        JsonObject jsonConfig = (JsonObject) reader.read();
+//
+//        //channelGroup
+//        //   final Object read = JsonPath.parse(jsonConfig).read("$", Criteria.where("value").exists(true));
+//        // final Object read = JsonPath.parse(jsonConfig).read("$.channelGroup[?(@.value)]");
+//        //  final Object read = JsonPath.parse(jsonConfig).read("$.channelGroup..value");
+//        // worked got strings  final Object read = JsonPath.parse(jsonConfig).read("$.channelGroup..value");
+//        // final Object read = JsonPath.parse(jsonConfig).read("$.channelGroup..[?(@[?(@.value)])]");
+//        final net.minidev.json.JSONArray read = JsonPath.parse(jsonConfig).read("$.channelGroup..[?(@.value)]");
+//        final Object next = read.iterator().next();
+//        out(read + "");
+//
+//        // out(printer.print(json));
+//
+//    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

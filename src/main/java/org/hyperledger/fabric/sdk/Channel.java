@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -68,6 +70,7 @@ import org.hyperledger.fabric.protos.common.Common.LastConfig;
 import org.hyperledger.fabric.protos.common.Common.Metadata;
 import org.hyperledger.fabric.protos.common.Common.Payload;
 import org.hyperledger.fabric.protos.common.Common.Status;
+import org.hyperledger.fabric.protos.common.Configtx;
 import org.hyperledger.fabric.protos.common.Configtx.ConfigEnvelope;
 import org.hyperledger.fabric.protos.common.Configtx.ConfigGroup;
 import org.hyperledger.fabric.protos.common.Configtx.ConfigSignature;
@@ -82,6 +85,7 @@ import org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse;
 import org.hyperledger.fabric.protos.orderer.Ab.SeekInfo;
 import org.hyperledger.fabric.protos.orderer.Ab.SeekPosition;
 import org.hyperledger.fabric.protos.orderer.Ab.SeekSpecified;
+import org.hyperledger.fabric.protos.peer.Configuration;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposal.SignedProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
@@ -128,6 +132,7 @@ import static org.hyperledger.fabric.sdk.Channel.PeerOptions.createPeerOptions;
 import static org.hyperledger.fabric.sdk.Channel.TransactionOptions.createTransactionOptions;
 import static org.hyperledger.fabric.sdk.User.userContextCheck;
 import static org.hyperledger.fabric.sdk.helper.Utils.isNullOrEmpty;
+import static org.hyperledger.fabric.sdk.helper.Utils.toHexString;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createSeekInfoEnvelope;
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getSignatureHeaderAsByteString;
 
@@ -1783,7 +1788,7 @@ public class Channel implements Serializable {
             if (!msps.containsKey(name)) {
 
                 MspConfig.MSPConfig mspConfig = MspConfig.MSPConfig.parseFrom(mspv.getValue());
-                Integer type = new Integer(mspConfig.getType());
+                Integer type = mspConfig.getType();
                 if (type == 0) {
                     MspConfig.FabricMSPConfig fabricMSPConfig = MspConfig.FabricMSPConfig.parseFrom(mspConfig.getConfig());
 
@@ -1797,6 +1802,359 @@ public class Channel implements Serializable {
         }
 
         return msps;
+    }
+
+    public static class AnchorPeersConfigUpdateResult {
+        private UpdateChannelConfiguration updateChannelConfiguration = null;
+        private Collection<String> peersAdded = Collections.emptyList();
+        private Collection<String> peersRemoved = Collections.emptyList();
+        private Collection<String> currentPeers = Collections.emptyList();
+        private Collection<String> updatedPeers = Collections.emptyList();
+
+        /**
+         * The actual config update @see {@link UpdateChannelConfiguration}
+         *
+         * @return The config update. May be null when there is an error on no change needs to be done.
+         */
+        public UpdateChannelConfiguration getUpdateChannelConfiguration() {
+            return updateChannelConfiguration;
+        }
+
+        /**
+         * The peers to be added.
+         *
+         * @return The anchor peers to be added. This is less any that may be already present.
+         */
+        public Collection<String> getPeersAdded() {
+            return peersAdded;
+        }
+
+        /**
+         * The peers to be removed..
+         *
+         * @return The anchor peers to be removed. This is less any peers not present.
+         */
+        public Collection<String> getPeersRemoved() {
+            return peersRemoved;
+        }
+
+        /**
+         * The anchor peers found in the current channel configuration.
+         *
+         * @return The anchor peers found in the current channel configuration.
+         */
+        public Collection<String> getCurrentPeers() {
+            return currentPeers;
+        }
+
+        /**
+         * The anchor peers found in the updated channel configuration.
+         */
+        public Collection<String> getUpdatedPeers() {
+            return updatedPeers;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder(10000);
+
+            sb.append("AnchorPeersConfigUpdateResult:{peersAdded= ");
+
+            if (peersAdded == null) {
+                sb.append("null");
+            } else {
+                sb.append(peersAdded.toString());
+            }
+
+            sb.append(", peersRemoved= ");
+            if (peersRemoved == null) {
+                sb.append("null");
+            } else {
+                sb.append(peersRemoved.toString());
+            }
+
+            sb.append(", currentPeers= ");
+            if (currentPeers == null) {
+                sb.append("null");
+            } else {
+                sb.append(currentPeers.toString());
+            }
+
+            sb.append(", updatedPeers= ");
+            if (updatedPeers == null) {
+                sb.append("null");
+            } else {
+                sb.append(updatedPeers.toString());
+            }
+
+            sb.append(", updateChannelConfiguration= ");
+            if (updateChannelConfiguration == null) {
+                sb.append("null");
+            } else {
+                sb.append(toHexString(updateChannelConfiguration.getUpdateChannelConfigurationAsBytes()));
+            }
+            sb.append("}");
+            return sb.toString();
+        }
+    }
+
+    /**
+     * Get a channel configuration update to add or remove peers.
+     * If both peersToAdd AND peersToRemove are null then only the current anchor peers are reported with @see {@link AnchorPeersConfigUpdateResult#getCurrentPeers()}
+     *
+     * @param peer          peer to use to the channel configuration from.
+     * @param userContext   The usercontext to use.
+     * @param peersToAdd    Peers to add as Host:Port peer1.org2.com:7022
+     * @param peersToRemove Peers to remove as Host:Port peer1.org2.com:7022
+     * @return @see {@link AnchorPeersConfigUpdateResult}
+     * @throws Exception
+     */
+    public AnchorPeersConfigUpdateResult getConfigUpdateAnchorPeers(Peer peer, User userContext, Collection<String> peersToAdd, Collection<String> peersToRemove) throws Exception {
+
+        User.userContextCheck(userContext);
+
+        checkPeer(peer);
+
+        checkChannelState();
+
+        final boolean reportOnly = peersToAdd == null && peersToRemove == null;
+
+        if (!reportOnly && ((peersToAdd == null || peersToAdd.isEmpty()) && (peersToRemove == null || peersToRemove.isEmpty()))) {
+            throw new InvalidArgumentException("No anchor peers to add or remove!");
+        }
+
+        if (IS_TRACE_LEVEL) {
+
+            StringBuilder sbp = new StringBuilder("null");
+            String sep = "";
+            if (peersToAdd != null) {
+                sbp = new StringBuilder("[");
+                for (String s : peersToAdd) {
+                    sbp.append(sep).append("'").append(s).append("'");
+                    sep = ", ";
+                }
+                sbp.append("]");
+
+            }
+            StringBuilder sbr = new StringBuilder("null");
+            sep = "";
+            if (peersToRemove != null) {
+                sbr = new StringBuilder("[");
+
+                for (String s : peersToRemove) {
+
+                    sbr.append(sep).append("'").append(s).append("'");
+                    sep = ", ";
+                }
+                sbr.append("]");
+
+            }
+            logger.trace(format("getConfigUpdateAnchorPeers channel %s, peer: %s, user: %s, peers to add: %s, peers to remove: %s",
+                    name, peer.toString(), userContext.getMspId() + ":" + userContext.getName(),
+                    sbp.toString(), sbr.toString()
+            ));
+        }
+
+        Set<String> peersToAddHS = new HashSet<>(16);
+        if (null != peersToAdd) {
+            for (String s : peersToAdd) {
+                String[] ep = parseEndpoint(s);
+                peersToAddHS.add(ep[0] + ":" + ep[1]);
+            }
+            //  peersToAddHS.addAll(peersToAdd);
+        }
+
+        Set<String> peersToRemoveHS = new HashSet<>(16);
+        if (null != peersToRemove && !peersToRemove.isEmpty()) {
+            for (String s : peersToRemove) {
+
+                String[] ep = parseEndpoint(s);
+                peersToRemoveHS.add(ep[0] + ":" + ep[1]);
+            }
+            peersToRemoveHS.removeAll(peersToAddHS); //add overrides remove;
+        }
+        Set<String> peersRemoved = new HashSet<>(peersToAddHS.size());
+        Set<String> peersAdded = new HashSet<>(peersToRemoveHS.size());
+
+        Block configBlock = getConfigBlock(Collections.singletonList(peer));
+        if (IS_TRACE_LEVEL) {
+            logger.trace(format("getConfigUpdateAnchorPeers  configBlock: %s",
+                    toHexString(configBlock.toByteArray())));
+        }
+
+        Envelope envelope = Envelope.parseFrom(configBlock.getData().getData(0));
+        Payload payload = Payload.parseFrom(envelope.getPayload());
+        Header header = payload.getHeader();
+
+        ChannelHeader channelHeader = ChannelHeader.parseFrom(header.getChannelHeader());
+        if (!Objects.equals(name, channelHeader.getChannelId())) {
+            throw new InvalidArgumentException(format("Expected config block for channel: %s, but got: %s", name, channelHeader.getChannelId()));
+        }
+
+        ConfigEnvelope configEnvelope = ConfigEnvelope.parseFrom(payload.getData());
+        // ConfigGroup channelGroup = configEnvelope.getConfig().getChannelGroup();
+
+        Configtx.Config config = configEnvelope.getConfig();
+        Configtx.Config.Builder configBuilderUpdate = config.toBuilder();
+
+        ConfigGroup.Builder channelGroupBuild = configBuilderUpdate.getChannelGroup().toBuilder();
+        Map<String, ConfigGroup> groupsMap = channelGroupBuild.getGroupsMap();
+        ConfigGroup.Builder application = groupsMap.get("Application").toBuilder();
+        final String mspid = userContext.getMspId();
+        ConfigGroup peerOrgConfigGroup = application.getGroupsMap().get(mspid);
+
+        if (null == peerOrgConfigGroup) {
+            StringBuilder sb = new StringBuilder(1000);
+            String sep = "";
+
+            for (String amspid : application.getGroupsMap().keySet()) {
+                sb.append(sep).append(amspid);
+                sep = ", ";
+
+            }
+            throw new InvalidArgumentException(format("Expected to find organization matching user context's mspid: %s, but only found %s.", mspid, sb.toString()));
+        }
+        ConfigGroup.Builder peerOrgConfigGroupBuilder = peerOrgConfigGroup.toBuilder();
+
+        String modPolicy = peerOrgConfigGroup.getModPolicy() != null ? peerOrgConfigGroup.getModPolicy() : "Admins";
+
+        Map<String, ConfigValue> valuesMap = peerOrgConfigGroupBuilder.getValuesMap();
+
+        ConfigValue anchorPeersCV = valuesMap.get("AnchorPeers");
+
+        final Set<String> currentAP = new HashSet<>(36); // The anchor peers that exist already.
+
+        if (null != anchorPeersCV && anchorPeersCV.getValue() != null) {
+            modPolicy = anchorPeersCV.getModPolicy() != null ? "Admins" : modPolicy;
+
+            Configuration.AnchorPeers anchorPeers = Configuration.AnchorPeers.parseFrom(anchorPeersCV.getValue());
+            List<Configuration.AnchorPeer> anchorPeersList = anchorPeers.getAnchorPeersList();
+            if (anchorPeersList != null) {
+                for (Configuration.AnchorPeer anchorPeer : anchorPeersList) {
+                    currentAP.add(anchorPeer.getHost().toLowerCase() + ":" + anchorPeer.getPort());
+                }
+            }
+        }
+
+        if (IS_TRACE_LEVEL) {
+
+            StringBuilder sbp = new StringBuilder("[");
+            String sep = "";
+
+            for (String s : currentAP) {
+                sbp.append(sep).append("'").append(s).append("'");
+                sep = ", ";
+            }
+            sbp.append("]");
+
+            logger.trace(format("getConfigUpdateAnchorPeers channel %s,  current anchor peers: %s",
+                    name, sbp.toString()));
+
+        }
+
+        if (reportOnly) {
+            logger.trace("getConfigUpdateAnchorPeers reportOnly");
+
+            AnchorPeersConfigUpdateResult ret = new AnchorPeersConfigUpdateResult();
+            ret.currentPeers = currentAP;
+            ret.peersAdded = Collections.emptyList();
+            ret.peersRemoved = Collections.emptyList();
+            ret.updatedPeers = Collections.emptyList();
+
+            if (IS_TRACE_LEVEL) {
+                logger.trace(format("getConfigUpdateAnchorPeers returned: %s",
+                        ret.toString()));
+            }
+            return ret;
+
+        }
+
+        Set<String> peersFinalHS = new HashSet<>(16);
+
+        Configuration.AnchorPeers.Builder anchorPeers = Configuration.AnchorPeers.newBuilder();
+        for (String s : currentAP) {
+
+            if (peersToRemoveHS.contains(s)) {
+                peersRemoved.add(s);
+                continue;
+            }
+
+            if (!peersToAddHS.contains(s)) {
+                String[] split = s.split(":");
+                anchorPeers.addAnchorPeers(Configuration.AnchorPeer.newBuilder().setHost(split[0]).setPort(new Integer(split[1])).build());
+                peersFinalHS.add(s);
+            }
+        }
+
+        for (String s : peersToAddHS) {
+            if (!currentAP.contains(s)) {
+                peersAdded.add(s);
+                String[] split = s.split(":");
+                anchorPeers.addAnchorPeers(Configuration.AnchorPeer.newBuilder().setHost(split[0]).setPort(new Integer(split[1])).build());
+                peersFinalHS.add(s);
+            }
+        }
+
+        if (peersRemoved.isEmpty() && peersAdded.isEmpty()) {
+            logger.trace("getConfigUpdateAnchorPeers no Peers need adding or removing.");
+            AnchorPeersConfigUpdateResult ret = new AnchorPeersConfigUpdateResult();
+            ret.currentPeers = currentAP;
+            ret.peersAdded = Collections.emptyList();
+            ret.peersRemoved = Collections.emptyList();
+            ret.updatedPeers = Collections.emptyList();
+            if (IS_TRACE_LEVEL) {
+                logger.trace(format("getConfigUpdateAnchorPeers returned: %s",
+                        ret.toString()));
+            }
+            return ret;
+        }
+
+        Map m = new HashMap(valuesMap);
+        m.remove("AnchorPeers");
+        //       org1MSP.clearValues();
+
+//        if (!peersFinalHS.isEmpty()) { // if there are anchor peers to add...   LEAVE IT.
+
+        m.put("AnchorPeers", ConfigValue.newBuilder().setValue(anchorPeers.build().toByteString()).setModPolicy(modPolicy).build());
+//       }
+        ConfigGroup build = peerOrgConfigGroupBuilder.putAllValues(m).build();
+
+        m.clear();
+        m.putAll(application.getGroupsMap());
+        m.put(mspid, build);
+        // application.putAllValues(m);
+        application.putAllGroups(m);
+        ConfigGroup applicationBuilt = application.build();
+        m.clear();
+        m.putAll(channelGroupBuild.getGroupsMap());
+        m.put("Application", applicationBuilt);
+        channelGroupBuild.putAllGroups(m);
+
+        configBuilderUpdate.setChannelGroup(channelGroupBuild.build());
+
+        Configtx.ConfigUpdate.Builder updateBlockBuilder = Configtx.ConfigUpdate.newBuilder();
+
+        Configtx.Config updated = configBuilderUpdate.build();
+
+        if (IS_TRACE_LEVEL) {
+            logger.trace(format("getConfigUpdateAnchorPeers  updated configBlock: %s",
+                    toHexString(updated.toByteArray())));
+        }
+
+        ProtoUtils.computeUpdate(name, config, updated, updateBlockBuilder);
+
+        AnchorPeersConfigUpdateResult ret = new AnchorPeersConfigUpdateResult();
+        ret.currentPeers = currentAP;
+        ret.peersAdded = peersAdded;
+        ret.peersRemoved = peersRemoved;
+        ret.updatedPeers = peersFinalHS;
+        ret.updateChannelConfiguration = new UpdateChannelConfiguration(updateBlockBuilder.build().toByteArray());
+        if (IS_TRACE_LEVEL) {
+            logger.trace(format("getConfigUpdateAnchorPeers returned: %s",
+                    ret.toString()));
+        }
+
+        return ret;
     }
 
     /**
@@ -1850,6 +2208,36 @@ public class Channel implements Serializable {
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
             throw new TransactionException(e);
+        }
+    }
+
+    private String[] parseEndpoint(String endPoint) throws InvalidArgumentException {
+        if (Utils.isNullOrEmpty(endPoint)) {
+            throw new InvalidArgumentException("Endpoint is null or empty string");
+        }
+
+        try {
+            URI uri = new URI("grpc://" + endPoint.toLowerCase());
+
+            String host = uri.getHost();
+            if (null == host) {
+                throw new InvalidArgumentException(format("Endpoint '%s' expected to be format \"host:port\". Hostname part missing", endPoint));
+            }
+            int port = uri.getPort();
+            if (port == -1) {
+                throw new InvalidArgumentException(format("Endpoint '%s' expected to be format \"host:port\". Port does not seem to be a valid port number. ", endPoint));
+            }
+
+            // int port = Integer.parseInt(split[1]);
+            if (port < 1) {
+                throw new InvalidArgumentException(format("Endpoint '%s' expected to be format \"host:port\". Port does not seem to be a valid port number. ", endPoint));
+            } else if (port > 65535) {
+                throw new InvalidArgumentException(format("Endpoint '%s' expected to be format \"host:port\". Port does not seem to be a valid port number less than 65535. ", endPoint));
+            }
+            return new String[] {host, port + ""};
+
+        } catch (URISyntaxException e) {
+            throw new InvalidArgumentException(format("Endpoint '%s' expected to be format \"host:port\".", endPoint), e);
         }
 
     }

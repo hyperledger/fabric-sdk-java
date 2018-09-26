@@ -414,9 +414,7 @@ public class TestConfig {
     }
 
     public boolean isRunningAgainstFabric10() {
-
-        return "IntegrationSuiteV1.java".equals(System.getProperty("org.hyperledger.fabric.sdktest.ITSuite"));
-
+        return isFabricVersionBefore("1.1");
     }
 
     /**

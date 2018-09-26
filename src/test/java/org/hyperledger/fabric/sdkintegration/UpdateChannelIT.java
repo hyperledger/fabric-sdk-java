@@ -17,8 +17,10 @@
 package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Set;
@@ -52,6 +54,8 @@ import static org.hyperledger.fabric.sdk.Channel.PeerOptions.createPeerOptions;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -69,6 +73,9 @@ public class UpdateChannelIT {
     private static final String UPDATED_BATCH_TIMEOUT = "\"timeout\": \"5s\"";  // What we want to change it to.
 
     private static final String FOO_CHANNEL_NAME = "foo";
+    private static final String PEER_0_ORG_1_EXAMPLE_COM_7051 = "peer0.org1.example.com:7051";
+    private static final String REGX_S_HOST_PEER_0_ORG_1_EXAMPLE_COM = "(?s).*\"host\":[ \t]*\"peer0\\.org1\\.example\\.com\".*";
+    private static final String REGX_S_ANCHOR_PEERS = "(?s).*\"*AnchorPeers\":[ \t]*\\{.*";
 
     private final TestConfigHelper configHelper = new TestConfigHelper();
 
@@ -125,18 +132,13 @@ public class UpdateChannelIT {
             Channel fooChannel = reconstructChannel(FOO_CHANNEL_NAME, client, sampleOrg);
 
             // Getting foo channels current configuration bytes.
-            final byte[] channelConfigurationBytes = fooChannel.getChannelConfigurationBytes();
+            byte[] channelConfigurationBytes = fooChannel.getChannelConfigurationBytes();
 
             HttpClient httpclient = HttpClients.createDefault();
-            HttpPost httppost = new HttpPost(CONFIGTXLATOR_LOCATION + "/protolator/decode/common.Config");
-            httppost.setEntity(new ByteArrayEntity(channelConfigurationBytes));
+//            HttpPost httppost = new HttpPost(CONFIGTXLATOR_LOCATION + "/protolator/decode/common.Config");
+//            httppost.setEntity(new ByteArrayEntity(channelConfigurationBytes));
 
-            HttpResponse response = httpclient.execute(httppost);
-            int statuscode = response.getStatusLine().getStatusCode();
-            out("Got %s status for decoding current channel config bytes", statuscode);
-            assertEquals(200, statuscode);
-
-            String responseAsString = EntityUtils.toString(response.getEntity());
+            String responseAsString = configTxlatorDecode(httpclient, channelConfigurationBytes);
 
             //responseAsString is JSON but use just string operations for this test.
 
@@ -148,11 +150,12 @@ public class UpdateChannelIT {
             //Now modify the batch timeout
             String updateString = responseAsString.replace(ORIGINAL_BATCH_TIMEOUT, UPDATED_BATCH_TIMEOUT);
 
-            httppost = new HttpPost(CONFIGTXLATOR_LOCATION + "/protolator/encode/common.Config");
+            HttpPost httppost = new HttpPost(CONFIGTXLATOR_LOCATION + "/protolator/encode/common.Config");
             httppost.setEntity(new StringEntity(updateString));
 
-            response = httpclient.execute(httppost);
-            statuscode = response.getStatusLine().getStatusCode();
+            HttpResponse response = httpclient.execute(httppost);
+
+            int statuscode = response.getStatusLine().getStatusCode();
             out("Got %s status for encoding the new desired channel config bytes", statuscode);
             assertEquals(200, statuscode);
             byte[] newConfigBytes = EntityUtils.toByteArray(response.getEntity());
@@ -200,15 +203,7 @@ public class UpdateChannelIT {
 
             final byte[] modChannelBytes = fooChannel.getChannelConfigurationBytes();
 
-            //Now decode the new channel config bytes to json...
-            httppost = new HttpPost(CONFIGTXLATOR_LOCATION + "/protolator/decode/common.Config");
-            httppost.setEntity(new ByteArrayEntity(modChannelBytes));
-
-            response = httpclient.execute(httppost);
-            statuscode = response.getStatusLine().getStatusCode();
-            assertEquals(200, statuscode);
-
-            responseAsString = EntityUtils.toString(response.getEntity());
+            responseAsString = configTxlatorDecode(httpclient, modChannelBytes);
 
             if (!responseAsString.contains(UPDATED_BATCH_TIMEOUT)) {
                 //If it doesn't have the updated time out it failed.
@@ -220,10 +215,73 @@ public class UpdateChannelIT {
                 fail(format("Found original batch timeout '%s', when it was not expected in:%s", ORIGINAL_BATCH_TIMEOUT, responseAsString));
             }
 
-            out("\n");
-
-            assertTrue(eventCountFilteredBlock > 0); // make sure we got blockevent that were tested.
+            assertTrue(eventCountFilteredBlock > 0); // make sure we got blockevent that were tested.updateChannelConfiguration
             assertTrue(eventCountBlock > 0); // make sure we got blockevent that were tested.
+
+            //Should be no anchor peers defined.
+            assertFalse(responseAsString.matches(REGX_S_HOST_PEER_0_ORG_1_EXAMPLE_COM));
+            assertFalse(responseAsString.matches(REGX_S_ANCHOR_PEERS));
+
+            // Get config update for adding an anchor peer.
+            Channel.AnchorPeersConfigUpdateResult configUpdateAnchorPeers = fooChannel.getConfigUpdateAnchorPeers(fooChannel.getPeers().iterator().next(), sampleOrg.getPeerAdmin(),
+                    Arrays.asList(PEER_0_ORG_1_EXAMPLE_COM_7051), null);
+
+            assertNotNull(configUpdateAnchorPeers.getUpdateChannelConfiguration());
+            assertTrue(configUpdateAnchorPeers.getPeersAdded().contains(PEER_0_ORG_1_EXAMPLE_COM_7051));
+
+            //Now add anchor peer to channel configuration.
+            fooChannel.updateChannelConfiguration(configUpdateAnchorPeers.getUpdateChannelConfiguration(),
+                    client.getUpdateChannelConfigurationSignature(configUpdateAnchorPeers.getUpdateChannelConfiguration(), sampleOrg.getPeerAdmin()));
+            Thread.sleep(3000); // give time for events to happen
+
+            // Getting foo channels current configuration bytes to check with configtxlator
+            channelConfigurationBytes = fooChannel.getChannelConfigurationBytes();
+            responseAsString = configTxlatorDecode(httpclient, channelConfigurationBytes);
+
+            // Check is anchor peer in config block?
+            assertTrue(responseAsString.matches(REGX_S_HOST_PEER_0_ORG_1_EXAMPLE_COM));
+            assertTrue(responseAsString.matches(REGX_S_ANCHOR_PEERS));
+
+            //Should see what's there.
+            configUpdateAnchorPeers = fooChannel.getConfigUpdateAnchorPeers(fooChannel.getPeers().iterator().next(), sampleOrg.getPeerAdmin(),
+                    null, null);
+
+            assertNull(configUpdateAnchorPeers.getUpdateChannelConfiguration()); // not updating anything.
+            assertTrue(configUpdateAnchorPeers.getCurrentPeers().contains(PEER_0_ORG_1_EXAMPLE_COM_7051)); // peer should   be there.
+            assertTrue(configUpdateAnchorPeers.getPeersRemoved().isEmpty()); // not removing any
+            assertTrue(configUpdateAnchorPeers.getPeersAdded().isEmpty()); // not adding anything.
+            assertTrue(configUpdateAnchorPeers.getUpdatedPeers().isEmpty()); // not updating anyting.
+
+            //Now remove the anchor peer -- get the config update block.
+            configUpdateAnchorPeers = fooChannel.getConfigUpdateAnchorPeers(fooChannel.getPeers().iterator().next(), sampleOrg.getPeerAdmin(),
+                    null, Arrays.asList(PEER_0_ORG_1_EXAMPLE_COM_7051));
+
+            assertNotNull(configUpdateAnchorPeers.getUpdateChannelConfiguration());
+            assertTrue(configUpdateAnchorPeers.getCurrentPeers().contains(PEER_0_ORG_1_EXAMPLE_COM_7051)); // peer should still be there.
+            assertTrue(configUpdateAnchorPeers.getPeersRemoved().contains(PEER_0_ORG_1_EXAMPLE_COM_7051)); // peer to remove.
+            assertTrue(configUpdateAnchorPeers.getPeersAdded().isEmpty()); // not adding anything.
+            assertTrue(configUpdateAnchorPeers.getUpdatedPeers().isEmpty());  // no peers should be left.
+
+            // Now do the actual update.
+            fooChannel.updateChannelConfiguration(configUpdateAnchorPeers.getUpdateChannelConfiguration(),
+                    client.getUpdateChannelConfigurationSignature(configUpdateAnchorPeers.getUpdateChannelConfiguration(), sampleOrg.getPeerAdmin()));
+            Thread.sleep(3000); // give time for events to happen
+            // Getting foo channels current configuration bytes to check with configtxlator.
+            channelConfigurationBytes = fooChannel.getChannelConfigurationBytes();
+            responseAsString = configTxlatorDecode(httpclient, channelConfigurationBytes);
+
+            assertFalse(responseAsString.matches(REGX_S_HOST_PEER_0_ORG_1_EXAMPLE_COM)); // should be gone!
+            assertTrue(responseAsString.matches(REGX_S_ANCHOR_PEERS)); //ODDLY we still want this even if it's empty!
+
+            //Should see what's there.
+            configUpdateAnchorPeers = fooChannel.getConfigUpdateAnchorPeers(fooChannel.getPeers().iterator().next(), sampleOrg.getPeerAdmin(),
+                    null, null);
+
+            assertNull(configUpdateAnchorPeers.getUpdateChannelConfiguration()); // not updating anything.
+            assertTrue(configUpdateAnchorPeers.getCurrentPeers().isEmpty()); // peer should be now gone.
+            assertTrue(configUpdateAnchorPeers.getPeersRemoved().isEmpty()); // not removing any
+            assertTrue(configUpdateAnchorPeers.getPeersAdded().isEmpty()); // not adding anything.
+            assertTrue(configUpdateAnchorPeers.getUpdatedPeers().isEmpty());  // no peers should be left
 
             out("That's all folks!");
 
@@ -231,6 +289,17 @@ public class UpdateChannelIT {
             e.printStackTrace();
             fail(e.getMessage());
         }
+    }
+
+    private String configTxlatorDecode(HttpClient httpclient, byte[] channelConfigurationBytes) throws IOException {
+        HttpPost httppost = new HttpPost(CONFIGTXLATOR_LOCATION + "/protolator/decode/common.Config");
+        httppost.setEntity(new ByteArrayEntity(channelConfigurationBytes));
+
+        HttpResponse response = httpclient.execute(httppost);
+        int statuscode = response.getStatusLine().getStatusCode();
+        //  out("Got %s status for decoding current channel config bytes", statuscode);
+        assertEquals(200, statuscode);
+        return EntityUtils.toString(response.getEntity());
     }
 
     int eventCountFilteredBlock = 0;
