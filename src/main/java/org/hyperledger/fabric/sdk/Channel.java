@@ -1906,7 +1906,7 @@ public class Channel implements Serializable {
      * @param userContext   The usercontext to use.
      * @param peersToAdd    Peers to add as Host:Port peer1.org2.com:7022
      * @param peersToRemove Peers to remove as Host:Port peer1.org2.com:7022
-     * @return @see {@link AnchorPeersConfigUpdateResult}
+     * @return The AnchorPeersConfigUpdateResult @see {@link AnchorPeersConfigUpdateResult}
      * @throws Exception
      */
     public AnchorPeersConfigUpdateResult getConfigUpdateAnchorPeers(Peer peer, User userContext, Collection<String> peersToAdd, Collection<String> peersToRemove) throws Exception {
