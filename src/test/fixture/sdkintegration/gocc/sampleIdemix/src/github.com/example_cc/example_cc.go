@@ -84,26 +84,26 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 
 	function, args := stub.GetFunctionAndParameters()
 
-    // Getting attributes from an idemix credential
+	// Getting attributes from an idemix credential
 	ou, found, err := cid.GetAttributeValue(stub, "ou");
 	if err != nil {
-	    return shim.Error("Failed to get attribute 'ou'")
+		return shim.Error("Failed to get attribute 'ou'")
 	}
 	if !found {
-	    return shim.Error("attribute 'ou' not found")
+		return shim.Error("attribute 'ou' not found")
 	}
 	if !strings.HasSuffix(ou, "department1") {
-	    return shim.Error(fmt.Sprintf("Incorrect 'ou' returned, got '%s' expecting to end with 'department1'", ou))
+		return shim.Error(fmt.Sprintf("Incorrect 'ou' returned, got '%s' expecting to end with 'department1'", ou))
 	}
 	role, found, err := cid.GetAttributeValue(stub, "role");
 	if err != nil {
-	    return shim.Error("Failed to get attribute 'role'")
+		return shim.Error("Failed to get attribute 'role'")
 	}
 	if !found {
-	    return shim.Error("attribute 'role' not found")
+		return shim.Error("attribute 'role' not found")
 	}
 	if role != "member" {
-	    return shim.Error(fmt.Sprintf("Incorrect 'role' returned, got '%s' expecting 'member'", role))
+		return shim.Error(fmt.Sprintf("Incorrect 'role' returned, got '%s' expecting 'member'", role))
 	}
 
 	if function == "delete" {
@@ -183,10 +183,30 @@ func (t *SimpleChaincode) move(stub shim.ChaincodeStubInterface, args []string) 
 		if transientData, ok := transientMap["event"]; ok {
 			stub.SetEvent("event", transientData)
 		}
-		if transientData, ok := transientMap["result"]; ok {
+
+		rc := transientMap["rc"]
+
+		transientData := transientMap["result"]
+
+		if rc == nil {
 			return shim.Success(transientData)
 		}
+
+		vrc, err := strconv.Atoi(string(rc[:]))
+
+		if err != nil {
+			return shim.Error(err.Error())
+		}
+
+
+		logger.Infof("Status = %d \n", vrc)
+
+		return pb.Response{
+			Status:  int32(vrc),
+			Payload: transientData,
+		}
 	}
+
 	return shim.Success(nil)
 }
 

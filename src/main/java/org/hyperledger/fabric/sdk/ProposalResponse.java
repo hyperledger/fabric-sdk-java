@@ -295,14 +295,16 @@ public class ProposalResponse extends ChaincodeResponse {
      */
 
     public int getChaincodeActionResponseStatus() throws InvalidArgumentException {
-        if (isInvalid()) {
-            throw new InvalidArgumentException("Proposal response is invalid.");
+
+        if (statusReturnCode != -1) {
+            return statusReturnCode;
         }
 
         try {
 
             final ProposalResponsePayloadDeserializer proposalResponsePayloadDeserializer = getProposalResponsePayloadDeserializer();
-            return proposalResponsePayloadDeserializer.getExtension().getResponseStatus();
+            statusReturnCode = proposalResponsePayloadDeserializer.getExtension().getResponseStatus();
+            return statusReturnCode;
 
         } catch (InvalidArgumentException e) {
             throw e;

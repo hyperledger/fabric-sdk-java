@@ -184,6 +184,3 @@ services:
         - "7059:7059"
       command: /usr/local/bin/configtxlator start
       container_name: configtxlator
-
-  ccenv:
-    image: hyperledger/fabric-ccenv${IMAGE_TAG_FABRIC}

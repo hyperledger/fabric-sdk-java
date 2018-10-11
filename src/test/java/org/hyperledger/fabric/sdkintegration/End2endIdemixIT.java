@@ -1,14 +1,13 @@
 package org.hyperledger.fabric.sdkintegration;
 
 import java.io.IOException;
-
 import java.util.Collection;
 import java.util.Properties;
 
-import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.HFClient;
+import org.hyperledger.fabric.sdk.TransactionRequest;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
@@ -21,10 +20,7 @@ import org.junit.Test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 /*
     This runs a version of end2end but with Node chaincode.
@@ -38,6 +34,7 @@ public class End2endIdemixIT extends End2endIT {
         CHAIN_CODE_FILEPATH = "sdkintegration/gocc/sampleIdemix";
         testName = "End2endIdemixIT";  //Just print out what test is really running.
         CHAIN_CODE_NAME = "idemix_example_go";
+        CHAIN_CODE_LANG = TransactionRequest.Type.GO_LANG;
         testUser1 = "idemixUser";
     }
 
