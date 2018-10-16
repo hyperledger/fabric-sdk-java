@@ -13,18 +13,15 @@ public class IdentityFactory {
         Enrollment enrollment = user.getEnrollment();
 
         try {
-            if (enrollment instanceof X509Enrollment) {
+            if (enrollment instanceof IdemixEnrollment) { // Need Idemix signer for this.
+                return new IdemixSigningIdentity((IdemixEnrollment) enrollment);
+            } else { // for now all others are x509
                 return new X509SigningIdentity(cryptoSuite, user);
             }
 
-            if (enrollment instanceof IdemixEnrollment) {
-                return new IdemixSigningIdentity((IdemixEnrollment) enrollment);
-            }
         } catch (Exception e) {
             throw new IllegalStateException(e.getMessage(), e);
         }
-
-        throw new IllegalStateException("Invalid enrollment. Expected either X509Enrollment or IdemixEnrollment." + enrollment);
     }
 
 }

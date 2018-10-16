@@ -45,7 +45,6 @@ import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
-import org.hyperledger.fabric.sdk.identity.X509Enrollment;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 
 /**
@@ -192,7 +191,7 @@ public class SampleStore {
 
             PrivateKey privateKey = getPrivateKeyFromBytes(IOUtils.toByteArray(new FileInputStream(privateKeyFile)));
 
-            sampleUser.setEnrollment(new X509Enrollment(privateKey, certificate));
+            sampleUser.setEnrollment(new SampleStoreEnrollement(privateKey, certificate));
 
             sampleUser.saveState();
 
@@ -232,6 +231,33 @@ public class SampleStore {
         PrivateKey privateKey = new JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getPrivateKey(pemPair);
 
         return privateKey;
+    }
+
+    // Use this to make sure SDK is not dependent on HFCA enrollment for non-Idemix
+    static final class SampleStoreEnrollement implements Enrollment, Serializable {
+
+        private static final long serialVersionUID = -2784835212445309006L;
+        private final PrivateKey privateKey;
+        private final String certificate;
+
+        SampleStoreEnrollement(PrivateKey privateKey, String certificate) {
+
+            this.certificate = certificate;
+
+            this.privateKey = privateKey;
+        }
+
+        @Override
+        public PrivateKey getKey() {
+
+            return privateKey;
+        }
+
+        @Override
+        public String getCert() {
+            return certificate;
+        }
+
     }
 
     void saveChannel(Channel channel) throws IOException, InvalidArgumentException {
