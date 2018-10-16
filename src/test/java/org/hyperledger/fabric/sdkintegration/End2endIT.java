@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.TimeUnit;
@@ -96,6 +97,8 @@ public class End2endIT {
     private static final String TEST_ADMIN_NAME = "admin";
     private static final String TESTUSER_1_NAME = "user1";
     private static final String TEST_FIXTURES_PATH = "src/test/fixture";
+
+    private static Random random = new Random();
 
     private static final String FOO_CHANNEL_NAME = "foo";
     private static final String BAR_CHANNEL_NAME = "bar";
@@ -332,6 +335,8 @@ public class End2endIT {
 
         return pemStrWriter.toString();
     }
+
+    Map<String, Long> expectedMoveRCMap = new HashMap<>(); // map from channel name to move chaincode's return code.
 
     //CHECKSTYLE.OFF: Method length is 320 lines (max allowed is 150).
     void runChannel(HFClient client, Channel channel, boolean installChaincode, SampleOrg sampleOrg, int delta) {
@@ -571,7 +576,17 @@ public class End2endIT {
                     Map<String, byte[]> tm2 = new HashMap<>();
                     tm2.put("HyperLedgerFabric", "TransactionProposalRequest:JavaSDK".getBytes(UTF_8)); //Just some extra junk in transient map
                     tm2.put("method", "TransactionProposalRequest".getBytes(UTF_8)); // ditto
-                    tm2.put("result", ":)".getBytes(UTF_8));  // This should be returned see chaincode why.
+                    tm2.put("result", ":)".getBytes(UTF_8));  // This should be returned in the payload see chaincode why.
+                    if (Type.GO_LANG.equals(CHAIN_CODE_LANG) && !testConfig.isRunningAgainstFabric10()) {
+
+                        // expectedMoveRCMap.put(channelName, random.nextInt(300) + 100L); // the chaincode will return this as status see chaincode why.
+                        expectedMoveRCMap.put(channelName, random.nextInt(300) + 100L); // the chaincode will return this as status see chaincode why.
+                        tm2.put("rc", (expectedMoveRCMap.get(channelName) + "").getBytes(UTF_8));  // This should be returned see chaincode why.
+                        // 400 and above results in the peer not endorsing!
+                    } else {
+                        expectedMoveRCMap.put(channelName, 200L); // not really supported for Java or Node.
+                    }
+
                     tm2.put(EXPECTED_EVENT_NAME, EXPECTED_EVENT_DATA);  //This should trigger an event see chaincode why.
 
                     transactionProposalRequest.setTransientMap(tm2);
@@ -589,15 +604,6 @@ public class End2endIT {
                         }
                     }
 
-                    // Check that all the proposals are consistent with each other. We should have only one set
-                    // where all the proposals above are consistent. Note the when sending to Orderer this is done automatically.
-                    //  Shown here as an example that applications can invoke and select.
-                    // See org.hyperledger.fabric.sdk.proposal.consistency_validation config property.
-                    Collection<Set<ProposalResponse>> proposalConsistencySets = SDKUtils.getProposalConsistencySets(transactionPropResp);
-                    if (proposalConsistencySets.size() != 1) {
-                        fail(format("Expected only one set of consistent proposal responses but got %d", proposalConsistencySets.size()));
-                    }
-
                     out("Received %d transaction proposal responses. Successful+verified: %d . Failed: %d",
                             transactionPropResp.size(), successful.size(), failed.size());
                     if (failed.size() > 0) {
@@ -606,17 +612,28 @@ public class End2endIT {
                                 firstTransactionProposalResponse.getMessage() +
                                 ". Was verified: " + firstTransactionProposalResponse.isVerified());
                     }
+
+                    // Check that all the proposals are consistent with each other. We should have only one set
+                    // where all the proposals above are consistent. Note the when sending to Orderer this is done automatically.
+                    //  Shown here as an example that applications can invoke and select.
+                    // See org.hyperledger.fabric.sdk.proposal.consistency_validation config property.
+                    Collection<Set<ProposalResponse>> proposalConsistencySets = SDKUtils.getProposalConsistencySets(transactionPropResp);
+                    if (proposalConsistencySets.size() != 1) {
+                        fail(format("Expected only one set of consistent proposal responses but got %d", proposalConsistencySets.size()));
+                    }
                     out("Successfully received transaction proposal responses.");
+
+                    //  System.exit(10);
 
                     ProposalResponse resp = successful.iterator().next();
                     byte[] x = resp.getChaincodeActionResponsePayload(); // This is the data returned by the chaincode.
                     String resultAsString = null;
                     if (x != null) {
-                        resultAsString = new String(x, "UTF-8");
+                        resultAsString = new String(x, UTF_8);
                     }
                     assertEquals(":)", resultAsString);
 
-                    assertEquals(200, resp.getChaincodeActionResponseStatus()); //Chaincode's status.
+                    assertEquals(expectedMoveRCMap.get(channelName).longValue(), resp.getChaincodeActionResponseStatus()); //Chaincode's status.
 
                     TxReadWriteSetInfo readWriteSetInfo = resp.getChaincodeActionResponseReadWriteSetInfo();
                     //See blockwalker below how to transverse this
@@ -942,9 +959,11 @@ public class End2endIT {
                         for (BlockInfo.TransactionEnvelopeInfo.TransactionActionInfo transactionActionInfo : transactionEnvelopeInfo.getTransactionActionInfos()) {
                             ++j;
                             out("   Transaction action %d has response status %d", j, transactionActionInfo.getResponseStatus());
-                            assertEquals(200, transactionActionInfo.getResponseStatus());
+
+                            long excpectedStatus = current == 2 && i == 1 && j == 1 ? expectedMoveRCMap.get(channel.getName()) : 200; // only transaction we changed the status code.
+                            assertEquals(format("channel %s current: %d, i: %d.  transaction action j=%d", channel.getName(), current, i, j), excpectedStatus, transactionActionInfo.getResponseStatus());
                             out("   Transaction action %d has response message bytes as string: %s", j,
-                                    printableString(new String(transactionActionInfo.getResponseMessageBytes(), "UTF-8")));
+                                    printableString(new String(transactionActionInfo.getResponseMessageBytes(), UTF_8)));
                             out("   Transaction action %d has %d endorsements", j, transactionActionInfo.getEndorsementsCount());
                             assertEquals(2, transactionActionInfo.getEndorsementsCount());
 
@@ -956,7 +975,7 @@ public class End2endIT {
                             out("   Transaction action %d has %d chaincode input arguments", j, transactionActionInfo.getChaincodeInputArgsCount());
                             for (int z = 0; z < transactionActionInfo.getChaincodeInputArgsCount(); ++z) {
                                 out("     Transaction action %d has chaincode input argument %d is: %s", j, z,
-                                        printableString(new String(transactionActionInfo.getChaincodeInputArgs(z), "UTF-8")));
+                                        printableString(new String(transactionActionInfo.getChaincodeInputArgs(z), UTF_8)));
                             }
 
                             out("   Transaction action %d proposal response status: %d", j,
@@ -1022,7 +1041,7 @@ public class End2endIT {
                                     rs = -1;
                                     for (KvRwset.KVWrite writeList : rws.getWritesList()) {
                                         rs++;
-                                        String valAsString = printableString(new String(writeList.getValue().toByteArray(), "UTF-8"));
+                                        String valAsString = printableString(new String(writeList.getValue().toByteArray(), UTF_8));
 
                                         out("     Namespace %s write set %d key %s has value '%s' ", namespace, rs,
                                                 writeList.getKey(),
