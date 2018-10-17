@@ -1,3 +1,9 @@
+## v1.2.2
+Wed Oct 17 08:25:37 EDT 2018
+
+* [d98e0c6](https://github.com/hyperledger/fabric-sdk-java/commit/d98e0c6) FABJ-376 JSDK v1.2.2 release
+* [7154f8a](https://github.com/hyperledger/fabric-sdk-java/commit/7154f8a) FABJ-374 Proposal Success less than 400
+
 ## v1.2.1
 Fri Sep 14 17:53:10 EDT 2018
 
