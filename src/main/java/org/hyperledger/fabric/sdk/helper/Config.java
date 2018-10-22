@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -82,6 +83,15 @@ public class Config {
 
     public static final String CONN_SSL_PROVIDER = "org.hyperledger.fabric.sdk.connections.ssl.sslProvider";
     public static final String CONN_SSL_NEGTYPE = "org.hyperledger.fabric.sdk.connections.ssl.negotiationType";
+
+    /**
+     * Default HFClient thread executor settings.
+     */
+
+    public static final String CLIENT_THREAD_EXECUTOR_COREPOOLSIZE = "org.hyperledger.fabric.sdk.client.thread_executor_corepoolsize";
+    public static final String CLIENT_THREAD_EXECUTOR_MAXIMUMPOOLSIZE = "org.hyperledger.fabric.sdk.client.thread_executor_maximumpoolsize";
+    public static final String CLIENT_THREAD_EXECUTOR_KEEPALIVETIME = "org.hyperledger.fabric.sdk.client.thread_executor_keepalivetime";
+    public static final String CLIENT_THREAD_EXECUTOR_KEEPALIVETIMEUNIT = "org.hyperledger.fabric.sdk.client.thread_executor_keepalivetimeunit";
 
     /**
      * Miscellaneous settings
@@ -151,6 +161,15 @@ public class Config {
             defaultProperty(CONN_SSL_NEGTYPE, "TLS");
 
             /**
+             * Default HFClient thread executor settings.
+             */
+
+            defaultProperty(CLIENT_THREAD_EXECUTOR_COREPOOLSIZE, "0");
+            defaultProperty(CLIENT_THREAD_EXECUTOR_MAXIMUMPOOLSIZE, "" + Integer.MAX_VALUE);
+            defaultProperty(CLIENT_THREAD_EXECUTOR_KEEPALIVETIME, "" + "60");
+            defaultProperty(CLIENT_THREAD_EXECUTOR_KEEPALIVETIMEUNIT, "SECONDS");
+
+            /**
              * Logging settings
              **/
             defaultProperty(MAX_LOG_STRING_LENGTH, "64");
@@ -166,7 +185,6 @@ public class Config {
 
             defaultProperty(SERVICE_DISCOVER_FREQ_SECONDS, "120");
             defaultProperty(SERVICE_DISCOVER_WAIT_TIME, "5000");
-
 
             final String inLogLevel = sdkProperties.getProperty(LOGGERLEVEL);
 
@@ -528,4 +546,47 @@ public class Config {
     public long getTransactionListenerCleanUpTimeout() {
         return Long.parseLong(getProperty(TRANSACTION_CLEANUP_UP_TIMEOUT_WAIT_TIME));
     }
+
+    /**
+     * The number of threads to keep in the pool, even if they are idle, unless {@code allowCoreThreadTimeOut} is set
+     *
+     * @return The number of threads to keep in the pool, even if they are idle, unless {@code allowCoreThreadTimeOut} is set
+     */
+
+    public int getClientThreadExecutorCorePoolSize() {
+        return Integer.parseInt(getProperty(CLIENT_THREAD_EXECUTOR_COREPOOLSIZE));
+    }
+
+    /**
+     * maximumPoolSize the maximum number of threads to allow in the pool
+     *
+     * @return maximumPoolSize the maximum number of threads to allow in the pool
+     */
+    public int getClientThreadExecutorMaxiumPoolSize() {
+        return Integer.parseInt(getProperty(CLIENT_THREAD_EXECUTOR_MAXIMUMPOOLSIZE));
+    }
+
+    /**
+     * keepAliveTime when the number of threads is greater than
+     * the core, this is the maximum time that excess idle threads
+     * will wait for new tasks before terminating.
+     *
+     * @return The keep alive time.
+     */
+
+    public long getClientThreadExecutorKeepAliveTime() {
+        return Long.parseLong(getProperty(CLIENT_THREAD_EXECUTOR_KEEPALIVETIME));
+    }
+
+    /**
+     * the time unit for the argument
+     *
+     * @return
+     */
+
+    public TimeUnit getClientThreadExecutorKeepAliveTimeUnit() {
+
+        return TimeUnit.valueOf(getProperty(CLIENT_THREAD_EXECUTOR_KEEPALIVETIMEUNIT));
+    }
+
 }
