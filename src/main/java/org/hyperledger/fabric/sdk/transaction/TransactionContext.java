@@ -47,6 +47,7 @@ public class TransactionContext {
     //private List<String> attrs;
     private long proposalWaitTime = config.getProposalWaitTime();
     private SigningIdentity signingIdentity;
+    private final String toString;
 
     public TransactionContext(Channel channel, User user, CryptoSuite cryptoPrimitives) {
 
@@ -72,8 +73,10 @@ public class TransactionContext {
 
         //    txID = Hex.encodeHexString(txh);
         txID = new String(Utils.toHexString(txh));
+        toString = "TransactionContext{ txID: " + txID + ", mspid: " + user.getMspId() + ", user: " + user.getName() + "}";
 
     }
+
 
     public CryptoSuite getCryptoPrimitives() {
         return cryptoPrimitives;
@@ -229,6 +232,11 @@ public class TransactionContext {
             ret[++i] = ByteString.copyFrom(signingIdentity.sign(signbytes));
         }
         return ret;
+    }
+
+    @Override
+    public String toString() {
+        return toString;
     }
 
     public TransactionContext retryTransactionSameContext() {

@@ -959,7 +959,7 @@ public class ChannelTest {
         private final ListenableFuture<FabricProposalResponse.ProposalResponse> returnedFuture;
 
         MockEndorserClient(Throwable throwThis) {
-            super(new Endpoint("grpc://loclhost:99", null).getChannelBuilder());
+            super("blahchannlname", "blahpeerName", "blahURL", new Endpoint("grpc://loclhost:99", null).getChannelBuilder());
             if (throwThis == null) {
                 throw new IllegalArgumentException("Can't throw a null!");
             }
@@ -968,7 +968,7 @@ public class ChannelTest {
         }
 
         MockEndorserClient(ListenableFuture<FabricProposalResponse.ProposalResponse> returnedFuture) {
-            super(new Endpoint("grpc://loclhost:99", null).getChannelBuilder());
+            super("blahchannlname", "blahpeerName", "blahURL", new Endpoint("grpc://loclhost:99", null).getChannelBuilder());
             this.throwThis = null;
             this.returnedFuture = returnedFuture;
         }

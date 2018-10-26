@@ -81,7 +81,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -1321,8 +1320,8 @@ public class HFCAClientIT {
     // Tests getting an Idemix credential using an x509 enrollment credential
     @Test
     public void testGetIdemixCred() throws Exception {
-        if (testConfig.isRunningAgainstFabric10()) {
-            return; // needs v1.1
+        if (testConfig.isFabricVersionBefore("1.3")) {
+            return; // needs v1.3
         }
 
         SampleUser user = getTestUser(TEST_ADMIN_ORG);

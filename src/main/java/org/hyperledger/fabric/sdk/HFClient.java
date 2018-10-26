@@ -51,7 +51,7 @@ import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.User.userContextCheck;
 
 public class HFClient {
-    private static final Config config = Config.getConfig();
+    private static final Config config = Config.getConfig(); // never remove this! config needs to load first.
 
     private CryptoSuite cryptoSuite;
     protected final ExecutorService executorService;
@@ -65,7 +65,6 @@ public class HFClient {
 
         }
     }
-
 
     ExecutorService getExecutorService() {
         return executorService;

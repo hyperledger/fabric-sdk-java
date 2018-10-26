@@ -14,6 +14,8 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Properties;
@@ -52,8 +54,11 @@ import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
 
 public class EventHub implements Serializable {
     private static final long serialVersionUID = 2882609588201108148L;
-    private static final Log logger = LogFactory.getLog(EventHub.class);
     private static final Config config = Config.getConfig();
+    private transient String id = config.getNextID();
+    private static final Log logger = LogFactory.getLog(EventHub.class);
+    private static final boolean IS_TRACE_LEVEL = logger.isTraceEnabled();
+
     private static final long EVENTHUB_CONNECTION_WAIT_TIME = config.getEventHubConnectionWaitTime();
     private static final long EVENTHUB_RECONNECTION_WARNING_RATE = config.getEventHubReconnectionWarningRate();
 
@@ -78,6 +83,7 @@ public class EventHub implements Serializable {
     private transient long reconnectCount;
     private transient long lastBlockNumber;
     private transient BlockEvent lastBlockEvent;
+    private String channelName;
 
     /**
      * Get disconnected time.
@@ -97,6 +103,22 @@ public class EventHub implements Serializable {
      */
     public boolean isConnected() {
         return connected;
+    }
+
+    String getStatus() {
+
+        StringBuilder sb = new StringBuilder(1000);
+        sb.append(toString()).append(", connected: ").append(connected);
+        ManagedChannel lmanagedChannel = managedChannel;
+        if (lmanagedChannel == null) {
+            sb.append("managedChannel: null");
+        } else {
+            sb.append(", isShutdown: ").append(lmanagedChannel.isShutdown());
+            sb.append(", isTerminated: ").append(lmanagedChannel.isTerminated());
+            sb.append(", state: ").append("" + lmanagedChannel.getState(false));
+        }
+
+        return sb.toString();
     }
 
     /**
@@ -136,6 +158,7 @@ public class EventHub implements Serializable {
         this.name = name;
         this.executorService = executorService;
         this.properties = properties == null ? null : (Properties) properties.clone(); //keep our own copy.
+        logger.debug("Created " + toString());
     }
 
     /**
@@ -186,7 +209,7 @@ public class EventHub implements Serializable {
 
         final CountDownLatch finishLatch = new CountDownLatch(1);
 
-        logger.debug(format("EventHub %s is connecting.", name));
+        logger.debug(format("%s is connecting.", toString()));
 
         lastConnectedAttempt = System.currentTimeMillis();
 
@@ -203,12 +226,14 @@ public class EventHub implements Serializable {
             @Override
             public void onNext(PeerEvents.Event event) {
 
-                logger.debug(format("EventHub %s got  event type: %s", EventHub.this.name, event.getEventCase().name()));
+                logger.debug(format("%s got  event type: %s", EventHub.this.toString(), event.getEventCase().name()));
 
                 if (event.getEventCase() == PeerEvents.Event.EventCase.BLOCK) {
                     try {
 
                         BlockEvent blockEvent = new BlockEvent(EventHub.this, event);
+
+                        logger.trace(format("%s got block number: %d", EventHub.this.toString(), blockEvent.getBlockNumber()));
                         setLastBlockSeen(blockEvent);
 
                         eventQue.addBEvent(blockEvent);  //add to channel queue
@@ -220,7 +245,7 @@ public class EventHub implements Serializable {
                 } else if (event.getEventCase() == PeerEvents.Event.EventCase.REGISTER) {
 
                     if (reconnectCount > 1) {
-                        logger.info(format("Eventhub %s has reconnecting after %d attempts", name, reconnectCount));
+                        logger.info(format("%s has reconnecting after %d attempts", EventHub.this.toString(), reconnectCount));
                     }
 
                     connected = true;
@@ -228,6 +253,9 @@ public class EventHub implements Serializable {
                     reconnectCount = 0L;
 
                     finishLatch.countDown();
+                } else {
+                    logger.error(format("%s got a unexpected block type: %s",
+                            EventHub.this.toString(), event.getEventCase().name()));
                 }
             }
 
@@ -271,7 +299,7 @@ public class EventHub implements Serializable {
                     try {
                         reconnect();
                     } catch (Exception e) {
-                        logger.warn(format("Eventhub %s Failed shutdown msg:  %s", EventHub.this.name, e.getMessage()));
+                        logger.warn(format("%s Failed shutdown msg:  %s", EventHub.this.toString(), e.getMessage()));
                     }
 
                 }
@@ -300,17 +328,17 @@ public class EventHub implements Serializable {
 
             if (!reconnection && !finishLatch.await(EVENTHUB_CONNECTION_WAIT_TIME, TimeUnit.MILLISECONDS)) {
 
-                logger.warn(format("EventHub %s failed to connect in %s ms.", name, EVENTHUB_CONNECTION_WAIT_TIME));
+                logger.warn(format("%s failed to connect in %s ms.", toString(), EVENTHUB_CONNECTION_WAIT_TIME));
 
             } else {
-                logger.trace(format("Eventhub %s Done waiting for reply!", name));
+                logger.trace(format("%s done waiting for reply!", toString()));
             }
 
         } catch (InterruptedException e) {
             logger.error(e);
         }
 
-        logger.debug(format("Eventhub %s connect is done with connect status: %b ", name, connected));
+        logger.debug(format("%s connect is done with connect status: %b ", toString(), connected));
 
         if (connected) {
             eventStream = eventStreamLocal;
@@ -383,16 +411,19 @@ public class EventHub implements Serializable {
 
     @Override
     public String toString() {
-        return "EventHub:" + getName();
+        return "EventHub{" + "id: " + id + ", name: " + getName() + ", channelName: " + channelName + ", url: " + getUrl() + "}";
     }
 
-    public void shutdown() {
+    public synchronized void shutdown() {
+        if (shutdown) {
+            return;
+        }
+        logger.trace(toString() + " being shutdown.");
         shutdown = true;
         lastBlockEvent = null;
         lastBlockNumber = 0;
         connected = false;
         disconnectedHandler = null;
-        channel = null;
         eventStream = null;
         final ManagedChannel lmanagedChannel = managedChannel;
         managedChannel = null;
@@ -406,20 +437,23 @@ public class EventHub implements Serializable {
             throw new InvalidArgumentException("setChannel Channel can not be null");
         }
 
-        if (null != this.channel) {
+        if (null != channelName) {
             throw new InvalidArgumentException(format("Can not add event hub  %s to channel %s because it already belongs to channel %s.",
-                    name, channel.getName(), this.channel.getName()));
+                    name, channel.getName(), channelName));
         }
-
-        this.channel = channel;
+        logger.debug(toString() + " set to channel: " + channel);
+        this.channelName = channel.getName();
     }
 
-    synchronized void setLastBlockSeen(BlockEvent lastBlockSeen) {
+    private synchronized void setLastBlockSeen(BlockEvent lastBlockSeen) {
         long newLastBlockNumber = lastBlockSeen.getBlockNumber();
         // overkill but make sure.
         if (lastBlockNumber < newLastBlockNumber) {
             lastBlockNumber = newLastBlockNumber;
             this.lastBlockEvent = lastBlockSeen;
+            if (IS_TRACE_LEVEL) {
+                logger.trace(toString() + " last block seen: " + lastBlockNumber);
+            }
         }
     }
 
@@ -446,7 +480,7 @@ public class EventHub implements Serializable {
         @Override
         public synchronized void disconnected(final EventHub eventHub) {
             if (reconnectCount == 1) {
-                logger.warn(format("Channel %s detected disconnect on event hub %s (%s)", channel.getName(), eventHub.toString(), url));
+                logger.warn(format("%s detected disconnect.", eventHub.toString()));
             }
 
             executorService.execute(() -> {
@@ -455,7 +489,7 @@ public class EventHub implements Serializable {
                     Thread.sleep(500);
 
                     if (transactionContext == null) {
-                        logger.warn("Eventhub reconnect failed with no user context");
+                        logger.warn(EventHub.this.toString() + " reconnect failed with no user context");
                         return;
                     }
 
@@ -483,6 +517,18 @@ public class EventHub implements Serializable {
         EventHubDisconnected ret = disconnectedHandler;
         disconnectedHandler = newEventHubDisconnectedHandler;
         return ret;
+    }
+
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        id = config.getNextID();
+    }
+
+    public void finalize() throws Throwable {
+        logger.trace(format("%s finalized", toString()));
+        shutdown();
+        super.finalize();
+
     }
 
 }

@@ -187,15 +187,17 @@ public class PrivateDataIT {
         assertFalse(barChannel.isShutdown());
         assertTrue(barChannel.isInitialized());
 
-        Set<String> expect = new HashSet<>(Arrays.asList("COLLECTION_FOR_A", "COLLECTION_FOR_B"));
-        Set<String> got = new HashSet<>();
+        if (testConfig.isFabricVersionAtOrAfter("1.3")) {
+            Set<String> expect = new HashSet<>(Arrays.asList("COLLECTION_FOR_A", "COLLECTION_FOR_B"));
+            Set<String> got = new HashSet<>();
 
-        CollectionConfigPackage queryCollectionsConfig = barChannel.queryCollectionsConfig(CHAIN_CODE_NAME, barChannel.getPeers().iterator().next(), sampleOrg.getPeerAdmin());
-        for (CollectionConfigPackage.CollectionConfig collectionConfig : queryCollectionsConfig.getCollectionConfigs()) {
-            got.add(collectionConfig.getName());
+            CollectionConfigPackage queryCollectionsConfig = barChannel.queryCollectionsConfig(CHAIN_CODE_NAME, barChannel.getPeers().iterator().next(), sampleOrg.getPeerAdmin());
+            for (CollectionConfigPackage.CollectionConfig collectionConfig : queryCollectionsConfig.getCollectionConfigs()) {
+                got.add(collectionConfig.getName());
 
+            }
+            assertEquals(expect, got);
         }
-        assertEquals(expect, got);
 
         out("That's all folks!");
     }

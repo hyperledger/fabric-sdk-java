@@ -285,6 +285,12 @@ public class TestUtils {
         assertTrue(channel.isInitialized());
         assertFalse(channel.isShutdown());
 
+        try {
+            Thread.sleep(1500); // time needed let channel get config block
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
         channel.getPeers().forEach(peer -> {
             try {
                 perm.put(peer, channel.getPeersOptions(peer));

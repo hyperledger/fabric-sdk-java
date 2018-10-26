@@ -100,7 +100,6 @@ import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.x509.AuthorityKeyIdentifier;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.util.io.pem.PemReader;
-import org.hyperledger.fabric.protos.common.MspPrincipal;
 import org.hyperledger.fabric.protos.idemix.Idemix;
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.NetworkConfig;
@@ -111,7 +110,6 @@ import org.hyperledger.fabric.sdk.idemix.IdemixCredential;
 import org.hyperledger.fabric.sdk.idemix.IdemixIssuerPublicKey;
 import org.hyperledger.fabric.sdk.idemix.IdemixUtils;
 import org.hyperledger.fabric.sdk.identity.IdemixEnrollment;
-import org.hyperledger.fabric.sdk.identity.IdemixRoles;
 import org.hyperledger.fabric.sdk.identity.X509Enrollment;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
@@ -136,6 +134,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 
 public class HFCAClient {
+    private static final Config config = Config.getConfig();  // DO NOT REMOVE THIS IS NEEDED TO MAKE SURE WE FIRST LOAD CONFIG!!!
     /**
      * Default profile name.
      */
@@ -188,7 +187,6 @@ public class HFCAClient {
      */
     public static final String HFCA_ATTRIBUTE_HFGENCRL = "hf.GenCRL";
 
-    private static final Config config = Config.getConfig();  // DO NOT REMOVE THIS IS NEEDED TO MAKE SURE WE FIRST LOAD CONFIG!!!
 
     private static final int CONNECTION_REQUEST_TIMEOUT = config.getConnectionRequestTimeout();
     private static final int CONNECT_TIMEOUT = config.getConnectTimeout();

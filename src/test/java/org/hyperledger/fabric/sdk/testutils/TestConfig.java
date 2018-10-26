@@ -69,8 +69,8 @@ public class TestConfig {
 
     private static final String INTEGRATIONTESTSTLS = PROPBASE + "integrationtests.tls";
     // location switching between fabric cryptogen and configtxgen artifacts for v1.0 and v1.1 in src/test/fixture/sdkintegration/e2e-2Orgs
-    public static final String FAB_CONFIG_GEN_VERS =
-            Objects.equals(System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION"), "1.0.0") ? "v1.0" : "v1.3";
+    public final String FAB_CONFIG_GEN_VERS;
+    //   Objects.equals(System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION"), "1.0.0") ? "v1.0" : "v1.3";
 
     private static TestConfig config;
     private static final Properties sdkProperties = new Properties();
@@ -82,7 +82,7 @@ public class TestConfig {
     }
 
     private final boolean runningFabricTLS;
-    private static final HashMap<String, SampleOrg> sampleOrgs = new HashMap<>();
+    private final HashMap<String, SampleOrg> sampleOrgs = new HashMap<>();
 
     private static final String ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION
             = System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION") == null ? "1.3.0" : System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION");
@@ -99,6 +99,8 @@ public class TestConfig {
         fabricVersion[0] = Integer.parseInt(fvs[0].trim());
         fabricVersion[1] = Integer.parseInt(fvs[1].trim());
         fabricVersion[2] = Integer.parseInt(fvs[2].trim());
+
+        FAB_CONFIG_GEN_VERS = "v" + fabricVersion[0] + "." + fabricVersion[1];
 
         File loadFile;
         FileInputStream configProps;
@@ -215,6 +217,10 @@ public class TestConfig {
 
     }
 
+    public String getFabricConfigGenVers() {
+        return FAB_CONFIG_GEN_VERS;
+    }
+
     public boolean isFabricVersionAtOrAfter(String version) {
 
         final int[] vers = parseVersion(version);
@@ -279,6 +285,12 @@ public class TestConfig {
             config = new TestConfig();
         }
         return config;
+
+    }
+
+    public void destroy() {
+        // config.sampleOrgs = null;
+        config = null;
 
     }
 

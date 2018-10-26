@@ -24,6 +24,7 @@ import org.hyperledger.fabric.sdkintegration.SampleUser;
 import static java.lang.String.format;
 
 public class TestHFClient {
+    private static final TestConfig testConfig = TestConfig.getConfig();
 
     final File tempFile;
     final HFClient hfClient;
@@ -57,8 +58,8 @@ public class TestHFClient {
 
         //SampleUser someTestUSER = sampleStore.getMember("someTestUSER", "someTestORG");
         SampleUser someTestUSER = sampleStore.getMember("someTestUSER", "someTestORG", "mspid",
-                findFileSk("src/test/fixture/sdkintegration/e2e-2Orgs/" + TestConfig.FAB_CONFIG_GEN_VERS + "/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore"),
-                new File("src/test/fixture/sdkintegration/e2e-2Orgs/" + TestConfig.FAB_CONFIG_GEN_VERS + "/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/Admin@org1.example.com-cert.pem"));
+                findFileSk("src/test/fixture/sdkintegration/e2e-2Orgs/" + testConfig.getFabricConfigGenVers() + "/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore"),
+                new File("src/test/fixture/sdkintegration/e2e-2Orgs/" + testConfig.getFabricConfigGenVers() + "/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/Admin@org1.example.com-cert.pem"));
         someTestUSER.setMspId("testMSPID?");
 
         hfclient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());

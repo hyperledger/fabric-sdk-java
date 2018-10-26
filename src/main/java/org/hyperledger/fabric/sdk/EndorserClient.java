@@ -17,7 +17,6 @@ package org.hyperledger.fabric.sdk;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.apache.commons.logging.Log;
@@ -28,30 +27,50 @@ import org.hyperledger.fabric.protos.peer.EndorserGrpc;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 import org.hyperledger.fabric.sdk.exception.PeerException;
+import org.hyperledger.fabric.sdk.helper.Config;
+
+import static java.lang.String.format;
 
 /**
  * Sample client code that makes gRPC calls to the server.
  */
 class EndorserClient {
+    private static final Config config = Config.getConfig();
     private static final Log logger = LogFactory.getLog(EndorserClient.class);
+    private static final boolean IS_TRACE_LEVEL = logger.isTraceEnabled();
 
+    //    private final String channelName;
+//    private final String name;
+//    private final String url;
     private ManagedChannel managedChannel;
     private EndorserGrpc.EndorserFutureStub futureStub;
-    DiscoveryGrpc.DiscoveryFutureStub discoveryFutureStub;
+    private DiscoveryGrpc.DiscoveryFutureStub discoveryFutureStub;
     private boolean shutdown = false;
+    private final String toString;
 
     /**
      * Construct client for accessing Peer server using the existing channel.
      *
      * @param channelBuilder The ChannelBuilder to build the endorser client
      */
-    EndorserClient(ManagedChannelBuilder<?> channelBuilder) {
+    EndorserClient(String channelName, String name, String url, ManagedChannelBuilder<?> channelBuilder) {
         managedChannel = channelBuilder.build();
         futureStub = EndorserGrpc.newFutureStub(managedChannel);
         discoveryFutureStub = DiscoveryGrpc.newFutureStub(managedChannel);
+        toString = "EndorserClient{" + "id: " + config.getNextID() + ", channel: " + channelName + ", name:" + name + ", url: " + url + "}";
+        logger.trace("Created " + toString());
+
+    }
+
+    @Override
+    public String toString() {
+        return toString;
     }
 
     synchronized void shutdown(boolean force) {
+        if (IS_TRACE_LEVEL) {
+            logger.trace(format("%s shutdown called force: %b, shutdown: %b, managedChannel: %s", toString(), force, shutdown, "" + managedChannel));
+        }
         if (shutdown) {
             return;
         }
@@ -60,49 +79,76 @@ class EndorserClient {
         // let all referenced resource finalize
         managedChannel = null;
         discoveryFutureStub = null;
-
         futureStub = null;
 
         if (lchannel == null) {
             return;
         }
         if (force) {
-            lchannel.shutdownNow();
+
+            try {
+                lchannel.shutdownNow();
+            } catch (Exception e) {
+                logger.warn(e);
+            }
+
         } else {
             boolean isTerminated = false;
 
             try {
                 isTerminated = lchannel.shutdown().awaitTermination(3, TimeUnit.SECONDS);
             } catch (Exception e) {
-                logger.debug(e); //best effort
+                logger.debug(toString(), e); //best effort
             }
             if (!isTerminated) {
-                lchannel.shutdownNow();
+                try {
+                    lchannel.shutdownNow();
+                } catch (Exception e) {
+                    logger.warn(toString(), e);
+                }
             }
         }
     }
 
     public ListenableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal) throws PeerException {
         if (shutdown) {
-            throw new PeerException("Shutdown");
+            throw new PeerException("Shutdown " + toString());
         }
         return futureStub.processProposal(proposal);
     }
 
     public ListenableFuture<Protocol.Response> sendDiscoveryRequestAsync(Protocol.SignedRequest signedRequest) throws PeerException {
         if (shutdown) {
-            throw new PeerException("Shutdown");
+            throw new PeerException("Shutdown " + toString());
         }
         return discoveryFutureStub.discover(signedRequest);
     }
 
     boolean isChannelActive() {
         ManagedChannel lchannel = managedChannel;
-        return lchannel != null && !lchannel.isShutdown() && !lchannel.isTerminated() && ConnectivityState.READY.equals(lchannel.getState(true));
+        if (null == lchannel) {
+
+            logger.trace(toString() + "Grpc channel needs creation.");
+
+            return false;
+        }
+
+        final boolean isTerminated = lchannel.isTerminated();
+        final boolean isShutdown = lchannel.isShutdown();
+        final boolean ret = !lchannel.isShutdown() && !isTerminated; // && ConnectivityState.READY.equals(lchannel.getState(true));
+        if (IS_TRACE_LEVEL) {
+            logger.trace(format("%s grpc channel isActive: %b, isShutdown: %b, isTerminated: %b, state: %s ", toString(), ret, isShutdown, isTerminated, "" + lchannel.getState(false)));
+        }
+
+        return ret;
     }
 
     @Override
     public void finalize() {
+        if (!shutdown) {
+            logger.warn(toString() + " finalized not shutdown is Active" + isChannelActive());
+        }
+
         shutdown(true);
     }
 }

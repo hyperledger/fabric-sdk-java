@@ -14,6 +14,8 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Properties;
 
@@ -25,6 +27,7 @@ import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
+import org.hyperledger.fabric.sdk.helper.Config;
 
 import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
@@ -34,6 +37,7 @@ import static org.hyperledger.fabric.sdk.helper.Utils.parseGrpcUrl;
  * The Orderer class represents a orderer to which SDK sends deploy, invoke, or query requests.
  */
 public class Orderer implements Serializable {
+    private static final Config config = Config.getConfig();
     private static final Log logger = LogFactory.getLog(Orderer.class);
     private static final long serialVersionUID = 4281642068914263247L;
     private final Properties properties;
@@ -44,6 +48,7 @@ public class Orderer implements Serializable {
     private transient volatile OrdererClient ordererClient = null;
     private transient byte[] clientTLSCertificateDigest;
     private String channelName = "";
+    private transient String id = config.getNextID();
 
     Orderer(String name, String url, Properties properties) throws InvalidArgumentException {
 
@@ -58,6 +63,7 @@ public class Orderer implements Serializable {
         this.name = name;
         this.url = url;
         this.properties = properties == null ? null : (Properties) properties.clone(); //keep our own copy.
+        logger.trace("Created " + toString());
 
     }
 
@@ -104,6 +110,8 @@ public class Orderer implements Serializable {
 
     void unsetChannel() {
 
+        logger.debug(format("%s unsetting channel", toString()));
+
         channel = null;
         channelName = "";
 
@@ -127,6 +135,7 @@ public class Orderer implements Serializable {
             throw new InvalidArgumentException(format("Can not add orderer %s to channel %s because it already belongs to channel %s.",
                     name, channel.getName(), this.channel.getName()));
         }
+        logger.debug(format("%s setting channel %s", toString(), channel));
 
         this.channel = channel;
         this.channelName = channel.getName();
@@ -144,20 +153,14 @@ public class Orderer implements Serializable {
             throw new TransactionException(format("Orderer %s was shutdown.", name));
         }
 
-        logger.debug(format("Order.sendTransaction name: %s, url: %s", name, url));
+        logger.debug(format("Orderer.sendTransaction %s", toString()));
 
-        OrdererClient localOrdererClient = ordererClient;
-
-        if (localOrdererClient == null || !localOrdererClient.isChannelActive()) {
-            ordererClient = new OrdererClient(this, Endpoint.createEndpoint(url, properties).getChannelBuilder(), properties);
-            localOrdererClient = ordererClient;
-        }
+        OrdererClient localOrdererClient = getOrdererClient();
 
         try {
-
             return localOrdererClient.sendTransaction(transaction);
         } catch (Throwable t) {
-            ordererClient = null;
+            removeOrdererClient(true);
             throw t;
 
         }
@@ -170,23 +173,49 @@ public class Orderer implements Serializable {
             throw new TransactionException(format("Orderer %s was shutdown.", name));
         }
 
-        OrdererClient localOrdererClient = ordererClient;
+        OrdererClient localOrdererClient = getOrdererClient();
 
-        logger.debug(format("Order.sendDeliver name: %s, url: %s", name, url));
-        if (localOrdererClient == null || !localOrdererClient.isChannelActive()) {
-            localOrdererClient = new OrdererClient(this, Endpoint.createEndpoint(url, properties).getChannelBuilder(), properties);
-            ordererClient = localOrdererClient;
-        }
+        logger.debug(format("%s Orderer.sendDeliver", toString()));
 
         try {
 
             return localOrdererClient.sendDeliver(transaction);
         } catch (Throwable t) {
-            ordererClient = null;
+            logger.error(format("%s removing %s due to %s", this.toString(), localOrdererClient, t.getMessage()));
+            removeOrdererClient(true);
             throw t;
 
         }
 
+    }
+
+    private synchronized OrdererClient getOrdererClient() {
+        OrdererClient localOrdererClient = ordererClient;
+
+        if (localOrdererClient == null || !localOrdererClient.isChannelActive()) {
+            logger.trace(format("Channel %s creating new orderer client %s", channelName, this.toString()));
+            localOrdererClient = new OrdererClient(this, Endpoint.createEndpoint(url, properties).getChannelBuilder(), properties);
+            ordererClient = localOrdererClient;
+
+        }
+        return localOrdererClient;
+
+    }
+
+    private synchronized void removeOrdererClient(boolean force) {
+        OrdererClient localOrderClient = ordererClient;
+        ordererClient = null;
+
+        if (null != localOrderClient) {
+            logger.debug(format("Channel %s removing orderer client %s, isActive: %b", channelName, toString(), localOrderClient.isChannelActive()));
+            try {
+                localOrderClient.shutdown(force);
+            } catch (Exception e) {
+                logger.error(toString() + " error message: " + e.getMessage());
+                logger.trace(e);
+            }
+
+        }
     }
 
     synchronized void shutdown(boolean force) {
@@ -194,18 +223,15 @@ public class Orderer implements Serializable {
             return;
         }
         shutdown = true;
+        logger.debug(format("Shutting down %s", toString()));
+
+        removeOrdererClient(true);
         channel = null;
         channelName = "";
 
-        if (ordererClient != null) {
-            OrdererClient torderClientDeliver = ordererClient;
-            ordererClient = null;
-            torderClientDeliver.shutdown(force);
-        }
-
     }
 
-    String endPoint;
+    private String endPoint;
 
     String getEndpoint() {
         if (null == endPoint) {
@@ -217,12 +243,18 @@ public class Orderer implements Serializable {
 
     @Override
     protected void finalize() throws Throwable {
+        logger.trace("finalize " + toString());
         shutdown(true);
         super.finalize();
     }
 
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        id = config.getNextID();
+    }
+
     @Override
     public String toString() {
-        return "Orderer-" + channelName + "-" + name + "(" + url + ")";
+        return "Orderer{id: " + id + ", channelName: " + channelName + ", name:" + name + ", url: " + url + "}";
     }
 } // end Orderer

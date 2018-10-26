@@ -88,7 +88,7 @@ public class SampleStore {
             properties.load(input);
             input.close();
         } catch (FileNotFoundException e) {
-            logger.warn(String.format("Could not find the file \"%s\"", file));
+            logger.info(String.format("Could not find the file \"%s\"", file));
         } catch (IOException e) {
             logger.warn(String.format("Could not load keyvalue store from file \"%s\", reason:%s",
                     file, e.getMessage()));
