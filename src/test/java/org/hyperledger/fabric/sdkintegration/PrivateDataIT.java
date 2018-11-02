@@ -21,8 +21,10 @@ import java.net.MalformedURLException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -44,6 +46,7 @@ import org.hyperledger.fabric.sdk.TestConfigHelper;
 import org.hyperledger.fabric.sdk.TransactionProposalRequest;
 import org.hyperledger.fabric.sdk.TransactionRequest;
 import org.hyperledger.fabric.sdk.User;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
@@ -356,8 +359,15 @@ public class PrivateDataIT {
             TransactionProposalRequest transactionProposalRequest = client.newTransactionProposalRequest();
             transactionProposalRequest.setChaincodeID(chaincodeID);
             transactionProposalRequest.setFcn("move");
-            transactionProposalRequest.setArgs(new byte[][] {//test using bytes .. end2end uses Strings.
-                    "a".getBytes(UTF_8), "b".getBytes(UTF_8), moveAmount.getBytes(UTF_8)});
+
+            // Private data needs to be sent via Transient field to prevent identifiable
+            //information being sent to the orderer.
+            Map<String, byte[]> transientMap = new HashMap<>();
+            transientMap.put("A", "a".getBytes(UTF_8)); //test using bytes .. end2end uses Strings.
+            transientMap.put("B", "b".getBytes(UTF_8));
+            transientMap.put("moveAmount", moveAmount.getBytes(UTF_8));
+            transactionProposalRequest.setTransientMap(transientMap);
+
             transactionProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
             if (user != null) { // specific user use that
                 transactionProposalRequest.setUserContext(user);
@@ -411,7 +421,14 @@ public class PrivateDataIT {
             TransactionProposalRequest transactionProposalRequest = client.newTransactionProposalRequest();
             transactionProposalRequest.setChaincodeID(chaincodeID);
             transactionProposalRequest.setFcn("set");
-            transactionProposalRequest.setArgs("a", "500", "b", "" + (200 + delta));
+
+            Map<String, byte[]> transientMap = new HashMap<>();
+            transientMap.put("A", "a".getBytes(UTF_8));   // test using bytes as args. End2end uses Strings.
+            transientMap.put("AVal", "500".getBytes(UTF_8));
+            transientMap.put("B", "b".getBytes(UTF_8));
+            String arg3 = "" + (200 + delta);
+            transientMap.put("BVal", arg3.getBytes(UTF_8));
+            transactionProposalRequest.setTransientMap(transientMap);
 
             transactionProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
             if (user != null) { // specific user use that
@@ -457,14 +474,16 @@ public class PrivateDataIT {
     private void queryChaincodeForExpectedValue(HFClient client, Channel channel, final String expect, ChaincodeID chaincodeID) {
 
         out("Now query chaincode %s on channel %s for the value of b expecting to see: %s", chaincodeID, channel.getName(), expect);
-        QueryByChaincodeRequest queryByChaincodeRequest = client.newQueryProposalRequest();
-        queryByChaincodeRequest.setArgs("b".getBytes(UTF_8)); // test using bytes as args. End2end uses Strings.
-        queryByChaincodeRequest.setFcn("query");
-        queryByChaincodeRequest.setChaincodeID(chaincodeID);
-
         Collection<ProposalResponse> queryProposals;
-
         try {
+            QueryByChaincodeRequest queryByChaincodeRequest = client.newQueryProposalRequest();
+            queryByChaincodeRequest.setFcn("query");
+            queryByChaincodeRequest.setChaincodeID(chaincodeID);
+
+            Map<String, byte[]> tmap = new HashMap<>();
+            tmap.put("B", "b".getBytes(UTF_8)); // test using bytes as args. End2end uses Strings.
+            queryByChaincodeRequest.setTransientMap(tmap);
+
             queryProposals = channel.queryByChaincode(queryByChaincodeRequest);
         } catch (Exception e) {
             throw new CompletionException(e);

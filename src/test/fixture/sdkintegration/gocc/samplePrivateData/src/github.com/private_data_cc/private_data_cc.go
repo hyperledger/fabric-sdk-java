@@ -72,12 +72,21 @@ func (t *SimpleChaincode) move(stub shim.ChaincodeStubInterface, args []string) 
 	var X int          // Transaction value
 	var err error
 
-	if len(args) != 3 {
-		return shim.Error("Incorrect number of arguments. Expecting 3, function followed by 2 names and 1 value")
+	if len(args) != 0 {
+    		return shim.Error("Incorrect number of arguments. All attributes must be included in the transient map.")
+    }
+
+    transMap, err := stub.GetTransient()
+    	if err != nil {
+    		return shim.Error("Error getting transient: " + err.Error())
+    }
+
+    if len(transMap) !=3 {
+		return shim.Error("Incorrect number of arguments. Expecting 3, function followed by 2 names and 1 value, got " + strconv.Itoa(len(transMap)))
 	}
 
-	A = args[0]
-	B = args[1]
+	A = string(transMap["A"])
+	B = string(transMap["B"])
 
 	// Get the state from the ledger
 	// TODO: will be nice to have a GetAllState call to ledger
@@ -100,7 +109,7 @@ func (t *SimpleChaincode) move(stub shim.ChaincodeStubInterface, args []string) 
 	Bval, _ = strconv.Atoi(string(Bvalbytes))
 
 	// Perform the execution
-	X, err = strconv.Atoi(args[2])
+	X, err = strconv.Atoi(string(transMap["moveAmount"]))
 	if err != nil {
 		return shim.Error("Invalid transaction amount, expecting a integer value")
 	}
@@ -128,19 +137,27 @@ func (t *SimpleChaincode) set(stub shim.ChaincodeStubInterface, args []string) p
 	var Aval, Bval int // Asset holdings
 	var err error
 
-	if len(args) != 4 {
-		return shim.Error("Incorrect number of arguments. Expecting 4, function followed by 2 names and 2 values")
+	if len(args) != 0 {
+		return shim.Error("Incorrect number of arguments. All attributes must be included in the transient map.")
 	}
 
-	A = args[0]
-	Aval, err = strconv.Atoi(args[1])
+	transMap, err := stub.GetTransient()
+	if err != nil {
+		return shim.Error("Error getting transient: " + err.Error())
+	}
+
+	if len(transMap) !=4 {
+		return shim.Error("Incorrect number of arguments. Expecting 4, function followed by 2 names and 2 values, got " + strconv.Itoa(len(transMap)))
+	}
+
+	A = string(transMap["A"])
+	Aval, err = strconv.Atoi(string(transMap["AVal"]))
     if err != nil {
         return shim.Error("Invalid A value amount, expecting a integer value")
     }
 
-	B = args[2]
-
-	Bval, err = strconv.Atoi(args[3])
+	B = string(transMap["B"])
+	Bval, err = strconv.Atoi(string(transMap["BVal"]))
     if err != nil {
        return shim.Error("Invalid B value amount, expecting a integer value")
     }
@@ -168,30 +185,39 @@ func (t *SimpleChaincode) set(stub shim.ChaincodeStubInterface, args []string) p
 // Query callback representing the query of a chaincode ===>>>  ONLY Query B VALUES
 func (t *SimpleChaincode) query(stub shim.ChaincodeStubInterface, args []string) pb.Response {
 
-	var A string // Entities
+	var QueryKey string // Entities
 	var err error
 
-	if len(args) != 1 {
-		return shim.Error("Incorrect number of arguments. Expecting name of the person to query")
+	if len(args) != 0 {
+		return shim.Error("Incorrect number of arguments. All attributes must be included in the transient map.")
 	}
 
-	A = args[0]
+	transMap, err := stub.GetTransient()
+		if err != nil {
+			return shim.Error("Error getting transient: " + err.Error())
+	}
 
-	logger.Infof("query for  %s\n", A)
+	if len(transMap) !=1 {
+		return shim.Error("Incorrect number of arguments. Expecting 1, function followed by query key, got " + strconv.Itoa(len(transMap)))
+	}
+
+	QueryKey = string(transMap["B"])
+
+	logger.Infof("query for  %s\n", QueryKey)
 
 	// Get the state from the ledger
-	Avalbytes, err := stub.GetPrivateData("COLLECTION_FOR_B", A)
+	Avalbytes, err := stub.GetPrivateData("COLLECTION_FOR_B", QueryKey)
 	if err != nil {
-		jsonResp := "{\"Error\":\"Failed to get state for " + A + "\"}"
+		jsonResp := "{\"Error\":\"Failed to get state for " + QueryKey + "\"}"
 		return shim.Error(jsonResp)
 	}
 
 	if Avalbytes == nil {
-		jsonResp := "{\"Error\":\"Nil amount for " + A + "\"}"
+		jsonResp := "{\"Error\":\"Nil amount for " + QueryKey + "\"}"
 		return shim.Error(jsonResp)
 	}
 
-	jsonResp := "{\"Name\":\"" + A + "\",\"Amount\":\"" + string(Avalbytes) + "\"}"
+	jsonResp := "{\"Name\":\"" + QueryKey + "\",\"Amount\":\"" + string(Avalbytes) + "\"}"
 	logger.Infof("Query Response:%s\n", jsonResp)
 	return shim.Success(Avalbytes)
 }
