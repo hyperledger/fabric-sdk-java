@@ -120,17 +120,23 @@ public class IdemixSignature {
             rAttrs[i] = IdemixUtils.randModOrder(rng);
         }
 
-        // Compute non-revoked proof
-        NonRevocationProver prover = NonRevocationProver.getNonRevocationProver(revocationAlgorithm);
+        // Compute revocation contribution
+        RevocationProver prover = RevocationProver.getProver(revocationAlgorithm);
         int hiddenRHIndex = Ints.indexOf(hiddenIndices, rhIndex);
         if (hiddenRHIndex < 0) {
             // rhIndex is not present, set to last index position
             hiddenRHIndex = hiddenIndices.length;
         }
-        byte[] nonRevokedProofHashData = prover.getFSContribution(BIG.fromBytes(c.getAttrs()[rhIndex]), rAttrs[hiddenRHIndex], cri);
-        if (nonRevokedProofHashData == null) {
+        byte[] revocationFSContribution = prover.getFSContribution(
+                BIG.fromBytes(c.getAttrs()[rhIndex]),
+                rAttrs[hiddenRHIndex],
+                cri
+        );
+        if (revocationFSContribution == null) {
             throw new RuntimeException("Failed to compute non-revoked proof");
         }
+
+//        System.out.println(Arrays.toString(revocationFSContribution));
 
         ECP t1 = aPrime.mul2(re, ipk.getHRand(), rR2);
         ECP t2 = PAIR.G1mul(ipk.getHRand(), rSPrime);
@@ -156,6 +162,7 @@ public class IdemixSignature {
         proofData = IdemixUtils.append(proofData, IdemixUtils.ecpToBytes(aBar));
         proofData = IdemixUtils.append(proofData, IdemixUtils.ecpToBytes(bPrime));
         proofData = IdemixUtils.append(proofData, IdemixUtils.ecpToBytes(pseudonym.getNym()));
+        proofData = IdemixUtils.append(proofData, revocationFSContribution);
         proofData = IdemixUtils.append(proofData, ipk.getHash());
         proofData = IdemixUtils.append(proofData, disclosure);
         proofData = IdemixUtils.append(proofData, msg);
@@ -263,12 +270,6 @@ public class IdemixSignature {
             throw new IllegalArgumentException("Attribute " + rhIndex + " is disclosed but also used a revocation handle attribute, which should remain hidden");
         }
 
-        // Verify EpochPK
-        if (!RevocationAuthority.verifyEpochPK(revPk, this.revocationPk, this.revocationPKSig, epoch, revocationAlgorithm)) {
-            // Signature is based on an invalid revocation epoch public key
-            return false;
-        }
-
         FP12 temp1 = PAIR.ate(ipk.getW(), aPrime);
         FP12 temp2 = PAIR.ate(IdemixUtils.genG2, aBar);
         temp2.inverse();
@@ -306,18 +307,19 @@ public class IdemixSignature {
         ECP t3 = ipk.getHsk().mul2(proofSSk, ipk.getHRand(), proofSRNym);
         t3.sub(nym.mul(proofC));
 
-        // Check with non-revoked-verifier
-        NonRevocationVerifier nonRevokedVerifier = NonRevocationVerifier.getNonRevocationVerifier(revocationAlgorithm);
+        // Involve the revocation verifier
+        RevocationVerifier revocationVerifier = RevocationVerifier.getVerifier(revocationAlgorithm);
         int hiddenRHIndex = Ints.indexOf(hiddenIndices, rhIndex);
         if (hiddenRHIndex < 0) {
             // rhIndex is not present, set to last index position
             hiddenRHIndex = hiddenIndices.length;
         }
         BIG proofSRh = proofSAttrs[hiddenRHIndex];
-        byte[] nonRevokedProofBytes = nonRevokedVerifier.recomputeFSContribution(this.nonRevocationProof, proofC, IdemixUtils.transformFromProto(this.revocationPk), proofSRh);
-        if (nonRevokedProofBytes == null) {
+        byte[] revocationFSContribution = revocationVerifier.recomputeFSContribution(this.nonRevocationProof, proofC, IdemixUtils.transformFromProto(this.revocationPk), proofSRh);
+        if (revocationFSContribution == null) {
             return false;
         }
+//        System.out.println(Arrays.toString(revocationFSContribution));
 
         // create proofData such that it can contain the sign label, 7 elements in G1 (each of size 2*FIELD_BYTES+1),
         // the ipk hash, the disclosure array, and the message
@@ -330,6 +332,7 @@ public class IdemixSignature {
         proofData = IdemixUtils.append(proofData, IdemixUtils.ecpToBytes(aBar));
         proofData = IdemixUtils.append(proofData, IdemixUtils.ecpToBytes(bPrime));
         proofData = IdemixUtils.append(proofData, IdemixUtils.ecpToBytes(nym));
+        proofData = IdemixUtils.append(proofData, revocationFSContribution);
         proofData = IdemixUtils.append(proofData, ipk.getHash());
         proofData = IdemixUtils.append(proofData, disclosure);
         proofData = IdemixUtils.append(proofData, msg);
@@ -341,7 +344,21 @@ public class IdemixSignature {
         finalProofData = IdemixUtils.append(finalProofData, IdemixUtils.bigToBytes(nonce));
 
         byte[] hashedProofData = IdemixUtils.bigToBytes(IdemixUtils.hashModOrder(finalProofData));
-        return Arrays.equals(IdemixUtils.bigToBytes(proofC), hashedProofData);
+        if (!Arrays.equals(IdemixUtils.bigToBytes(proofC), hashedProofData)) {
+//            System.out.println("invalid proof");
+            return false;
+        }
+
+        // Check revocation
+        // - Epoch
+        if (this.epoch != epoch) {
+//            System.out.println("different epoch");
+            return false;
+        }
+
+        // - EpochPk
+        RevocationAuthority ra = new RevocationAuthority(revPk);
+        return ra.verifyEpochPK(this.revocationPk, this.revocationPKSig, epoch, revocationAlgorithm);
     }
 
     /**

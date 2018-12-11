@@ -20,10 +20,11 @@ import org.apache.milagro.amcl.FP256BN.ECP2;
 import org.hyperledger.fabric.protos.idemix.Idemix;
 
 /**
- * NopNonRevocationVerifier is a concrete NonRevocationVerifier for RevocationAlgorithm "ALG_NO_REVOCATION"
+ * NopRevocationVerifier is a concrete RevocationVerifier for RevocationAlgorithm "ALG_NO_REVOCATION"
  */
-class NopNonRevocationVerifier implements NonRevocationVerifier {
+class NopRevocationVerifier implements RevocationVerifier {
     private final byte[] empty = new byte[0];
+
     public byte[] recomputeFSContribution(Idemix.NonRevocationProof proof, BIG challenge, ECP2 epochPK, BIG proofSRh) {
         return empty;
     }
