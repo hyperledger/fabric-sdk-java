@@ -28,7 +28,7 @@
         <tag>fabric-sdk-java-1.0</tag>
     </scm>
     <properties>
-        <grpc.version>1.15.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
+        <grpc.version>1.17.1</grpc.version><!-- CURRENT_GRPC_VERSION -->
         <protobuf.version>3.6.1</protobuf.version>
         <bouncycastle.version>1.60</bouncycastle.version>
         <httpclient.version>4.5.6</httpclient.version>
@@ -93,12 +93,12 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-tcnative-boringssl-static</artifactId>
-            <version>2.0.17.Final</version>
+            <version>2.0.20.Final</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-codec-http2</artifactId>
-            <version>4.1.29.Final</version>
+            <version>4.1.32.Final</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java -->
         <dependency>
@@ -182,7 +182,7 @@
         <dependency>
             <groupId>org.glassfish</groupId>
             <artifactId>javax.json</artifactId>
-            <version>1.1.2</version>
+            <version>1.1.4</version>
         </dependency>
 
         <!--&lt;!&ndash; https://mvnrepository.com/artifact/org.mortbay.jetty.alpn/jetty-alpn-agent &ndash;&gt;-->
