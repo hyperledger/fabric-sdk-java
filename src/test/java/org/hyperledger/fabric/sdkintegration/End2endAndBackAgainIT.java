@@ -467,21 +467,24 @@ public class End2endAndBackAgainIT {
                     for (Peer peer : channel.getPeers()) {
 
                         if (!checkInstalledChaincode(client, peer, CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_VERSION_11)) {
-                            throw new AssertionError(format("Peer %s is missing chaincode name:%s, path:%s, version: %s",
-                                    peer.getName(), CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_PATH));
+
+                            fail(format("Peer %s is missing installed chaincode name:%s, path:%s, version: %s",
+                                    peer, CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_VERSION_11));
+
                         }
 
                         //should be instantiated too..
                         if (!checkInstantiatedChaincode(channel, peer, CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_VERSION_11)) {
 
-                            throw new AssertionError(format("Peer %s is missing instantiated chaincode name:%s, path:%s, version: %s",
-                                    peer.getName(), CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_PATH));
+                            fail(format("Peer %s is missing instantiated chaincode name:%s, path:%s, version: %s",
+                                    peer, CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_VERSION_11));
+
                         }
 
                         if (checkInstantiatedChaincode(channel, peer, CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_VERSION)) {
 
-                            throw new AssertionError(format("Peer %s still has old instantiated chaincode name:%s, path:%s, version: %s",
-                                    peer.getName(), CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_PATH));
+                            fail(format("Peer %s still has old instantiated chaincode name:%s, path:%s, version: %s",
+                                    peer, CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_VERSION));
                         }
 
                     }
@@ -724,14 +727,17 @@ public class End2endAndBackAgainIT {
         for (Peer peer : newChannel.getPeers()) {
 
             if (!checkInstalledChaincode(client, peer, CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_VERSION)) {
-                throw new AssertionError(format("Peer %s is missing chaincode name: %s, path:%s, version: %s",
-                        peer.getName(), CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_PATH));
+
+                fail(format("Peer %s is missing chaincode name: %s, path:%s, version: %s",
+                        peer.getName(), CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_VERSION));
+
             }
 
             if (!checkInstantiatedChaincode(newChannel, peer, CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_VERSION)) {
 
-                throw new AssertionError(format("Peer %s is missing instantiated chaincode name: %s, path:%s, version: %s",
-                        peer.getName(), CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_PATH));
+                fail(format("Peer %s is missing instantiated chaincode name: %s, path:%s, version: %s",
+                        peer.getName(), CHAIN_CODE_NAME, CHAIN_CODE_PATH, CHAIN_CODE_VERSION));
+
             }
 
         }

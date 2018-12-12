@@ -69,7 +69,7 @@ public class TestConfig {
 
     private static final String INTEGRATIONTESTSTLS = PROPBASE + "integrationtests.tls";
     // location switching between fabric cryptogen and configtxgen artifacts for v1.0 and v1.1 in src/test/fixture/sdkintegration/e2e-2Orgs
-    public final String FAB_CONFIG_GEN_VERS;
+    private String FAB_CONFIG_GEN_VERS;
     //   Objects.equals(System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION"), "1.0.0") ? "v1.0" : "v1.3";
 
     private static TestConfig config;
@@ -85,7 +85,7 @@ public class TestConfig {
     private final HashMap<String, SampleOrg> sampleOrgs = new HashMap<>();
 
     private static final String ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION
-            = System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION") == null ? "1.3.0" : System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION");
+            = System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION") == null ? "1.4.0" : System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION");
 
     int[] fabricVersion = new int[3];
 
@@ -101,6 +101,9 @@ public class TestConfig {
         fabricVersion[2] = Integer.parseInt(fvs[2].trim());
 
         FAB_CONFIG_GEN_VERS = "v" + fabricVersion[0] + "." + fabricVersion[1];
+        if (FAB_CONFIG_GEN_VERS.equalsIgnoreCase("v1.4")) {
+            FAB_CONFIG_GEN_VERS = "v1.3";
+        }
 
         File loadFile;
         FileInputStream configProps;

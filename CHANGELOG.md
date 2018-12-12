@@ -1,3 +1,54 @@
+## v1.4.0
+Thu Dec 13 10:19:04 EST 2018
+
+* [65926837](https://github.com/hyperledger/fabric-sdk-java/commit/65926837) FABJ-391 release v1.4.0
+* [5b0239c1](https://github.com/hyperledger/fabric-sdk-java/commit/5b0239c1) FABJ-395 Update dependencies
+* [c30a34e9](https://github.com/hyperledger/fabric-sdk-java/commit/c30a34e9) FABJ-389 shutdown threadExecutor
+
+## v1.3.0
+Thu Dec 13 10:17:44 EST 2018
+
+* [b9f61bd9](https://github.com/hyperledger/fabric-sdk-java/commit/b9f61bd9) FABJ-361  JSDK v1.3.0 release
+* [b775541b](https://github.com/hyperledger/fabric-sdk-java/commit/b775541b) [FABJ-371] Update payload to be signed in auth token
+* [1eb8e0a3](https://github.com/hyperledger/fabric-sdk-java/commit/1eb8e0a3) FABJ-383 Garbage collection orderer peer connection.
+* [8044bac1](https://github.com/hyperledger/fabric-sdk-java/commit/8044bac1) [FABJ-380] Chaincode & tests-Private data via transient
+* [ac2d4fe0](https://github.com/hyperledger/fabric-sdk-java/commit/ac2d4fe0) FABJ-384 set forkCount to 0
+* [57870235](https://github.com/hyperledger/fabric-sdk-java/commit/57870235) FABJ-378 Make excutor service configurable
+* [ce7fd3b8](https://github.com/hyperledger/fabric-sdk-java/commit/ce7fd3b8) [FABJ-377] Possible NPE in SDKUtils
+* [0c6ff37b](https://github.com/hyperledger/fabric-sdk-java/commit/0c6ff37b) FABJ-375 Enroll. interface not dependent on CA
+* [47ff64e5](https://github.com/hyperledger/fabric-sdk-java/commit/47ff64e5) FABJ-374 Proposal Success less than 400
+* [b69a3e3c](https://github.com/hyperledger/fabric-sdk-java/commit/b69a3e3c) FABJ-352  SDK to make peer an anchor peer.
+* [9b15dcb6](https://github.com/hyperledger/fabric-sdk-java/commit/9b15dcb6) FABJ-352  SDK to make peer an anchor peer.
+* [8e631c1a](https://github.com/hyperledger/fabric-sdk-java/commit/8e631c1a) [FABJ-368] Fix dependency check in java chaincode test
+* [f64bf5af](https://github.com/hyperledger/fabric-sdk-java/commit/f64bf5af) FAB-12118 java chaincode groupid
+* [f06b9ef1](https://github.com/hyperledger/fabric-sdk-java/commit/f06b9ef1) FABJ-364 Dependencies update and misc changes
+* [e4a9313d](https://github.com/hyperledger/fabric-sdk-java/commit/e4a9313d) [FAB-12058](https://jira.hyperledger.org/browse/FAB-12058) Idemix attributes in chaincode
+* [6c6666b2](https://github.com/hyperledger/fabric-sdk-java/commit/6c6666b2) FIX [FAB-11993](https://jira.hyperledger.org/browse/FAB-11993) idemix role from boolean to int
+* [ef604d1f](https://github.com/hyperledger/fabric-sdk-java/commit/ef604d1f) FAB-11570 Endorsing error
+* [89f652d6](https://github.com/hyperledger/fabric-sdk-java/commit/89f652d6) FABJ-355 JSDK run Java chaincode
+* [1f5b32d9](https://github.com/hyperledger/fabric-sdk-java/commit/1f5b32d9) FABJ-357-QueryInstalledChaincode
+* [87798045](https://github.com/hyperledger/fabric-sdk-java/commit/87798045) [FAB-10351](https://jira.hyperledger.org/browse/FAB-10351) Idemix CA support for java SDK
+* [5211d6c8](https://github.com/hyperledger/fabric-sdk-java/commit/5211d6c8) [FAB-10473](https://jira.hyperledger.org/browse/FAB-10473) HFCAClient able to get Idemix Cred
+* [3a600c26](https://github.com/hyperledger/fabric-sdk-java/commit/3a600c26) [FAB-6843](https://jira.hyperledger.org/browse/FAB-6843) Adding IdemixUser
+* [5721b151](https://github.com/hyperledger/fabric-sdk-java/commit/5721b151) [FAB-6843](https://jira.hyperledger.org/browse/FAB-6843) Integrating Signing Identity
+* [814bf798](https://github.com/hyperledger/fabric-sdk-java/commit/814bf798) [FAB-6836](https://jira.hyperledger.org/browse/FAB-6836) Implement Idemix Signing Identity
+* [68faf090](https://github.com/hyperledger/fabric-sdk-java/commit/68faf090) [FAB-8924](https://jira.hyperledger.org/browse/FAB-8924) add non-revocation proof to idemix
+* [be173ba9](https://github.com/hyperledger/fabric-sdk-java/commit/be173ba9) [FAB-6682](https://jira.hyperledger.org/browse/FAB-6682) Adds identity mixer crypto in java
+* [b6498681](https://github.com/hyperledger/fabric-sdk-java/commit/b6498681) FABJ-359 Update dependencies pom.xml
+* [e71d54fd](https://github.com/hyperledger/fabric-sdk-java/commit/e71d54fd) FABJ-356 Peer eventing services too many reconnects
+* [6738ebab](https://github.com/hyperledger/fabric-sdk-java/commit/6738ebab) FABJ-351 Update maintainers list
+* [4e20ae30](https://github.com/hyperledger/fabric-sdk-java/commit/4e20ae30) FABJ-347 NPE for auto clientcerts
+* [d8bd0829](https://github.com/hyperledger/fabric-sdk-java/commit/d8bd0829) FABJ-343 Prevent peer reconnecting on shutdown.
+* [3f6cbeb2](https://github.com/hyperledger/fabric-sdk-java/commit/3f6cbeb2) FABJ-345 Network Config add service discovery role
+* [2fe84d2c](https://github.com/hyperledger/fabric-sdk-java/commit/2fe84d2c) FABJ-346 Don't verify invalid endorsements.
+* [3e73396a](https://github.com/hyperledger/fabric-sdk-java/commit/3e73396a) Retire inactive maintainers
+* [0b605c7d](https://github.com/hyperledger/fabric-sdk-java/commit/0b605c7d) FABJ-344 Java dependencies update
+* [84720221](https://github.com/hyperledger/fabric-sdk-java/commit/84720221) FAB-11480 Build failures
+* [61b439e2](https://github.com/hyperledger/fabric-sdk-java/commit/61b439e2) FAB-11411 Fabric protobuf sync
+* [1475a3d2](https://github.com/hyperledger/fabric-sdk-java/commit/1475a3d2) FAB-11125 Remove reference EventHub
+* [518114c6](https://github.com/hyperledger/fabric-sdk-java/commit/518114c6) FAB-11352 v1.3.0 Commencement
+* [40280c96](https://github.com/hyperledger/fabric-sdk-java/commit/40280c96) Fix license referenced in package.json files
+
 ## v1.2.0
 Thu Jul 26 12:22:31 EDT 2018
 

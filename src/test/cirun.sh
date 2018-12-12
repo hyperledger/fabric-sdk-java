@@ -18,7 +18,7 @@ export ORG_HYPERLEDGER_FABRIC_SDK_LOGLEVEL=TRACE
 export ORG_HYPERLEDGER_FABRIC_CA_SDK_LOGLEVEL=TRACE
 export ORG_HYPERLEDGER_FABRIC_SDK_LOG_EXTRALOGLEVEL=10
 
-export ORG_HYPERLEDGER_FABRIC_SDK_PROPOSAL_WAIT_TIME=35000
+export ORG_HYPERLEDGER_FABRIC_SDK_PROPOSAL_WAIT_TIME=55000
 export ORG_HYPERLEDGER_FABRIC_SDK_CHANNELCONFIG_WAIT_TIME=20000
 export ORG_HYPERLEDGER_FABRIC_SDK_CLIENT_TRANSACTION_CLEANUP_UP_TIMEOUT_WAIT_TIME=65000
 export ORG_HYPERLEDGER_FABRIC_SDK_ORDERER_ORDERERWAITTIMEMILLISECS=180000
@@ -47,7 +47,13 @@ export IMAGE_TAG_FABRIC_CA=:x86_64-1.0.0
 # set which Fabric  generated configuations is used.
 export FAB_CONFIG_GEN_VERS="v1.0"
 else
-export ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION="1.3.0"
+export ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION="1.4.0"
+
+# cleans out an existing imgages...
+#(docker images -qa | sort | uniq | xargs docker rmi -f) || true
+#(docker images -qa | sort | uniq | xargs docker rmi -f) || true
+#(docker images -qa | sort | uniq | xargs docker rmi -f) || true
+
 #everything just defaults for latest (v1.1)
 #unset to use what's in docker's .env file.
 unset IMAGE_TAG_FABRIC

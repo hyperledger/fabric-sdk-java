@@ -1,4 +1,4 @@
-# Java SDK for Hyperledger Fabric 1.3
+# Java SDK for Hyperledger Fabric 1.4
 Welcome to Java SDK for Hyperledger project. The SDK helps facilitate Java applications to manage the lifecycle of
  Hyperledger channels  and user chaincode. The SDK also provides a means to execute
   user chaincode, query blocks
@@ -26,6 +26,7 @@ SDK's `Enrollment` interface.
 
 |Release | Notes |Summary|
 |--------|:------|:------|
+|1.4     | None | Minor updates no Fabric changes|
 |1.3     | [v1.3 release notes](./docs/release_v1.3.0_notes.md)|<ul><li>Java chaincode support</li><li>Query chaincode collection configuration</li><li>Identity Mixer transaction unlinkabilty support</li></ul> |
 |1.2     | [v1.2 release notes](./docs/release_v1.2.0_notes.md)|<ul><li>Private data collection support</li><li>Service discovery</li><li>Fabric CA certificate API </ul>|
 |1.1     | [v1.1 release notes](./docs/release_v1.1.0_notes.md)|<ul><li>Channel service events</li><li>FilterBlocks</li><li>JCA/JCE compliance</li><li>Chaincode events</li><li>Node chaincode</li></ul>|
@@ -36,17 +37,17 @@ SDK's `Enrollment` interface.
 ```
 git clone https://github.com/hyperledger/fabric-sdk-java.git
 cd fabric-sdk-java/
-git checkout -b release-1.3
+git checkout -b release-1.4
 ```
 
 ## Java applications
-For Java applications use the latest published v1.3.x releases:
+For Java applications use the latest published v1.4.x releases:
 ```
      <!-- https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java -->
      <dependency>
          <groupId>org.hyperledger.fabric-sdk-java</groupId>
          <artifactId>fabric-sdk-java</artifactId>
-         <version>1.3.0/version>
+         <version>1.4.0/version>
      </dependency>
 
 ```
@@ -67,9 +68,9 @@ For Java applications use the latest published v1.3.x releases:
 Latest Fabric builds are seldom needed except for those working on the very latest Fabric features.
 Some information to help with that can been found in [Developer Instructions](./docs/DeveloperInstructions.md)
 
-## Latest builds of Fabric and Fabric-ca v1.3.0
+## Latest builds of Fabric and Fabric-ca v1.4.0
 
-To get a functioning Fabric v1.3.0 network needed by the SDK Integration tests once it's built.
+To get a functioning Fabric v1.4.0 network needed by the SDK Integration tests once it's built.
 In the directory `src/test/fixture/sdkintegration` issue :
 
 `./fabric.sh restart`
@@ -232,7 +233,7 @@ For v1.2 integration the commands use the v12 profiles in configtx.yaml.
  * configtxgen --configPath .  -outputCreateChannelTx foo.tx -profile TwoOrgsChannel_v12 -channelID foo
  This should produce in the `v1.2` directory: bar.tx,foo.tx, orderer.block
 
-For v1.3 integration, cd to the `src/test/fixture/sdkintegration/e2e-2Orgs/v1.3` directory
+For v1.3 and 1.4 integration, cd to the `src/test/fixture/sdkintegration/e2e-2Orgs/v1.3` directory
 and execute the following commands:
  * configtxgen --configPath . -outputBlock orderer.block -profile TwoOrgsOrdererGenesis_v13
  * configtxgen --configPath . -outputCreateChannelTx foo.tx -profile TwoOrgsChannel_v13 -channelID foo
@@ -306,7 +307,7 @@ JIRA Fields should be:
   <dt>Component</dt>
   <dd>fabric-sdk-java</dd>
   <dt>Fix Versions</dt>
-    <dd>v1.3</dd>
+    <dd>v1.4</dd>
 </dl>
 
 Pleases provide as much information that you can with the issue you're experiencing: stack traces logs.
