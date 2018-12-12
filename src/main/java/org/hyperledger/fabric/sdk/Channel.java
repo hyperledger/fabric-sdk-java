@@ -48,6 +48,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -195,6 +196,7 @@ public class Channel implements Serializable {
     private transient LinkedHashMap<String, LinkedList<TL>> txListeners = new LinkedHashMap<>();
     //Cleans up any transaction listeners that will probably never complete.
     private transient ScheduledFuture<?> sweeper = null;
+    private transient ScheduledExecutorService sweeperExecutorService;
     private transient String blh = null;
     private transient ServiceDiscovery serviceDiscovery;
 
@@ -4195,14 +4197,14 @@ public class Channel implements Serializable {
     /**
      * NofEvents may be used with @see {@link TransactionOptions#nOfEvents(NOfEvents)}  to control how reporting Peer service events and Eventhubs will
      * complete the future acknowledging the transaction has been seen by those Peers.
-     * <p/>
+     * <p>
      * You can use the method @see {@link #nofNoEvents} to create an NOEvents that will result in the future being completed immediately
      * when the Orderer has accepted the transaction. Note in this case the transaction event will be set to null.
-     * <p/>
+     * <p>
      * NofEvents can add Peer Eventing services and Eventhubs that should complete the future. By default all will need to
      * see the transactions to complete the future.  The method @see {@link #setN(int)} can set how many in the group need to see the transaction
      * completion. Essentially setting it to 1 is any.
-     * </p>
+     * <p>
      * NofEvents may also contain other NofEvent grouping. They can be nested.
      */
 
@@ -4569,7 +4571,7 @@ public class Channel implements Serializable {
          * This maybe set to NOfEvents.nofNoEvents that will complete the future as soon as a successful submission
          * to an Orderer, but the completed Transaction event in that case will be null.
          *
-         * @param nOfEvents @see {@link NOfEvents}
+         * @param nOfEvents See @see {@link NOfEvents}
          * @return This TransactionOptions
          */
         public TransactionOptions nOfEvents(NOfEvents nOfEvents) {
@@ -5328,11 +5330,12 @@ public class Channel implements Serializable {
 
         if (sweeper == null) {
 
-            sweeper = Executors.newSingleThreadScheduledExecutor(r -> {
+            sweeperExecutorService = Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread t = Executors.defaultThreadFactory().newThread(r);
                 t.setDaemon(true);
                 return t;
-            }).scheduleAtFixedRate(() -> {
+            });
+            sweeper = sweeperExecutorService.scheduleAtFixedRate(() -> {
                 try {
 
                     if (txListeners != null) {
@@ -5645,6 +5648,12 @@ public class Channel implements Serializable {
 
         if (null != lsweeper) {
             lsweeper.cancel(true);
+        }
+
+        ScheduledExecutorService lse = sweeperExecutorService;
+        sweeperExecutorService = null;
+        if (null != lse) {
+            lse.shutdownNow();
         }
     }
 
