@@ -4,7 +4,7 @@ Welcome to Java SDK for Hyperledger project. The SDK helps facilitate Java appli
   user chaincode, query blocks
  and transactions on the channel, and monitor events on the channel.
 
-The SDK acts on behave of a particular User which is defined by the embedding application through the implementation
+The SDK acts on behalf of a particular User which is defined by the embedding application through the implementation
  of the SDK's `User` interface.
 
 Note, the SDK does ***not*** provide a means of persistence
@@ -14,7 +14,7 @@ Note, the SDK does ***not*** provide a means of persistence
   Applications need to handle migration of serialized files between versions.
 
 The SDK also provides a client for Hyperledger's certificate authority.  The SDK is however not dependent on this
-particular implementation of a certificate authority. Other Certificate authority's maybe used by implementing the
+particular implementation of a certificate authority. Other Certificate authority's may be used by implementing the
 SDK's `Enrollment` interface.
 
  This provides a summary of steps required to get you started with building and using the Java SDK.
@@ -246,7 +246,7 @@ and execute the following commands:
 
 
 ### GO Lang chaincode
-Go lang chaincode dependencies must be contained in vendor folder.
+Go lang chaincode dependencies must be contained in the vendor folder.
  For an explanation of this see [Vendor folder explanation](https://blog.gopheracademy.com/advent-2015/vendor-folder/)
 
 
