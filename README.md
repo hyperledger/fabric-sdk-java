@@ -1,4 +1,4 @@
-# Java SDK for Hyperledger Fabric 1.4
+# Java SDK for Hyperledger Fabric 2.0
 Welcome to Java SDK for Hyperledger project. The SDK helps facilitate Java applications to manage the lifecycle of
  Hyperledger channels  and user chaincode. The SDK also provides a means to execute
   user chaincode, query blocks

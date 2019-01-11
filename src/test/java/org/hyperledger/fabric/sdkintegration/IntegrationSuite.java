@@ -20,7 +20,7 @@ import org.junit.runners.AllTests;
 public class IntegrationSuite {
 
     private static final String ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION
-            = System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION") == null ? "1.4.0" : System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION");
+            = System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION") == null ? "2.0.0" : System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION");
 
     static Integer[] fabricVersion = new Integer[3];
 
@@ -28,14 +28,15 @@ public class IntegrationSuite {
 
     static {
         final String[] fvs = ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION.split("\\.");
-        if (fvs.length != 3) {
-            throw new AssertionError("Expected environment variable 'ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION' to be three numbers sperated by dots (1.0.0)  but got: " + ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION);
+        if (fvs.length != 3 && fvs.length != 2) {
+            throw new AssertionError("Expected environment variable 'ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION' to be two or three numbers separated by dots (1.0.0)  but got: " + ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION);
 
         }
-
         fabricVersion[0] = Integer.parseInt(fvs[0].trim());
         fabricVersion[1] = Integer.parseInt(fvs[1].trim());
-        fabricVersion[2] = Integer.parseInt(fvs[2].trim());
+        if (fvs.length == 3) {
+            fabricVersion[2] = Integer.parseInt(fvs[2].trim());
+        }
 
         runmap.put("1.0", Arrays.asList(End2endIT.class, End2endAndBackAgainIT.class, HFCAClientIT.class));
 
@@ -48,6 +49,7 @@ public class IntegrationSuite {
                 NetworkConfigIT.class, End2endNodeIT.class, End2endJavaIT.class, End2endAndBackAgainNodeIT.class,
                 End2endIdemixIT.class, PrivateDataIT.class, ServiceDiscoveryIT.class, HFCAClientIT.class));
         runmap.put("1.4", runmap.get("1.3"));
+        runmap.put("2.0", runmap.get("1.3"));
 
     }
 
