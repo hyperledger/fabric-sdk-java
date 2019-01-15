@@ -109,32 +109,32 @@ public class FabricExceptionsTest {
     }
 
     @Test
-    public void testEventHubException1() throws EventHubException {
+    public void testEventHubException1() throws EventingException {
 
-        thrown.expect(EventHubException.class);
+        thrown.expect(EventingException.class);
         thrown.expectMessage(MESSAGE);
 
-        throw new EventHubException(MESSAGE);
+        throw new EventingException(MESSAGE);
 
     }
 
     @Test
-    public void testEventHubException2() throws EventHubException {
+    public void testEventHubException2() throws EventingException {
 
-        thrown.expect(EventHubException.class);
+        thrown.expect(EventingException.class);
         thrown.expectMessage(MESSAGE);
 
-        throw new EventHubException(new CryptoException(MESSAGE));
+        throw new EventingException(new CryptoException(MESSAGE));
 
     }
 
     @Test
-    public void testEventHubException3() throws EventHubException {
+    public void testEventHubException3() throws EventingException {
 
-        thrown.expect(EventHubException.class);
+        thrown.expect(EventingException.class);
         thrown.expectMessage(MESSAGE);
 
-        throw new EventHubException(MESSAGE, new CryptoException(MESSAGE));
+        throw new EventingException(MESSAGE, new CryptoException(MESSAGE));
 
     }
 

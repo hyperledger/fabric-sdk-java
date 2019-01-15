@@ -55,8 +55,7 @@ public class Config {
     public static final String ORDERER_WAIT_TIME = "org.hyperledger.fabric.sdk.orderer.ordererWaitTimeMilliSecs";
     public static final String PEER_EVENT_REGISTRATION_WAIT_TIME = "org.hyperledger.fabric.sdk.peer.eventRegistration.wait_time";
     public static final String PEER_EVENT_RETRY_WAIT_TIME = "org.hyperledger.fabric.sdk.peer.retry_wait_time";
-    public static final String EVENTHUB_CONNECTION_WAIT_TIME = "org.hyperledger.fabric.sdk.eventhub_connection.wait_time";
-    public static final String EVENTHUB_RECONNECTION_WARNING_RATE = "org.hyperledger.fabric.sdk.eventhub.reconnection_warning_rate";
+
     public static final String PEER_EVENT_RECONNECTION_WARNING_RATE = "org.hyperledger.fabric.sdk.peer.reconnection_warning_rate";
     public static final String GENESISBLOCK_WAIT_TIME = "org.hyperledger.fabric.sdk.channel.genesisblock_wait_time";
     /**
@@ -138,7 +137,7 @@ public class Config {
             defaultProperty(ORDERER_WAIT_TIME, "10000");
             defaultProperty(PEER_EVENT_REGISTRATION_WAIT_TIME, "5000");
             defaultProperty(PEER_EVENT_RETRY_WAIT_TIME, "500");
-            defaultProperty(EVENTHUB_CONNECTION_WAIT_TIME, "5000");
+
             defaultProperty(GENESISBLOCK_WAIT_TIME, "5000");
             /**
              * This will NOT complete any transaction futures time out and must be kept WELL above any expected future timeout
@@ -187,7 +186,7 @@ public class Config {
              * Miscellaneous settings
              */
             defaultProperty(PROPOSAL_CONSISTENCY_VALIDATION, "true");
-            defaultProperty(EVENTHUB_RECONNECTION_WARNING_RATE, "50");
+
             defaultProperty(PEER_EVENT_RECONNECTION_WARNING_RATE, "50");
 
             defaultProperty(SERVICE_DISCOVER_FREQ_SECONDS, "120");
@@ -441,14 +440,6 @@ public class Config {
         return Long.parseLong(getProperty(PEER_EVENT_RETRY_WAIT_TIME));
     }
 
-    /**
-     * The number of failed  attempts to reissue a warning. Or -1 for none.
-     *
-     * @return The number of failed  attempts to reissue a warning.
-     */
-    public long getEventHubReconnectionWarningRate() {
-        return Long.parseLong(getProperty(EVENTHUB_RECONNECTION_WARNING_RATE));
-    }
 
     public long getPeerEventReconnectionWarningRate() {
         return Long.parseLong(getProperty(PEER_EVENT_RECONNECTION_WARNING_RATE));
@@ -470,10 +461,6 @@ public class Config {
      */
     public int getServiceDiscoveryWaitTime() {
         return Integer.parseInt(getProperty(SERVICE_DISCOVER_WAIT_TIME));
-    }
-
-    public long getEventHubConnectionWaitTime() {
-        return Long.parseLong(getProperty(EVENTHUB_CONNECTION_WAIT_TIME));
     }
 
     public String getAsymmetricKeyType() {

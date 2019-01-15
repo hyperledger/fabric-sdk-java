@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 syntax = "proto3";
 
 import "common/common.proto";
-import "google/protobuf/timestamp.proto";
+// import "google/protobuf/timestamp.proto";
 import "peer/chaincode_event.proto";
 import "peer/transaction.proto";
 
@@ -66,98 +66,5 @@ service Deliver {
     // Payload data as a marshaled orderer.SeekInfo message,
     // then a stream of **filtered** block replies is received
     rpc DeliverFiltered (stream common.Envelope) returns (stream DeliverResponse) {
-    }
-}
-
-//---------- producer events ---------
-
-//----Event objects----
-
-enum EventType {
-    REGISTER = 0;
-    BLOCK = 1;
-    CHAINCODE = 2;
-    REJECTION = 3;
-    FILTEREDBLOCK = 4;
-}
-
-//ChaincodeReg is used for registering chaincode Interests
-//when EventType is CHAINCODE
-message ChaincodeReg {
-    string chaincode_id = 1;
-    string event_name = 2;
-}
-
-message Interest {
-    EventType event_type = 1;
-    //Ideally we should just have the following oneof for different
-    //Reg types and get rid of EventType. But this is an API change
-    //Additional Reg types may add messages specific to their type
-    //to the oneof.
-    oneof RegInfo {
-        ChaincodeReg chaincode_reg_info = 2;
-    }
-    string chainID = 3;
-}
-
-//---------- consumer events ---------
-//Register is sent by consumers for registering events
-//string type - "register"
-message Register {
-    repeated Interest events = 1;
-}
-
-//Rejection is sent by consumers for erroneous transaction rejection events
-//string type - "rejection"
-message Rejection {
-    Transaction tx = 1;
-    string error_msg = 2;
-}
-
-//---------- producer events ---------
-message Unregister {
-    repeated Interest events = 1;
-}
-
-// SignedEvent is used for any communication between consumer and producer
-message SignedEvent {
-    // Signature over the event bytes
-    bytes signature = 1;
-    // Marshal of Event object
-    bytes eventBytes = 2;
-}
-
-//Event is used by
-//  - consumers (adapters) to send Register
-//  - producer to advertise supported types and events
-message Event {
-    oneof Event {
-        //Register consumer sent event
-        Register register = 1;
-
-        //producer events
-        common.Block block = 2;
-        ChaincodeEvent chaincode_event = 3;
-        Rejection rejection = 4;
-
-        //Unregister consumer sent events
-        Unregister unregister = 5;
-
-        FilteredBlock filtered_block = 7;
-    }
-    // Creator of the event, specified as a certificate chain
-    bytes creator = 6;
-    // Timestamp of the client - used to mitigate replay attacks
-    google.protobuf.Timestamp timestamp = 8;
-
-    // If mutual TLS is employed, this represents
-    // the hash of the client's TLS certificate
-    bytes tls_cert_hash = 9;
-}
-
-// Interface exported by the events server
-service Events {
-    // event chatting using Event
-    rpc Chat (stream SignedEvent) returns (stream Event) {
     }
 }

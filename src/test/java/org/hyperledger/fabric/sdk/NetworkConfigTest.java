@@ -545,7 +545,7 @@ public class NetworkConfigTest {
 
                 JsonObject peer = createJsonPeer(
                         "grpcs://localhost:" + port1,
-                        "grpcs://localhost:" + port2,
+                        //     "grpcs://localhost:" + port2,
                         Json.createObjectBuilder()
                                 .add("ssl-target-name-override", "peer" + peerNo + ".org" + orgNo + ".example.com")
                                 .build(),
@@ -633,11 +633,11 @@ public class NetworkConfigTest {
                 .build();
     }
 
-    private static JsonObject createJsonPeer(String url, String eventUrl, JsonObject grpcOptions, JsonObject tlsCaCerts, JsonArray channels) {
+    private static JsonObject createJsonPeer(String url, JsonObject grpcOptions, JsonObject tlsCaCerts, JsonArray channels) {
 
         return Json.createObjectBuilder()
                 .add("url", url)
-                .add("eventUrl", eventUrl)
+
                 .add("grpcOptions", grpcOptions)
                 .add("tlsCaCerts", tlsCaCerts)
                 .add("channels", channels)

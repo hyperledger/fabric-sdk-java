@@ -39,7 +39,6 @@ import org.apache.http.util.EntityUtils;
 import org.hyperledger.fabric.sdk.BlockEvent.TransactionEvent;
 import org.hyperledger.fabric.sdk.BlockInfo;
 import org.hyperledger.fabric.sdk.Channel;
-import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.TestConfigHelper;
@@ -338,12 +337,6 @@ public class UpdateChannelIT {
             ++i;
 
             newChannel.addPeer(peer, peerOptions);
-        }
-
-        for (String eventHubName : sampleOrg.getEventHubNames()) {
-            EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
-                    testConfig.getEventHubProperties(eventHubName));
-            newChannel.addEventHub(eventHub);
         }
 
         //For testing of blocks which are not transactions.

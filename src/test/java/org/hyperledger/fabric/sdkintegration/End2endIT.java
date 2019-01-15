@@ -45,7 +45,6 @@ import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.ChannelConfiguration;
 import org.hyperledger.fabric.sdk.Enrollment;
-import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.InstallProposalRequest;
 import org.hyperledger.fabric.sdk.InstantiateProposalRequest;
@@ -373,9 +372,9 @@ public class End2endIT {
 
                         chaincodeEvents.add(new ChaincodeEventCapture(handle, blockEvent, chaincodeEvent));
 
-                        String es = blockEvent.getPeer() != null ? blockEvent.getPeer().getName() : blockEvent.getEventHub().getName();
+                        String es = blockEvent.getPeer() != null ? blockEvent.getPeer().getName() : "peer was null!!!";
                         out("RECEIVED Chaincode event with handle: %s, chaincode Id: %s, chaincode event name: %s, "
-                                        + "transaction id: %s, event payload: \"%s\", from eventhub: %s",
+                                        + "transaction id: %s, event payload: \"%s\", from event source: %s",
                                 handle, chaincodeEvent.getChaincodeId(),
                                 chaincodeEvent.getEventName(),
                                 chaincodeEvent.getTxId(),
@@ -537,9 +536,6 @@ public class End2endIT {
             Channel.NOfEvents nOfEvents = createNofEvents();
             if (!channel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).isEmpty()) {
                 nOfEvents.addPeers(channel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)));
-            }
-            if (!channel.getEventHubs().isEmpty()) {
-                nOfEvents.addEventHubs(channel.getEventHubs());
             }
 
             channel.sendTransaction(successful, createTransactionOptions() //Basically the default options but shows it's usage.
@@ -770,9 +766,8 @@ public class End2endIT {
             if (chaincodeEventListenerHandle != null) {
 
                 channel.unregisterChaincodeEventListener(chaincodeEventListenerHandle);
-                //Should be two. One event in chaincode and two notification for each of the two event hubs
 
-                final int numberEventsExpected = channel.getEventHubs().size() +
+                final int numberEventsExpected =
                         channel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).size();
                 //just make sure we get the notifications.
                 for (int i = 15; i > 0; --i) {
@@ -794,7 +789,6 @@ public class End2endIT {
 
                     BlockEvent blockEvent = chaincodeEventCapture.blockEvent;
                     assertEquals(channelName, blockEvent.getChannelId());
-                    //   assertTrue(channel.getEventHubs().contains(blockEvent.getEventHub()));
 
                 }
 
@@ -892,17 +886,6 @@ public class End2endIT {
             newChannel.addOrderer(orderer);
         }
 
-        for (String eventHubName : sampleOrg.getEventHubNames()) {
-
-            final Properties eventHubProperties = testConfig.getEventHubProperties(eventHubName);
-
-            eventHubProperties.put("grpc.NettyChannelBuilderOption.keepAliveTime", new Object[] {5L, TimeUnit.MINUTES});
-            eventHubProperties.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {8L, TimeUnit.SECONDS});
-
-            EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
-                    eventHubProperties);
-            newChannel.addEventHub(eventHub);
-        }
 
         newChannel.initialize();
 

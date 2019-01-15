@@ -271,14 +271,14 @@ No.
 ### Firewalls, load balancers, network proxies
 
 These can sometimes silently kill a network connections and prevent them from auto reconnecting. To fix this look at
-adding to Peers, EventHub's and Orderer's connection properties:
+adding to Peers and Orderer's connection properties:
 `grpc.NettyChannelBuilderOption.keepAliveTime`, `grpc.NettyChannelBuilderOption.keepAliveTimeout`,
 `grpc.NettyChannelBuilderOption.keepAliveWithoutCalls`. Examples of this are in End2endIT.java
 
 ### grpc message frame size exceeds maximum
 
 The message being returned from the fabric server is too large for the default grpc frame size.
-On the Peer, Orderer, orEventHub add the property `grpc.NettyChannelBuilderOption.maxInboundMessageSize`
+On the Peer or Orderer add the property `grpc.NettyChannelBuilderOption.maxInboundMessageSize`
 See [End2endIT's constructChannel](https://github.com/hyperledger/fabric-sdk-java/blob/b649868113e969d851720c972f660114b64247bc/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java#L846)
 
 

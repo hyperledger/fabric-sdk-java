@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
-import java.lang.reflect.InvocationTargetException;
 import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -53,12 +52,9 @@ import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.hyperledger.fabric.sdk.Channel.PeerOptions;
 import org.hyperledger.fabric.sdk.Peer.PeerRole;
-import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.NetworkConfigurationException;
-import org.hyperledger.fabric.sdk.identity.SigningIdentity;
 import org.hyperledger.fabric.sdk.identity.X509Enrollment;
-import org.hyperledger.fabric.sdk.identity.X509SigningIdentity;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.yaml.snakeyaml.Yaml;
 
@@ -80,7 +76,6 @@ public class NetworkConfig {
 
     private Map<String, Node> orderers;
     private Map<String, Node> peers;
-    private Map<String, Node> eventHubs;
 
     /**
      * Names of Peers found
@@ -105,20 +100,6 @@ public class NetworkConfig {
             return Collections.EMPTY_SET;
         } else {
             return new HashSet<>(orderers.keySet());
-        }
-    }
-
-    /**
-     * Names of EventHubs found
-     *
-     * @return Collection of eventhubs names found.
-     */
-
-    public Collection<String> getEventHubNames() {
-        if (eventHubs == null) {
-            return Collections.EMPTY_SET;
-        } else {
-            return new HashSet<>(eventHubs.keySet());
         }
     }
 
@@ -185,17 +166,7 @@ public class NetworkConfig {
 
     }
 
-    /**
-     * Get properties for a specific eventhub.
-     *
-     * @param name Name of eventhub to get the properties for.
-     * @return The eventhubs's properties.
-     * @throws InvalidArgumentException
-     */
-    public Properties getEventHubsProperties(String name) throws InvalidArgumentException {
-        return getNodeProperties("EventHub", name, eventHubs);
 
-    }
 
     /**
      * Set a specific peer's properties.
@@ -217,17 +188,6 @@ public class NetworkConfig {
      */
     public void setOrdererProperties(String name, Properties properties) throws InvalidArgumentException {
         setNodeProperties("Orderer", name, orderers, properties);
-    }
-
-    /**
-     * Set a specific eventhub's properties.
-     *
-     * @param name       The name of the eventhub's property to set.
-     * @param properties The properties to set.
-     * @throws InvalidArgumentException
-     */
-    public void setEventHubProperties(String name, Properties properties) throws InvalidArgumentException {
-        setNodeProperties("EventHub", name, eventHubs, properties);
     }
 
     // Organizations, keyed on org name (and not on mspid!)
@@ -534,7 +494,7 @@ public class NetworkConfig {
 
     }
 
-    // Creates Node instances representing all the peers (and associated event hubs) defined in the config file
+    // Creates Node instances representing all the peers  defined in the config file
     private void createAllPeers() throws NetworkConfigurationException {
 
         // Sanity checks
@@ -542,12 +502,9 @@ public class NetworkConfig {
             throw new NetworkConfigurationException("INTERNAL ERROR: peers has already been initialized!");
         }
 
-        if (eventHubs != null) {
-            throw new NetworkConfigurationException("INTERNAL ERROR: eventHubs has already been initialized!");
-        }
 
         peers = new HashMap<>();
-        eventHubs = new HashMap<>();
+
 
         // peers is a JSON object containing a nested object for each peer
         JsonObject jsonPeers = getJsonObject(jsonConfig, "peers");
@@ -569,11 +526,6 @@ public class NetworkConfig {
                 }
                 peers.put(peerName, peer);
 
-                // Also create an event hub with the same name as the peer
-                Node eventHub = createNode(peerName, jsonPeer, "eventUrl"); // may not be present
-                if (null != eventHub) {
-                    eventHubs.put(peerName, eventHub);
-                }
             }
         }
 
@@ -690,14 +642,10 @@ public class NetworkConfig {
 
                     foundPeer = true;
 
-                    // Add the event hub associated with this peer
-                    EventHub eventHub = getEventHub(client, peerName);
-                    if (eventHub != null) {
-                        channel.addEventHub(eventHub);
-                        if (peerOptions.peerRoles == null) { // means no roles were found but there is an event hub so define all roles but eventing.
-                            peerOptions.setPeerRoles(EnumSet.of(PeerRole.ENDORSING_PEER, PeerRole.CHAINCODE_QUERY, PeerRole.LEDGER_QUERY));
-                        }
+                    if (peerOptions.peerRoles == null) { // means no roles were found but there is an event hub so define all roles but eventing.
+                        peerOptions.setPeerRoles(EnumSet.of(PeerRole.ENDORSING_PEER, PeerRole.CHAINCODE_QUERY, PeerRole.LEDGER_QUERY));
                     }
+
                     channel.addPeer(peer, peerOptions);
 
                 }
@@ -984,16 +932,6 @@ public class NetworkConfig {
         return peer;
     }
 
-    // Returns a new EventHub instance for the specified name
-    private EventHub getEventHub(HFClient client, String name) throws InvalidArgumentException {
-        EventHub ehub = null;
-        Node e = eventHubs.get(name);
-        if (e != null) {
-            ehub = client.newEventHub(e.getName(), e.getUrl(), e.getProperties());
-        }
-        return ehub;
-    }
-
     // Returns the specified JsonValue in a suitable format
     // If it's a JsonString - it returns the string
     // If it's a number = it returns the string representation of that number
@@ -1093,7 +1031,7 @@ public class NetworkConfig {
         return ret;
     }
 
-    // Holds a network "node" (eg. Peer, Orderer, EventHub)
+    // Holds a network "node" (eg. Peer, Orderer)
     private class Node {
 
         private final String name;

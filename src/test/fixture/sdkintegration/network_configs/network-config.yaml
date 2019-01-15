@@ -220,8 +220,7 @@ peers:
     # this URL is used to send endorsement and query requests
     url: grpc://localhost:7051
 
-    # this URL is used to connect the EventHub and registering event listeners
-    eventUrl: grpc://localhost:7053
+
 
     grpcOptions:
       grpc.http2.keepalive_time: 15
@@ -253,7 +252,6 @@ peers:
 
   peer1.org1.example.com:
     url: grpc://localhost:7056
-    eventUrl: grpc://localhost:7058
 
     grpcOptions:
       grpc.http2.keepalive_time: 15
@@ -269,7 +267,7 @@ peers:
 
   peer0.org2.example.com:
     url: grpc://localhost:8051
-    eventUrl: grpc://localhost:8053
+
 #    grpcOptions:
 #      ssl-target-name-override: peer0.org2.example.com
 #      negotiationType: TLS

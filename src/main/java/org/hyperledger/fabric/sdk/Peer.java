@@ -562,7 +562,7 @@ public class Peer implements Serializable {
     }
 
     /**
-     * Set class to handle Event hub disconnects
+     * Set class to handle peer eventing service  disconnects
      *
      * @param newPeerEventingServiceDisconnectedHandler New handler to replace.  If set to null no retry will take place.
      * @return the old handler.

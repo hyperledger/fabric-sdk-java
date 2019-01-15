@@ -12,7 +12,6 @@ option java_outer_classname = "FabricTransaction";
 
 package protos;
 
-import "google/protobuf/timestamp.proto";
 import "peer/proposal_response.proto";
 import "common/common.proto";
 
@@ -140,4 +139,9 @@ enum TxValidationCode {
 	INVALID_WRITESET = 24;
 	NOT_VALIDATED = 254;
 	INVALID_OTHER_REASON = 255;
+}
+
+// Reserved entries in the key-level metadata map
+enum MetaDataKeys {
+	VALIDATION_PARAMETER = 0;
 }

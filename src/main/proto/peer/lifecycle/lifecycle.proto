@@ -1,0 +1,57 @@
+/*
+Copyright IBM Corp. All Rights Reserved.
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
+syntax = "proto3";
+
+package lifecycle;
+
+option java_package = "org.hyperledger.fabric.protos.peer.lifecycle";
+option go_package = "github.com/hyperledger/fabric/protos/peer/lifecycle";
+
+// InstallChaincodeArgs is the message used as the argument to
+// '+lifecycle.InstallChaincode'
+message InstallChaincodeArgs {
+    string name = 1;
+    string version = 2;
+    bytes chaincode_install_package = 3; // This should be a marshaled peer.ChaincodeInstallPackage
+}
+
+// InstallChaincodeArgs is the message returned by
+// '+lifecycle.InstallChaincode'
+message InstallChaincodeResult {
+    bytes hash = 1;
+}
+
+// QueryInstalledChaincodeArgs is the message returned by
+// '+lifecycle.QueryInstalledChaincode'
+message QueryInstalledChaincodeArgs {
+    string name = 1;
+    string version = 2;
+}
+
+// QueryInstalledChaincodeResult is the message returned by
+// '+lifecycle.QueryInstalledChaincode'
+message QueryInstalledChaincodeResult {
+    bytes hash = 1;
+}
+
+// QueryInstalledChaincodesArgs currently is an empty argument to
+// '+lifecycle.QueryInstalledChaincodes'.   In the future, it may be
+// extended to have parameters.
+message QueryInstalledChaincodesArgs {
+}
+
+// QueryInstalledChaincodesResult is the message returned by
+// '+lifecycle.QueryInstalledChaincodes'.  It returns a list of
+// installed chaincodes.
+message QueryInstalledChaincodesResult {
+    message InstalledChaincode {
+        string name = 1;
+        string version = 2;
+        bytes hash = 3;
+    }
+    repeated InstalledChaincode installed_chaincodes = 1;
+}

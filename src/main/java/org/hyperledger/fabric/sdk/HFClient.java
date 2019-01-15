@@ -429,60 +429,6 @@ public class HFClient {
     }
 
     /**
-     * Create a new Eventhub.
-     *
-     * @param name       name of Eventhub.
-     * @param grpcURL    url location of orderer grpc or grpcs protocol.
-     * @param properties <p>
-     *                   Supported properties
-     *                   <ul>
-     *                   <li>pemFile - File location for x509 pem certificate for SSL.</li>
-     *                   <li>pemBytes - byte array for x509 pem certificates for SSL</li>
-     *                   <li>trustServerCertificate - boolean(true/false) override CN to match pemFile certificate -- for development only.
-     *                   If the pemFile has the target server's certificate (instead of a CA Root certificate),
-     *                   instruct the TLS client to trust the CN value of the certificate in the pemFile,
-     *                   useful in development to get past default server hostname verification during
-     *                   TLS handshake, when the server host name does not match the certificate.
-     *                   </li>
-     *                   <li>clientKeyFile - File location for PKCS8-encoded private key pem for mutual TLS</li>
-     *                   <li>clientCertFile - File location for x509 pem certificate for mutual TLS</li>
-     *                   <li>hostnameOverride - Specify the certificates CN -- for development only.
-     *                   <li>sslProvider - Specify the SSL provider, openSSL or JDK.</li>
-     *                   <li>negotiationType - Specify the type of negotiation, TLS or plainText.</li>
-     *                   <li>If the pemFile does not represent the server certificate, use this property to specify the URI authority
-     *                   (a.k.a hostname) expected in the target server's certificate. This is required to get past default server
-     *                   hostname verifications during TLS handshake.
-     *                   </li>
-     *                   <li>
-     *                   grpc.NettyChannelBuilderOption.&lt;methodName&gt;  where methodName is any method on
-     *                   grpc ManagedChannelBuilder.  If more than one argument to the method is needed then the
-     *                   parameters need to be supplied in an array of Objects.
-     *                   </li>
-     *                   </ul>
-     * @return The orderer.
-     * @throws InvalidArgumentException
-     */
-
-    public EventHub newEventHub(String name, String grpcURL, Properties properties) throws InvalidArgumentException {
-        clientCheck();
-        return EventHub.createNewInstance(name, grpcURL, executorService, properties);
-    }
-
-    /**
-     * Create a new event hub
-     *
-     * @param name    Name of eventhup should match peer's name it's associated with.
-     * @param grpcURL The http url location of the event hub
-     * @return event hub
-     * @throws InvalidArgumentException
-     */
-
-    public EventHub newEventHub(String name, String grpcURL) throws InvalidArgumentException {
-        clientCheck();
-        return newEventHub(name, grpcURL, null);
-    }
-
-    /**
      * Create a new urlOrderer.
      *
      * @param name    name of the orderer.

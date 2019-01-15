@@ -225,24 +225,6 @@ public class ChannelTest {
 
     }
 
-    @Test
-    public void testChannelAddNullEventhub() {
-        Channel testChannel = null;
-
-        try {
-
-            testChannel = new Channel(CHANNEL_NAME, hfclient);
-
-            testChannel.addEventHub(null);
-
-            Assert.fail("Expected set null peer to throw exception.");
-
-        } catch (InvalidArgumentException e) {
-            Assert.assertEquals(testChannel.getEventHubs().size(), 0);
-            Assert.assertEquals(e.getClass(), InvalidArgumentException.class);
-        }
-
-    }
 
     @Test
     public void testChannelInitialize() throws Exception { //test may not be doable once initialize is done
@@ -334,16 +316,7 @@ public class ChannelTest {
 
     }
 
-    @Test
-    public void testChannelShutdownAddEventHub() throws Exception {
 
-        thrown.expect(InvalidArgumentException.class);
-        thrown.expectMessage("Channel shutdown has been shutdown.");
-
-        Assert.assertTrue(shutdownChannel.isShutdown());
-        shutdownChannel.addEventHub(hfclient.newEventHub("name", "grpc://myurl:90"));
-
-    }
 
     @Test
     public void testChannelShutdownJoinPeer() throws Exception {
@@ -903,22 +876,15 @@ public class ChannelTest {
         assertTrue(nOfEvents1.ready);
         assertFalse(nOfEvents.ready);
 
-        EventHub peer2Org2eh = new EventHub("peer2Org2", "grpc://localhost:9", null, null);
-        EventHub peer2Org22ndeh = new EventHub("peer2Org22nd", "grpc://localhost:9", null, null);
-
-        nOfEvents = NOfEvents.createNofEvents().setN(1).addNOfs(NOfEvents.createNofEvents().addPeers(peer1Org1, peer1Org12nd),
-                NOfEvents.createNofEvents().addEventHubs(peer2Org2eh, peer2Org22ndeh)
+        nOfEvents = NOfEvents.createNofEvents().setN(1).addNOfs(NOfEvents.createNofEvents().addPeers(peer1Org1, peer1Org12nd)
         );
 
         nOfEvents1 = new NOfEvents(nOfEvents);
         assertFalse(nOfEvents1.ready);
         nOfEvents1.seen(peer1Org1);
         assertFalse(nOfEvents1.ready);
-        nOfEvents1.seen(peer2Org2eh);
-        assertFalse(nOfEvents1.ready);
-        nOfEvents1.seen(peer2Org22ndeh);
+        nOfEvents1.seen(peer1Org12nd);
         assertTrue(nOfEvents1.ready);
-        assertFalse(nOfEvents.ready);
 
         nOfEvents = NOfEvents.createNoEvents();
         assertTrue(nOfEvents.ready);

@@ -43,7 +43,6 @@ import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.ChaincodeResponse.Status;
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.Channel.PeerOptions;
-import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.InstallProposalRequest;
 import org.hyperledger.fabric.sdk.Peer;
@@ -611,7 +610,7 @@ public class End2endAndBackAgainIT {
                 assertFalse(newChannel.getPeers(PeerRole.NO_EVENT_SOURCE).isEmpty());
 
             }
-            assertEquals(testConfig.isFabricVersionAtOrAfter("1.3") ? 0 : 2, newChannel.getEventHubs().size());
+
             out("Retrieved channel %s from sample store.", name);
 
         } else {
@@ -640,28 +639,14 @@ public class End2endAndBackAgainIT {
                 everyOther = !everyOther;
             }
 
-            //For testing mix it up. For v1.1 use just peer eventing service for foo channel.
-            if (IS_FABRIC_V10) {
-                //Should have no peers with event sources.
-                assertTrue(newChannel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).isEmpty());
-                //Should have two peers with all roles but event source.
-                assertEquals(2, newChannel.getPeers(PeerRole.NO_EVENT_SOURCE).size());
-                for (String eventHubName : sampleOrg.getEventHubNames()) {
-                    EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
-                            testConfig.getEventHubProperties(eventHubName));
-                    newChannel.addEventHub(eventHub);
-                }
-            } else {
-                //Peers should have all roles. Do some sanity checks that they do.
+            //Peers should have all roles. Do some sanity checks that they do.
 
-                //Should have two peers with event sources.
-                assertEquals(2, newChannel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).size());
-                //Check some other roles too..
-                assertEquals(2, newChannel.getPeers(EnumSet.of(PeerRole.CHAINCODE_QUERY, PeerRole.LEDGER_QUERY)).size());
-                assertEquals(2, newChannel.getPeers(PeerRole.ALL).size());  //really same as newChannel.getPeers()
-            }
+            //Should have two peers with event sources.
+            assertEquals(2, newChannel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).size());
+            //Check some other roles too..
+            assertEquals(2, newChannel.getPeers(EnumSet.of(PeerRole.CHAINCODE_QUERY, PeerRole.LEDGER_QUERY)).size());
+            assertEquals(2, newChannel.getPeers(PeerRole.ALL).size());  //really same as newChannel.getPeers()
 
-            assertEquals(IS_FABRIC_V10 ? sampleOrg.getEventHubNames().size() : 0, newChannel.getEventHubs().size());
         }
 
         //Just some sanity check tests

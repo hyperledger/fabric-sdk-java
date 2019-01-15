@@ -140,18 +140,6 @@ public class NetworkConfigIT {
             }
         });
 
-        networkConfig.getEventHubNames().forEach(eventhubName -> {
-            try {
-                Properties eventHubsProperties = networkConfig.getEventHubsProperties(eventhubName);
-                Properties testProp = testConfig.getEndPointProperties("peer", eventhubName);
-                eventHubsProperties.setProperty("clientCertFile", testProp.getProperty("clientCertFile"));
-                eventHubsProperties.setProperty("clientKeyFile", testProp.getProperty("clientKeyFile"));
-                networkConfig.setEventHubProperties(eventhubName, eventHubsProperties);
-
-            } catch (InvalidArgumentException e) {
-                throw new RuntimeException(e);
-            }
-        });
 
         //Check if we get access to defined CAs!
         NetworkConfig.OrgInfo org = networkConfig.getOrganizationInfo("Org1");

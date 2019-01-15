@@ -14,19 +14,19 @@
 
 package org.hyperledger.fabric.sdk.exception;
 
-public class EventHubException extends BaseException {
+public class EventingException extends BaseException {
 
     private static final long serialVersionUID = 1L;
 
-    public EventHubException(String message, Throwable parent) {
+    public EventingException(String message, Throwable parent) {
         super(message, parent);
     }
 
-    public EventHubException(String message) {
+    public EventingException(String message) {
         super(message);
     }
 
-    public EventHubException(Throwable eventException) {
+    public EventingException(Throwable eventException) {
         super(eventException);
     }
 }

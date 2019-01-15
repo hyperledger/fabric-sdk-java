@@ -38,7 +38,7 @@ public class SampleOrg {
     Map<String, User> userMap = new HashMap<>();
     Map<String, String> peerLocations = new HashMap<>();
     Map<String, String> ordererLocations = new HashMap<>();
-    Map<String, String> eventHubLocations = new HashMap<>();
+
     private SampleUser admin;
     private String caLocation;
     private Properties caProperties = null;
@@ -89,10 +89,6 @@ public class SampleOrg {
         ordererLocations.put(name, location);
     }
 
-    public void addEventHubLocation(String name, String location) {
-
-        eventHubLocations.put(name, location);
-    }
 
     public String getPeerLocation(String name) {
         return peerLocations.get(name);
@@ -104,10 +100,6 @@ public class SampleOrg {
 
     }
 
-    public String getEventHubLocation(String name) {
-        return eventHubLocations.get(name);
-
-    }
 
     public Set<String> getPeerNames() {
 
@@ -118,11 +110,6 @@ public class SampleOrg {
     public Set<String> getOrdererNames() {
 
         return Collections.unmodifiableSet(ordererLocations.keySet());
-    }
-
-    public Set<String> getEventHubNames() {
-
-        return Collections.unmodifiableSet(eventHubLocations.keySet());
     }
 
     public HFCAClient getCAClient() {
@@ -149,10 +136,6 @@ public class SampleOrg {
 
     public Collection<String> getOrdererLocations() {
         return Collections.unmodifiableCollection(ordererLocations.values());
-    }
-
-    public Collection<String> getEventHubLocations() {
-        return Collections.unmodifiableCollection(eventHubLocations.values());
     }
 
 

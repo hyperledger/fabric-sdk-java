@@ -54,7 +54,6 @@ import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.ChannelConfiguration;
 import org.hyperledger.fabric.sdk.Enrollment;
-import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.InstallProposalRequest;
 import org.hyperledger.fabric.sdk.InstantiateProposalRequest;
@@ -859,18 +858,6 @@ public class End2endMTIT {
             newChannel.addOrderer(orderer);
         }
 
-        for (String eventHubName : sampleOrg.getEventHubNames()) {
-
-            final Properties eventHubProperties = testConfig.getEventHubProperties(eventHubName);
-
-            eventHubProperties.put("grpc.NettyChannelBuilderOption.keepAliveTime", new Object[] {5L, TimeUnit.MINUTES});
-            eventHubProperties.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {8L, TimeUnit.SECONDS});
-
-            EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
-                    eventHubProperties);
-            newChannel.addEventHub(eventHub);
-        }
-
         newChannel.initialize();
 
         out("Finished initialization channel %s", name);
@@ -1168,9 +1155,6 @@ public class End2endMTIT {
         Channel.NOfEvents nOfEvents = createNofEvents();
         if (!channel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).isEmpty()) {
             nOfEvents.addPeers(channel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)));
-        }
-        if (!channel.getEventHubs().isEmpty()) {
-            nOfEvents.addEventHubs(channel.getEventHubs());
         }
 
         return channel.sendTransaction(successful, createTransactionOptions() //Basically the default options but shows it's usage.

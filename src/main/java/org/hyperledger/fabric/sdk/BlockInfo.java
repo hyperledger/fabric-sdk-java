@@ -650,8 +650,8 @@ public class BlockInfo {
             }
 
             /**
-             * Get read write set for this transaction. Will return null on for Eventhub events.
-             * For eventhub events find the block by block number to get read write set if needed.
+             * Get read write set for this transaction. Will return null on for peer events.
+             * For peer events find the block by block number to get read write set if needed.
              *
              * @return Read write set.
              */

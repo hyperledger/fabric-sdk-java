@@ -103,7 +103,7 @@ import org.hyperledger.fabric.sdk.ServiceDiscovery.SDEndorser;
 import org.hyperledger.fabric.sdk.ServiceDiscovery.SDEndorserState;
 import org.hyperledger.fabric.sdk.ServiceDiscovery.SDNetwork;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
-import org.hyperledger.fabric.sdk.exception.EventHubException;
+import org.hyperledger.fabric.sdk.exception.EventingException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.exception.ServiceDiscoveryException;
@@ -162,7 +162,7 @@ public class Channel implements Serializable {
     private static final String CHAINCODE_EVENTS_TAG = "CHAINCODE_EVENTS_HANDLE";
     final Collection<Orderer> orderers = Collections.synchronizedCollection(new LinkedList<>());
     private transient Map<String, Orderer> ordererEndpointMap = Collections.synchronizedMap(new HashMap<>());
-    final Collection<EventHub> eventHubs = Collections.synchronizedCollection(new LinkedList<>());
+
     // Name of the channel is only meaningful to the client
     private final String name;
     private transient String toString;
@@ -179,7 +179,7 @@ public class Channel implements Serializable {
     transient HFClient client;
     private Set<String> discoveryEndpoints = Collections.synchronizedSet(new HashSet<>());
     /**
-     * Runs processing events from event hubs.
+     * Runs processing events from peer service.
      */
 
     transient Thread eventQueueThread = null;
@@ -188,7 +188,7 @@ public class Channel implements Serializable {
     private transient Block genesisBlock;
     private transient Map<String, MSP> msps = new HashMap<>();
     /**
-     * A queue each eventing hub will write events to.
+     * A queue each peer eventing service writes to.
      */
 
     private transient ChannelEventQue channelEventQue = new ChannelEventQue();
@@ -383,19 +383,6 @@ public class Channel implements Serializable {
             ordererEndpointMap.put(orderer.getEndpoint(), orderer);
         }
 
-        for (EventHub eventHub : getEventHubs()) {
-            eventHub.setEventQue(channelEventQue);
-        }
-
-    }
-
-    /**
-     * Get all Event Hubs on this channel.
-     *
-     * @return Event Hubs
-     */
-    public Collection<EventHub> getEventHubs() {
-        return Collections.unmodifiableCollection(eventHubs);
     }
 
     /**
@@ -970,40 +957,6 @@ public class Channel implements Serializable {
     }
 
     /**
-     * Add an Event Hub to this channel.
-     *
-     * @param eventHub
-     * @return this channel
-     * @throws InvalidArgumentException
-     */
-
-    public Channel addEventHub(EventHub eventHub) throws InvalidArgumentException {
-
-        if (shutdown) {
-            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
-        }
-        if (null == eventHub) {
-            throw new InvalidArgumentException("EventHub is invalid can not be null.");
-        }
-
-        logger.debug(format("Channel %s adding event hub %s", toString(), eventHub.toString()));
-        eventHub.setChannel(this);
-        eventHub.setEventQue(channelEventQue);
-        eventHubs.add(eventHub);
-
-        if (isInitialized()) {
-            try {
-                eventHub.connect(getTransactionContext());
-            } catch (EventHubException e) {
-                throw new InvalidArgumentException(e);
-            }
-
-        }
-        return this;
-
-    }
-
-    /**
      * Get the peers for this channel.
      *
      * @return the peers.
@@ -1123,15 +1076,9 @@ public class Channel implements Serializable {
 
             logger.debug(format("Eventque started %s", "" + eventQueueThread));
 
-            for (EventHub eh : eventHubs) { //Connect all event hubs
-                eh.connect(getTransactionContext());
-            }
-
             for (Peer peer : getEventingPeers()) {
                 peer.initiateEventing(getTransactionContext(), getPeersOptions(peer));
             }
-
-            logger.debug(format("%d eventhubs initialized", getEventHubs().size()));
 
             transactionListenerProcessorHandle = registerTransactionListenerProcessor(); //Manage transactions.
             logger.debug(format("Channel %s registerTransactionListenerProcessor completed", name));
@@ -4225,7 +4172,6 @@ public class Channel implements Serializable {
 
         private long n = Long.MAX_VALUE; //all
 
-        private HashSet<EventHub> eventHubs = new HashSet<>();
         private HashSet<Peer> peers = new HashSet<>();
         private HashSet<NOfEvents> nOfEvents = new HashSet<>();
 
@@ -4258,34 +4204,9 @@ public class Channel implements Serializable {
         }
 
         /**
-         * EventHubs that need to see the transaction event to complete.
-         * @param eventHubs The peers that need to see the transaction event to complete.
-         * @return This NofEvents.
-         */
-
-        public NOfEvents addEventHubs(EventHub... eventHubs) {
-            if (eventHubs == null || eventHubs.length == 0) {
-                throw new IllegalArgumentException("EventHubs added must be not null or empty.");
-            }
-            this.eventHubs.addAll(Arrays.asList(eventHubs));
-
-            return this;
-
-        }
-
-        /**
-         * EventHubs that need to see the transaction event to complete.
-         * @param eventHubs The peers that need to see the transaction event to complete.
-         * @return This NofEvents.
-         */
-        public NOfEvents addEventHubs(Collection<EventHub> eventHubs) {
-            addEventHubs(eventHubs.toArray(new EventHub[eventHubs.size()]));
-            return this;
-        }
-
-        /**
          * NOfEvents that need to see the transaction event to complete.
-         * @param nOfEvents  The nested event group that need to set the transacton event to complete.
+         *
+         * @param nOfEvents The nested event group that need to set the transacton event to complete.
          * @return This NofEvents.
          */
 
@@ -4321,7 +4242,8 @@ public class Channel implements Serializable {
 
         /**
          * NOfEvents that need to see the transaction event to complete.
-         * @param nofs  The nested event group that need to set the transacton event to complete.
+         *
+         * @param nofs The nested event group that need to set the transacton event to complete.
          * @return This NofEvents.
          */
 
@@ -4340,57 +4262,10 @@ public class Channel implements Serializable {
             return unseen;
         }
 
-        synchronized Collection<EventHub> unSeenEventHubs() {
-
-            Set<EventHub> unseen = new HashSet(16);
-            unseen.addAll(eventHubs);
-            for (NOfEvents nOfEvents : nOfEvents) {
-                unseen.addAll(nofNoEvents.unSeenEventHubs());
-            }
-            return unseen;
-        }
-
-        synchronized boolean seen(EventHub eventHub) {
-            if (!started) {
-                started = true;
-                n = Long.min(eventHubs.size() + peers.size() + nOfEvents.size(), n);
-            }
-            if (!ready) {
-                if (eventHubs.remove(eventHub)) {
-
-                    if (--n == 0) {
-                        ready = true;
-                    }
-                }
-                if (!ready) {
-                    for (Iterator<NOfEvents> ni = nOfEvents.iterator(); ni.hasNext();
-                    ) { // for check style
-                        NOfEvents e = ni.next();
-                        if (e.seen(eventHub)) {
-                            ni.remove();
-
-                            if (--n == 0) {
-                                ready = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            if (ready) {
-
-                eventHubs.clear();
-                peers.clear();
-                nOfEvents.clear();
-
-            }
-            return ready;
-        }
-
         synchronized boolean seen(Peer peer) {
             if (!started) {
                 started = true;
-                n = Long.min(eventHubs.size() + peers.size() + nOfEvents.size(), n);
+                n = Long.min(peers.size() + nOfEvents.size(), n);
             }
             if (!ready) {
 
@@ -4417,7 +4292,6 @@ public class Channel implements Serializable {
             }
             if (ready) {
 
-                eventHubs.clear();
                 peers.clear();
                 nOfEvents.clear();
             }
@@ -4432,7 +4306,7 @@ public class Channel implements Serializable {
             started = false;
             this.n = nof.n;
             this.peers = new HashSet<>(nof.peers);
-            this.eventHubs = new HashSet<>(nof.eventHubs);
+
             for (NOfEvents nofc : nof.nOfEvents) {
                 this.nOfEvents.add(new NOfEvents(nofc));
 
@@ -4459,11 +4333,6 @@ public class Channel implements Serializable {
             }
 
             @Override
-            public NOfEvents addEventHubs(EventHub... eventHub) {
-                throw new IllegalArgumentException("Can not add any events.");
-            }
-
-            @Override
             public NOfEvents addPeers(Peer... peers) {
                 throw new IllegalArgumentException("Can not add any events.");
             }
@@ -4471,11 +4340,6 @@ public class Channel implements Serializable {
             @Override
             public NOfEvents setN(int n) {
                 throw new IllegalArgumentException("Can not set N");
-            }
-
-            @Override
-            public NOfEvents addEventHubs(Collection<EventHub> eventHubs) {
-                throw new IllegalArgumentException("Can not add any events.");
             }
 
             @Override
@@ -4497,7 +4361,7 @@ public class Channel implements Serializable {
 
     /**
      * Send transaction to one of a specified set of orderers with the specified user context.
-     * IF there are no event hubs or eventing peers this future returns immediately completed
+     * IF there are no eventing peers this future returns immediately completed
      * indicating that orderer has accepted the transaction only.
      *
      * @param proposalResponses
@@ -4521,7 +4385,7 @@ public class Channel implements Serializable {
         boolean failFast = true;
 
         /**
-         * Fail fast when there is an invalid transaction received on the eventhub or eventing peer being observed.
+         * Fail fast when there is an invalid transaction received on the eventing peer being observed.
          * The default value is true.
          *
          * @param failFast fail fast.
@@ -4567,7 +4431,7 @@ public class Channel implements Serializable {
         }
 
         /**
-         * Events reporting Eventing Peers and EventHubs to complete the transaction.
+         * Events reporting Eventing Peers to complete the transaction.
          * This maybe set to NOfEvents.nofNoEvents that will complete the future as soon as a successful submission
          * to an Orderer, but the completed Transaction event in that case will be null.
          *
@@ -4808,7 +4672,7 @@ public class Channel implements Serializable {
 
     /**
      * Send transaction to one of a specified set of orderers with the specified user context.
-     * IF there are no event hubs or eventing peers this future returns immediately completed
+     * IF there are no eventing peers this future returns immediately completed
      * indicating that orderer has accepted the transaction only.
      *
      * @param proposalResponses
@@ -4906,11 +4770,6 @@ public class Channel implements Serializable {
                     anyAdded = true;
                     nOfEvents.addPeers(eventingPeers);
                 }
-                Collection<EventHub> eventHubs = getEventHubs();
-                if (!eventHubs.isEmpty()) {
-                    anyAdded = true;
-                    nOfEvents.addEventHubs(getEventHubs());
-                }
 
                 if (!anyAdded) {
                     nOfEvents = NOfEvents.createNoEvents();
@@ -4928,15 +4787,9 @@ public class Channel implements Serializable {
                     }
 
                 });
-                nOfEvents.unSeenEventHubs().forEach(eventHub -> {
-                    if (!eventHubs.contains(eventHub)) {
-                        issues.append(format("Eventhub %s added to NOFEvents does not belong this channel. ", eventHub.getName()));
-                    }
 
-                });
-
-                if (nOfEvents.unSeenEventHubs().isEmpty() && nOfEvents.unSeenPeers().isEmpty()) {
-                    issues.append("NofEvents had no Eventhubs added or Peer eventing services.");
+                if (nOfEvents.unSeenPeers().isEmpty()) {
+                    issues.append("NofEvents had no added  Peer eventing services.");
                 }
                 String foundIssues = issues.toString();
                 if (!foundIssues.isEmpty()) {
@@ -4944,12 +4797,12 @@ public class Channel implements Serializable {
                 }
             }
 
-            final boolean replyonly = nOfEvents == NOfEvents.nofNoEvents || (getEventHubs().isEmpty() && getEventingPeers().isEmpty());
+            final boolean replyonly = nOfEvents == NOfEvents.nofNoEvents || (getEventingPeers().isEmpty());
 
             CompletableFuture<TransactionEvent> sret;
-            if (replyonly) { //If there are no eventhubs to complete the future, complete it
+            if (replyonly) { //If there are no eventsto complete the future, complete it
                 // immediately but give no transaction event
-                logger.debug(format("Completing transaction id %s immediately no event hubs or peer eventing services found in channel %s.", proposalTransactionID, name));
+                logger.debug(format("Completing transaction id %s immediately no peer eventing services found in channel %s.", proposalTransactionID, name));
                 sret = new CompletableFuture<>();
             } else {
                 sret = registerTxListener(proposalTransactionID, nOfEvents, transactionOptions.failFast);
@@ -5170,7 +5023,7 @@ public class Channel implements Serializable {
                 final BlockEvent blockEvent;
                 try {
                     blockEvent = channelEventQue.getNextEvent();
-                } catch (EventHubException e) {
+                } catch (EventingException e) {
                     if (!shutdown) {
                         logger.error(e);
                     }
@@ -5188,7 +5041,7 @@ public class Channel implements Serializable {
                     final String from =
                             format("Channel %s eventqueue got block event with block number: %d for channel: %s, from %s",
                                     name, blockEvent.getBlockNumber(), blockchainID, blockEvent.getPeer() != null ? ("" + blockEvent.getPeer()) :
-                                            ("" + blockEvent.getEventHub()));
+                                            "");
 
                     logger.trace(from);
 
@@ -5240,7 +5093,7 @@ public class Channel implements Serializable {
             }
 
             final String source = blockEvent.getPeer() != null ? blockEvent.getPeer().toString() :
-                    (blockEvent.getEventHub() != null ? blockEvent.getEventHub().toString() : "not peer or eventhub!");
+                    "not peer!";
 
             logger.debug(format("is peer %b, is filtered: %b", blockEvent.getPeer() != null, blockEvent.isFiltered()));
 
@@ -5604,16 +5457,6 @@ public class Channel implements Serializable {
 
         client = null;
 
-        for (EventHub eh : eventHubs) {
-
-            try {
-                eh.shutdown();
-            } catch (Exception e) {
-                // Best effort.
-            }
-
-        }
-        eventHubs.clear();
         for (Peer peer : new ArrayList<>(getPeers())) {
 
             try {
@@ -6016,13 +5859,6 @@ public class Channel implements Serializable {
             if (shutdown) {
                 return false;
             }
-
-            //For now just support blocks --- other types are also reported as blocks.
-
-            if (!event.isBlockEvent()) {
-                return false;
-            }
-
             // May be fed by multiple eventhubs but BlockingQueue.add() is thread-safe
             events.add(event);
 
@@ -6030,26 +5866,26 @@ public class Channel implements Serializable {
 
         }
 
-        BlockEvent getNextEvent() throws EventHubException {
+        BlockEvent getNextEvent() throws EventingException {
             if (shutdown) {
-                throw new EventHubException(format("Channel %s has been shutdown", name));
+                throw new EventingException(format("Channel %s has been shutdown", name));
 
             }
             BlockEvent ret = null;
             if (eventException != null) {
-                throw new EventHubException(eventException);
+                throw new EventingException(eventException);
             }
             try {
                 ret = events.take();
             } catch (InterruptedException e) {
                 if (shutdown) {
-                    throw new EventHubException(format("channel %s is shutdown", name), e);
+                    throw new EventingException(format("channel %s is shutdown", name), e);
 
                 } else {
                     logger.warn(e);
                     if (eventException != null) {
 
-                        EventHubException eve = new EventHubException(e);
+                        EventingException eve = new EventingException(e);
                         logger.error(eve.getMessage(), eve);
                         throw eve;
                     }
@@ -6057,12 +5893,12 @@ public class Channel implements Serializable {
             }
 
             if (eventException != null) {
-                throw new EventHubException(eventException);
+                throw new EventingException(eventException);
             }
 
             if (shutdown) {
 
-                throw new EventHubException(format("Channel %s has been shutdown.", name));
+                throw new EventingException(format("Channel %s has been shutdown.", name));
 
             }
 
@@ -6102,7 +5938,7 @@ public class Channel implements Serializable {
         final CompletableFuture<TransactionEvent> future;
         final boolean failFast;
         final Set<Peer> peers;
-        final Set<EventHub> eventHubs;
+
         private final NOfEvents nOfEvents;
         long sweepTime = System.currentTimeMillis() + (long) (DELTA_SWEEP * 1.5);
 
@@ -6111,7 +5947,7 @@ public class Channel implements Serializable {
             this.future = future;
             this.nOfEvents = new NOfEvents(nOfEvents);
             peers = new HashSet<>(nOfEvents.unSeenPeers());
-            eventHubs = new HashSet<>(nOfEvents.unSeenEventHubs());
+
             this.failFast = failFast;
             addListener();
         }
@@ -6126,12 +5962,8 @@ public class Channel implements Serializable {
             sweepTime = System.currentTimeMillis() + DELTA_SWEEP; //seen activity keep it active.
 
             final Peer peer = transactionEvent.getPeer();
-            final EventHub eventHub = transactionEvent.getEventHub();
 
             if (peer != null && !peers.contains(peer)) {
-                return false;
-            }
-            if (eventHub != null && !eventHubs.contains(eventHub)) {
                 return false;
             }
 
@@ -6142,11 +5974,6 @@ public class Channel implements Serializable {
             if (peer != null) {
                 nOfEvents.seen(peer);
                 logger.debug(format("Channel %s seen transaction event %s for peer %s", name, txID, peer.toString()));
-            } else if (null != eventHub) {
-                logger.debug(format("Channel %s seen transaction event %s for eventHub %s", name, txID, eventHub.toString()));
-                nOfEvents.seen(eventHub);
-            } else {
-                logger.error(format("Channel %s seen transaction event %s with no associated peer or eventhub", name, txID));
             }
 
             boolean isEmpty;
@@ -6171,20 +5998,8 @@ public class Channel implements Serializable {
             if (IS_WARN_LEVEL && ret) {
 
                 StringBuilder sb = new StringBuilder(10000);
-                sb.append("Non reporting event hubs:");
-                String sep = "";
-                for (EventHub eh : nOfEvents.unSeenEventHubs()) {
-                    sb.append(sep).append(eh.toString())
-                            .append(" status: ")
-                            .append(eh.getStatus());
-                    sep = ", ";
 
-                }
-                if (sb.length() != 0) {
-                    sb.append(". ");
-
-                }
-                sep = " Non reporting peers: ";
+                String sep = "Non reporting peers: ";
                 for (Peer peer : nOfEvents.unSeenPeers()) {
                     sb.append(sep).append(peer.toString()).append(" status:")
                             .append(peer.getEventingStatus());
