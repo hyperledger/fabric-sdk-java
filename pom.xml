@@ -28,14 +28,15 @@
         <tag>fabric-sdk-java-1.0</tag>
     </scm>
     <properties>
-        <grpc.version>1.17.1</grpc.version><!-- CURRENT_GRPC_VERSION -->
+        <grpc.version>1.18.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
         <protobuf.version>3.6.1</protobuf.version>
         <bouncycastle.version>1.60</bouncycastle.version>
         <httpclient.version>4.5.6</httpclient.version>
+        <javadoc.version>3.0.1</javadoc.version>
         <skipITs>true</skipITs>
         <alpn-boot-version>8.1.7.v20160121</alpn-boot-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jacoco.version>0.7.9</jacoco.version>
+        <jacoco.version>0.8.2</jacoco.version>
         <log4j.version>1.2.17</log4j.version>
         <org.hyperledger.fabric.sdktest.ITSuite>IntegrationSuite.java</org.hyperledger.fabric.sdktest.ITSuite>
         <gpg.executable>gpg2</gpg.executable>
@@ -234,14 +235,14 @@
             <extension>
                 <groupId>kr.motd.maven</groupId>
                 <artifactId>os-maven-plugin</artifactId>
-                <version>1.4.1.Final</version>
+                <version>1.6.1</version>
             </extension>
         </extensions>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.19.1</version>
+                <version>3.0.0-M3</version>
                 <configuration>
                     <argLine>${surefireArgLine}</argLine>
                     <includes>
@@ -253,7 +254,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.19.1</version>
+                <version>3.0.0-M3</version>
                 <configuration>
                     <argLine>${failsafeArgLine}</argLine>
                     <includes>
@@ -303,7 +304,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.3</version>
+                <version>3.8.0</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
@@ -312,7 +313,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.10.4</version>
+                <version>${javadoc.version}</version>
                 <configuration>
                     <excludePackageNames>
                         org.hyperledger.fabric_ca.sdk.helper:org.hyperledger.fabric.protos.*:org.hyperledger.fabric.sdk.helper:org.hyperledger.fabric.sdk.transaction:org.hyperledger.fabric.sdk.security:org.hyperledger.fabric.sdk.idemix
@@ -326,7 +327,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>2.17</version>
+                <version>3.0.0</version>
                 <executions>
                     <execution>
                         <goals>
@@ -339,7 +340,11 @@
                     <logViolationsToConsole>true</logViolationsToConsole>
                     <failOnViolation>true</failOnViolation>
                     <failsOnError>true</failsOnError>
-                    <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
+                    <!--<sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>-->
+                    <sourceDirectories>
+                        <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
+                    </sourceDirectories>
+
                     <configLocation>checkstyle-config.xml</configLocation>
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
                 </configuration>
@@ -479,7 +484,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
-                <version>1.4</version>
+                <version>1.8</version>
                 <executions>
                     <execution>
                         <phase>generate-test-resources</phase>
@@ -498,7 +503,7 @@
             <plugin>
                 <groupId>pl.project13.maven</groupId>
                 <artifactId>git-commit-id-plugin</artifactId>
-                <version>2.2.2</version>
+                <version>2.2.6</version>
                 <executions>
                     <execution>
                         <id>get-the-git-infos</id>
@@ -539,12 +544,13 @@
     <profiles>
         <profile>
             <id>owasp</id>
+            <!-- RUN with mvn -P owasp verify -->
             <build>
                 <plugins>
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>3.2.0</version>
+                        <version>4.0.2</version>
                         <executions>
                             <execution>
                                 <goals>
@@ -565,7 +571,7 @@
                     <plugin>
                         <groupId>org.sonatype.plugins</groupId>
                         <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.6.7</version>
+                        <version>1.6.8</version>  <!-- was 1.6.7 -->
                         <extensions>true</extensions>
                         <configuration>
                             <serverId>ossrh</serverId>
@@ -575,7 +581,7 @@
                     </plugin>
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
-                        <version>2.3</version>
+                        <version>3.1.1</version>  <!-- was 2.3 -->
                         <configuration>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
@@ -596,7 +602,7 @@
                         <configuration>
                             <useAgent>true</useAgent>
                         </configuration>
-                        <version>1.5</version>
+                        <version>1.6</version>  <!-- was 1.5 -->
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
@@ -610,7 +616,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
-                        <version>2.2.1</version>
+                        <version>3.0.1</version>  <!-- was 2.2.1 -->
                         <executions>
                             <execution>
                                 <id>attach-sources</id>
@@ -623,7 +629,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>2.10.4</version>
+                        <version>${javadoc.version}</version>
                         <configuration>
                             <excludePackageNames>
                                 org.hyperledger.fabric_ca.sdk.helper:org.hyperledger.fabric.protos.*:org.hyperledger.fabric.sdk.helper:org.hyperledger.fabric.sdk.transaction:org.hyperledger.fabric.sdk.security
