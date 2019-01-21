@@ -109,7 +109,7 @@ public class TestConfig {
         }
 
         FAB_CONFIG_GEN_VERS = "v" + fabricVersion[0] + "." + fabricVersion[1];
-        if (FAB_CONFIG_GEN_VERS.equalsIgnoreCase("v1.4") || FAB_CONFIG_GEN_VERS.equalsIgnoreCase("v2.0")) { //TODO REMOVE WHEN WE GET A V2.0 GEN
+        if (FAB_CONFIG_GEN_VERS.equalsIgnoreCase("v1.4")) {
             FAB_CONFIG_GEN_VERS = "v1.3";
         }
 

@@ -239,6 +239,11 @@ and execute the following commands:
  * configtxgen --configPath . -outputCreateChannelTx foo.tx -profile TwoOrgsChannel_v13 -channelID foo
  * configtxgen --configPath . -outputCreateChannelTx bar.tx -profile TwoOrgsChannel_v13 -channelID bar
 
+For v2.0 integration, cd to the `src/test/fixture/sdkintegration/e2e-2Orgs/v2.0` directory
+ * configtxgen --configPath . -outputCreateChannelTx v2channel.tx -profile TwoOrgsChannel_v20 -channelID v2channel
+ * configtxgen --configPath . -outputBlock orderer.block -profile TwoOrgsOrdererGenesis_v20 -channelID systemOrdererChannel
+
+
  This should produce the following files in the same directory: orderer.block, foo.tx, and bar.tx
 
  **Note:** The above describes how this was done. If you redo this there are private key files

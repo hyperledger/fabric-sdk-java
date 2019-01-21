@@ -20,6 +20,8 @@ import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 
 /**
  * Instantiate request.
+ * @deprecated See {@link LifecycleCommitChaincodeDefinitionRequest} to define chaincode
+ * then {@link TransactionProposalRequest#setInit(boolean)} to do initialization if required.
  */
 public class InstantiateProposalRequest extends TransactionRequest {
 

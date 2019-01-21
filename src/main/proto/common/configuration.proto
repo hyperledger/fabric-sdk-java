@@ -47,6 +47,7 @@ message Consortium {
     string name = 1;
 }
 
+
 // Capabilities message defines the capabilities a particular binary must implement
 // for that binary to be able to safely participate in the channel.  The capabilities
 // message is defined at the /Channel level, the /Channel/Application level, and the

@@ -29,6 +29,7 @@ message CollectionConfig {
     }
 }
 
+
 // StaticCollectionConfig constitutes the configuration parameters of a
 // static collection object. Static collections are collections that are
 // known at chaincode instantiation time, and that cannot be changed.
@@ -55,7 +56,13 @@ message StaticCollectionConfig {
     // read the data (if set to false, for example if you want to implement more granular
     // access logic in the chaincode)
     bool member_only_read = 6;
+    // The member only write access denotes whether only collection member clients
+    // can write the private data (if set to true), or even non members can
+    // write the data (if set to false, for example if you want to implement more granular
+    // access logic in the chaincode)
+    bool member_only_write = 7;
 }
+
 
 // Collection policy configuration. Initially, the configuration can only
 // contain a SignaturePolicy. In the future, the SignaturePolicy may be a

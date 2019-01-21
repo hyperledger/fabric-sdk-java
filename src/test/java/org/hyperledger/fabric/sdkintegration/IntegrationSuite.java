@@ -49,8 +49,10 @@ public class IntegrationSuite {
                 NetworkConfigIT.class, End2endNodeIT.class, End2endJavaIT.class, End2endAndBackAgainNodeIT.class,
                 End2endIdemixIT.class, PrivateDataIT.class, ServiceDiscoveryIT.class, HFCAClientIT.class));
         runmap.put("1.4", runmap.get("1.3"));
-        runmap.put("2.0", runmap.get("1.3"));
 
+        runmap.put("2.0", Arrays.asList(End2endIT.class, End2endAndBackAgainIT.class, UpdateChannelIT.class,
+                NetworkConfigIT.class, End2endNodeIT.class, End2endJavaIT.class, End2endAndBackAgainNodeIT.class,
+                End2endIdemixIT.class, PrivateDataIT.class, End2endLifecycleIT.class, ServiceDiscoveryIT.class, HFCAClientIT.class));
     }
 
     public static TestSuite suite() {

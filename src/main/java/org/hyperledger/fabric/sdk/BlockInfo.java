@@ -363,8 +363,8 @@ public class BlockInfo {
     /**
      * Return a specific envelope in the block by it's index.
      *
-     * @param envelopeIndex
-     * @return EnvelopeInfo that contains information on the envelope.
+     * @param envelopeIndex the index into list.
+     * @return envelopeIndex the index
      * @throws InvalidProtocolBufferException
      */
 

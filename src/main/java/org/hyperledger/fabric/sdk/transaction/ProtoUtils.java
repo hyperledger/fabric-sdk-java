@@ -141,7 +141,7 @@ public final class ProtoUtils {
 
         }
 
-        ChaincodeInput chaincodeInput = ChaincodeInput.newBuilder().addAllArgs(argList).build();
+        ChaincodeInput chaincodeInput = ChaincodeInput.newBuilder().addAllArgs(argList).setIsInit(false).build();
 
         // Construct the ChaincodeSpec
         ChaincodeSpec chaincodeSpec = ChaincodeSpec.newBuilder().setType(ccType).setChaincodeId(chaincodeID)
@@ -224,12 +224,14 @@ public final class ProtoUtils {
                 }
             }
 
-            logger.debug(format("SignatureHeader: nonce: %s, User:%s, MSPID: %s, idBytes: %s",
-                    toHexString(transactionContext.getNonce()),
-                    user.getName(),
-                    identity.getMspid(),
-                    cert
-            ));
+            if (isDebugLevel) {
+                logger.debug(format("SignatureHeader: nonce: %s, User:%s, MSPID: %s, idBytes: %s",
+                        toHexString(transactionContext.getNonce()),
+                        user.getName(),
+                        identity.getMspid(),
+                        toHexString(cert)
+                ));
+            }
 
         }
         return SignatureHeader.newBuilder()
@@ -590,42 +592,5 @@ public final class ProtoUtils {
 //        // out(printer.print(json));
 //
 //    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }

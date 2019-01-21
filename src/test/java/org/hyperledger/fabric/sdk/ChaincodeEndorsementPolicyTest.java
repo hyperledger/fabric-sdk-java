@@ -52,7 +52,7 @@ public class ChaincodeEndorsementPolicyTest {
      *
      * @throws IOException
      */
-    @Test(expected = IOException.class)
+    @Test (expected = IOException.class)
     public void testPolicyCtorFile() throws IOException {
         ChaincodeEndorsementPolicy policy = new ChaincodeEndorsementPolicy();
         policy.fromFile(new File("/does/not/exists"));
@@ -80,14 +80,16 @@ public class ChaincodeEndorsementPolicyTest {
     @Test
     public void testPolicyCtorByteArray() {
         byte[] testInput = "this is a test".getBytes(UTF_8);
-        ChaincodeEndorsementPolicy fakePolicy = new ChaincodeEndorsementPolicy();
+        ChaincodeEndorsementPolicy fakePolicy = ChaincodeEndorsementPolicy.fromBytes(testInput);
+
         fakePolicy.fromBytes(testInput);
 
-        assertEquals(fakePolicy.getChaincodeEndorsementPolicyAsBytes(), testInput);
+        assertArrayEquals(fakePolicy.getChaincodeEndorsementPolicyAsBytes(), testInput);
     }
 
     /**
      * Test method for {@link ChaincodeEndorsementPolicy#fromYamlFile(File)}
+     *
      * @throws IOException
      * @throws ChaincodeEndorsementPolicyParseException
      */

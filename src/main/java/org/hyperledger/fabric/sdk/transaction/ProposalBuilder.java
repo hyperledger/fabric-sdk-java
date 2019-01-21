@@ -49,7 +49,7 @@ public class ProposalBuilder {
     private static final boolean IS_DEBUG_LEVEL = logger.isDebugEnabled();
 
     private Chaincode.ChaincodeID chaincodeID;
-    private List<ByteString> argList;
+    protected List<ByteString> argList;
     protected TransactionContext context;
     protected TransactionRequest request;
     protected ChaincodeSpec.Type ccType = ChaincodeSpec.Type.GOLANG;
@@ -57,6 +57,12 @@ public class ProposalBuilder {
 
     // The channel that is being targeted . note blank string means no specific channel
     private String channelID;
+
+    protected void setInit(boolean init) {
+        isInit = init;
+    }
+
+    private boolean isInit = false;
 
     protected ProposalBuilder() {
     }
@@ -85,8 +91,7 @@ public class ProposalBuilder {
 
     public ProposalBuilder request(TransactionRequest request) throws InvalidArgumentException {
         this.request = request;
-
-        chaincodeID(request.getChaincodeID().getFabricChaincodeID());
+        chaincodeID(request.getFabricChaincodeID());
 
         switch (request.getChaincodeLanguage()) {
             case JAVA:
@@ -103,6 +108,7 @@ public class ProposalBuilder {
         }
 
         transientMap = request.getTransientMap();
+        isInit = request.isInit();
 
         return this;
     }
@@ -111,10 +117,10 @@ public class ProposalBuilder {
         if (request != null && request.noChannelID()) {
             channelID = "";
         }
-        return createFabricProposal(channelID, chaincodeID);
+        return createFabricProposal(channelID, chaincodeID, isInit);
     }
 
-    private FabricProposal.Proposal createFabricProposal(String channelID, Chaincode.ChaincodeID chaincodeID) {
+    private FabricProposal.Proposal createFabricProposal(String channelID, Chaincode.ChaincodeID chaincodeID, boolean isInit) {
         if (null == transientMap) {
             transientMap = Collections.emptyMap();
         }
@@ -133,7 +139,8 @@ public class ProposalBuilder {
 
         ChaincodeInvocationSpec chaincodeInvocationSpec = createChaincodeInvocationSpec(
                 chaincodeID,
-                ccType);
+                ccType,
+                isInit);
 
         //Convert to bytestring map.
         Map<String, ByteString> bsm = Collections.EMPTY_MAP;
@@ -164,7 +171,7 @@ public class ProposalBuilder {
 
     }
 
-    private ChaincodeInvocationSpec createChaincodeInvocationSpec(Chaincode.ChaincodeID chaincodeID, ChaincodeSpec.Type langType) {
+    private ChaincodeInvocationSpec createChaincodeInvocationSpec(Chaincode.ChaincodeID chaincodeID, ChaincodeSpec.Type langType, boolean isInit) {
 
         List<ByteString> allArgs = new ArrayList<>();
 
@@ -197,11 +204,11 @@ public class ProposalBuilder {
 
             StringBuilder logout = new StringBuilder(1000);
 
-            logout.append(format("ChaincodeInvocationSpec type: %s, chaincode name: %s, chaincode path: %s, chaincode version: %s",
-                    langType.name(), chaincodeID.getName(), chaincodeID.getPath(), chaincodeID.getVersion()));
+            logout.append(format("ChaincodeInvocationSpec type: %s, chaincode name: %s, chaincode path: %s, chaincode version: %s, isInit: %b",
+                    langType.name(), chaincodeID.getName(), chaincodeID.getPath(), chaincodeID.getVersion(), isInit));
 
             String sep = "";
-            logout.append(" args(");
+            logout.append(", args(");
 
             for (ByteString x : allArgs) {
                 logout.append(sep).append("\"").append(logString(new String(x.toByteArray(), UTF_8))).append("\"");
@@ -214,7 +221,7 @@ public class ProposalBuilder {
 
         }
 
-        ChaincodeInput chaincodeInput = ChaincodeInput.newBuilder().addAllArgs(allArgs).build();
+        ChaincodeInput chaincodeInput = ChaincodeInput.newBuilder().addAllArgs(allArgs).setIsInit(isInit).build();
 
         ChaincodeSpec chaincodeSpec = ChaincodeSpec.newBuilder()
                 .setType(langType)

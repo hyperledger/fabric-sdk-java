@@ -19,6 +19,7 @@ import java.util.Map;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 
 /**
+ * @deprecated New lifecycle upgrade is like install with new version. see {@link LifecycleCommitChaincodeDefinitionRequest}
  * Upgrade chaincode proposal request.
  */
 public class UpgradeProposalRequest extends TransactionRequest {

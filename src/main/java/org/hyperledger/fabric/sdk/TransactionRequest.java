@@ -16,8 +16,10 @@ package org.hyperledger.fabric.sdk;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
+import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Config;
 
@@ -25,6 +27,7 @@ import org.hyperledger.fabric.sdk.helper.Config;
  * A base transaction request common for InstallProposalRequest,trRequest, and QueryRequest.
  */
 public class TransactionRequest {
+    protected boolean init = false;
     private User userContext;
 
     boolean submitted = false;
@@ -33,6 +36,11 @@ public class TransactionRequest {
 
     // The local path containing the chaincode to deploy in network mode.
     protected String chaincodePath;
+
+    public void setChaincodeName(String chaincodeName) {
+        this.chaincodeName = chaincodeName;
+    }
+
     // The name identifier for the chaincode to deploy in development mode.
     protected String chaincodeName;
 
@@ -115,20 +123,14 @@ public class TransactionRequest {
         return null == chaincodePath ? "" : chaincodePath;
     }
 
-    public TransactionRequest setChaincodePath(String chaincodePath) {
-
-        this.chaincodePath = chaincodePath;
-        return this;
-    }
-
     public String getChaincodeName() {
         return chaincodeName;
     }
 
-    public TransactionRequest setChaincodeName(String chaincodeName) {
-        this.chaincodeName = chaincodeName;
-        return this;
-    }
+//    public TransactionRequest setChaincodeName(String chaincodeName) {
+//        this.chaincodeName = chaincodeName;
+//        return this;
+//    }
 
     public TransactionRequest setChaincodeVersion(String chaincodeVersion) {
         this.chaincodeVersion = chaincodeVersion;
@@ -184,10 +186,10 @@ public class TransactionRequest {
         return this;
     }
 
-    public TransactionRequest setArgBytes(ArrayList<byte[]> args) {
-        this.argBytes = args;
-        return this;
-    }
+//    public TransactionRequest setArgBytes(ArrayList<byte[]> args) {
+//        this.argBytes = args;
+//        return this;
+//    }
 
     public ArrayList<byte[]> getArgBytes() {
         return argBytes;
@@ -217,11 +219,70 @@ public class TransactionRequest {
         return this;
     }
 
+    public Chaincode.ChaincodeID getFabricChaincodeID() {
+
+        ChaincodeID chaincodeID = getChaincodeID();
+        Chaincode.ChaincodeID fabricChaincodeID = null;
+
+        if (null == chaincodeID) {
+
+            Chaincode.ChaincodeID.Builder builder = Chaincode.ChaincodeID.newBuilder().setName(getChaincodeName());
+            if (getChaincodeVersion() != null) {
+                builder.setVersion(getChaincodeVersion());
+            }
+            if (getChaincodePath() != null) {
+                builder.setPath(getChaincodePath());
+            }
+            fabricChaincodeID = builder.build();
+
+        } else {
+            fabricChaincodeID = chaincodeID.getFabricChaincodeID();
+        }
+
+        return fabricChaincodeID;
+
+    }
+
+    public void setInit(boolean init) {
+        this.init = init;
+    }
+
+    public boolean isInit() {
+        return init;
+    }
+
     //Mirror Fabric try not expose any of its classes
     public enum Type {
         JAVA,
         GO_LANG,
-        NODE
+        NODE;
+
+        private static final Map<Type, String> cpv = new HashMap<>(4);
+        private static final Map<String, Type> cpvr = new HashMap<>(4);
+
+        static {
+            cpv.put(Type.JAVA, "java");
+            cpv.put(Type.GO_LANG, "golang");
+            cpv.put(Type.NODE, "node");
+
+            cpvr.put("java", Type.JAVA);
+            cpvr.put("golang", Type.GO_LANG);
+            cpvr.put("node", Type.NODE);
+        }
+
+        public String toPackageName() {
+            String ret = cpv.get(this);
+            if (null == ret) {
+                ret = "golang";
+            }
+            return ret;
+        }
+
+        public static Type fromPackageName(String name) {
+            Type ret = cpvr.get(name);
+            return ret;
+
+        }
     }
 
     public Type getChaincodeLanguage() {

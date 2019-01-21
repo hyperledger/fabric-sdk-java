@@ -33,7 +33,7 @@ type SimpleChaincode struct {
 }
 
 func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
-	logger.Info("########### example_cc Init ###########")
+	logger.Info("########### sample_11 example_cc Init ###########")
 
 	_, args := stub.GetFunctionAndParameters()
 	var A, B string    // Entities
@@ -41,7 +41,7 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
 	var err error
 
 	if len(args) == 0 {
-		logger.Info("###########  init JUST upgrading example_cc11 Invoke code ###########")
+		logger.Info("########### sample_11  init JUST upgrading example_cc11 Invoke code ###########")
 		return shim.Success(nil)
 	}
 
@@ -83,9 +83,11 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface) pb.Response {
 
 // Transaction makes payment of X units from A to B
 func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
-	logger.Info("########### example_cc11 Invoke ###########")
+	logger.Info("########### sample_11  example_cc11 Invoke ###########")
 
 	function, args := stub.GetFunctionAndParameters()
+
+	logger.Info("########### sample_11  example_cc11 Invoke:" + function + "###########")
 
 	if function == "delete" {
 		// Deletes an entity from its state
@@ -107,6 +109,7 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 }
 
 func (t *SimpleChaincode) move(stub shim.ChaincodeStubInterface, args []string) pb.Response {
+    logger.Info("########### sample_11  example_cc11 move ###########")
 	// must be an invoke
 	var A, B string    // Entities
 	var Aval, Bval int // Asset holdings
@@ -220,6 +223,7 @@ func (t *SimpleChaincode) query(stub shim.ChaincodeStubInterface, args []string)
 }
 
 func main() {
+    logger.Info("########### sample_11  example_cc11 main ###########")
 	err := shim.Start(new(SimpleChaincode))
 	if err != nil {
 		logger.Errorf("Error starting Simple chaincode: %s", err)

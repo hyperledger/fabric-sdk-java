@@ -16,10 +16,8 @@ package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.nio.file.Paths;
-import java.security.PrivateKey;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -34,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.commons.codec.binary.Hex;
-import org.bouncycastle.openssl.PEMWriter;
 import org.hyperledger.fabric.protos.ledger.rwset.kvrwset.KvRwset;
 import org.hyperledger.fabric.sdk.BlockEvent;
 import org.hyperledger.fabric.sdk.BlockInfo;
@@ -78,6 +75,7 @@ import static org.hyperledger.fabric.sdk.BlockInfo.EnvelopeType.TRANSACTION_ENVE
 import static org.hyperledger.fabric.sdk.Channel.NOfEvents.createNofEvents;
 import static org.hyperledger.fabric.sdk.Channel.PeerOptions.createPeerOptions;
 import static org.hyperledger.fabric.sdk.Channel.TransactionOptions.createTransactionOptions;
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.getPEMStringFromPrivateKey;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.testRemovingAddingPeersOrderers;
 import static org.junit.Assert.assertEquals;
@@ -316,17 +314,6 @@ public class End2endIT {
             sampleOrg.addUser(user);
             sampleOrg.setAdmin(admin); // The admin of this org --
         }
-    }
-
-    static String getPEMStringFromPrivateKey(PrivateKey privateKey) throws IOException {
-        StringWriter pemStrWriter = new StringWriter();
-        PEMWriter pemWriter = new PEMWriter(pemStrWriter);
-
-        pemWriter.writeObject(privateKey);
-
-        pemWriter.close();
-
-        return pemStrWriter.toString();
     }
 
     Map<String, Long> expectedMoveRCMap = new HashMap<>(); // map from channel name to move chaincode's return code.
@@ -885,7 +872,6 @@ public class End2endIT {
         for (Orderer orderer : orderers) { //add remaining orderers if any.
             newChannel.addOrderer(orderer);
         }
-
 
         newChannel.initialize();
 

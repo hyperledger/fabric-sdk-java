@@ -50,6 +50,11 @@ import static java.lang.String.format;
 public class ChaincodeCollectionConfiguration {
     private static final Log logger = LogFactory.getLog(ChaincodeCollectionConfiguration.class);
     private static final Pattern noofPattern = Pattern.compile("^(\\d+)-of$");
+
+    Collection.CollectionConfigPackage getCollectionConfigPackage() {
+        return collectionConfigPackage;
+    }
+
     private Collection.CollectionConfigPackage collectionConfigPackage = null;
 
     ChaincodeCollectionConfiguration(JsonArray jsonConfig) throws ChaincodeCollectionConfigurationException {

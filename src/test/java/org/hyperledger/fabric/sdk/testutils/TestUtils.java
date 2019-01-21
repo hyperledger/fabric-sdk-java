@@ -17,6 +17,8 @@
 package org.hyperledger.fabric.sdk.testutils;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -35,6 +37,7 @@ import java.util.zip.GZIPInputStream;
 import com.google.protobuf.ByteString;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.bouncycastle.openssl.PEMWriter;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -482,6 +485,17 @@ public class TestUtils {
                     .setIdBytes(ByteString.copyFromUtf8(cert))
                     .setMspid(mspId).build();
         }
+    }
+
+    public static String getPEMStringFromPrivateKey(PrivateKey privateKey) throws IOException {
+        StringWriter pemStrWriter = new StringWriter();
+        PEMWriter pemWriter = new PEMWriter(pemStrWriter);
+
+        pemWriter.writeObject(privateKey);
+
+        pemWriter.close();
+
+        return pemStrWriter.toString();
     }
 
 }

@@ -805,7 +805,7 @@ public class End2endAndBackAgainIT {
                         useFilteredBlocks ? blockEvent.isFiltered() : !blockEvent.isFiltered());
                 final long count = bcount.getAndIncrement(); //count starts with 0 not 1 !
 
-                //out("Block count: %d, block number: %d  received from peer: %s", count, blockNumber, blockEvent.getPeer().getName());
+                //out("Block count: %d, block number: %d  received from peer: %s", count, blockNumber, blockEvent.getPeer().getLabel());
 
                 if (count == 0 && stop == -1L) {
                     final BlockchainInfo blockchainInfo = finalChannel.queryBlockchainInfo();
