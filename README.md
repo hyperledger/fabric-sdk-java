@@ -47,7 +47,7 @@ For Java applications use the latest published v1.4.x releases:
      <dependency>
          <groupId>org.hyperledger.fabric-sdk-java</groupId>
          <artifactId>fabric-sdk-java</artifactId>
-         <version>1.4.0/version>
+         <version>1.4.0</version>
      </dependency>
 
 ```
