@@ -14,11 +14,8 @@
 
 package org.hyperledger.fabric.sdk;
 
-//Allow throwing undeclared checked execeptions in mock code.
-//CHECKSTYLE.OFF: IllegalImport
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -51,7 +48,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import sun.misc.Unsafe;
 
 import static org.hyperledger.fabric.sdk.Channel.PeerOptions.createPeerOptions;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.assertArrayListEquals;
@@ -61,8 +57,6 @@ import static org.hyperledger.fabric.sdk.testutils.TestUtils.setField;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.tarBytesToEntryArrayList;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-
-//CHECKSTYLE.ON: IllegalImport
 
 public class ChannelTest {
 
@@ -976,7 +970,7 @@ public class ChannelTest {
         @Override
         public ListenableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal) throws PeerException {
             if (throwThis != null) {
-                getUnsafe().throwException(throwThis);
+                UncheckedThrow.throwUnchecked(throwThis);
             }
             return returnedFuture;
 
@@ -989,14 +983,17 @@ public class ChannelTest {
 
         }
 
-        private Unsafe getUnsafe() {  //lets us throw undeclared exceptions.
-            try {
-                Field field = Unsafe.class.getDeclaredField("theUnsafe");
-                field.setAccessible(true);
-                return (Unsafe) field.get(null);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+    }
+
+    public static final class UncheckedThrow {
+        private UncheckedThrow(){}
+
+        public static void throwUnchecked(final Throwable ex){
+            UncheckedThrow.<RuntimeException>throwsUnchecked(ex);
+        }
+
+        private static <T extends Throwable> void throwsUnchecked(Throwable toThrow) throws T{
+            throw (T) toThrow;
         }
     }
 
