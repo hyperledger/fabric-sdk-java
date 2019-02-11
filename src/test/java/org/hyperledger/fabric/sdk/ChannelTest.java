@@ -18,13 +18,16 @@ package org.hyperledger.fabric.sdk;
 //CHECKSTYLE.OFF: IllegalImport
 
 import java.io.File;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -59,6 +62,7 @@ import static org.hyperledger.fabric.sdk.testutils.TestUtils.getMockUser;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.matchesRegex;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.setField;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.tarBytesToEntryArrayList;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -225,7 +229,6 @@ public class ChannelTest {
 
     }
 
-
     @Test
     public void testChannelInitialize() throws Exception { //test may not be doable once initialize is done
 
@@ -315,8 +318,6 @@ public class ChannelTest {
         shutdownChannel.addOrderer(hfclient.newOrderer("name", "grpc://myurl:90"));
 
     }
-
-
 
     @Test
     public void testChannelShutdownJoinPeer() throws Exception {
@@ -463,6 +464,99 @@ public class ChannelTest {
 
         createRunningChannel("testTwoChannelsSameName", null);
         createRunningChannel("testTwoChannelsSameName", null);
+
+    }
+
+    @Test
+    public void testSD() throws Exception {
+
+        Channel sd = createRunningChannel("testTwoChannelsSameName", null);
+
+        Class<?>[] declaredClasses = Channel.class.getDeclaredClasses();
+        Class n = null;
+        for (Class c : declaredClasses) {
+
+            if ("org.hyperledger.fabric.sdk.Channel$SDOPeerDefaultAddition".equals(c.getName())) {
+                n = c;
+                break;
+            }
+
+        }
+        Constructor declaredConstructor = n.getDeclaredConstructor(Properties.class);
+        Properties properties1 = new Properties();
+        properties1.put("org.hyperledger.fabric.sdk.discovery.default.clientKeyBytes", new byte[] {1, 2, 3});
+        properties1.put("org.hyperledger.fabric.sdk.discovery.default.clientCertBytes", new byte[] {1, 2, 4});
+        properties1.put("org.hyperledger.fabric.sdk.discovery.endpoint.clientKeyBytes.2.1.3.4", new byte[] {9, 2, 4});
+        properties1.put("org.hyperledger.fabric.sdk.discovery.endpoint.clientKeyBytes.2.1.3.4:88", new byte[] {88, 2, 4});
+        properties1.put("org.hyperledger.fabric.sdk.discovery.mspid.clientCertBytes.SPECIAL", new byte[] {1, 2, 9});
+        Object o1 = declaredConstructor.newInstance(properties1);
+
+        setField(sd, "sdPeerAddition", o1);
+        setField(sd, "initialized", false);
+
+        //   invokeMethod(Channel.class, "init", null);
+        //   new Channel.SDOPeerDefaultAddition(null);
+        final String[] discoveredEndpoint = new String[] {"1.1.1.1:10"};
+        final String[] discoveredMSPID = new String[] {"MSPID"};
+
+        final Channel.SDPeerAdditionInfo sdPeerAdditionInfo = new Channel.SDPeerAdditionInfo() {
+            @Override
+            public String getMspId() {
+                return discoveredMSPID[0];
+            }
+
+            @Override
+            public String getEndpoint() {
+                return discoveredEndpoint[0];
+            }
+
+            @Override
+            public Channel getChannel() {
+                return sd;
+            }
+
+            @Override
+            public HFClient getClient() {
+                return hfclient;
+            }
+
+            @Override
+            public byte[][] getTLSCerts() {
+                return new byte[0][];
+            }
+
+            @Override
+            public byte[][] getTLSIntermediateCerts() {
+                return new byte[0][];
+            }
+
+            @Override
+            public Map<String, Peer> getEndpointMap() {
+                return new HashMap<>();
+            }
+        };
+
+        Peer peer = sd.sdPeerAddition.addPeer(sdPeerAdditionInfo);
+        Properties properties = peer.getProperties();
+
+        assertArrayEquals(new byte[] {1, 2, 3}, (byte[]) properties.get("clientKeyBytes"));
+        assertArrayEquals(new byte[] {1, 2, 4}, (byte[]) properties.get("clientCertBytes"));
+        discoveredEndpoint[0] = "1.1.1.3:33";
+
+        discoveredMSPID[0] = "SPECIAL";
+        peer = sd.sdPeerAddition.addPeer(sdPeerAdditionInfo);
+        properties = peer.getProperties();
+        assertArrayEquals(new byte[] {1, 2, 9}, (byte[]) properties.get("clientCertBytes"));
+
+        discoveredEndpoint[0] = "2.1.3.4:99";
+        peer = sd.sdPeerAddition.addPeer(sdPeerAdditionInfo);
+        properties = peer.getProperties();
+        assertArrayEquals(new byte[] {9, 2, 4}, (byte[]) properties.get("clientKeyBytes"));
+
+        discoveredEndpoint[0] = "2.1.3.4:88";
+        peer = sd.sdPeerAddition.addPeer(sdPeerAdditionInfo);
+        properties = peer.getProperties();
+        assertArrayEquals(new byte[] {88, 2, 4}, (byte[]) properties.get("clientKeyBytes"));
 
     }
 

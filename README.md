@@ -282,6 +282,12 @@ On the Peer or Orderer add the property `grpc.NettyChannelBuilderOption.maxInbou
 See [End2endIT's constructChannel](https://github.com/hyperledger/fabric-sdk-java/blob/b649868113e969d851720c972f660114b64247bc/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java#L846)
 
 
+### Configuration and setting default values - timeouts etc
+
+The SDK's defaults are all in the file [Config.java](https://github.com/hyperledger/fabric-sdk-java/blob/a2140f9bba57a63c58d9ee8579fea7164bf3beb2/src/main/java/org/hyperledger/fabric/sdk/helper/Config.java#L33-L40)
+The [config.properties](https://github.com/hyperledger/fabric-sdk-java/blob/a2140f9bba57a63c58d9ee8579fea7164bf3beb2/config.properties)
+also has some descriptions on what they do.  Most server timeout request can be overridden with the specific request too.
+
 ### java.security.InvalidKeyException: Illegal key size
 
 If you get this error, this means your JDK does not capable of handling unlimited strength crypto algorithms. To fix this issue, You will need to download the JCE libraries for your version of JDK. Please follow the instructions <a href="http://stackoverflow.com/questions/6481627/java-security-illegal-key-size-or-default-parameters">here</a> to download and install the JCE for your version of the JDK.
