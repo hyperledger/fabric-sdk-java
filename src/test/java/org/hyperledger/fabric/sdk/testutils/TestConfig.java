@@ -63,8 +63,10 @@ public class TestConfig {
     private static final String DEPLOYWAITTIME = PROPBASE + "DeployWaitTime";
     private static final String PROPOSALWAITTIME = PROPBASE + "ProposalWaitTime";
     private static final String RUNIDEMIXMTTEST = PROPBASE + "RunIdemixMTTest";  // org.hyperledger.fabric.sdktest.RunIdemixMTTest ORG_HYPERLEDGER_FABRIC_SDKTEST_RUNIDEMIXMTTEST
+    private static final String RUNSERVICEDISCOVERYIT = PROPBASE + "runServiceDiscoveryIT";  // org.hyperledger.fabric.sdktest.RunIdemixMTTest ORG_HYPERLEDGER_FABRIC_SDKTEST_RUNIDEMIXMTTEST
 
     private static final String INTEGRATIONTESTS_ORG = PROPBASE + "integrationTests.org.";
+
     private static final Pattern orgPat = Pattern.compile("^" + Pattern.quote(INTEGRATIONTESTS_ORG) + "([^\\.]+)\\.mspid$");
 
     private static final String INTEGRATIONTESTSTLS = PROPBASE + "integrationtests.tls";
@@ -129,6 +131,7 @@ public class TestConfig {
             defaultProperty(DEPLOYWAITTIME, "120000");
             defaultProperty(PROPOSALWAITTIME, "120000");
             defaultProperty(RUNIDEMIXMTTEST, "false");
+            defaultProperty(RUNSERVICEDISCOVERYIT, "false");
 
             //////
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.mspid", "Org1MSP");
@@ -231,6 +234,17 @@ public class TestConfig {
     public boolean isFabricVersionBefore(String version) {
 
         return !isFabricVersionAtOrAfter(version);
+    }
+
+    /**
+     * Service discovery needs enteries in et/hosts to resolve names to run successfully.
+     * By default turn off.
+     *
+     * @return true to run service discovery integration test.
+     */
+
+    public boolean runServiceDiscoveryIT() {
+        return Objects.equals("true", sdkProperties.get(RUNSERVICEDISCOVERYIT));
     }
 
     private static int[] parseVersion(String version) {
@@ -460,7 +474,6 @@ public class TestConfig {
                 sourceText = sourceText.replaceAll("http://localhost", "http://" + LOCALHOST);
                 sourceText = sourceText.replaceAll("grpcs://localhost", "grpcs://" + LOCALHOST);
                 sourceText = sourceText.replaceAll("grpc://localhost", "grpc://" + LOCALHOST);
-
 
                 Files.write(Paths.get(temp.getAbsolutePath()), sourceText.getBytes(StandardCharsets.UTF_8),
                         StandardOpenOption.CREATE_NEW, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
