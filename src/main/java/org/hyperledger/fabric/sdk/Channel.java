@@ -654,8 +654,8 @@ public class Channel implements Serializable {
         if (peerOptions.getPeerRoles().contains(PeerRole.SERVICE_DISCOVERY)) {
 
             final Properties properties = peer.getProperties();
-            if ((properties == null) || (isNullOrEmpty(properties.getProperty("clientCertFile")) &&
-                    isNullOrEmpty(properties.getProperty("clientCertBytes")))) {
+            if ((properties == null) || properties.isEmpty() || (isNullOrEmpty(properties.getProperty("clientCertFile")) &&
+                    !properties.containsKey("clientCertBytes"))) {
                 TLSCertificateBuilder tlsCertificateBuilder = new TLSCertificateBuilder();
                 TLSCertificateKeyPair tlsCertificateKeyPair = tlsCertificateBuilder.clientCert();
                 peer.setTLSCertificateKeyPair(tlsCertificateKeyPair);
@@ -1466,30 +1466,30 @@ public class Channel implements Serializable {
             final String endpoint = sdOrdererAdditionInfo.getEndpoint();
             final String mspid = sdOrdererAdditionInfo.getMspId();
 
-            String protocol = findClientProp(config, "protocol", mspid, endpoint, "grpcs:");
+            String protocol = (String) findClientProp(config, "protocol", mspid, endpoint, "grpcs:");
 
-            String clientCertFile = findClientProp(config, "clientCertFile", mspid, endpoint, null);
+            String clientCertFile = (String) findClientProp(config, "clientCertFile", mspid, endpoint, null);
 
             if (null != clientCertFile) {
                 properties.put("clientCertFile", clientCertFile);
             }
 
-            String clientKeyFile = findClientProp(config, "clientKeyFile", mspid, endpoint, null);
+            String clientKeyFile = (String) findClientProp(config, "clientKeyFile", mspid, endpoint, null);
             if (null != clientKeyFile) {
                 properties.put("clientKeyFile", clientKeyFile);
             }
 
-            String clientCertBytes = findClientProp(config, "clientCertBytes", mspid, endpoint, null);
+            byte[] clientCertBytes = (byte[]) findClientProp(config, "clientCertBytes", mspid, endpoint, null);
             if (null != clientCertBytes) {
                 properties.put("clientCertBytes", clientCertBytes);
             }
 
-            String clientKeyBytes = findClientProp(config, "clientKeyBytes", mspid, endpoint, null);
+            byte[] clientKeyBytes = (byte[]) findClientProp(config, "clientKeyBytes", mspid, endpoint, null);
             if (null != clientKeyBytes) {
                 properties.put("clientKeyBytes", clientKeyBytes);
             }
 
-            String hostnameOverride = findClientProp(config, "hostnameOverride", mspid, endpoint, null);
+            String hostnameOverride = (String) findClientProp(config, "hostnameOverride", mspid, endpoint, null);
             if (null != hostnameOverride) {
                 properties.put("hostnameOverride", hostnameOverride);
             }
@@ -1523,9 +1523,7 @@ public class Channel implements Serializable {
             final String endpoint = sdPeerAddition.getEndpoint();
             final String mspid = sdPeerAddition.getMspId();
 
-            String protocol = findClientProp(config, "protocol", mspid, endpoint, "grpcs:");
-
-            String clientCertFile = findClientProp(config, "clientCertFile", mspid, endpoint, null);
+            String protocol = (String) findClientProp(config, "protocol", mspid, endpoint, "grpcs:");
 
             Peer peer = sdPeerAddition.getEndpointMap().get(endpoint); // maybe there already.
             if (null != peer) {
@@ -1533,26 +1531,24 @@ public class Channel implements Serializable {
 
             }
 
-            if (null != clientCertFile) {
+            String clientCertFile = (String) findClientProp(config, "clientCertFile", mspid, endpoint, null);
+
+            byte[] clientCertBytes = (byte[]) findClientProp(config, "clientCertBytes", mspid, endpoint, null);
+            if (null != clientCertBytes) {
+                properties.put("clientCertBytes", clientCertBytes);
+            } else if (null != clientCertFile) {
                 properties.put("clientCertFile", clientCertFile);
             }
 
-            String clientKeyFile = findClientProp(config, "clientKeyFile", mspid, endpoint, null);
-            if (null != clientKeyFile) {
+            byte[] clientKeyBytes = (byte[]) findClientProp(config, "clientKeyBytes", mspid, endpoint, null);
+            String clientKeyFile = (String) findClientProp(config, "clientKeyFile", mspid, endpoint, null);
+            if (null != clientKeyBytes) {
+                properties.put("clientKeyBytes", clientKeyBytes);
+            } else if (null != clientKeyFile) {
                 properties.put("clientKeyFile", clientKeyFile);
             }
 
-            String clientCertBytes = findClientProp(config, "clientCertBytes", mspid, endpoint, null);
-            if (null != clientCertBytes) {
-                properties.put("clientCertBytes", clientCertBytes);
-            }
-
-            String clientKeyBytes = findClientProp(config, "clientKeyBytes", mspid, endpoint, null);
-            if (null != clientKeyBytes) {
-                properties.put("clientKeyBytes", clientKeyBytes);
-            }
-
-            String hostnameOverride = findClientProp(config, "hostnameOverride", mspid, endpoint, null);
+            String hostnameOverride = (String) findClientProp(config, "hostnameOverride", mspid, endpoint, null);
             if (null != hostnameOverride) {
                 properties.put("hostnameOverride", hostnameOverride);
             }
@@ -1573,16 +1569,15 @@ public class Channel implements Serializable {
         }
     }
 
-    static String findClientProp(Properties config, final String prop, final String mspid, final String endpoint, String def) {
+    static Object findClientProp(Properties config, final String prop, final String mspid, final String endpoint, String def) {
         final String[] split = endpoint.split(":");
         final String endpointHost = split[0];
 
-        String ret = config.getProperty("org.hyperledger.fabric.sdk.discovery.default." + prop, def);
-        ret = config.getProperty("org.hyperledger.fabric.sdk.discovery.mspid." + prop + "." + mspid, ret);
-        ret = config.getProperty("org.hyperledger.fabric.sdk.discovery.endpoint." + prop + "." + endpointHost, ret);
-        ret = config.getProperty("org.hyperledger.fabric.sdk.discovery.endpoint." + prop + "." + endpoint, ret);
+        Object ret = config.getOrDefault("org.hyperledger.fabric.sdk.discovery.default." + prop, def);
+        ret = config.getOrDefault("org.hyperledger.fabric.sdk.discovery.mspid." + prop + "." + mspid, ret);
+        ret = config.getOrDefault("org.hyperledger.fabric.sdk.discovery.endpoint." + prop + "." + endpointHost, ret);
+        ret = config.getOrDefault("org.hyperledger.fabric.sdk.discovery.endpoint." + prop + "." + endpoint, ret);
         return ret;
-
     }
 
     /**

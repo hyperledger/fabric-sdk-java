@@ -47,7 +47,7 @@ For Java applications use the latest published v1.4.x releases:
      <dependency>
          <groupId>org.hyperledger.fabric-sdk-java</groupId>
          <artifactId>fabric-sdk-java</artifactId>
-         <version>1.4.0/version>
+         <version>1.4.1</version>
      </dependency>
 
 ```
@@ -281,6 +281,12 @@ The message being returned from the fabric server is too large for the default g
 On the Peer, Orderer, orEventHub add the property `grpc.NettyChannelBuilderOption.maxInboundMessageSize`
 See [End2endIT's constructChannel](https://github.com/hyperledger/fabric-sdk-java/blob/b649868113e969d851720c972f660114b64247bc/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java#L846)
 
+
+### Configuration and setting default values - timeouts etc
+
+The SDK's defaults are all in the file [Config.java](https://github.com/hyperledger/fabric-sdk-java/blob/a2140f9bba57a63c58d9ee8579fea7164bf3beb2/src/main/java/org/hyperledger/fabric/sdk/helper/Config.java#L33-L40)
+The [config.properties](https://github.com/hyperledger/fabric-sdk-java/blob/a2140f9bba57a63c58d9ee8579fea7164bf3beb2/config.properties)
+also has some descriptions on what they do.  Most server timeout request can be overridden with the specific request too.
 
 ### java.security.InvalidKeyException: Illegal key size
 

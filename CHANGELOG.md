@@ -1,3 +1,8 @@
+## v1.4.1
+Tue Mar  5 10:41:02 EST 2019
+
+* [461a5e8](https://github.com/hyperledger/fabric-sdk-java/commit/461a5e8) FABJ-406 Service Discovery TLS Error Using Cert Bytes
+
 ## v1.4.0
 Thu Dec 13 10:19:04 EST 2018
 
