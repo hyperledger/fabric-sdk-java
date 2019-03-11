@@ -28,10 +28,10 @@
         <tag>fabric-sdk-java-1.0</tag>
     </scm>
     <properties>
-        <grpc.version>1.18.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
-        <protobuf.version>3.6.1</protobuf.version>
-        <bouncycastle.version>1.60</bouncycastle.version>
-        <httpclient.version>4.5.6</httpclient.version>
+        <grpc.version>1.19.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
+        <protobuf.version>3.7.0</protobuf.version>
+        <bouncycastle.version>1.61</bouncycastle.version>
+        <httpclient.version>4.5.7</httpclient.version>
         <javadoc.version>3.0.1</javadoc.version>
         <skipITs>true</skipITs>
         <alpn-boot-version>8.1.7.v20160121</alpn-boot-version>
@@ -178,6 +178,17 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>com.spotify</groupId>
+            <artifactId>futures-extra</artifactId>
+            <version>4.1.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.api</groupId>
+            <artifactId>api-common</artifactId>
+            <version>1.7.0</version>
+            <scope>provided</scope><!-- so only used for compilation to work, not needed at runtime -->
+        </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.glassfish/javax.json -->
         <dependency>
@@ -205,7 +216,7 @@
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
-            <version>1.23</version>
+            <version>1.24</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.miracl.milagro.amcl/milagro-crypto-java -->

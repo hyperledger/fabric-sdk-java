@@ -14,9 +14,11 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import com.spotify.futures.CompletableFuturesExtra;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.apache.commons.logging.Log;
@@ -110,18 +112,35 @@ class EndorserClient {
         }
     }
 
-    public ListenableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal) throws PeerException {
+    public CompletableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal) {
         if (shutdown) {
-            throw new PeerException("Shutdown " + toString());
+            CompletableFuture<FabricProposalResponse.ProposalResponse> ret = new CompletableFuture<>();
+            ret.completeExceptionally(new PeerException("Shutdown " + toString()));
+            return ret;
         }
-        return futureStub.processProposal(proposal);
+
+        CompletableFuture<FabricProposalResponse.ProposalResponse> future = CompletableFuturesExtra.toCompletableFuture(futureStub.processProposal(proposal));
+
+        return future.exceptionally(throwable -> {
+            throw new CompletionException(format("%s %s", toString, throwable.getMessage()), throwable);
+        });
+
+        //  return CompletableFuturesExtra.toCompletableFuture(futureStub.processProposal(proposal));
+        //  return futureStub.processProposal(proposal);
     }
 
-    public ListenableFuture<Protocol.Response> sendDiscoveryRequestAsync(Protocol.SignedRequest signedRequest) throws PeerException {
+    public CompletableFuture<Protocol.Response> sendDiscoveryRequestAsync(Protocol.SignedRequest signedRequest) {
         if (shutdown) {
-            throw new PeerException("Shutdown " + toString());
+            CompletableFuture<Protocol.Response> ret = new CompletableFuture<>();
+            ret.completeExceptionally(new PeerException("Shutdown " + toString()));
+            return ret;
         }
-        return discoveryFutureStub.discover(signedRequest);
+
+        CompletableFuture<Protocol.Response> future = CompletableFuturesExtra.toCompletableFuture(discoveryFutureStub.discover(signedRequest));
+        return future.exceptionally(throwable -> {
+            throw new CompletionException(format("%s %s", toString, throwable.getMessage()), throwable);
+        });
+
     }
 
     boolean isChannelActive() {

@@ -14,6 +14,10 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+
+import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.PeerException;
 import org.junit.Assert;
@@ -66,9 +70,10 @@ public class PeerTest {
         Assert.fail("expected set empty name to throw exception.");
     }
 
-    @Test (expected = PeerException.class)
-    public void testSendAsyncNullProposal() throws PeerException, InvalidArgumentException {
-        peer.sendProposalAsync(null);
+    @Test (expected = Exception.class)
+    public void testSendAsyncNullProposal() throws PeerException, InvalidArgumentException, ExecutionException, InterruptedException {
+        Future<FabricProposalResponse.ProposalResponse> future = peer.sendProposalAsync(null);
+        future.get();
     }
 
     @Test (expected = InvalidArgumentException.class)

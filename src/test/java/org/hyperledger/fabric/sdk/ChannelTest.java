@@ -30,8 +30,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import com.google.protobuf.ByteString;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -791,8 +789,9 @@ public class ChannelTest {
         final Channel channel = createRunningChannel(null);
         Peer peer = channel.getPeers().iterator().next();
 
-        final SettableFuture<FabricProposalResponse.ProposalResponse> settableFuture = SettableFuture.create();
-        settableFuture.setException(new Error("Error bad bad bad"));
+        final CompletableFuture<FabricProposalResponse.ProposalResponse> settableFuture = new CompletableFuture<>();
+        //  settableFuture.setException(new Error("Error bad bad bad"));
+        settableFuture.completeExceptionally(new Error("Error bad bad bad"));
         setField(peer, "endorserClent", new MockEndorserClient(settableFuture));
 
         hfclient.queryChannels(peer);
@@ -808,8 +807,9 @@ public class ChannelTest {
         final Channel channel = createRunningChannel(null);
         Peer peer = channel.getPeers().iterator().next();
 
-        final SettableFuture<FabricProposalResponse.ProposalResponse> settableFuture = SettableFuture.create();
-        settableFuture.setException(new StatusRuntimeException(Status.ABORTED));
+        final CompletableFuture<FabricProposalResponse.ProposalResponse> settableFuture = new CompletableFuture<>();
+        settableFuture.completeExceptionally(new StatusRuntimeException(Status.ABORTED));
+
         setField(peer, "endorserClent", new MockEndorserClient(settableFuture));
 
         hfclient.queryChannels(peer);
@@ -1016,7 +1016,7 @@ public class ChannelTest {
 
     class MockEndorserClient extends EndorserClient {
         final Throwable throwThis;
-        private final ListenableFuture<FabricProposalResponse.ProposalResponse> returnedFuture;
+        private final CompletableFuture<FabricProposalResponse.ProposalResponse> returnedFuture;
 
         MockEndorserClient(Throwable throwThis) {
             super("blahchannlname", "blahpeerName", "blahURL", new Endpoint("grpc://loclhost:99", null).getChannelBuilder());
@@ -1027,14 +1027,14 @@ public class ChannelTest {
             this.returnedFuture = null;
         }
 
-        MockEndorserClient(ListenableFuture<FabricProposalResponse.ProposalResponse> returnedFuture) {
+        MockEndorserClient(CompletableFuture<FabricProposalResponse.ProposalResponse> returnedFuture) {
             super("blahchannlname", "blahpeerName", "blahURL", new Endpoint("grpc://loclhost:99", null).getChannelBuilder());
             this.throwThis = null;
             this.returnedFuture = returnedFuture;
         }
 
         @Override
-        public ListenableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal) throws PeerException {
+        public CompletableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal) {
             if (throwThis != null) {
                 getUnsafe().throwException(throwThis);
             }

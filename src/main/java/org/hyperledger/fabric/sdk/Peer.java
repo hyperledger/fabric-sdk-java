@@ -20,10 +20,11 @@ import java.io.Serializable;
 import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import io.netty.util.internal.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -220,9 +221,14 @@ public class Peer implements Serializable {
         return Objects.hash(name, url);
     }
 
-    ListenableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal)
-            throws PeerException, InvalidArgumentException {
-        checkSendProposal(proposal);
+    CompletableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal) {
+        try {
+            checkSendProposal(proposal);
+        } catch (Exception e) {
+            CompletableFuture<FabricProposalResponse.ProposalResponse> future = new CompletableFuture<>();
+            future.completeExceptionally(e);
+            return future;
+        }
 
         if (IS_DEBUG_LEVEL) {
             logger.debug(format("peer.sendProposalAsync %s", toString()));
@@ -230,12 +236,14 @@ public class Peer implements Serializable {
 
         EndorserClient localEndorserClient = getEndorserClient();
 
-        try {
-            return localEndorserClient.sendProposalAsync(proposal);
-        } catch (Throwable t) {
+        return localEndorserClient.sendProposalAsync(proposal).exceptionally(throwable -> {
             removeEndorserClient(true);
-            throw t;
-        }
+            if (throwable instanceof CompletionException) {
+                throw (CompletionException) throwable;
+            }
+            throw new CompletionException(throwable);
+        });
+
     }
 
     private synchronized EndorserClient getEndorserClient() {
@@ -274,19 +282,18 @@ public class Peer implements Serializable {
         }
     }
 
-    ListenableFuture<Protocol.Response> sendDiscoveryRequestAsync(Protocol.SignedRequest discoveryRequest)
-            throws PeerException, InvalidArgumentException {
-
+    CompletableFuture<Protocol.Response> sendDiscoveryRequestAsync(Protocol.SignedRequest discoveryRequest) {
         logger.debug(format("peer.sendDiscoveryRequstAsync %s", toString()));
 
         EndorserClient localEndorserClient = getEndorserClient();
 
-        try {
-            return localEndorserClient.sendDiscoveryRequestAsync(discoveryRequest);
-        } catch (Throwable t) {
+        return localEndorserClient.sendDiscoveryRequestAsync(discoveryRequest).exceptionally(throwable -> {
             removeEndorserClient(true);
-            throw t;
-        }
+            if (throwable instanceof CompletionException) {
+                throw (CompletionException) throwable;
+            }
+            throw new CompletionException(throwable);
+        });
     }
 
     synchronized byte[] getClientTLSCertificateDigest() {
@@ -630,6 +637,7 @@ public class Peer implements Serializable {
         public String getPropertyName() {
             return propertyName;
         }
+
     }
 
     String getEndpoint() {
