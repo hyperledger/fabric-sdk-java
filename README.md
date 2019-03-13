@@ -288,6 +288,10 @@ The SDK's defaults are all in the file [Config.java](https://github.com/hyperled
 The [config.properties](https://github.com/hyperledger/fabric-sdk-java/blob/a2140f9bba57a63c58d9ee8579fea7164bf3beb2/config.properties)
 also has some descriptions on what they do.  Most server timeout request can be overridden with the specific request too.
 
+### What's difference between joining and adding a peer to a channel?
+You only ever *join* a peer belonging to _your own organization_ to a channel once at the beginning. You would only *add* peers
+from other organizations or peers of your own organization you've already *joined* like when recreating the channel SDK object.
+
 ### java.security.InvalidKeyException: Illegal key size
 
 If you get this error, this means your JDK does not capable of handling unlimited strength crypto algorithms. To fix this issue, You will need to download the JCE libraries for your version of JDK. Please follow the instructions <a href="http://stackoverflow.com/questions/6481627/java-security-illegal-key-size-or-default-parameters">here</a> to download and install the JCE for your version of the JDK.
