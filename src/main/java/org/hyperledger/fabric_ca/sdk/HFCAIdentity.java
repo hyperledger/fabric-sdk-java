@@ -16,23 +16,23 @@
 
 package org.hyperledger.fabric_ca.sdk;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.json.JsonWriter;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.helper.Utils;
-import org.hyperledger.fabric_ca.sdk.exception.AffiliationException;
 import org.hyperledger.fabric_ca.sdk.exception.HTTPException;
 import org.hyperledger.fabric_ca.sdk.exception.IdentityException;
 import org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException;
@@ -62,6 +62,8 @@ public class HFCAIdentity {
 
     static final String HFCA_IDENTITY = HFCAClient.HFCA_CONTEXT_ROOT + "identities";
     private static final Log logger = LogFactory.getLog(HFCAIdentity.class);
+    //These attributes can not be modified with REST put request.
+    private static final Set<String> filtredUpdateAttrNames = new HashSet<>(Arrays.asList("hf.EnrollmentID", "hf.Type", "hf.Affiliation"));
 
     HFCAIdentity(String enrollmentID, HFCAClient client) throws InvalidArgumentException {
         if (Utils.isNullOrEmpty(enrollmentID)) {
@@ -145,8 +147,8 @@ public class HFCAIdentity {
 
     /**
      * Set affiliation of the identity
-     * @param affiliation Affiliation name
      *
+     * @param affiliation Affiliation name
      */
     public void setAffiliation(String affiliation) {
         this.affiliation = affiliation;
@@ -154,12 +156,13 @@ public class HFCAIdentity {
 
     /**
      * Set affiliation of the identity
-     * @param affiliation Affiliation name
      *
+     * @param affiliation Affiliation name
      */
     public void setAffiliation(HFCAAffiliation affiliation) {
         this.affiliation = affiliation.getName();
     }
+
     /**
      * The attributes of the identity
      *
@@ -188,7 +191,7 @@ public class HFCAIdentity {
      *
      * @param registrar The identity of the registrar (i.e. who is performing the registration).
      * @return statusCode The HTTP status code in the response
-     * @throws IdentityException    if retrieving an identity fails.
+     * @throws IdentityException        if retrieving an identity fails.
      * @throws InvalidArgumentException Invalid (null) argument specified
      */
 
@@ -225,7 +228,7 @@ public class HFCAIdentity {
             }
             this.deleted = false;
             return statusCode;
-        }  catch (HTTPException e) {
+        } catch (HTTPException e) {
             String msg = format("[Code: %d] - Error while getting user '%s' from url '%s': %s", e.getStatusCode(), getEnrollmentId(), readIdURL, e.getMessage());
             IdentityException identityException = new IdentityException(msg, e);
             logger.error(msg);
@@ -244,7 +247,7 @@ public class HFCAIdentity {
      *
      * @param registrar The identity of the registrar (i.e. who is performing the registration).
      * @return statusCode The HTTP status code in the response
-     * @throws IdentityException    if creating an identity fails.
+     * @throws IdentityException        if creating an identity fails.
      * @throws InvalidArgumentException Invalid (null) argument specified
      */
 
@@ -264,7 +267,7 @@ public class HFCAIdentity {
             String body = client.toJson(idToJsonObject());
             JsonObject result = client.httpPost(createURL, body, registrar);
             statusCode = result.getInt("statusCode");
-            if (statusCode >= 400) {
+            if (statusCode < 400) {
                 getHFCAIdentity(result);
                 logger.debug(format("identity  url: %s, registrar: %s done.", createURL, registrar));
             }
@@ -283,12 +286,12 @@ public class HFCAIdentity {
         }
     }
 
-     /**
+    /**
      * update an identity
      *
      * @param registrar The identity of the registrar (i.e. who is performing the registration).
      * @return statusCode The HTTP status code in the response
-     * @throws IdentityException    if adding an identity fails.
+     * @throws IdentityException        if adding an identity fails.
      * @throws InvalidArgumentException Invalid (null) argument specified
      */
 
@@ -305,7 +308,7 @@ public class HFCAIdentity {
             updateURL = client.getURL(HFCA_IDENTITY + "/" + getEnrollmentId());
             logger.debug(format("identity  url: %s, registrar: %s", updateURL, registrar.getName()));
 
-            String body = client.toJson(idToJsonObject());
+            String body = client.toJson(idToJsonObject(filtredUpdateAttrNames));
             JsonObject result = client.httpPut(updateURL, body, registrar);
 
             statusCode = result.getInt("statusCode");
@@ -332,7 +335,7 @@ public class HFCAIdentity {
      *
      * @param registrar The identity of the registrar (i.e. who is performing the registration).
      * @return statusCode The HTTP status code in the response
-     * @throws IdentityException    if adding an identity fails.
+     * @throws IdentityException        if adding an identity fails.
      * @throws InvalidArgumentException Invalid (null) argument specified
      */
 
@@ -393,6 +396,10 @@ public class HFCAIdentity {
 
     // Convert the identity request to a JSON object
     private JsonObject idToJsonObject() {
+        return idToJsonObject(Collections.emptySet());
+    }
+
+    private JsonObject idToJsonObject(Set<String> filteredAttrs) {
         JsonObjectBuilder ob = Json.createObjectBuilder();
         ob.add("id", enrollmentID);
         ob.add("type", type);
@@ -404,7 +411,9 @@ public class HFCAIdentity {
         }
         JsonArrayBuilder ab = Json.createArrayBuilder();
         for (Attribute attr : attrs) {
-            ab.add(attr.toJsonObject());
+            if (!filteredAttrs.contains(attr.getName())) {
+                ab.add(attr.toJsonObject());
+            }
         }
         ob.add("attrs", ab.build());
         if (this.secret != null) {
