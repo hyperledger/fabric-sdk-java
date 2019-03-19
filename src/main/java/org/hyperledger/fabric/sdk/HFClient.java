@@ -54,7 +54,7 @@ public class HFClient {
     private static final Config config = Config.getConfig(); // never remove this! config needs to load first.
 
     private CryptoSuite cryptoSuite;
-    protected final ExecutorService executorService;
+    protected ExecutorService executorService;
 
     static {
 
@@ -67,6 +67,21 @@ public class HFClient {
     }
 
     ExecutorService getExecutorService() {
+        if (null == executorService) {
+            synchronized (this) { //was null so lets get a lock for safe update.
+                if (null == executorService) { // no other thread has done it ...
+                    executorService = new ThreadPoolExecutor(CLIENT_THREAD_EXECUTOR_COREPOOLSIZE, CLIENT_THREAD_EXECUTOR_MAXIMUMPOOLSIZE,
+                            CLIENT_THREAD_EXECUTOR_KEEPALIVETIME, CLIENT_THREAD_EXECUTOR_KEEPALIVETIMEUNIT,
+                            new SynchronousQueue<Runnable>(),
+                            r -> {
+                                Thread t = threadFactory.newThread(r);
+                                t.setDaemon(true);
+                                return t;
+                            });
+                }
+            }
+
+        }
         return executorService;
     }
 
@@ -88,16 +103,6 @@ public class HFClient {
     private static final TimeUnit CLIENT_THREAD_EXECUTOR_KEEPALIVETIMEUNIT = config.getClientThreadExecutorKeepAliveTimeUnit();
 
     private HFClient() {
-
-        executorService = new ThreadPoolExecutor(CLIENT_THREAD_EXECUTOR_COREPOOLSIZE, CLIENT_THREAD_EXECUTOR_MAXIMUMPOOLSIZE,
-                CLIENT_THREAD_EXECUTOR_KEEPALIVETIME, CLIENT_THREAD_EXECUTOR_KEEPALIVETIMEUNIT,
-                new SynchronousQueue<Runnable>(),
-                r -> {
-                    Thread t = threadFactory.newThread(r);
-                    t.setDaemon(true);
-                    return t;
-                });
-
     }
 
     public CryptoSuite getCryptoSuite() {
@@ -112,15 +117,28 @@ public class HFClient {
             throw new InvalidArgumentException("CryptoSuite may only be set once.");
 
         }
-        //        if (cryptoSuiteFactory == null) {
-        //            cryptoSuiteFactory = cryptoSuite.getCryptoSuiteFactory();
-        //        } else {
-        //            if (cryptoSuiteFactory != cryptoSuite.getCryptoSuiteFactory()) {
-        //                throw new InvalidArgumentException("CryptoSuite is not derivied from cryptosuite factory");
-        //            }
-        //        }
 
         this.cryptoSuite = cryptoSuite;
+
+    }
+
+    /**
+     * Set executor service  Applications need to set the executor service prior to doing any other operations on the client.
+     *
+     * @param executorService The executor service the application wants to use.
+     * @throws InvalidArgumentException if executor service has been set already.
+     */
+
+    public synchronized void setExecutorService(ExecutorService executorService) throws InvalidArgumentException {
+
+        if (executorService == null) {
+            throw new InvalidArgumentException("Executor service can not be null.");
+        }
+        if (this.executorService != null && this.executorService != executorService) {
+            throw new InvalidArgumentException("Executor service has already been set.");
+        }
+
+        this.executorService = executorService;
 
     }
 
