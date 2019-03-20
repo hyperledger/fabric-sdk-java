@@ -4969,7 +4969,77 @@ public class Channel implements Serializable {
             throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
 
-        return new BL(listener).getHandle();
+        if (null == listener) {
+            throw new InvalidArgumentException("Listener parameter is null.");
+        }
+
+        String handle = new BL(listener).getHandle();
+
+        logger.trace(format("Register event BlockEvent listener %s", handle));
+
+        return handle;
+
+    }
+
+    /**
+     * Register a Queued block listener. This queue should never block insertion of events.
+     *
+     * @param blockEventQueue the queue
+     * @return return a handle to ungregister the handler.
+     * @throws InvalidArgumentException
+     */
+
+    public String registerBlockListener(BlockingQueue<QueuedBlockEvent> blockEventQueue) throws InvalidArgumentException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
+        }
+
+        if (null == blockEventQueue) {
+            throw new InvalidArgumentException("BlockEventQueue parameter is null.");
+        }
+
+        String handle = new BL(blockEventQueue, -1L, null).getHandle();
+
+        logger.trace(format("Register QueuedBlockEvent listener %s", handle));
+
+        return handle;
+
+    }
+
+    /**
+     * Register a Queued block listener. This queue should never block insertion of events.
+     *
+     * @param blockEventQueue the queue
+     * @param timeout         The time that is waited on for event to be waited on the queue
+     * @param timeUnit        the time unit for timeout.
+     * @return return a handle to ungregister the handler.
+     * @throws InvalidArgumentException
+     */
+
+    public String registerBlockListener(BlockingQueue<QueuedBlockEvent> blockEventQueue, long timeout, TimeUnit timeUnit) throws InvalidArgumentException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
+        }
+
+        if (null == blockEventQueue) {
+            throw new InvalidArgumentException("BlockEventQueue parameter is null.");
+        }
+
+        if (timeout < 0L) {
+            throw new InvalidArgumentException(format("Timeout parameter must be greater than 0 not %d", timeout));
+        }
+
+        if (null == timeUnit) {
+            throw new InvalidArgumentException("TimeUnit parameter must not be null.");
+        }
+
+        String handle = new BL(blockEventQueue, timeout, timeUnit).getHandle();
+
+        logger.trace(format("Register QueuedBlockEvent listener %s", handle));
+
+        return handle;
 
     }
 
@@ -4987,11 +5057,41 @@ public class Channel implements Serializable {
         }
 
         checkHandle(BLOCK_LISTENER_TAG, handle);
+        logger.trace(format("Unregister BlockListener with handle %s.", handle));
 
-        synchronized (blockListeners) {
+        LinkedHashMap<String, BL> lblockListeners = blockListeners;
+        if (lblockListeners == null) {
+            return false;
+        }
 
-            return null != blockListeners.remove(handle);
+        synchronized (lblockListeners) {
 
+            return null != lblockListeners.remove(handle);
+
+        }
+    }
+
+    public Collection<String> getBlockListenerHandles() throws InvalidArgumentException {
+
+        if (shutdown) {
+            throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
+        }
+
+        LinkedHashMap<String, BL> lblockListeners = blockListeners;
+        if (lblockListeners == null) {
+            return Collections.emptyList();
+        }
+
+        synchronized (lblockListeners) {
+
+            Set<String> ret = new HashSet<>(lblockListeners.keySet());
+            // remove the SDKs own transaction block listener.
+            final String ltransactionListenerProcessorHandle = transactionListenerProcessorHandle;
+            if (null != ltransactionListenerProcessorHandle) {
+                ret.remove(ltransactionListenerProcessorHandle);
+            }
+
+            return Collections.unmodifiableSet(ret);
         }
     }
     //////////  Transaction monitoring  /////////////////////////////
@@ -5053,7 +5153,23 @@ public class Channel implements Serializable {
                     for (BL l : blcopy) {
                         try {
                             logger.trace(format("Sending block event '%s' to block listener %s", from, l.handle));
-                            client.getExecutorService().execute(() -> l.listener.received(blockEvent));
+                            if (l.listener != null) {
+                                client.getExecutorService().execute(() -> l.listener.received(blockEvent));
+                            } else if (l.blockingQueue != null) {
+
+                                if (l.timeout < 0 || l.timeUnit == null) {
+
+                                    l.blockingQueue.put(new QueuedBlockEvent(l.handle, blockEvent));
+
+                                } else {
+
+                                    if (!l.blockingQueue.offer(new QueuedBlockEvent(l.handle, blockEvent), l.timeout, l.timeUnit)) {
+                                        logger.warn(format("Error calling block listener %s on channel: %s event: %s could not be added in time %d %s ",
+                                                l.handle, name, from, l.timeout, l.timeUnit));
+                                    }
+                                }
+
+                            }
                         } catch (Throwable e) { //Don't let one register stop rest.
                             logger.error(format("Error calling block listener %s on channel: %s event: %s ", l.handle, name, from), e);
                         }
@@ -5906,18 +6022,35 @@ public class Channel implements Serializable {
 
         final BlockListener listener;
         final String handle;
+        private final BlockingQueue<QueuedBlockEvent> blockingQueue;
+        private final long timeout;
+        private final TimeUnit timeUnit;
 
-        BL(BlockListener listener) {
-
+        {
             handle = BLOCK_LISTENER_TAG + Utils.generateUUID() + BLOCK_LISTENER_TAG;
             logger.debug(format("Channel %s blockListener %s starting", name, handle));
 
-            this.listener = listener;
             synchronized (blockListeners) {
 
                 blockListeners.put(handle, this);
 
             }
+        }
+
+        BL(BlockListener listener) {
+
+            this.listener = listener;
+            blockingQueue = null;
+            timeout = Long.MAX_VALUE;
+            timeUnit = null;
+
+        }
+
+        BL(BlockingQueue<QueuedBlockEvent> blockingQueue, long timeout, TimeUnit timeUnit) {
+            this.blockingQueue = blockingQueue;
+            this.timeout = timeout;
+            this.timeUnit = timeUnit;
+            listener = null;
 
         }
 

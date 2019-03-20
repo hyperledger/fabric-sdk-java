@@ -200,14 +200,6 @@ public class End2endAndBackAgainIT {
 
         try {
 
-            // client.setMemberServices(peerOrg1FabricCA);
-
-            //Persistence is not part of SDK. Sample file store is for demonstration purposes only!
-            //   MUST be replaced with more robust application implementation  (Database, LDAP)
-
-//            if (sampleStoreFile.exists()) { //For testing start fresh
-//                sampleStoreFile.delete();
-//            }
             sampleStore = new SampleStore(sampleStoreFile);
 
             setupUsers(sampleStore);

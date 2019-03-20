@@ -681,5 +681,7 @@ public class Peer implements Serializable {
         reconnectCount = new AtomicLong(0L);
         id = config.getNextID();
         lastBlockNumber = -1L;
+
+        logger.debug(format("Reserialized peer: %s", this.toString()));
     }
 } // end Peer

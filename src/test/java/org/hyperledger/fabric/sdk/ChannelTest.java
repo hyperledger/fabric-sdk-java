@@ -28,7 +28,10 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import com.google.protobuf.ByteString;
 import io.grpc.Status;
@@ -1012,6 +1015,79 @@ public class ChannelTest {
         installProposalBuilder.context(transactionContext);
 
         FabricProposal.Proposal proposal = installProposalBuilder.build(); // Build it get the proposal. Then unpack it to see if it's what we epect.
+    }
+
+    //testing of blocklistner
+
+    @Test
+    public void testRegisterBlockListenerNULL() throws Exception {
+
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("BlockEventQueue parameter is null.");
+
+        Channel channel = hfclient.newChannel("testRegisterBlockListenerNULL");
+        BlockingQueue<QueuedBlockEvent> nblis = null;
+        channel.registerBlockListener(nblis);
+
+    }
+
+    @Test
+    public void testRegisterBlockListenerNULL2() throws Exception {
+
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("BlockEventQueue parameter is null.");
+
+        Channel channel = hfclient.newChannel("testRegisterBlockListenerNULL2");
+        BlockingQueue<QueuedBlockEvent> nblis = null;
+        channel.registerBlockListener(nblis, 10, TimeUnit.SECONDS);
+
+    }
+
+    @Test
+    public void testRegisterBlockListenerBadArg() throws Exception {
+
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("Timeout parameter must be greater than 0 not -1");
+
+        Channel channel = hfclient.newChannel("testRegisterBlockListenerBadArg");
+        BlockingQueue<QueuedBlockEvent> nblis = null;
+        channel.registerBlockListener(new LinkedBlockingQueue<>(), -1, TimeUnit.SECONDS);
+
+    }
+
+    @Test
+    public void testRegisterBlockListenerBadNULLArg() throws Exception {
+
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("TimeUnit parameter must not be null.");
+
+        Channel channel = hfclient.newChannel("testRegisterBlockListenerBadNULLArg");
+        channel.registerBlockListener(new LinkedBlockingQueue<>(), 10, null);
+
+    }
+
+    @Test
+    public void testRegisterBlockListenerShutdown() throws Exception {
+
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("Channel testRegisterBlockListenerShutdown has been shutdown.");
+
+        Channel channel = hfclient.newChannel("testRegisterBlockListenerShutdown");
+        channel.shutdown(false);
+        channel.registerBlockListener(new LinkedBlockingQueue<>(), 10, TimeUnit.SECONDS);
+
+    }
+
+    @Test
+    public void testRegisterBlockListenerShutdown2() throws Exception {
+
+        thrown.expect(InvalidArgumentException.class);
+        thrown.expectMessage("Channel testRegisterBlockListenerShutdown2 has been shutdown.");
+
+        Channel channel = hfclient.newChannel("testRegisterBlockListenerShutdown2");
+        channel.shutdown(false);
+        channel.registerBlockListener(new LinkedBlockingQueue<>());
+
     }
 
     class MockEndorserClient extends EndorserClient {

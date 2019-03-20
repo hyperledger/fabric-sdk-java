@@ -20,10 +20,15 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -36,11 +41,13 @@ import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.hyperledger.fabric.sdk.BlockEvent;
 import org.hyperledger.fabric.sdk.BlockEvent.TransactionEvent;
 import org.hyperledger.fabric.sdk.BlockInfo;
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.Peer;
+import org.hyperledger.fabric.sdk.QueuedBlockEvent;
 import org.hyperledger.fabric.sdk.TestConfigHelper;
 import org.hyperledger.fabric.sdk.UpdateChannelConfiguration;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
@@ -276,6 +283,39 @@ public class UpdateChannelIT {
             configUpdateAnchorPeers = fooChannel.getConfigUpdateAnchorPeers(fooChannel.getPeers().iterator().next(), sampleOrg.getPeerAdmin(),
                     null, null);
 
+            // processing of queued blocks should be done on a separate thread and processed relatively quickly to avoid queues from becoming full,
+            // But we're just testing/demoing here.
+            assertEquals(3, fooChannel.getBlockListenerHandles().size());  // 1 event type block listener and 2 queued type.
+            fooChannel.unregisterBlockListener(listenerHandler1);
+            fooChannel.unregisterBlockListener(listenerHandler2);
+            assertEquals(1, fooChannel.getBlockListenerHandles().size()); // now there's only one.
+
+            assertEquals(8, blockingQueue1.size());
+            assertEquals(8, blockingQueue2.size());
+            assertEquals(8, eventQueueCaputure.size());
+
+            Collection<QueuedBlockEvent> drain1 = new ArrayList<>();
+            blockingQueue1.drainTo(drain1);
+            Collection<? super QueuedBlockEvent> drain2 = new ArrayList<>();
+            blockingQueue2.drainTo(drain2);
+
+            Collection<? super BlockEvent> eventQDrain = new ArrayList<>();
+            eventQueueCaputure.drainTo(eventQDrain);
+
+            QueuedBlockEvent[] drain1Array = drain1.toArray(new QueuedBlockEvent[drain1.size()]);
+            QueuedBlockEvent[] drain2Array = drain2.toArray(new QueuedBlockEvent[drain2.size()]);
+            BlockEvent[] drainEventQArray = eventQDrain.toArray(new BlockEvent[eventQDrain.size()]);
+
+            for (int i = drain1Array.length - 1; i > -1; --i) {
+                final long blockNumber = drain1Array[i].getBlockEvent().getBlockNumber();
+                final String url = drain1Array[i].getBlockEvent().getPeer().getUrl();
+
+                assertEquals(blockNumber, drain2Array[i].getBlockEvent().getBlockNumber());
+                assertEquals(url, drain2Array[i].getBlockEvent().getPeer().getUrl());
+                assertEquals(blockNumber, drainEventQArray[i].getBlockNumber());
+                assertEquals(url, drainEventQArray[i].getPeer().getUrl());
+            }
+
             assertNull(configUpdateAnchorPeers.getUpdateChannelConfiguration()); // not updating anything.
             assertTrue(configUpdateAnchorPeers.getCurrentPeers().isEmpty()); // peer should be now gone.
             assertTrue(configUpdateAnchorPeers.getPeersRemoved().isEmpty()); // not removing any
@@ -341,6 +381,7 @@ public class UpdateChannelIT {
 
         //For testing of blocks which are not transactions.
         newChannel.registerBlockListener(blockEvent -> {
+            eventQueueCaputure.add(blockEvent); // used with the other queued to make sure same.
             // Note peer eventing will always start with sending the last block so this will get the last endorser block
             int transactions = 0;
             int nonTransactions = 0;
@@ -373,10 +414,29 @@ public class UpdateChannelIT {
             }
         });
 
+        // Register Queued block listeners just for testing use both ways.
+        // Ideally an application would have it's own independent thread to monitor and take off elements as fast as they can.
+        // This would wait forever however if event could not be put in the queue like if the capacity is at a maximum. For LinkedBlockingQueue so unlikely
+        listenerHandler1 = newChannel.registerBlockListener(blockingQueue1);
+        assertNotNull(listenerHandler1);
+        // This is the same but put a timeout on it.  If its not queued in time like if the queue is full it would generate a log warning and ignore the event.
+        listenerHandler2 = newChannel.registerBlockListener(blockingQueue2, 1L, TimeUnit.SECONDS);
+        assertNotNull(listenerHandler2);
+
         newChannel.initialize();
 
         return newChannel;
     }
+
+    // Handles to unregister handlers.
+    String listenerHandler1;
+    String listenerHandler2;
+
+    BlockingQueue<QueuedBlockEvent> blockingQueue1 = new LinkedBlockingQueue<>(); // really this is unbounded.
+    BlockingQueue<QueuedBlockEvent> blockingQueue2 = new ArrayBlockingQueue<>(1000); // application should  pull off queue so not to go full.
+
+    // Have the event handler put into this queue so we can compare.
+    BlockingQueue<BlockEvent> eventQueueCaputure = new LinkedBlockingQueue<>();
 
     static void out(String format, Object... args) {
 
