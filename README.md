@@ -292,6 +292,12 @@ also has some descriptions on what they do.  Most server timeout request can be 
 You only ever *join* a peer belonging to _your own organization_ to a channel once at the beginning. You would only *add* peers
 from other organizations or peers of your own organization you've already *joined* like when recreating the channel SDK object.
 
+
+### Transaction sent to orderer results in future with exception *validation code: xxx* Where can I find what that means?
+
+See Fabric protobuf protos/peer/transaction.proto's [TxValidationCode](https://github.com/hyperledger/fabric/blob/dce0e5d8e7bbce5315d0895e5d1460640700285b/protos/peer/transaction.proto#L115-L143)
+
+
 ### java.security.InvalidKeyException: Illegal key size
 
 If you get this error, this means your JDK does not capable of handling unlimited strength crypto algorithms. To fix this issue, You will need to download the JCE libraries for your version of JDK. Please follow the instructions <a href="http://stackoverflow.com/questions/6481627/java-security-illegal-key-size-or-default-parameters">here</a> to download and install the JCE for your version of the JDK.
