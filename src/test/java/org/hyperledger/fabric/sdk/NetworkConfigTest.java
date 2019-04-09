@@ -19,6 +19,7 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -41,6 +42,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.getField;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -399,6 +401,67 @@ public class NetworkConfigTest {
 
             assertEquals(9000000, getField(channelBuilder, "maxInboundMessageSize"));
             assertEquals(false, getField(channelBuilder, "keepAliveWithoutCalls"));
+        }
+
+    }
+
+    @Test
+    public void testPeerOrdererOverrideHandlers() throws Exception {
+
+        // Should be able to instantiate a new instance of "Client" with a valid path to the YAML configuration
+        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.yaml");
+        NetworkConfig config = NetworkConfig.fromYamlFile(f);
+        //HFClient client = HFClient.loadFromConfig(f);
+        assertNotNull(config);
+
+        HFClient client = HFClient.createNewInstance();
+        client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+        client.setUserContext(TestUtils.getMockUser(USER_NAME, USER_MSP_ID));
+        final Long expectedStartEvents = 10L;
+        final Long expectedStopEvents = 100L;
+        final Long expectmaxMessageSizePeer = 99999999L;
+        final Long expectmaxMessageSizeOrderer = 888888L;
+
+        Channel channel = client.loadChannelFromConfig("foo", config, (networkConfig, client1, channel1, peerName, peerURL, peerProperties, peerOptions, jsonPeer) -> {
+            try {
+                Map<String, NetworkConfig.OrgInfo> peerOrgInfos = networkConfig.getPeerOrgInfos(peerName);
+                assertNotNull(peerOrgInfos);
+                assertTrue(peerOrgInfos.containsKey("Org1"));
+                assertEquals("Org1MSP", peerOrgInfos.get("Org1").getMspId());
+                peerProperties.put("grpc.NettyChannelBuilderOption.maxInboundMessageSize", expectmaxMessageSizePeer);
+                Peer peer = client1.newPeer(peerName, peerURL, peerProperties);
+                peerOptions.registerEventsForFilteredBlocks();
+                peerOptions.startEvents(expectedStartEvents);
+                peerOptions.stopEvents(expectedStopEvents);
+                channel1.addPeer(peer, peerOptions);
+            } catch (Exception e) {
+                throw new NetworkConfigurationException(format("Error on creating channel %s peer %s", channel1.getName(), peerName), e);
+            }
+
+        }, (networkConfig, client12, channel12, ordererName, ordererURL, ordererProperties, jsonOrderer) -> {
+
+            try {
+                ordererProperties.put("grpc.NettyChannelBuilderOption.maxInboundMessageSize", expectmaxMessageSizeOrderer);
+                Orderer orderer = client12.newOrderer(ordererName, ordererURL, ordererProperties);
+                channel12.addOrderer(orderer);
+            } catch (Exception e) {
+                throw new NetworkConfigurationException(format("Error on creating channel %s orderer %s", channel12.getName(), ordererName), e);
+            }
+
+        });
+
+        assertNotNull(channel);
+        for (Peer peer : channel.getPeers()) {
+            Channel.PeerOptions peersOptions = channel.getPeersOptions(peer);
+            assertNotNull(peersOptions);
+            assertTrue(peersOptions.isRegisterEventsForFilteredBlocks());
+            assertEquals(expectedStartEvents, peersOptions.startEvents);
+            assertEquals(expectedStopEvents, peersOptions.stopEvents);
+            assertEquals(expectmaxMessageSizePeer, peer.getProperties().get("grpc.NettyChannelBuilderOption.maxInboundMessageSize"));
+        }
+
+        for (Orderer orderer : channel.getOrderers()) {
+            assertEquals(expectmaxMessageSizeOrderer, orderer.getProperties().get("grpc.NettyChannelBuilderOption.maxInboundMessageSize"));
         }
 
     }

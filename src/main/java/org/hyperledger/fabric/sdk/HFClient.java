@@ -155,6 +155,46 @@ public class HFClient {
      * Configures a channel based on information loaded from a Network Config file.
      * Note that it is up to the caller to initialize the returned channel.
      *
+     * @param channelName                    The name of the channel to be configured
+     * @param networkConfig                  The network configuration to use to configure the channel
+     * @param networkConfigAddPeerHandler    A handler that will create and add peers to the channel.
+     * @param networkConfigAddOrdererHandler A handler that will create orderers and add orderers to the channel.
+     * @return The configured channel, or null if the channel is not defined in the configuration
+     * @throws InvalidArgumentException
+     */
+    public Channel loadChannelFromConfig(String channelName, NetworkConfig networkConfig,
+                                         NetworkConfig.NetworkConfigAddPeerHandler networkConfigAddPeerHandler,
+                                         NetworkConfig.NetworkConfigAddOrdererHandler networkConfigAddOrdererHandler) throws InvalidArgumentException, NetworkConfigurationException {
+        clientCheck();
+
+        // Sanity checks
+        if (channelName == null || channelName.isEmpty()) {
+            throw new InvalidArgumentException("channelName must be specified");
+        }
+
+        if (networkConfig == null) {
+            throw new InvalidArgumentException("networkConfig must be specified");
+        }
+
+        if (null == networkConfigAddPeerHandler) {
+            throw new InvalidArgumentException("networkConfigAddPeerHandler is null.");
+        }
+
+        if (null == networkConfigAddOrdererHandler) {
+            throw new InvalidArgumentException("networkConfigAddOrdererHandler is null.");
+        }
+
+        if (channels.containsKey(channelName)) {
+            throw new InvalidArgumentException(format("Channel with name %s already exists", channelName));
+        }
+
+        return networkConfig.loadChannel(this, channelName, networkConfigAddPeerHandler, networkConfigAddOrdererHandler);
+    }
+
+    /**
+     * Configures a channel based on information loaded from a Network Config file.
+     * Note that it is up to the caller to initialize the returned channel.
+     *
      * @param channelName   The name of the channel to be configured
      * @param networkConfig The network configuration to use to configure the channel
      * @return The configured channel, or null if the channel is not defined in the configuration
