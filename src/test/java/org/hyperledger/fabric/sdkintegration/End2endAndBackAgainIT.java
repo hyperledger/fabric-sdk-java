@@ -105,9 +105,11 @@ public class End2endAndBackAgainIT {
     String CHAIN_CODE_VERSION = "1";
     TransactionRequest.Type CHAIN_CODE_LANG = TransactionRequest.Type.GO_LANG;
 
+    //Deprecated use v2.0 Lifecycle chaincode management.
     ChaincodeID chaincodeID = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
             .setVersion(CHAIN_CODE_VERSION)
             .setPath(CHAIN_CODE_PATH).build();
+    //Deprecated use v2.0 Lifecycle chaincode management.
     ChaincodeID chaincodeID_11 = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
             .setVersion(CHAIN_CODE_VERSION_11)
             .setPath(CHAIN_CODE_PATH).build();
@@ -326,6 +328,26 @@ public class End2endAndBackAgainIT {
             moveAmount(client, channel, chaincodeID, "25", changeContext ? sampleOrg.getPeerAdmin() : null).thenApply((BlockEvent.TransactionEvent transactionEvent) -> {
                 try {
 
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /**
+                     *                                  PLEASE READ !!
+                     *
+                     * The following is using Fabric v1.0 APIs for testing and demoing backward compatibility.
+                     * After v2.0 Fabric release unless there is a need for this in your application it is highly
+                     * encouraged to move to Fabric v2.0 capabilities and use the new v2.0 Lifecycle APIs for managing chaincode.
+                     * @see <a href="https://github.com/hyperledger/fabric-sdk-java/blob/master/docs/release_v2.0.0_notes.md#fabj-288-lifecycle-chaincode-management"</a>
+                     *
+                     **/
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+
                     waitOnFabric();
                     client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME));
 
@@ -337,6 +359,8 @@ public class End2endAndBackAgainIT {
                     client.setUserContext(sampleOrg.getPeerAdmin());
                     ///////////////
                     ////
+
+                    //Deprecated use v2.0 Lifecycle chaincode management.
                     InstallProposalRequest installProposalRequest = client.newInstallProposalRequest();
                     installProposalRequest.setChaincodeID(chaincodeID);
                     ////For GO language and serving just a single user, chaincodeSource is mostly likely the users GOPATH
@@ -361,6 +385,7 @@ public class End2endAndBackAgainIT {
                     Collection<Peer> peersFromOrg = channel.getPeers();
                     numInstallProposal = numInstallProposal + peersFromOrg.size();
 
+                    //Deprecated use v2.0 Lifecycle chaincode management.
                     responses = client.sendInstallProposal(installProposalRequest, peersFromOrg);
 
                     for (ProposalResponse response : responses) {
@@ -386,6 +411,7 @@ public class End2endAndBackAgainIT {
                         installProposalRequest.setUserContext(sampleOrg.getPeerAdmin());
                     }
 
+                    //Deprecated use v2.0 Lifecycle chaincode management.
                     UpgradeProposalRequest upgradeProposalRequest = client.newUpgradeProposalRequest();
                     upgradeProposalRequest.setChaincodeID(chaincodeID_11);
                     upgradeProposalRequest.setProposalWaitTime(DEPLOYWAITTIME);

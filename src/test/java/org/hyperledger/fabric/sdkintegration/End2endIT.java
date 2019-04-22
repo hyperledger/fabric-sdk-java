@@ -376,6 +376,27 @@ public class End2endIT {
 
             }
 
+            /////////////////////////////////////////////////////////////////////////////////////////////////
+            /////////////////////////////////////////////////////////////////////////////////////////////////
+            /////////////////////////////////////////////////////////////////////////////////////////////////
+            /////////////////////////////////////////////////////////////////////////////////////////////////
+            /////////////////////////////////////////////////////////////////////////////////////////////////
+            /**
+             *                                  PLEASE READ !!
+             *
+             * The following is using Fabric v1.0 APIs for testing and demoing backward compatibility.
+             * After v2.0 Fabric release unless there is a need for this in your application it is highly
+             * encouraged to move to Fabric v2.0 capabilities and use the new v2.0 Lifecycle APIs for managing chaincode.
+             * @see <a href="https://github.com/hyperledger/fabric-sdk-java/blob/master/docs/release_v2.0.0_notes.md#fabj-288-lifecycle-chaincode-management"</a>
+             *
+             **/
+            /////////////////////////////////////////////////////////////////////////////////////////////////
+            /////////////////////////////////////////////////////////////////////////////////////////////////
+            /////////////////////////////////////////////////////////////////////////////////////////////////
+            /////////////////////////////////////////////////////////////////////////////////////////////////
+            /////////////////////////////////////////////////////////////////////////////////////////////////
+
+            //Deprecated use v2.0 Lifecycle chaincode management.
             ChaincodeID.Builder chaincodeIDBuilder = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
                     .setVersion(CHAIN_CODE_VERSION);
             if (null != CHAIN_CODE_PATH) {
@@ -393,6 +414,7 @@ public class End2endIT {
 
                 out("Creating install proposal");
 
+                //Deprecated use v2.0 Lifecycle chaincode management.
                 InstallProposalRequest installProposalRequest = client.newInstallProposalRequest();
                 installProposalRequest.setChaincodeID(chaincodeID);
 
@@ -439,6 +461,7 @@ public class End2endIT {
 
                 Collection<Peer> peers = channel.getPeers();
                 numInstallProposal = numInstallProposal + peers.size();
+                //Deprecated use v2.0 Lifecycle chaincode management.
                 responses = client.sendInstallProposal(installProposalRequest, peers);
 
                 for (ProposalResponse response : responses) {
@@ -466,6 +489,8 @@ public class End2endIT {
 
             ///////////////
             //// Instantiate chaincode.
+
+            //Deprecated use v2.0 Lifecycle chaincode management.
             InstantiateProposalRequest instantiateProposalRequest = client.newInstantiationProposalRequest();
             instantiateProposalRequest.setProposalWaitTime(DEPLOYWAITTIME);
             instantiateProposalRequest.setChaincodeID(chaincodeID);
@@ -490,8 +515,10 @@ public class End2endIT {
             failed.clear();
 
             if (isFooChain) {  //Send responses both ways with specifying peers and by using those on the channel.
+                //Deprecated use v2.0 Lifecycle chaincode management.
                 responses = channel.sendInstantiationProposal(instantiateProposalRequest, channel.getPeers());
             } else {
+                //Deprecated use v2.0 Lifecycle chaincode management.
                 responses = channel.sendInstantiationProposal(instantiateProposalRequest);
             }
             for (ProposalResponse response : responses) {

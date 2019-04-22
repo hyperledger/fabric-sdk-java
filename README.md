@@ -81,7 +81,7 @@ pom.xml
 </dependencies>
 ```
 
-### Java and Node Chaincode environment 
+### Java and Node Chaincode environment
 You may also need to on your <span style="color:red"><b>v2.0</b> </span>  Fabric network docker deployment explicitly pull the Java and Node chaincode environments for now.
 
 `docker pull nexus3.hyperledger.org:10001/hyperledger/fabric-nodeenv:amd64-2.0.0-stable&&docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv:amd64-latest&&docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv`
@@ -168,8 +168,8 @@ Use this `maven` command to run the integration tests:
  |Integration Test | Summary and notes|
  |--------|:------|
  |[End2endLifecycleIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/df422e10fa38bf8a627dd81e7ad038404d625576/src/test/java/org/hyperledger/fabric/sdkintegration/End2endLifecycleIT.java)|<ul><li>New lifecycle chaincode management APIs <b>(v2.0)</b> :fire: </p> [Fabric read the docs: Chaincode for Operators](https://hyperledger-fabric.readthedocs.io/en/latest/chaincode4noah.html)</li></ul> |
- |[End2endIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java)|<ul><li>Register and enroll users with Fabric certificate authority.</li><li>Constructing channel first time.</li><li>Installing chaincode.</li><li>Instantiating chaincode.</li><li>Executing chaincode.</li><li>Querying channel for block information.</li><li>Chaincode event listener</li><li>Traversing block for information.</li><li>Prerequisite for all other testcases.</li></ul> |
- |[End2endAndBackAgainIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java)| <ul><li>Recreate channel.</li><li>Update chaincode.</li><li>Checking installed and instantiated chaincode.</li></ul> |
+ |[End2endIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java)|<ul><li>Register and enroll users with Fabric certificate authority.</li><li>Constructing channel first time.</li><li>Installing chaincode. <b>DEPRECATED see v2.0 release notes!</b></li><li>Instantiating chaincode. <b>DEPRECATED see v2.0 release notes!</b> </li><li>Executing chaincode.</li><li>Querying channel for block information.</li><li>Chaincode event listener</li><li>Traversing block for information.</li><li>Prerequisite for all other testcases.</li></ul> |
+ |[End2endAndBackAgainIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java)| <ul><li>Recreate channel.</li><li>Update chaincode.</li><li>Checking installed and instantiated chaincode. <b>DEPRECATED see v2.0 release notes!</b></li></ul> |
  |[End2endNodeIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endNodeIT.java)| <ul><li>Shows running End2endIT.java but with Node chaincode.</li><li>Note subclasses En2endIT class.</li></ul> |
  |[End2endJavaIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endJavaIT.java)| <ul><li>Shows running End2endIT.java but with Java chaincode.</li><li>Note subclasses En2endIT class.</li></ul> |
  |[End2endIdemixIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIdemixIT.java)| <ul><li>Shows running End2endIT.java but with Idemix credentials.</li><li>Note subclasses En2endIT class.</li></ul> |
@@ -314,7 +314,14 @@ No.
 
 ### Should an application create more than one HFClient?
 There should be no need to do that in a single application. All the SDK requests are threadsafe. The user context set on the client
-can be on all requests overridden by setting the user context on that specific request. 
+can be on all requests overridden by setting the user context on that specific request.
+
+
+### Idemix users or Idemix test cases (IdemixIdentitiesTest) just seems to hang or take forever.
+
+Most likely this is running on a virtual machine that does not have sufficient entropy.
+Google for adding entropy on virtual machines or look at [virtual machines entropy](http://giovannitorres.me/increasing-entropy-on-virtual-machines.html)
+If linux try installing rng-tools package as this suggests.
 
 ### Firewalls, load balancers, network proxies
 
