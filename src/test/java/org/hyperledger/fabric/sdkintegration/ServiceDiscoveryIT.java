@@ -17,6 +17,7 @@
 package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -36,6 +37,8 @@ import org.hyperledger.fabric.sdk.ProposalResponse;
 import org.hyperledger.fabric.sdk.ServiceDiscovery;
 import org.hyperledger.fabric.sdk.TransactionProposalRequest;
 import org.hyperledger.fabric.sdk.TransactionRequest;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.exception.ServiceDiscoveryException;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
@@ -44,11 +47,13 @@ import org.junit.Test;
 
 import static java.lang.String.format;
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertTrue;
 import static junit.framework.TestCase.fail;
 import static org.hyperledger.fabric.sdk.Channel.DiscoveryOptions.createDiscoveryOptions;
 import static org.hyperledger.fabric.sdk.Channel.PeerOptions.createPeerOptions;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 
 public class ServiceDiscoveryIT {
     private static final TestConfig testConfig = TestConfig.getConfig();
@@ -105,6 +110,25 @@ public class ServiceDiscoveryIT {
         foo.shutdown(false);
         foo = client.deSerializeChannel(bytes);
 
+        //You can override the default implementation but these just reuse the default.
+        Channel.SDPeerAddition sdPeerAddition = foo.getSDPeerAddition();
+        assertNotNull(sdPeerAddition);
+        foo.setSDPeerAddition(sdPeerAddition);
+        assertSame(sdPeerAddition, foo.getSDPeerAddition());
+
+        // Just see if we can override and collect the orderers.
+        final ArrayList<Orderer> testCollectOrderers = new ArrayList();
+
+        Channel.SDOrdererAddition sdOrdererAddition = foo.setSDOrdererAddition(new Channel.SDOrdererDefaultAddition(sdprops) {
+            @Override
+            public Orderer addOrderer(Channel.SDOrdererAdditionInfo sdOrdererAdditionInfo) throws InvalidArgumentException, ServiceDiscoveryException {
+                Orderer ret = super.addOrderer(sdOrdererAdditionInfo);
+                testCollectOrderers.add(ret); // just see if our extended works.
+                return ret;
+            }
+        });
+        assertNotNull(sdOrdererAddition);
+
         foo.initialize(); // initialize the channel.
 
         Set<String> expect = new HashSet<>(Arrays.asList(protocol + "//orderer.example.com:7050")); //discovered orderer
@@ -112,6 +136,7 @@ public class ServiceDiscoveryIT {
             expect.remove(orderer.getUrl());
         }
         assertTrue(expect.isEmpty());
+        assertEquals(foo.getOrderers().size(), testCollectOrderers.size());
 
         final Collection<String> discoveredChaincodeNames = foo.getDiscoveredChaincodeNames();
 

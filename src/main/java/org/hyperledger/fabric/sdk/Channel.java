@@ -208,10 +208,6 @@ public class Channel implements Serializable {
         }
     }
 
-    //    public void clean(){
-//        channelEventQue = null;
-//    }
-//
     private Channel(String name, HFClient hfClient, Orderer orderer, ChannelConfiguration channelConfiguration, byte[][] signers) throws InvalidArgumentException, TransactionException {
         this(name, hfClient, false);
 
@@ -1373,7 +1369,9 @@ public class Channel implements Serializable {
     transient SDPeerAddition sdPeerAddition = null;
 
     /**
-     * Set service discovery peer addition override.
+     * Set service discovery orderer addition override.
+     * <p>
+     * Any service discovery properties {@link #setServiceDiscoveryProperties(Properties)} should be set before calling this.
      *
      * @param sdOrdererAddition
      * @return
@@ -1384,7 +1382,29 @@ public class Channel implements Serializable {
 
         this.sdOrdererAddition = sdOrdererAddition;
 
+        if (null == ret) {
+            ret = new SDOrdererDefaultAddition(getServiceDiscoveryProperties());
+        }
+
         return ret;
+
+    }
+
+    /**
+     * Get current service discovery orderer addition override.
+     * <p>
+     * Any service discovery properties {@link #setServiceDiscoveryProperties(Properties)} should be set before calling this.
+     *
+     * @return SDOrdererAddition
+     */
+
+    public SDOrdererAddition getSDOrdererAddition() {
+
+        if (null == sdOrdererAddition) {
+            sdOrdererAddition = new SDOrdererDefaultAddition(getServiceDiscoveryProperties());
+        }
+
+        return sdOrdererAddition;
 
     }
 
@@ -1451,10 +1471,10 @@ public class Channel implements Serializable {
 
     private Properties serviceDiscoveryProperties = new Properties();
 
-    private static class SDOrdererDefaultAddition implements SDOrdererAddition {
-        private final Properties config;
+    public static class SDOrdererDefaultAddition implements SDOrdererAddition {
+        protected final Properties config;
 
-        SDOrdererDefaultAddition(Properties config) {
+        public SDOrdererDefaultAddition(Properties config) {
             this.config = config == null ? new Properties() : (Properties) config.clone();
 
         }
@@ -1508,10 +1528,10 @@ public class Channel implements Serializable {
         }
     }
 
-    private static class SDOPeerDefaultAddition implements SDPeerAddition {
-        private final Properties config;
+    public static class SDOPeerDefaultAddition implements SDPeerAddition {
+        protected final Properties config;
 
-        SDOPeerDefaultAddition(Properties config) {
+        public SDOPeerDefaultAddition(Properties config) {
             this.config = config == null ? new Properties() : (Properties) config.clone();
 
         }
@@ -1582,6 +1602,8 @@ public class Channel implements Serializable {
 
     /**
      * Set service discovery peer addition override.
+     * <p>
+     * Any service discovery properties {@link #setServiceDiscoveryProperties(Properties)} should be set before calling this.
      *
      * @param sdPeerAddition
      * @return
@@ -1592,7 +1614,29 @@ public class Channel implements Serializable {
 
         this.sdPeerAddition = sdPeerAddition;
 
+        if (ret == null) {
+            ret = new SDOPeerDefaultAddition(getServiceDiscoveryProperties());
+        }
+
         return ret;
+
+    }
+
+    /**
+     * Get current service discovery peer addition override.
+     * <p>
+     * Any service discovery properties {@link #setServiceDiscoveryProperties(Properties)} should be set before calling this.
+     *
+     * @return SDOrdererAddition
+     */
+
+    public SDPeerAddition getSDPeerAddition() {
+
+        if (null == sdPeerAddition) {
+            sdPeerAddition = new SDOPeerDefaultAddition(getServiceDiscoveryProperties());
+        }
+
+        return sdPeerAddition;
 
     }
 
