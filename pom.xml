@@ -28,7 +28,7 @@
         <tag>fabric-sdk-java-1.0</tag>
     </scm>
     <properties>
-        <grpc.version>1.19.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
+        <grpc.version>1.20.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
         <protobuf.version>3.7.1</protobuf.version>
         <bouncycastle.version>1.61</bouncycastle.version>
         <httpclient.version>4.5.8</httpclient.version>
@@ -94,12 +94,12 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-tcnative-boringssl-static</artifactId>
-            <version>2.0.24.Final</version>
+            <version>2.0.25.Final</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-codec-http2</artifactId>
-            <version>4.1.34.Final</version>
+            <version>4.1.35.Final</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java -->
         <dependency>
@@ -186,8 +186,7 @@
         <dependency>
             <groupId>com.google.api</groupId>
             <artifactId>api-common</artifactId>
-            <version>1.7.0</version>
-            <scope>provided</scope><!-- so only used for compilation to work, not needed at runtime -->
+            <version>1.8.1</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.glassfish/javax.json -->
