@@ -96,6 +96,7 @@ public class HFCAClientIT {
     private static final String TEST_USER1_ORG = "Org2";
     private static final String TEST_USER1_AFFILIATION = "org1.department1";
     private static final String TEST_WITH_INTEGRATION_ORG = "peerOrg1";
+    private static final String TEST_WITH_INTEGRATION_ORG_CA = "ca0";
     private static final String TEST_WITH_INTEGRATION_ORG2 = "peerOrg2";
 
     private SampleStore sampleStore;
@@ -134,6 +135,7 @@ public class HFCAClientIT {
         sampleStoreFile.deleteOnExit();
 
         client = HFCAClient.createNewInstance(
+                TEST_WITH_INTEGRATION_ORG_CA,
                 testConfig.getIntegrationTestsSampleOrg(TEST_WITH_INTEGRATION_ORG).getCALocation(),
                 testConfig.getIntegrationTestsSampleOrg(TEST_WITH_INTEGRATION_ORG).getCAProperties());
         client.setCryptoSuite(crypto);
@@ -987,7 +989,6 @@ public class HFCAClientIT {
         HFCAIdentity ident = client.newHFCAIdentity("testuser_org6");
         ident.setAffiliation("org6");
         createSuccessfulHCAIdentity(ident, admin);
-
 
         HFCAAffiliation aff2 = client.newHFCAAffiliation("org6.dept1");
         aff2.create(admin);
