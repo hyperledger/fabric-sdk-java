@@ -1,3 +1,9 @@
+## v1.4.2
+Fri May  3 12:37:17 EDT 2019
+
+* [17acd23](https://github.com/hyperledger/fabric-sdk-java/commit/17acd23) FABJ-437 Fix ca URL parameter
+* [c437326](https://github.com/hyperledger/fabric-sdk-java/commit/c437326) FABJ-433 Fix return SD overrides.
+
 ## v1.4.1
 Tue Mar  5 10:41:02 EST 2019
 
