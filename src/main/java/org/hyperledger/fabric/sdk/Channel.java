@@ -1141,7 +1141,7 @@ public class Channel implements Serializable {
                 return;
             }
             if (null == orderer) {
-                logger.debug(format("Channel %s doing channel update adding new orderer endpoint: %s", name, sdOrderer.getEndPoint()));
+                logger.debug(format("Channel %s doing channel update adding new orderer mspid: %s, endpoint: %s", name, sdOrderer.getMspid(), sdOrderer.getEndPoint()));
 
                 sdOrdererAddition.addOrderer(new SDOrdererAdditionInfo() {
 
@@ -1217,7 +1217,7 @@ public class Channel implements Serializable {
                     return;
                 }
 
-                logger.debug(format("Channel %s doing channel update found new peer endpoint %s", name, sdEndorser.getEndpoint()));
+                logger.debug(format("Channel %s doing channel update found new peer mspid: %s, endpoint: %s", name, sdEndorser.getMspid(), sdEndorser.getEndpoint()));
 
                 sdPeerAddition.addPeer(new SDPeerAdditionInfo() {
 

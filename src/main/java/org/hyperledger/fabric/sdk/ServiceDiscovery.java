@@ -50,6 +50,7 @@ import org.hyperledger.fabric.sdk.helper.DiagnosticFileDumper;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 
 import static java.lang.String.format;
+import static org.hyperledger.fabric.sdk.helper.Utils.toHexString;
 
 public class ServiceDiscovery {
     private static final Log logger = LogFactory.getLog(ServiceDiscovery.class);
@@ -114,11 +115,17 @@ public class ServiceDiscovery {
         long discoveryTime;
 
         void addTlsCert(String mspid, byte[] cert) {
+            if (IS_TRACE_LEVEL) {
+                logger.trace(format("Channel %s service discovery MSPID %s adding TLSCert %s", channelName, mspid, toHexString(cert)));
+            }
             tlsCerts.computeIfAbsent(mspid, k -> new LinkedList<>()).add(cert);
 
         }
 
         void addTlsIntermCert(String mspid, byte[] cert) {
+            if (IS_TRACE_LEVEL) {
+                logger.trace(format("Channel %s service discovery MSPID %s adding intermediate TLSCert %s", channelName, mspid, toHexString(cert)));
+            }
             tlsIntermCerts.computeIfAbsent(mspid, k -> new LinkedList<>()).add(cert);
 
         }
@@ -173,20 +180,30 @@ public class ServiceDiscovery {
 
         }
 
-        Collection<byte[]> getTlsCerts(String mspid) {
+        Collection<byte[]> getTlsCerts(final String mspid) {
+
             final Collection<byte[]> bytes = tlsCerts.get(mspid);
             if (null == bytes) {
+                logger.debug(format("Channel %s no tls ca certs for mspid: %s", channelName, mspid));
                 return Collections.emptyList();
 
+            }
+            if (bytes.isEmpty()) {
+                logger.debug(format("Channel %s no tls ca certs for mspid: %s", channelName, mspid));
             }
             return Collections.unmodifiableCollection(bytes);
         }
 
         Collection<byte[]> getTlsIntermediateCerts(String mspid) {
             final Collection<byte[]> bytes = tlsIntermCerts.get(mspid);
+
             if (null == bytes) {
+                logger.debug(format("Channel %s no tls intermediary ca certs for mspid: %s", channelName, mspid));
                 return Collections.emptyList();
 
+            }
+            if (bytes.isEmpty()) {
+                logger.debug(format("Channel %s no tls intermediary ca certs for mspid: %s", channelName, mspid));
             }
             return Collections.unmodifiableCollection(bytes);
 
@@ -211,7 +228,7 @@ public class ServiceDiscovery {
         }
         ret = null;
 
-        for (Peer serviceDiscoveryPeer : speers) {
+        for (final Peer serviceDiscoveryPeer : speers) {
 
             try {
 
@@ -306,8 +323,18 @@ public class ServiceDiscovery {
 
                     Protocol.Endpoints value = i.getValue();
                     for (Protocol.Endpoint l : value.getEndpointList()) {
-                        logger.trace(format("Channel %s discovered orderer MSPID: %s, endpoint: %s:%s", channelName, mspid, l.getHost(), l.getPort()));
+                        logger.trace(format("Channel: %s peer: %s discovered orderer MSPID: %s, endpoint: %s:%s", channelName, serviceDiscoveryPeer, mspid, l.getHost(), l.getPort()));
                         String endpoint = (l.getHost() + ":" + l.getPort()).trim().toLowerCase();
+
+                        SDOrderer discoveredAlready = ordererEndpoints.get(endpoint);
+                        if (discoveredAlready != null) {
+                            if (!mspid.equals(discoveredAlready.getMspid())) {
+                                logger.error(format("Service discovery in channel: %s, peer: %s found Orderer endpoint: %s with two mspids: '%s', '%s'", channelName, serviceDiscoveryPeer, endpoint, mspid, discoveredAlready.getMspid()));
+                                continue; // report it and ignore.
+                            }
+                            logger.debug(format("Service discovery in channel: %s, peer: %s found Orderer endpoint: %s mspid: %s discovered twice", channelName, serviceDiscoveryPeer, endpoint, mspid));
+                            continue;
+                        }
 
                         final SDOrderer sdOrderer = new SDOrderer(mspid, endpoint, lsdNetwork.getTlsCerts(mspid), lsdNetwork.getTlsIntermediateCerts(mspid));
 
@@ -322,12 +349,24 @@ public class ServiceDiscovery {
 
                 for (Map.Entry<String, Protocol.Peers> peers : membership.getPeersByOrgMap().entrySet()) {
                     final String mspId = peers.getKey();
-                    Protocol.Peers peer = peers.getValue();
+                    final Protocol.Peers peer = peers.getValue();
 
                     for (Protocol.Peer pp : peer.getPeersList()) {
 
                         SDEndorser ppp = new SDEndorser(pp, lsdNetwork.getTlsCerts(mspId), lsdNetwork.getTlsIntermediateCerts(mspId));
-                        logger.trace(format("Channel %s discovered peer MSPID: %s, endpoint: %s", channelName, mspId, ppp.getEndpoint()));
+
+                        SDEndorser discoveredAlready = lsdNetwork.endorsers.get(ppp.getEndpoint());
+                        if (null != discoveredAlready) {
+                            if (!mspId.equals(discoveredAlready.getMspid())) {
+                                logger.error(format("Service discovery in channel: %s, peer: %s,  found endorser endpoint: %s with two mspids: '%s', '%s'", channelName, serviceDiscoveryPeer, ppp.getEndpoint(), mspId, discoveredAlready.getMspid()));
+                                continue; // report it and ignore.
+                            }
+                            logger.debug(format("Service discovery in channel %s peer: %s found Endorser endpoint: %s mspid: %s discovered twice", channelName, serviceDiscoveryPeer, ppp.getEndpoint(), mspId));
+                            continue;
+                        }
+
+                        logger.trace(format("Channel %s peer: %s discovered peer mspid group: %s, endpoint: %s, mspid: %s", channelName, serviceDiscoveryPeer, mspId, ppp.getEndpoint(), ppp.getMspid()));
+
                         lsdNetwork.endorsers.put(ppp.getEndpoint(), ppp);
 
                     }
