@@ -1,3 +1,9 @@
+## v1.4.3
+Tue May 21 11:15:04 EDT 2019
+
+* [459652f4](https://github.com/hyperledger/fabric-sdk-java/commit/459652f4) FABJ-442 Servicediscovery logging enhancements.
+* [d491018c](https://github.com/hyperledger/fabric-sdk-java/commit/d491018c) FABJ-429 Provide current disconnect handler on peer
+
 ## v1.4.2
 Fri May  3 12:37:17 EDT 2019
 
