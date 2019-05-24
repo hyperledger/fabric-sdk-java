@@ -25,6 +25,12 @@
           "ledgerQuery": true,
           "eventSource": true
         },
+        "peer1.org1.example.com": {
+          "endorsingPeer": true,
+          "chaincodeQuery": true,
+          "ledgerQuery": true,
+          "eventSource": true
+        },
         "peer0.org2.example.com": {
           "endorsingPeer": true,
           "chaincodeQuery": false,
@@ -84,6 +90,16 @@
       },
       "tlsCACerts": {
         "path": "src/test/fixture/sdkintegration/e2e-2Orgs/v1.3/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/server.crt"
+      }
+    },
+    "peer1.org1.example.com": {
+      "url": "grpcs://localhost:7051",
+      "grpcOptions": {
+        "ssl-target-name-override": "peer1.org1.example.com",
+        "grpc.http2.keepalive_time": 15
+      },
+      "tlsCACerts": {
+        "path": "src/test/fixture/sdkintegration/e2e-2Orgs/v1.3/crypto-config/peerOrganizations/org1.example.com/peers/peer1.org1.example.com/tls/server.crt"
       }
     },
     "peer0.org2.example.com": {

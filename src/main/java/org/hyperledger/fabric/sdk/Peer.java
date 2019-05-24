@@ -41,12 +41,15 @@ import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 
 import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.helper.Utils.checkGrpcUrl;
+import static org.hyperledger.fabric.sdk.helper.Utils.isNullOrEmpty;
 import static org.hyperledger.fabric.sdk.helper.Utils.parseGrpcUrl;
 
 /**
  * The Peer class represents a peer to which SDK sends deploy, or query proposals requests.
  */
 public class Peer implements Serializable {
+
+    public static final String PEER_ORGANIZATION_MSPID_PROPERTY = "org.hyperledger.fabric.sdk.peer.organization_mspid";
 
     private static final Config config = Config.getConfig();
     private static final Log logger = LogFactory.getLog(Peer.class);
@@ -96,7 +99,7 @@ public class Peer implements Serializable {
 
         this.url = grpcURL;
         this.name = name;
-        this.properties = properties == null ? null : (Properties) properties.clone(); //keep our own copy.
+        this.properties = properties == null ? new Properties() : (Properties) properties.clone(); //keep our own copy.
 
         logger.debug("Created " + toString());
 
@@ -467,7 +470,8 @@ public class Peer implements Serializable {
     }
 
     void setProperties(Properties properties) {
-        this.properties = properties;
+        this.properties = properties == null ? new Properties() : properties;
+        toString = null; //recalculated
     }
 
     public interface PeerEventingServiceDisconnected {
@@ -660,10 +664,21 @@ public class Peer implements Serializable {
         return protocol;
     }
 
+    private transient String toString;
+
     @Override
     public String toString() {
-        return "Peer{ id: " + id + ", name: " + name + ", channelName: " + channelName + ", url: " + url + "}";
+        String ltoString = toString;
+        if (ltoString == null) {
+            String mspid = "";
 
+            if (properties != null && !isNullOrEmpty(properties.getProperty(PEER_ORGANIZATION_MSPID_PROPERTY))) {
+                mspid = ", mspid: " + properties.getProperty(PEER_ORGANIZATION_MSPID_PROPERTY);
+            }
+            ltoString = "Peer{ id: " + id + ", name: " + name + ", channelName: " + channelName + ", url: " + url + mspid + "}";
+            toString = ltoString;
+        }
+        return ltoString;
     }
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {

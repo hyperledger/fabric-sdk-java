@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
-import java.lang.reflect.InvocationTargetException;
 import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -53,12 +52,9 @@ import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.hyperledger.fabric.sdk.Channel.PeerOptions;
 import org.hyperledger.fabric.sdk.Peer.PeerRole;
-import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.NetworkConfigurationException;
-import org.hyperledger.fabric.sdk.identity.SigningIdentity;
 import org.hyperledger.fabric.sdk.identity.X509Enrollment;
-import org.hyperledger.fabric.sdk.identity.X509SigningIdentity;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.yaml.snakeyaml.Yaml;
 
@@ -817,9 +813,19 @@ public class NetworkConfig {
         JsonArray jsonPeers = getJsonValueAsArray(jsonOrg.get("peers"));
         if (jsonPeers != null) {
             for (JsonValue peer : jsonPeers) {
-                String peerName = getJsonValueAsString(peer);
+                final String peerName = getJsonValueAsString(peer);
                 if (peerName != null) {
                     org.addPeerName(peerName);
+                    final Node node = peers.get(peerName);
+                    if (null != node) {
+                        if (null == node.properties) {
+                            node.properties = new Properties();
+                        }
+                        node.properties.put(Peer.PEER_ORGANIZATION_MSPID_PROPERTY, org.getMspId());
+
+                    } else {
+                        throw new NetworkConfigurationException(format("Organization %s has peer %s listed not found in any channel peer list.", orgName, peerName));
+                    }
                 }
             }
         }

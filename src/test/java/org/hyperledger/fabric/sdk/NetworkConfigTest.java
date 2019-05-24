@@ -162,6 +162,11 @@ public class NetworkConfigTest {
 
         Channel channel = client.loadChannelFromConfig("mychannel", config);
         assertNotNull(channel);
+        final Collection<String> peersOrganizationMSPIDs = channel.getPeersOrganizationMSPIDs();
+        assertEquals(2, peersOrganizationMSPIDs.size());
+        assertTrue(peersOrganizationMSPIDs.contains("Org2MSP"));
+        assertTrue(peersOrganizationMSPIDs.contains("Org1MSP"));
+
     }
 
     @Test
@@ -497,7 +502,8 @@ public class NetworkConfigTest {
                 String orgName = "Org" + i;
                 JsonObject org = createJsonOrg(
                         orgName + "MSP",
-                        createJsonArray("peer0.org" + i + ".example.com"),
+                        i <= nPeers ?
+                                createJsonArray("peer0.org" + i + ".example.com") : createJsonArray(),
                         createJsonArray("ca-org" + i),
                         createJsonArray(createJsonUser("admin" + i, "adminpw" + i)),
                         "-----BEGIN PRIVATE KEY----- <etc>",
@@ -642,6 +648,12 @@ public class NetworkConfigTest {
                 .add("tlsCaCerts", tlsCaCerts)
                 .add("channels", channels)
                 .build();
+    }
+
+    private static JsonArray createJsonArray() {
+
+        JsonArrayBuilder builder = Json.createArrayBuilder();
+        return builder.build();
     }
 
     private static JsonArray createJsonArray(String... elements) {

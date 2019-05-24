@@ -171,6 +171,8 @@ public class Channel implements Serializable {
     private final Collection<Peer> peers = Collections.synchronizedSet(new HashSet<>());
     private final Map<Peer, PeerOptions> peerOptionsMap = Collections.synchronizedMap(new HashMap<>());
     private transient Map<String, Peer> peerEndpointMap = Collections.synchronizedMap(new HashMap<>());
+    private Map<String, Collection<Peer>> peerMSPIDMap = new HashMap<>();
+    private Map<String, Collection<Orderer>> ordererMSPIDMap = new HashMap<>();
     private final Map<PeerRole, Set<Peer>> peerRoleSetMap = Collections.synchronizedMap(new HashMap<>());
     private transient String chaincodeEventUpgradeListenerHandle;
     private transient String transactionListenerProcessorHandle;
@@ -646,6 +648,7 @@ public class Channel implements Serializable {
         peers.add(peer);
         peerOptionsMap.put(peer, peerOptions.clone());
         peerEndpointMap.put(peer.getEndpoint(), peer);
+        addPeerMSPIDMap(peer);
 
         if (peerOptions.getPeerRoles().contains(PeerRole.SERVICE_DISCOVERY)) {
 
@@ -656,9 +659,7 @@ public class Channel implements Serializable {
                 TLSCertificateKeyPair tlsCertificateKeyPair = tlsCertificateBuilder.clientCert();
                 peer.setTLSCertificateKeyPair(tlsCertificateKeyPair);
             }
-
             discoveryEndpoints.add(peer.getEndpoint());
-
         }
 
         for (Map.Entry<PeerRole, Set<Peer>> peerRole : peerRoleSetMap.entrySet()) {
@@ -677,6 +678,79 @@ public class Channel implements Serializable {
 
         }
         return this;
+    }
+
+    private void addPeerMSPIDMap(final Peer peer) {
+        Properties properties = peer.getProperties();
+
+        if (null != properties) {
+            final String mspid = properties.getProperty(Peer.PEER_ORGANIZATION_MSPID_PROPERTY);
+            if (!isNullOrEmpty(mspid)) {
+                logger.debug(format("Channel %s mapping peer %s to mspid %s", name, peer, mspid));
+                synchronized (peerMSPIDMap) {
+                    peerMSPIDMap.computeIfAbsent(mspid, k -> new HashSet<Peer>()).add(peer);
+                }
+            }
+        }
+    }
+
+    private void removePeerMSPIDMap(final Peer peer) {
+        Properties properties = peer.getProperties();
+
+        if (null != properties) {
+            final String mspid = properties.getProperty(Peer.PEER_ORGANIZATION_MSPID_PROPERTY);
+            if (!isNullOrEmpty(mspid)) {
+                logger.debug(format("Channel %s removing mapping peer %s to mspid %s", name, peer, mspid));
+                synchronized (peerMSPIDMap) {
+                    final Collection<Peer> peers = peerMSPIDMap.get(mspid);
+                    if (peers != null) {
+                        peers.remove(peer);
+                        if (peers.isEmpty()) {
+                            peerMSPIDMap.remove(mspid);
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Get peers that belong to an organization from the organization's MSPID
+     * These values may not be available till after the channel is initialized.
+     *
+     * @param mspid The organizaiions MSPID
+     * @return A collection of Peers that belong to the organization with that mspid.
+     * @throws InvalidArgumentException
+     */
+
+    public Collection<Peer> getPeersForOrganization(String mspid) throws InvalidArgumentException {
+
+        if (isNullOrEmpty(mspid)) {
+            throw new InvalidArgumentException("The mspid parameter may not be null or empty string.");
+        }
+        synchronized (peerMSPIDMap) {
+
+            final Collection<Peer> peers = peerMSPIDMap.get(mspid);
+            if (peers == null) {
+                return Collections.emptySet();
+            } else {
+                return new LinkedList<>(peers); // return a copy.
+            }
+        }
+    }
+
+    /**
+     * Collection of strings which are the MSPIDs of all the peer organization added.
+     * These values may not be available till after the channel is initialized.
+     *
+     * @return The collection of mspids
+     */
+
+    public Collection<String> getPeersOrganizationMSPIDs() {
+        synchronized (peerMSPIDMap) {
+            return new LinkedList<>(peerMSPIDMap.keySet());
+        }
     }
 
     /**
@@ -812,6 +886,7 @@ public class Channel implements Serializable {
         } catch (Exception e) {
             logger.error(format("%s removing peer %s due to exception %s", toString(), peer, e.getMessage()));
             peers.remove(peer);
+            removePeerMSPIDMap(peer);
             logger.error(e);
             throw new ProposalException(e.getMessage(), e);
         }
@@ -905,6 +980,7 @@ public class Channel implements Serializable {
         peers.remove(peer);
         peerOptionsMap.remove(peer);
         peerEndpointMap.remove(peer.getEndpoint());
+        removePeerMSPIDMap(peer);
 
         for (Set<Peer> peerRoleSet : peerRoleSetMap.values()) {
             peerRoleSet.remove(peer);
@@ -935,6 +1011,16 @@ public class Channel implements Serializable {
         orderer.setChannel(this);
         ordererEndpointMap.put(orderer.getEndpoint(), orderer);
         orderers.add(orderer);
+        final Properties properties = orderer.getProperties();
+        if (properties != null) {
+            final String mspid = properties.getProperty(Orderer.ORDERER_ORGANIZATION_MSPID_PROPERTY);
+            if (!isNullOrEmpty(mspid)) {
+                synchronized (ordererMSPIDMap) {
+                    ordererMSPIDMap.computeIfAbsent(mspid, k -> new HashSet<>()).add(orderer);
+                }
+            }
+        }
+
         return this;
     }
 
@@ -953,7 +1039,58 @@ public class Channel implements Serializable {
         ordererEndpointMap.remove(orderer.getEndpoint());
         orderers.remove(orderer);
         orderer.shutdown(true);
+        final Properties properties = orderer.getProperties();
+        if (properties != null) {
+            final String mspid = properties.getProperty(Orderer.ORDERER_ORGANIZATION_MSPID_PROPERTY);
+            if (!isNullOrEmpty(mspid)) {
+                synchronized (ordererMSPIDMap) {
+                    final Collection<Orderer> orderers = ordererMSPIDMap.get(mspid);
+                    orderers.remove(orderer);
+                    if (orderers.isEmpty()) {
+                        ordererMSPIDMap.remove(mspid);
+                    }
+                }
+            }
+        }
 
+    }
+
+    /**
+     * Get orderers that belong to an organization from the organization's MSPID
+     * These values may not be available till after the channel is initialized.
+     *
+     * @param mspid The organizaiions MSPID
+     * @return A collection of Orderers that belong to the organization with that mspid.
+     * @throws InvalidArgumentException
+     */
+
+    public Collection<Orderer> getOrderersForOrganization(String mspid) throws InvalidArgumentException {
+
+        if (isNullOrEmpty(mspid)) {
+            throw new InvalidArgumentException("The mspid parameter may not be null or empty string.");
+        }
+        synchronized (ordererMSPIDMap) {
+
+            final Collection<Orderer> orderers = ordererMSPIDMap.get(mspid);
+            if (orderers == null) {
+                return Collections.emptySet();
+            } else {
+                return new LinkedList<>(orderers); // return a copy.
+            }
+        }
+    }
+
+    /**
+     * Collection of strings which are the MSPIDs of all the orderer organization added.
+     * These values may not be available till after the channel is initialized.
+     *
+     * @return The collection of mspids
+     */
+
+    public Collection<String> getOrderersOrganizationMSPIDs() {
+        synchronized (ordererMSPIDMap) {
+            return new LinkedList<>(ordererMSPIDMap.keySet());
+        }
     }
 
     public PeerOptions getPeersOptions(Peer peer) {
@@ -1255,19 +1392,20 @@ public class Channel implements Serializable {
         });
 
         for (SDEndorser sdEndorser : sdNetwork.getEndorsers()) {
+            final String sdEndorserMspid = sdEndorser.getMspid();
             Peer peer = peerEndpointMap.get(sdEndorser.getEndpoint());
             if (null == peer) {
                 if (shutdown) {
                     return;
                 }
 
-                logger.debug(format("Channel %s doing channel update found new peer mspid: %s, endpoint: %s", name, sdEndorser.getMspid(), sdEndorser.getEndpoint()));
+                logger.debug(format("Channel %s doing channel update found new peer mspid: %s, endpoint: %s", name, sdEndorserMspid, sdEndorser.getEndpoint()));
 
                 sdPeerAddition.addPeer(new SDPeerAdditionInfo() {
 
                     @Override
                     public String getMspId() {
-                        return sdEndorser.getMspid();
+                        return sdEndorserMspid;
                     }
 
                     @Override
@@ -1305,6 +1443,23 @@ public class Channel implements Serializable {
                     }
 
                 });
+            } else if (discoveryEndpoints.contains(sdEndorser.getEndpoint())) {
+
+                //hackfest here....  if the user didn't supply msspid retro fit for disovery peers
+                if (peer.getProperties() == null || isNullOrEmpty(peer.getProperties().getProperty(Peer.PEER_ORGANIZATION_MSPID_PROPERTY))) {
+
+                    synchronized (peerMSPIDMap) {
+                        peerMSPIDMap.computeIfAbsent(sdEndorserMspid, k -> new HashSet<>()).add(peer);
+                    }
+                    Properties properties = peer.getProperties();
+                    if (properties == null) {
+                        properties = new Properties();
+                    }
+                    properties.put(Peer.PEER_ORGANIZATION_MSPID_PROPERTY, sdEndorserMspid);
+                    peer.setProperties(properties);
+
+                }
+
             }
 
         }
@@ -1519,6 +1674,8 @@ public class Channel implements Serializable {
                 properties.put("pemBytes", pemBytes);
             }
 
+            properties.put(Orderer.ORDERER_ORGANIZATION_MSPID_PROPERTY, sdOrdererAdditionInfo.getMspId());
+
             Orderer orderer = sdOrdererAdditionInfo.getClient().newOrderer(endpoint,
                     protocol + "//" + endpoint,
                     properties);
@@ -1559,6 +1716,8 @@ public class Channel implements Serializable {
             } else if (null != clientCertFile) {
                 properties.put("clientCertFile", clientCertFile);
             }
+
+            properties.put(Peer.PEER_ORGANIZATION_MSPID_PROPERTY, sdPeerAddition.getMspId());
 
             byte[] clientKeyBytes = (byte[]) findClientProp(config, "clientKeyBytes", mspid, endpoint, null);
             String clientKeyFile = (String) findClientProp(config, "clientKeyFile", mspid, endpoint, null);
@@ -5663,6 +5822,9 @@ public class Channel implements Serializable {
             }
         }
         peers.clear(); // make sure.
+
+        peerMSPIDMap.clear();
+        ordererMSPIDMap.clear();
 
         peerEndpointMap.clear();
         ordererEndpointMap.clear();
