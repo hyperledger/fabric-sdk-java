@@ -59,11 +59,13 @@ import sun.misc.Unsafe;
 
 import static org.hyperledger.fabric.sdk.Channel.PeerOptions.createPeerOptions;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.assertArrayListEquals;
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.getField;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.getMockUser;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.matchesRegex;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.setField;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.tarBytesToEntryArrayList;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -466,6 +468,175 @@ public class ChannelTest {
         createRunningChannel("testTwoChannelsSameName", null);
         createRunningChannel("testTwoChannelsSameName", null);
 
+    }
+
+    @Test
+    public void testMspidPeers() throws Exception {
+        Channel channel = hfclient.newChannel("rickwashere");
+
+        Properties properties = new Properties();
+        properties.setProperty(Peer.PEER_ORGANIZATION_MSPID_PROPERTY, "blah");
+
+        final Peer peerBlah = hfclient.newPeer("peer1", "grpc://localhost:22", properties);
+        channel.addPeer(peerBlah);
+        Collection<String> peersOrganizationMSPIDs = channel.getPeersOrganizationMSPIDs();
+        assertTrue(peersOrganizationMSPIDs.contains("blah"));
+        assertTrue(channel.getPeersForOrganization("blah").iterator().next() == peerBlah);
+
+        final Peer peerBlah2 = hfclient.newPeer("peerBlah2", "grpc://localhost:23", properties);
+        channel.addPeer(peerBlah2);
+        peersOrganizationMSPIDs = channel.getPeersOrganizationMSPIDs();
+        assertTrue(peersOrganizationMSPIDs.contains("blah"));
+        assertEquals(1, peersOrganizationMSPIDs.size());
+
+        Collection<Peer> blahpeers = channel.getPeersForOrganization("blah");
+        assertEquals(2, blahpeers.size());
+        assertTrue(blahpeers.contains(peerBlah));
+        assertTrue(blahpeers.contains(peerBlah2));
+
+        Collection<Peer> fudpeers = channel.getPeersForOrganization("fud");
+        assertTrue(fudpeers.isEmpty());
+
+        properties.clear();
+        properties.setProperty(Peer.PEER_ORGANIZATION_MSPID_PROPERTY, "fud");
+        final Peer peerFud = hfclient.newPeer("peer1", "grpc://localhost:24", properties);
+        channel.addPeer(peerFud);
+        peersOrganizationMSPIDs = channel.getPeersOrganizationMSPIDs();
+        assertTrue(peersOrganizationMSPIDs.contains("blah"));
+        assertTrue(peersOrganizationMSPIDs.contains("fud"));
+        assertEquals(2, peersOrganizationMSPIDs.size());
+
+        blahpeers = channel.getPeersForOrganization("blah");
+        assertEquals(2, blahpeers.size());
+        assertTrue(blahpeers.contains(peerBlah));
+        assertTrue(blahpeers.contains(peerBlah2));
+
+        fudpeers = channel.getPeersForOrganization("fud");
+        assertEquals(1, fudpeers.size());
+        assertTrue(fudpeers.contains(peerFud));
+
+        channel.removePeer(peerBlah);
+
+        peersOrganizationMSPIDs = channel.getPeersOrganizationMSPIDs();
+        assertTrue(peersOrganizationMSPIDs.contains("blah"));
+        assertTrue(peersOrganizationMSPIDs.contains("fud"));
+        assertEquals(2, peersOrganizationMSPIDs.size());
+
+        blahpeers = channel.getPeersForOrganization("blah");
+        assertEquals(1, blahpeers.size());
+        assertTrue(blahpeers.contains(peerBlah2));
+
+        fudpeers = channel.getPeersForOrganization("fud");
+        assertEquals(1, fudpeers.size());
+        assertTrue(fudpeers.contains(peerFud));
+
+        channel.removePeer(peerFud);
+
+        peersOrganizationMSPIDs = channel.getPeersOrganizationMSPIDs();
+        assertEquals(1, peersOrganizationMSPIDs.size());
+        assertTrue(peersOrganizationMSPIDs.contains("blah"));
+
+        blahpeers = channel.getPeersForOrganization("blah");
+        assertEquals(1, blahpeers.size());
+        assertTrue(blahpeers.contains(peerBlah2));
+
+        assertTrue(channel.getPeersForOrganization("fud").isEmpty());
+
+        Map peerMSPIDMap = (Map) getField(channel, "peerMSPIDMap");
+        assertEquals(1, peerMSPIDMap.keySet().size());
+
+        channel.shutdown(false);
+
+        peersOrganizationMSPIDs = channel.getPeersOrganizationMSPIDs();
+        assertTrue(peersOrganizationMSPIDs.isEmpty());
+
+        assertTrue(channel.getPeersForOrganization("fud").isEmpty());
+        assertTrue(channel.getPeersForOrganization("blah").isEmpty());
+
+    }
+
+    @Test
+    public void testMspidOrderers() throws Exception {
+        Channel channel = hfclient.newChannel("rickwashereTOO");
+
+        Properties properties = new Properties();
+        properties.setProperty(Orderer.ORDERER_ORGANIZATION_MSPID_PROPERTY, "blah");
+
+        final Orderer ordererBlah = hfclient.newOrderer("orderer1", "grpc://localhost:22", properties);
+        channel.addOrderer(ordererBlah);
+        Collection<String> orderersOrganizationMSPIDs = channel.getOrderersOrganizationMSPIDs();
+        assertTrue(orderersOrganizationMSPIDs.contains("blah"));
+        assertTrue(channel.getOrderersForOrganization("blah").iterator().next() == ordererBlah);
+
+        final Orderer ordererBlah2 = hfclient.newOrderer("ordererBlah2", "grpc://localhost:23", properties);
+        channel.addOrderer(ordererBlah2);
+        orderersOrganizationMSPIDs = channel.getOrderersOrganizationMSPIDs();
+        assertTrue(orderersOrganizationMSPIDs.contains("blah"));
+        assertEquals(1, orderersOrganizationMSPIDs.size());
+
+        Collection<Orderer> blahorderers = channel.getOrderersForOrganization("blah");
+        assertEquals(2, blahorderers.size());
+        assertTrue(blahorderers.contains(ordererBlah));
+        assertTrue(blahorderers.contains(ordererBlah2));
+
+        Collection<Orderer> fudorderers = channel.getOrderersForOrganization("fud");
+        assertTrue(fudorderers.isEmpty());
+
+        properties.clear();
+        properties.setProperty(Orderer.ORDERER_ORGANIZATION_MSPID_PROPERTY, "fud");
+        final Orderer ordererFud = hfclient.newOrderer("orderer1", "grpc://localhost:24", properties);
+        channel.addOrderer(ordererFud);
+        orderersOrganizationMSPIDs = channel.getOrderersOrganizationMSPIDs();
+        assertTrue(orderersOrganizationMSPIDs.contains("blah"));
+        assertTrue(orderersOrganizationMSPIDs.contains("fud"));
+        assertEquals(2, orderersOrganizationMSPIDs.size());
+
+        blahorderers = channel.getOrderersForOrganization("blah");
+        assertEquals(2, blahorderers.size());
+        assertTrue(blahorderers.contains(ordererBlah));
+        assertTrue(blahorderers.contains(ordererBlah2));
+
+        fudorderers = channel.getOrderersForOrganization("fud");
+        assertEquals(1, fudorderers.size());
+        assertTrue(fudorderers.contains(ordererFud));
+
+        channel.removeOrderer(ordererBlah);
+
+        orderersOrganizationMSPIDs = channel.getOrderersOrganizationMSPIDs();
+        assertTrue(orderersOrganizationMSPIDs.contains("blah"));
+        assertTrue(orderersOrganizationMSPIDs.contains("fud"));
+        assertEquals(2, orderersOrganizationMSPIDs.size());
+
+        blahorderers = channel.getOrderersForOrganization("blah");
+        assertEquals(1, blahorderers.size());
+        assertTrue(blahorderers.contains(ordererBlah2));
+
+        fudorderers = channel.getOrderersForOrganization("fud");
+        assertEquals(1, fudorderers.size());
+        assertTrue(fudorderers.contains(ordererFud));
+
+        channel.removeOrderer(ordererFud);
+
+        orderersOrganizationMSPIDs = channel.getOrderersOrganizationMSPIDs();
+        assertEquals(1, orderersOrganizationMSPIDs.size());
+        assertTrue(orderersOrganizationMSPIDs.contains("blah"));
+
+        blahorderers = channel.getOrderersForOrganization("blah");
+        assertEquals(1, blahorderers.size());
+        assertTrue(blahorderers.contains(ordererBlah2));
+
+        assertTrue(channel.getOrderersForOrganization("fud").isEmpty());
+
+        Map ordererMSPIDMap = (Map) getField(channel, "ordererMSPIDMap");
+        assertEquals(1, ordererMSPIDMap.keySet().size());
+
+        channel.shutdown(false);
+
+        orderersOrganizationMSPIDs = channel.getOrderersOrganizationMSPIDs();
+        assertTrue(orderersOrganizationMSPIDs.isEmpty());
+
+        assertTrue(channel.getOrderersForOrganization("fud").isEmpty());
+        assertTrue(channel.getOrderersForOrganization("blah").isEmpty());
     }
 
     @Test

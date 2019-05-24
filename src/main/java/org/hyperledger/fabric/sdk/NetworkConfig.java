@@ -864,9 +864,19 @@ public class NetworkConfig {
         JsonArray jsonPeers = getJsonValueAsArray(jsonOrg.get("peers"));
         if (jsonPeers != null) {
             for (JsonValue peer : jsonPeers) {
-                String peerName = getJsonValueAsString(peer);
+                final String peerName = getJsonValueAsString(peer);
                 if (peerName != null) {
                     org.addPeerName(peerName);
+                    final Node node = peers.get(peerName);
+                    if (null != node) {
+                        if (null == node.properties) {
+                            node.properties = new Properties();
+                        }
+                        node.properties.put(Peer.PEER_ORGANIZATION_MSPID_PROPERTY, org.getMspId());
+
+                    } else {
+                        throw new NetworkConfigurationException(format("Organization %s has peer %s listed not found in any channel peer list.", orgName, peerName));
+                    }
                 }
             }
         }

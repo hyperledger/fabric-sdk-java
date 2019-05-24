@@ -89,7 +89,7 @@ public class ServiceDiscoveryIT {
 
         //Create initial discovery peer.
 
-        Peer discoveryPeer = client.newPeer("peer0.org1.example.com", protocol + "//localhost:7051", properties);
+        Peer discoveryPeer = client.newPeer("peer0.org1.example.com", protocol + "//peer0.org1.example.com:7051", properties);
         Channel foo = client.newChannel("foo"); //create channel that will be discovered.
 
         foo.addPeer(discoveryPeer, createPeerOptions().setPeerRoles(EnumSet.of(PeerRole.SERVICE_DISCOVERY, PeerRole.LEDGER_QUERY, PeerRole.EVENT_SOURCE, PeerRole.CHAINCODE_QUERY)));
@@ -132,6 +132,33 @@ public class ServiceDiscoveryIT {
         assertNotNull(sdOrdererAddition);
 
         foo.initialize(); // initialize the channel.
+
+        //Test if we pick up MSPIDs for Peers
+        Collection<String> peersOrganizationMSPIDs = foo.getPeersOrganizationMSPIDs();
+        assertNotNull(peersOrganizationMSPIDs);
+        assertEquals(1, peersOrganizationMSPIDs.size());
+        assertEquals("Org1MSP", peersOrganizationMSPIDs.iterator().next());
+        final Collection<Peer> org1MSPPeers = foo.getPeersForOrganization("Org1MSP");
+        assertNotNull(org1MSPPeers);
+        assertEquals(2, org1MSPPeers.size());
+        Set<String> expectpeerURL = new HashSet<>(Arrays.asList(protocol + "//peer0.org1.example.com:7051",
+                protocol + "//peer1.org1.example.com:7056")); //discovered orderer
+        org1MSPPeers.forEach(peer -> {
+            assertTrue(format("Missing peer %s", peer), expectpeerURL.contains(peer.getUrl()));
+        });
+
+        //Test if we pick up MSPIDs for Orderers
+        Collection<String> orderersOrganizationMSPIDs = foo.getOrderersOrganizationMSPIDs();
+        assertNotNull(orderersOrganizationMSPIDs);
+        assertEquals(1, orderersOrganizationMSPIDs.size());
+        assertEquals("OrdererMSP", orderersOrganizationMSPIDs.iterator().next());
+        final Collection<Orderer> org1MSPOrderers = foo.getOrderersForOrganization("OrdererMSP");
+        assertNotNull(org1MSPOrderers);
+        assertEquals(1, org1MSPOrderers.size());
+        Set<String> expectordererURL = new HashSet<>(Arrays.asList(protocol + "//orderer.example.com:7050")); //discovered orderer
+        org1MSPOrderers.forEach(orderer -> {
+            assertTrue(format("Missing orderer %s", orderer), expectordererURL.contains(orderer.getUrl()));
+        });
 
         Set<String> expect = new HashSet<>(Arrays.asList(protocol + "//orderer.example.com:7050")); //discovered orderer
         for (Orderer orderer : foo.getOrderers()) {
