@@ -141,6 +141,7 @@ public class Orderer implements Serializable {
 
         this.channel = channel;
         this.channelName = channel.getName();
+        toString = null; //recalculate
 
     }
 

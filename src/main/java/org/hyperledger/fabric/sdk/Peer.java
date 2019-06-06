@@ -185,6 +185,7 @@ public class Peer implements Serializable {
 
         this.channel = channel;
         this.channelName = channel.getName();
+        toString = null; //recalculated
 
     }
 

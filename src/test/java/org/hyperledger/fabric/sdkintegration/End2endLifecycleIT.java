@@ -226,6 +226,7 @@ public class End2endLifecycleIT {
 
         //////////////
         ////  DO Go with our own endorsement policy
+        out("---   Running GO Chaincode with own endorsement   ---");
         LifecycleChaincodePackage lifecycleChaincodePackage = createLifecycleChaincodePackage("lc_example_cc_go_1", // some label
                 Type.GO_LANG,
                 "src/test/fixture/sdkintegration/gocc/sample1", CHAIN_CODE_PATH, "src/test/fixture/meta-infs/end2endit");
@@ -240,11 +241,12 @@ public class End2endLifecycleIT {
                 lifecycleChaincodePackage, goChaincodeName,
                 "1", //Version - bump up next time.
                 chaincodeEndorsementPolicy,
-                ChaincodeCollectionConfiguration.fromYamlFile(new File("src/test/fixture/collectionProperties/PrivateDataIT.yaml")),
+                null, // ChaincodeCollectionConfiguration
                 true,  // initRequired
                 expectedMap);
 
         //// Do Go update. Use same chaincode name, new version and chaincode package. This chaincode doubles move result so we know it changed.
+        out("---   Running GO Chaincode with update new version.   ---");
 
         LifecycleChaincodePackage lifecycleChaincodePackageUpdate = createLifecycleChaincodePackage("lc_example_cc_go_11", // some label
                 Type.GO_LANG,
@@ -256,7 +258,7 @@ public class End2endLifecycleIT {
                 lifecycleChaincodePackageUpdate, goChaincodeName,
                 "2", //version is 2 it's an update.
                 chaincodeEndorsementPolicy,
-                null, //ChaincodeCollectionConfiguration
+                ChaincodeCollectionConfiguration.fromYamlFile(new File("src/test/fixture/collectionProperties/PrivateDataIT.yaml")),
                 true,  // initRequired
                 new HashMap<String, Object>() {{
                     put("sequence", 2L);  // this is an update sequence should be 2
@@ -265,6 +267,7 @@ public class End2endLifecycleIT {
 
         //////////////
         ////  DO Java
+        out("---  Running Java Chaincode.---  \n\n");
         LifecycleChaincodePackage lifecycleChaincodePackageJava = createLifecycleChaincodePackage("JavaLABEL", // some label
                 Type.JAVA, "src/test/fixture/sdkintegration/javacc/sample1",
                 "", // no path in Java.
@@ -281,6 +284,7 @@ public class End2endLifecycleIT {
 
         //////////////
         ////  DO Node
+        out("---   Running Node Chaincode.   ---");
         LifecycleChaincodePackage lifecycleChaincodePackageNode = createLifecycleChaincodePackage("ImNodeSeeMeRun", // some label
                 Type.NODE, "src/test/fixture/sdkintegration/nodecc/sample1",
                 "", // no path in node.
@@ -297,6 +301,7 @@ public class End2endLifecycleIT {
 
         //////////////
         ////  DO Go without any standard init required.
+        out("---   Running GO Chaincode with no init.   ---");
         LifecycleChaincodePackage lifecycleChaincodePackageNoInit = createLifecycleChaincodePackage("lc_example_cc_go_1", // some label
                 Type.GO_LANG,
                 "src/test/fixture/sdkintegration/gocc/sample1NoInit", CHAIN_CODE_PATH, null);
@@ -570,7 +575,7 @@ public class End2endLifecycleIT {
         for (LifecycleApproveChaincodeDefinitionForMyOrgProposalResponse response : lifecycleApproveChaincodeDefinitionForMyOrgProposalResponse) {
             final Peer peer = response.getPeer();
 
-            assertEquals(format("failure on %s", peer), ChaincodeResponse.Status.SUCCESS, response.getStatus());
+            assertEquals(format("failure on %s  message is: %s", peer, response.getMessage()), ChaincodeResponse.Status.SUCCESS, response.getStatus());
             assertFalse(peer + " " + response.getMessage(), response.isInvalid());
             assertTrue(format("failure on %s", peer), response.isVerified());
         }

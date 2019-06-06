@@ -1,5 +1,5 @@
 /*
-Copyright IBM Corp. 2016 All Rights Reserved.
+Copyright IBM Corp. 2019 All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,13 +18,15 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"strconv"
-
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	pb "github.com/hyperledger/fabric/protos/peer"
 )
 
-var logger = shim.NewLogger("example_cc0")
+var Info  = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+var Error = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 
 // SimpleChaincode example simple Chaincode implementation
 type SimpleChaincode struct {
@@ -32,13 +34,13 @@ type SimpleChaincode struct {
 
 // Init initializes the chaincode state
 func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
-	logger.Info("########### example_cc Init ###########")
+	Info.Println("########### example_cc Init ###########")
 	panic("We shouldn't be here.")
 }
 
 // this NOT the standard init function (trust me ) also note starts with lower case not available outside the pacakge.
 func (t *SimpleChaincode) ricksInit(stub shim.ChaincodeStubInterface, args []string) pb.Response {
-	logger.Info("########### example_cc ricksInit ###########")
+	Info.Println("########### example_cc ricksInit ###########")
 
 	var A, B string    // Entities
 	var Aval, Bval int // Asset holdings
@@ -59,7 +61,7 @@ func (t *SimpleChaincode) ricksInit(stub shim.ChaincodeStubInterface, args []str
 	if err != nil {
 		return shim.Error("Expecting integer value for asset holding")
 	}
-	logger.Infof("Aval = %d, Bval = %d\n", Aval, Bval)
+	Info.Printf("Aval = %d, Bval = %d\n", Aval, Bval)
 
 	// Write the state to the ledger
 	err = stub.PutState(A, []byte(strconv.Itoa(Aval)))
@@ -101,15 +103,15 @@ func (t *SimpleChaincode) ricksInit(stub shim.ChaincodeStubInterface, args []str
 
 // Invoke makes payment of X units from A to B
 func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
-	logger.Info("########### example_cc Invoke ###########")
+	Info.Println("########### example_cc Invoke ###########")
 
 	function, args := stub.GetFunctionAndParameters()
 
 
 	if function == "init" {  // this is just a regular fcn that we need to dispatch here.
-    		// Does our own initialize
-    		return t.ricksInit(stub, args) // are own init.
-    	}
+		// Does our own initialize
+		return t.ricksInit(stub, args) // are own init.
+	}
 
 	if function == "delete" {
 		// Deletes an entity from its state
@@ -126,7 +128,7 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 		return t.move(stub, args)
 	}
 
-	logger.Errorf("Unknown action, check the first argument, must be one of 'delete', 'query', or 'move'. But got: %v", args[0])
+	Error.Printf("Unknown action, check the first argument, must be one of 'delete', 'query', or 'move'. But got: %v", args[0])
 	return shim.Error(fmt.Sprintf("Unknown action, check the first argument, must be one of 'delete', 'query', or 'move'. But got: %v", args[0]))
 }
 
@@ -171,7 +173,7 @@ func (t *SimpleChaincode) move(stub shim.ChaincodeStubInterface, args []string) 
 	}
 	Aval = Aval - X
 	Bval = Bval + X
-	logger.Infof("Aval = %d, Bval = %d\n", Aval, Bval)
+	Info.Printf("Aval = %d, Bval = %d\n", Aval, Bval)
 
 	// Write the state back to the ledger
 	err = stub.PutState(A, []byte(strconv.Itoa(Aval)))
@@ -204,7 +206,7 @@ func (t *SimpleChaincode) move(stub shim.ChaincodeStubInterface, args []string) 
 		}
 
 
-		logger.Infof("Status = %d \n", vrc)
+		Info.Printf("Status = %d \n", vrc)
 
 		return pb.Response{
 			Status:  int32(vrc),
@@ -257,13 +259,13 @@ func (t *SimpleChaincode) query(stub shim.ChaincodeStubInterface, args []string)
 	}
 
 	jsonResp := "{\"Name\":\"" + A + "\",\"Amount\":\"" + string(Avalbytes) + "\"}"
-	logger.Infof("Query Response:%s\n", jsonResp)
+	Info.Printf("Query Response:%s\n", jsonResp)
 	return shim.Success(Avalbytes)
 }
 
 func main() {
 	err := shim.Start(new(SimpleChaincode))
 	if err != nil {
-		logger.Errorf("Error starting Simple chaincode: %s", err)
+		Error.Printf("Error starting Simple chaincode: %s", err)
 	}
 }

@@ -1,5 +1,5 @@
 /*
-Copyright IBM Corp. 2016 All Rights Reserved.
+Copyright IBM Corp. 2019 All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,13 +18,16 @@ package main
 
 import (
 	"fmt"
+	"log"
+    "os"
 	"strconv"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	pb "github.com/hyperledger/fabric/protos/peer"
 )
 
-var logger = shim.NewLogger("private_data_cc0")
+var Info  = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+var Error = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 
 // SimpleChaincode example simple Chaincode implementation using private data.
 type SimpleChaincode struct {
@@ -32,7 +35,7 @@ type SimpleChaincode struct {
 
 // Init initializes the chaincode state
 func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
-	logger.Info("########### private_data_cc Init ###########")
+	Info.Println("########### private_data_cc Init ###########")
 
 	return shim.Success(nil)
 
@@ -40,11 +43,11 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
 
 // Invoke makes payment of X units from A to B
 func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
-	logger.Info("########### private_data_cc Invoke ###########")
+	Info.Println("########### private_data_cc Invoke ###########")
 
 	function, args := stub.GetFunctionAndParameters()
 
-	logger.Info("invoke function: " + function)
+	Info.Println("invoke function: " + function)
 
 	if function == "query" {
 		// queries an entity state
@@ -61,7 +64,7 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 		return t.set(stub, args)
 	}
 
-	logger.Errorf("Unknown action, check the first argument, must be one of 'delete', 'query', or 'move'. But got: %v", args[0])
+	Error.Printf("Unknown action, check the first argument, must be one of 'delete', 'query', or 'move'. But got: %v", args[0])
 	return shim.Error(fmt.Sprintf("Unknown action, check the first argument, must be one of 'delete', 'query', or 'move'. But got: %v", args[0]))
 }
 
@@ -115,7 +118,7 @@ func (t *SimpleChaincode) move(stub shim.ChaincodeStubInterface, args []string) 
 	}
 	Aval = Aval - X
 	Bval = Bval + X
-	logger.Infof("Aval = %d, Bval = %d\n", Aval, Bval)
+	Info.Printf("Aval = %d, Bval = %d\n", Aval, Bval)
 
 	// Write the state back to the ledger
 	err = stub.PutPrivateData("COLLECTION_FOR_A", A, []byte(strconv.Itoa(Aval)))
@@ -162,7 +165,7 @@ func (t *SimpleChaincode) set(stub shim.ChaincodeStubInterface, args []string) p
        return shim.Error("Invalid B value amount, expecting a integer value")
     }
 
-    logger.Infof("set %s = %d, %s = %d\n", A, Aval, B, Bval)
+    Info.Printf("set %s = %d, %s = %d\n", A, Aval, B, Bval)
 
 	// Perform the execution
 
@@ -177,7 +180,7 @@ func (t *SimpleChaincode) set(stub shim.ChaincodeStubInterface, args []string) p
 		return shim.Error(err.Error())
 	}
 
-	logger.Infof("set done %s = %d, %s = %d\n", A, Aval, B, Bval)
+	Info.Printf("set done %s = %d, %s = %d\n", A, Aval, B, Bval)
 
 	return shim.Success(nil)
 }
@@ -203,7 +206,7 @@ func (t *SimpleChaincode) query(stub shim.ChaincodeStubInterface, args []string)
 
 	QueryKey = string(transMap["B"])
 
-	logger.Infof("query for  %s\n", QueryKey)
+	Info.Printf("query for  %s\n", QueryKey)
 
 	// Get the state from the ledger
 	Avalbytes, err := stub.GetPrivateData("COLLECTION_FOR_B", QueryKey)
@@ -218,13 +221,13 @@ func (t *SimpleChaincode) query(stub shim.ChaincodeStubInterface, args []string)
 	}
 
 	jsonResp := "{\"Name\":\"" + QueryKey + "\",\"Amount\":\"" + string(Avalbytes) + "\"}"
-	logger.Infof("Query Response:%s\n", jsonResp)
+	Info.Printf("Query Response:%s\n", jsonResp)
 	return shim.Success(Avalbytes)
 }
 
 func main() {
 	err := shim.Start(new(SimpleChaincode))
 	if err != nil {
-		logger.Errorf("Error starting Simple chaincode: %s", err)
+		Error.Printf("Error starting Simple chaincode: %s", err)
 	}
 }
