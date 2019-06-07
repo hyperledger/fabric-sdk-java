@@ -18,7 +18,6 @@ package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
@@ -44,10 +43,13 @@ import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.TestConfigHelper;
 import org.hyperledger.fabric.sdk.UpdateChannelConfiguration;
+import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
 import org.junit.Before;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
 import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.Channel.PeerOptions.createPeerOptions;
@@ -64,6 +66,8 @@ import static org.junit.Assert.fail;
  * See http://hyperledger-fabric.readthedocs.io/en/master/configtxlator.html
  * for details.
  */
+
+@FixMethodOrder (MethodSorters.NAME_ASCENDING)
 public class UpdateChannelIT {
 
     private static final TestConfig testConfig = TestConfig.getConfig();
@@ -72,17 +76,29 @@ public class UpdateChannelIT {
     private static final String ORIGINAL_BATCH_TIMEOUT = "\"timeout\": \"2s\""; // Batch time out in configtx.yaml
     private static final String UPDATED_BATCH_TIMEOUT = "\"timeout\": \"5s\"";  // What we want to change it to.
 
+    //  private static final String FOO_CHANNEL_NAME = "systemOrdererChannel";
     private static final String FOO_CHANNEL_NAME = "foo";
+    private static final String SYSTEM_CHANNEL_NAME = testConfig.isFabricVersionAtOrAfter("2.0") ? "systemordererchannel" : "testchainid";
     private static final String PEER_0_ORG_1_EXAMPLE_COM_7051 = "peer0.org1.example.com:7051";
     private static final String REGX_S_HOST_PEER_0_ORG_1_EXAMPLE_COM = "(?s).*\"host\":[ \t]*\"peer0\\.org1\\.example\\.com\".*";
     private static final String REGX_S_ANCHOR_PEERS = "(?s).*\"*AnchorPeers\":[ \t]*\\{.*";
 
+    // "Consortiums": { "groups": { "SampleConsortium": {
+
+    private static final String REGX_IS_SYSTEM_CHANNEL = "(?s).*\"Consortiums\":[ \\t\\s]*\\{[ \\s\\t]*\"groups\":[ \\t\\s]*\\{[ \\t\\s]*\"SampleConsortium\":[ \\t\\s]*\\{.*";
     private final TestConfigHelper configHelper = new TestConfigHelper();
 
     private Collection<SampleOrg> testSampleOrgs;
 
+    SampleStore sampleStore;
+    HFClient client;
+    SampleUser ordererAdmin;
+    HttpClient httpclient;
+    SampleOrg sampleOrg;
+    User baduser;
+
     @Before
-    public void checkConfig() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, MalformedURLException {
+    public void checkConfig() throws Exception {
 
         out("\n\n\nRUNNING: UpdateChannelIT\n");
         resetConfig();
@@ -90,93 +106,82 @@ public class UpdateChannelIT {
 //        assertEquals(256, Config.getConfig().getSecurityLevel());
 
         testSampleOrgs = testConfig.getIntegrationTestsSampleOrgs();
+
+        ////////////////////////////
+        // Setup client
+
+        //Create instance of client.
+        client = HFClient.createNewInstance();
+
+        client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+
+        ////////////////////////////
+        //Set up USERS
+
+        //Persistence is not part of SDK. Sample file store is for demonstration purposes only!
+        //   MUST be replaced with more robust application implementation  (Database, LDAP)
+        File sampleStoreFile = new File(System.getProperty("java.io.tmpdir") + "/HFCSampletest.properties");
+        //    sampleStoreFile.deleteOnExit();
+
+        sampleStore = new SampleStore(sampleStoreFile);
+
+        //SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface
+
+        ////////////////////////////
+        // get users for all orgs
+
+        for (SampleOrg sampleOrg : testSampleOrgs) {
+
+            final String orgName = sampleOrg.getName();
+            sampleOrg.setPeerAdmin(sampleStore.getMember(orgName + "Admin", orgName));
+        }
+
+        sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
+
+        SampleOrg sampleOrg2 = testConfig.getIntegrationTestsSampleOrg("peerOrg2");
+        baduser = sampleOrg2.getUser("user1");
+
+        final String sampleOrgName = sampleOrg.getName();
+
+        ordererAdmin = sampleStore.getMember(sampleOrgName + "OrderAdmin", sampleOrgName, "OrdererMSP",
+                Util.findFileSk(Paths.get("src/test/fixture/sdkintegration/e2e-2Orgs/" + testConfig.getFabricConfigGenVers() + "/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/keystore/").toFile()),
+                Paths.get("src/test/fixture/sdkintegration/e2e-2Orgs/" + testConfig.getFabricConfigGenVers() + "/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/signcerts/Admin@example.com-cert.pem").toFile());
+
+        httpclient = HttpClients.createDefault();
     }
 
     @Test
-    public void setup() {
+    public void test01UserChannel() {
 
         try {
 
             ////////////////////////////
-            // Setup client
-
-            //Create instance of client.
-            HFClient client = HFClient.createNewInstance();
-
-            client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
-
-            ////////////////////////////
-            //Set up USERS
-
-            //Persistence is not part of SDK. Sample file store is for demonstration purposes only!
-            //   MUST be replaced with more robust application implementation  (Database, LDAP)
-            File sampleStoreFile = new File(System.getProperty("java.io.tmpdir") + "/HFCSampletest.properties");
-            sampleStoreFile.deleteOnExit();
-
-            final SampleStore sampleStore = new SampleStore(sampleStoreFile);
-
-            //SampleUser can be any implementation that implements org.hyperledger.fabric.sdk.User Interface
-
-            ////////////////////////////
-            // get users for all orgs
-
-            for (SampleOrg sampleOrg : testSampleOrgs) {
-
-                final String orgName = sampleOrg.getName();
-                sampleOrg.setPeerAdmin(sampleStore.getMember(orgName + "Admin", orgName));
-            }
-
-            ////////////////////////////
             //Reconstruct and run the channels
-            SampleOrg sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
-            Channel fooChannel = reconstructChannel(FOO_CHANNEL_NAME, client, sampleOrg);
+
+            Channel fooChannel = reconstructChannel(false, FOO_CHANNEL_NAME, client, sampleOrg);
 
             // Getting foo channels current configuration bytes.
             byte[] channelConfigurationBytes = fooChannel.getChannelConfigurationBytes();
 
-            HttpClient httpclient = HttpClients.createDefault();
-//            HttpPost httppost = new HttpPost(CONFIGTXLATOR_LOCATION + "/protolator/decode/common.Config");
-//            httppost.setEntity(new ByteArrayEntity(channelConfigurationBytes));
+            String originalConfigJson = configTxlatorDecode(httpclient, channelConfigurationBytes);
 
-            String responseAsString = configTxlatorDecode(httpclient, channelConfigurationBytes);
+            assertFalse(originalConfigJson.matches(REGX_IS_SYSTEM_CHANNEL));  // verify NOT system channel.
 
             //responseAsString is JSON but use just string operations for this test.
 
-            if (!responseAsString.contains(ORIGINAL_BATCH_TIMEOUT)) {
+            if (!originalConfigJson.contains(ORIGINAL_BATCH_TIMEOUT)) {
 
-                fail(format("Did not find expected batch timeout '%s', in:%s", ORIGINAL_BATCH_TIMEOUT, responseAsString));
+                fail(format("Did not find expected batch timeout '%s', in:%s", ORIGINAL_BATCH_TIMEOUT, originalConfigJson));
             }
 
+            byte[] reEncodedOriginalConfig = configTxLatorEncode(httpclient, originalConfigJson); // we need to get this to make sure the compare has encoding in the same way!
+
             //Now modify the batch timeout
-            String updateString = responseAsString.replace(ORIGINAL_BATCH_TIMEOUT, UPDATED_BATCH_TIMEOUT);
+            String updateString = originalConfigJson.replace(ORIGINAL_BATCH_TIMEOUT, UPDATED_BATCH_TIMEOUT);
 
-            HttpPost httppost = new HttpPost(CONFIGTXLATOR_LOCATION + "/protolator/encode/common.Config");
-            httppost.setEntity(new StringEntity(updateString));
+            byte[] updatedConfigBytes = configTxLatorEncode(httpclient, updateString);
 
-            HttpResponse response = httpclient.execute(httppost);
-
-            int statuscode = response.getStatusLine().getStatusCode();
-            out("Got %s status for encoding the new desired channel config bytes", statuscode);
-            assertEquals(200, statuscode);
-            byte[] newConfigBytes = EntityUtils.toByteArray(response.getEntity());
-
-            // Now send to configtxlator multipart form post with original config bytes, updated config bytes and channel name.
-            httppost = new HttpPost(CONFIGTXLATOR_LOCATION + "/configtxlator/compute/update-from-configs");
-
-            HttpEntity multipartEntity = MultipartEntityBuilder.create()
-                    .setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
-                    .addBinaryBody("original", channelConfigurationBytes, ContentType.APPLICATION_OCTET_STREAM, "originalFakeFilename")
-                    .addBinaryBody("updated", newConfigBytes, ContentType.APPLICATION_OCTET_STREAM, "updatedFakeFilename")
-                    .addBinaryBody("channel", fooChannel.getName().getBytes()).build();
-
-            httppost.setEntity(multipartEntity);
-
-            response = httpclient.execute(httppost);
-            statuscode = response.getStatusLine().getStatusCode();
-            out("Got %s status for updated config bytes needed for updateChannelConfiguration ", statuscode);
-            assertEquals(200, statuscode);
-
-            byte[] updateBytes = EntityUtils.toByteArray(response.getEntity());
+            byte[] updateBytes = getChannelUpdateBytes(fooChannel, reEncodedOriginalConfig, updatedConfigBytes);
 
             UpdateChannelConfiguration updateChannelConfiguration = new UpdateChannelConfiguration(updateBytes);
 
@@ -185,13 +190,6 @@ public class UpdateChannelIT {
             // private key: src/test/fixture/sdkintegration/e2e-2Orgs/channel/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/keystore/f1a9a940f57419a18a83a852884790d59b378281347dd3d4a88c2b820a0f70c9_sk
             //certificate:  src/test/fixture/sdkintegration/e2e-2Orgs/channel/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/signcerts/Admin@example.com-cert.pem
 
-            final String sampleOrgName = sampleOrg.getName();
-            final SampleUser ordererAdmin = sampleStore.getMember(sampleOrgName + "OrderAdmin", sampleOrgName, "OrdererMSP",
-                    Util.findFileSk(Paths.get("src/test/fixture/sdkintegration/e2e-2Orgs/" + testConfig.getFabricConfigGenVers() + "/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/keystore/").toFile()),
-                    Paths.get("src/test/fixture/sdkintegration/e2e-2Orgs/" + testConfig.getFabricConfigGenVers() + "/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/signcerts/Admin@example.com-cert.pem").toFile());
-
-            client.setUserContext(ordererAdmin);
-
             //Ok now do actual channel update.
             fooChannel.updateChannelConfiguration(updateChannelConfiguration, client.getUpdateChannelConfigurationSignature(updateChannelConfiguration, ordererAdmin));
 
@@ -199,28 +197,28 @@ public class UpdateChannelIT {
 
             //Let's add some additional verification...
 
-            client.setUserContext(sampleOrg.getPeerAdmin());
+            // client.setUserContext(sampleOrg.getPeerAdmin());
 
             final byte[] modChannelBytes = fooChannel.getChannelConfigurationBytes();
 
-            responseAsString = configTxlatorDecode(httpclient, modChannelBytes);
+            originalConfigJson = configTxlatorDecode(httpclient, modChannelBytes);
 
-            if (!responseAsString.contains(UPDATED_BATCH_TIMEOUT)) {
+            if (!originalConfigJson.contains(UPDATED_BATCH_TIMEOUT)) {
                 //If it doesn't have the updated time out it failed.
-                fail(format("Did not find updated expected batch timeout '%s', in:%s", UPDATED_BATCH_TIMEOUT, responseAsString));
+                fail(format("Did not find updated expected batch timeout '%s', in:%s", UPDATED_BATCH_TIMEOUT, originalConfigJson));
             }
 
-            if (responseAsString.contains(ORIGINAL_BATCH_TIMEOUT)) { //Should not have been there anymore!
+            if (originalConfigJson.contains(ORIGINAL_BATCH_TIMEOUT)) { //Should not have been there anymore!
 
-                fail(format("Found original batch timeout '%s', when it was not expected in:%s", ORIGINAL_BATCH_TIMEOUT, responseAsString));
+                fail(format("Found original batch timeout '%s', when it was not expected in:%s", ORIGINAL_BATCH_TIMEOUT, originalConfigJson));
             }
 
             assertTrue(eventCountFilteredBlock > 0); // make sure we got blockevent that were tested.updateChannelConfiguration
             assertTrue(eventCountBlock > 0); // make sure we got blockevent that were tested.
 
             //Should be no anchor peers defined.
-            assertFalse(responseAsString.matches(REGX_S_HOST_PEER_0_ORG_1_EXAMPLE_COM));
-            assertFalse(responseAsString.matches(REGX_S_ANCHOR_PEERS));
+            assertFalse(originalConfigJson.matches(REGX_S_HOST_PEER_0_ORG_1_EXAMPLE_COM));
+            assertFalse(originalConfigJson.matches(REGX_S_ANCHOR_PEERS));
 
             // Get config update for adding an anchor peer.
             Channel.AnchorPeersConfigUpdateResult configUpdateAnchorPeers = fooChannel.getConfigUpdateAnchorPeers(fooChannel.getPeers().iterator().next(), sampleOrg.getPeerAdmin(),
@@ -236,11 +234,11 @@ public class UpdateChannelIT {
 
             // Getting foo channels current configuration bytes to check with configtxlator
             channelConfigurationBytes = fooChannel.getChannelConfigurationBytes();
-            responseAsString = configTxlatorDecode(httpclient, channelConfigurationBytes);
+            originalConfigJson = configTxlatorDecode(httpclient, channelConfigurationBytes);
 
             // Check is anchor peer in config block?
-            assertTrue(responseAsString.matches(REGX_S_HOST_PEER_0_ORG_1_EXAMPLE_COM));
-            assertTrue(responseAsString.matches(REGX_S_ANCHOR_PEERS));
+            assertTrue(originalConfigJson.matches(REGX_S_HOST_PEER_0_ORG_1_EXAMPLE_COM));
+            assertTrue(originalConfigJson.matches(REGX_S_ANCHOR_PEERS));
 
             //Should see what's there.
             configUpdateAnchorPeers = fooChannel.getConfigUpdateAnchorPeers(fooChannel.getPeers().iterator().next(), sampleOrg.getPeerAdmin(),
@@ -267,11 +265,11 @@ public class UpdateChannelIT {
                     client.getUpdateChannelConfigurationSignature(configUpdateAnchorPeers.getUpdateChannelConfiguration(), sampleOrg.getPeerAdmin()));
             Thread.sleep(3000); // give time for events to happen
             // Getting foo channels current configuration bytes to check with configtxlator.
-            channelConfigurationBytes = fooChannel.getChannelConfigurationBytes();
-            responseAsString = configTxlatorDecode(httpclient, channelConfigurationBytes);
+            channelConfigurationBytes = fooChannel.getChannelConfigurationBytes(sampleOrg.getPeerAdmin(), fooChannel.getPeers().iterator().next());
+            originalConfigJson = configTxlatorDecode(httpclient, channelConfigurationBytes);
 
-            assertFalse(responseAsString.matches(REGX_S_HOST_PEER_0_ORG_1_EXAMPLE_COM)); // should be gone!
-            assertTrue(responseAsString.matches(REGX_S_ANCHOR_PEERS)); //ODDLY we still want this even if it's empty!
+            assertFalse(originalConfigJson.matches(REGX_S_HOST_PEER_0_ORG_1_EXAMPLE_COM)); // should be gone!
+            assertTrue(originalConfigJson.matches(REGX_S_ANCHOR_PEERS)); //ODDLY we still want this even if it's empty!
 
             //Should see what's there.
             configUpdateAnchorPeers = fooChannel.getConfigUpdateAnchorPeers(fooChannel.getPeers().iterator().next(), sampleOrg.getPeerAdmin(),
@@ -291,6 +289,118 @@ public class UpdateChannelIT {
         }
     }
 
+    private byte[] getChannelUpdateBytes(Channel fooChannel, byte[] reEncodedOriginalConfig, byte[] updatedConfigBytes) throws IOException {
+        HttpPost httppost;
+        HttpResponse response;
+
+        // Now send to configtxlator multipart form post with original config bytes, updated config bytes and channel name.
+        httppost = new HttpPost(CONFIGTXLATOR_LOCATION + "/configtxlator/compute/update-from-configs");
+
+        HttpEntity multipartEntity = MultipartEntityBuilder.create()
+                .setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
+                .addBinaryBody("original", reEncodedOriginalConfig, ContentType.APPLICATION_OCTET_STREAM, "originalFakeFilename")
+                .addBinaryBody("updated", updatedConfigBytes, ContentType.APPLICATION_OCTET_STREAM, "updatedFakeFilename")
+                .addBinaryBody("channel", fooChannel.getName().getBytes()).build();
+
+        httppost.setEntity(multipartEntity);
+
+        response = httpclient.execute(httppost);
+        int statuscode = response.getStatusLine().getStatusCode();
+        out("Got %s status for updated config bytes needed for updateChannelConfiguration ", statuscode);
+        assertEquals(200, statuscode);
+
+        return EntityUtils.toByteArray(response.getEntity());
+    }
+
+    @Test
+    public void test02SystemChannel() {
+
+        try {
+
+            ////////////////////////////
+            //Reconstruct and run the channels
+            //    SampleOrg sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
+            Channel channel = reconstructChannel(true, SYSTEM_CHANNEL_NAME, client, sampleOrg);
+
+            assertTrue(channel.getPeers().isEmpty()); // no peers
+
+            client.setUserContext(baduser);
+
+            // Getting foo channels current configuration bytes.
+            byte[] channelConfigurationBytes = channel.getChannelConfigurationBytes(ordererAdmin, channel.getOrderers().iterator().next());
+
+            String originalConfigJson = configTxlatorDecode(httpclient, channelConfigurationBytes);
+
+            assertTrue(originalConfigJson.matches(REGX_IS_SYSTEM_CHANNEL));  // verify is system channel
+
+            //responseAsString is JSON but use just string operations for this test.
+
+            if (!originalConfigJson.contains(ORIGINAL_BATCH_TIMEOUT)) {
+
+                fail(format("Did not find expected batch timeout '%s', in:%s", ORIGINAL_BATCH_TIMEOUT, originalConfigJson));
+            }
+
+            byte[] reEncodedOriginalConfig = configTxLatorEncode(httpclient, originalConfigJson); // we need to get this to make sure the compare has encoding in the same way!
+
+            //Now modify the batch timeout
+            String updateString = originalConfigJson.replace(ORIGINAL_BATCH_TIMEOUT, UPDATED_BATCH_TIMEOUT);
+
+            byte[] updatedConfigBytes = configTxLatorEncode(httpclient, updateString);
+
+            // Now send to configtxlator multipart form post with original config bytes, updated config bytes and channel name.
+            byte[] updateBytes = getChannelUpdateBytes(channel, reEncodedOriginalConfig, updatedConfigBytes);
+
+            UpdateChannelConfiguration updateChannelConfiguration = new UpdateChannelConfiguration(updateBytes);
+
+            //To change the channel we need to sign with orderer admin certs which crypto gen stores:
+
+            // client.setUserContext(ordererAdmin);
+            //Ok now do actual channel update.
+            channel.updateChannelConfiguration(ordererAdmin, updateChannelConfiguration,
+                    channel.getOrderers().iterator().next(),
+                    client.getUpdateChannelConfigurationSignature(updateChannelConfiguration, ordererAdmin));
+
+            Thread.sleep(3000); // give time for events to happen
+
+            //Let's add some additional verification...
+
+            // client.setUserContext(sampleOrg.getPeerAdmin());
+            client.setUserContext(baduser);
+
+            final byte[] modChannelBytes = channel.getChannelConfigurationBytes(ordererAdmin);
+
+            originalConfigJson = configTxlatorDecode(httpclient, modChannelBytes);
+
+            if (!originalConfigJson.contains(UPDATED_BATCH_TIMEOUT)) {
+                //If it doesn't have the updated time out it failed.
+                fail(format("Did not find updated expected batch timeout '%s', in:%s", UPDATED_BATCH_TIMEOUT, originalConfigJson));
+            }
+
+            if (originalConfigJson.contains(ORIGINAL_BATCH_TIMEOUT)) { //Should not have been there anymore!
+
+                fail(format("Found original batch timeout '%s', when it was not expected in:%s", ORIGINAL_BATCH_TIMEOUT, originalConfigJson));
+            }
+
+            out("That's all folks!");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        }
+    }
+
+    private byte[] configTxLatorEncode(HttpClient httpclient, String jsonEncoded) throws IOException {
+        HttpPost httppost = new HttpPost(CONFIGTXLATOR_LOCATION + "/protolator/encode/common.Config");
+        httppost.setEntity(new StringEntity(jsonEncoded));
+
+        HttpResponse response = httpclient.execute(httppost);
+
+        int statuscode = response.getStatusLine().getStatusCode();
+        out("Got %s status for encoding the new desired channel config bytes", statuscode);
+        assertEquals(200, statuscode);
+        return EntityUtils.toByteArray(response.getEntity());
+    }
+
     private String configTxlatorDecode(HttpClient httpclient, byte[] channelConfigurationBytes) throws IOException {
         HttpPost httppost = new HttpPost(CONFIGTXLATOR_LOCATION + "/protolator/decode/common.Config");
         httppost.setEntity(new ByteArrayEntity(channelConfigurationBytes));
@@ -305,14 +415,20 @@ public class UpdateChannelIT {
     int eventCountFilteredBlock = 0;
     int eventCountBlock = 0;
 
-    private Channel reconstructChannel(String name, HFClient client, SampleOrg sampleOrg) throws Exception {
+    private Channel reconstructChannel(final boolean isSystemChannel, String name, HFClient client, SampleOrg sampleOrg) throws Exception {
 
-        client.setUserContext(sampleOrg.getPeerAdmin());
+        client.setUserContext(isSystemChannel ? ordererAdmin : sampleOrg.getPeerAdmin());
         Channel newChannel = client.newChannel(name);
 
         for (String orderName : sampleOrg.getOrdererNames()) {
             newChannel.addOrderer(client.newOrderer(orderName, sampleOrg.getOrdererLocation(orderName),
                     testConfig.getOrdererProperties(orderName)));
+        }
+
+        if (isSystemChannel) { // done
+            newChannel.initialize();
+            return newChannel;
+
         }
 
         assertTrue(sampleOrg.getPeerNames().size() > 1); // need at least two for testing.

@@ -242,7 +242,7 @@ public class Channel implements Serializable {
             final ConfigUpdateEnvelope configUpdateEnv = ConfigUpdateEnvelope.parseFrom(ccPayload.getData());
             ByteString configUpdate = configUpdateEnv.getConfigUpdate();
 
-            sendUpdateChannel(configUpdate.toByteArray(), signers, orderer);
+            sendUpdateChannel(client.getUserContext(), configUpdate.toByteArray(), signers, orderer);
             //         final ConfigUpdateEnvelope.Builder configUpdateEnvBuilder = configUpdateEnv.toBuilder();`
 
             //---------------------------------------
@@ -397,8 +397,9 @@ public class Channel implements Serializable {
     }
 
     /**
-     * Update channel with specified channel configuration
+     * Update channel with specified channel configuration.
      *
+     * <P></P>Note This is not a thread safe operation
      * @param updateChannelConfiguration Updated Channel configuration
      * @param signers                    signers
      * @throws TransactionException
@@ -407,12 +408,13 @@ public class Channel implements Serializable {
 
     public void updateChannelConfiguration(UpdateChannelConfiguration updateChannelConfiguration, byte[]... signers) throws TransactionException, InvalidArgumentException {
 
-        updateChannelConfiguration(updateChannelConfiguration, getRandomOrderer(), signers);
+        updateChannelConfiguration(client.getUserContext(), updateChannelConfiguration, getRandomOrderer(), signers);
 
     }
 
     /**
      * Update channel with specified channel configuration
+     * <P></P>Note This is not a thread safe operation
      *
      * @param updateChannelConfiguration Channel configuration
      * @param signers                    signers
@@ -422,24 +424,41 @@ public class Channel implements Serializable {
      */
 
     public void updateChannelConfiguration(UpdateChannelConfiguration updateChannelConfiguration, Orderer orderer, byte[]... signers) throws TransactionException, InvalidArgumentException {
+        updateChannelConfiguration(client.getUserContext(), updateChannelConfiguration, orderer, signers);
+    }
+
+    /**
+     * Update channel with specified channel configuration
+     *
+     * @param userContext                The specific user to use.
+     * @param updateChannelConfiguration Channel configuration
+     * @param signers                    signers
+     * @param orderer                    The specific orderer to use.
+     * @throws TransactionException
+     * @throws InvalidArgumentException
+     */
+
+    public void updateChannelConfiguration(User userContext, UpdateChannelConfiguration updateChannelConfiguration, Orderer orderer, byte[]... signers) throws TransactionException, InvalidArgumentException {
 
         checkChannelState();
 
         checkOrderer(orderer);
 
+        User.userContextCheck(userContext);
+
         try {
-            final long startLastConfigIndex = getLastConfigIndex(orderer);
+            final long startLastConfigIndex = getLastConfigIndex(getTransactionContext(userContext), orderer);
             logger.trace(format("startLastConfigIndex: %d. Channel config wait time is: %d",
                     startLastConfigIndex, CHANNEL_CONFIG_WAIT_TIME));
 
-            sendUpdateChannel(updateChannelConfiguration.getUpdateChannelConfigurationAsBytes(), signers, orderer);
+            sendUpdateChannel(userContext, updateChannelConfiguration.getUpdateChannelConfigurationAsBytes(), signers, orderer);
 
             long currentLastConfigIndex = -1;
             final long nanoTimeStart = System.nanoTime();
 
             //Try to wait to see the channel got updated but don't fail if we don't see it.
             do {
-                currentLastConfigIndex = getLastConfigIndex(orderer);
+                currentLastConfigIndex = getLastConfigIndex(getTransactionContext(userContext), orderer);
                 if (currentLastConfigIndex == startLastConfigIndex) {
 
                     final long duration = TimeUnit.MILLISECONDS.convert(System.nanoTime() - nanoTimeStart, TimeUnit.NANOSECONDS);
@@ -478,7 +497,7 @@ public class Channel implements Serializable {
 
     }
 
-    private void sendUpdateChannel(byte[] configupdate, byte[][] signers, Orderer orderer) throws TransactionException, InvalidArgumentException {
+    private void sendUpdateChannel(User userContext, byte[] configupdate, byte[][] signers, Orderer orderer) throws TransactionException, InvalidArgumentException {
 
         logger.debug(format("Channel %s sendUpdateChannel", name));
         checkOrderer(orderer);
@@ -491,7 +510,7 @@ public class Channel implements Serializable {
             do {
 
                 //Make sure we have fresh transaction context for each try just to be safe.
-                TransactionContext transactionContext = getTransactionContext();
+                TransactionContext transactionContext = getTransactionContext(userContext);
 
                 ConfigUpdateEnvelope.Builder configUpdateEnvBuilder = ConfigUpdateEnvelope.newBuilder();
 
@@ -894,7 +913,11 @@ public class Channel implements Serializable {
         return this;
     }
 
-    private Block getConfigBlock(List<Peer> peers) throws ProposalException {
+    private Block getConfigBlock(List<Peer> peers) throws ProposalException, InvalidArgumentException {
+        return getConfigBlock(getTransactionContext(), peers);
+    }
+
+    private Block getConfigBlock(TransactionContext transactionContext, List<Peer> peers) throws ProposalException {
 
         if (shutdown) {
             throw new ProposalException(format("Channel %s has been shutdown.", name));
@@ -904,10 +927,9 @@ public class Channel implements Serializable {
             throw new ProposalException("No peers go get config block");
         }
 
-        TransactionContext transactionContext = null;
         SignedProposal signedProposal = null;
         try {
-            transactionContext = getTransactionContext();
+
             transactionContext.verify(false); // can't verify till we get the config block.
 
             FabricProposal.Proposal proposal = GetConfigBlockBuilder.newBuilder()
@@ -934,7 +956,7 @@ public class Channel implements Serializable {
                     ProposalResponse pro = resp.iterator().next();
 
                     if (pro.getStatus() == ProposalResponse.Status.SUCCESS) {
-                        logger.trace(format("getConfigBlock from peer %s on channel %s success", peer.getName(), name));
+                        logger.trace(format("getConfigBlock from peer %s on channel %s success", peer, name));
                         return Block.parseFrom(pro.getProposalResponse().getResponse().getPayload().toByteArray());
                     } else {
                         lastException = new ProposalException(format("getConfigBlock for channel %s failed with peer %s.  Status %s, details: %s",
@@ -1236,10 +1258,15 @@ public class Channel implements Serializable {
 
         }
 
-        try {
-            loadCACertificates(false);  // put all MSP certs into cryptoSuite if this fails here we'll try again later.
-        } catch (Exception e) {
-            logger.warn(format("Channel %s could not load peer CA certificates from any peers.", name));
+        if (peers.isEmpty()) {
+            logger.warn(format("Channel %s has no peers during initialization.", name));
+
+        } else {
+            try {
+                loadCACertificates(false);  // put all MSP certs into cryptoSuite if this fails here we'll try again later.
+            } catch (Exception e) {
+                logger.warn(format("Channel %s could not load peer CA certificates from any peers.", name));
+            }
         }
         Collection<Peer> serviceDiscoveryPeers = getServiceDiscoveryPeers();
         if (!serviceDiscoveryPeers.isEmpty()) {
@@ -1867,7 +1894,7 @@ public class Channel implements Serializable {
 
                 ArrayList<DeliverResponse> deliverResponses = new ArrayList<>();
 
-                seekBlock(seekInfo, deliverResponses, orderer);
+                seekBlock(getTransactionContext(), seekInfo, deliverResponses, orderer);
 
                 DeliverResponse blockresp = deliverResponses.get(1);
                 Block configBlock = blockresp.getBlock();
@@ -2377,22 +2404,22 @@ public class Channel implements Serializable {
     /**
      * Provide the Channel's latest raw Configuration Block.
      *
+     * @param orderer
      * @return Channel configuration block.
      * @throws TransactionException
      */
 
-    private Block getConfigurationBlock() throws TransactionException {
+    private Block getConfigurationBlock(TransactionContext transactionContext, Orderer orderer) throws TransactionException {
 
         logger.debug(format("getConfigurationBlock for channel %s", name));
 
         try {
-            Orderer orderer = getRandomOrderer();
 
-            long lastConfigIndex = getLastConfigIndex(orderer);
+            long lastConfigIndex = getLastConfigIndex(transactionContext, orderer);
 
             logger.debug(format("Last config index is %d", lastConfigIndex));
 
-            Block configBlock = getBlockByNumber(lastConfigIndex);
+            Block configBlock = getBlockByNumber(transactionContext, orderer, lastConfigIndex);
 
             //Little extra parsing but make sure this really is a config block for this channel.
             Envelope envelopeRet = Envelope.parseFrom(configBlock.getData().getData(0));
@@ -2460,22 +2487,19 @@ public class Channel implements Serializable {
     }
 
     /**
-     * Channel Configuration bytes. Bytes that can be used with configtxlator tool to upgrade the channel.
-     * Convert to Json for editing  with:
-     * {@code
-     * <p>
-     * curl -v   POST --data-binary @fooConfig http://host/protolator/decode/common.Config
-     * <p>
-     * }
-     * See http://hyperledger-fabric.readthedocs.io/en/latest/configtxlator.html
+     * Get channel configuration from a specific Orderer
      *
-     * @return Channel configuration bytes.
+     * @param userContext The user to sign the action.
+     * @param orderer     To retrieve the configuration from.
+     * @return Configuration block.
+     * @throws InvalidArgumentException
      * @throws TransactionException
      */
 
-    public byte[] getChannelConfigurationBytes() throws TransactionException {
+    public byte[] getChannelConfigurationBytes(User userContext, Orderer orderer) throws InvalidArgumentException, TransactionException {
+
         try {
-            final Block configBlock = getConfigBlock(getShuffledPeers());
+            Block configBlock = getConfigurationBlock(getTransactionContext(userContext), orderer);
 
             Envelope envelopeRet = Envelope.parseFrom(configBlock.getData().getData(0));
 
@@ -2490,8 +2514,110 @@ public class Channel implements Serializable {
 
     }
 
-    private long getLastConfigIndex(Orderer orderer) throws TransactionException, InvalidProtocolBufferException {
-        Block latestBlock = getLatestBlock(orderer);
+    /**
+     * Get channel configuration from a specific peer
+     *
+     * @param userContext The user to sign the action.
+     * @param peer        To retrieve the configuration from.
+     * @return Configuration block.
+     * @throws InvalidArgumentException
+     * @throws TransactionException
+     */
+
+    public byte[] getChannelConfigurationBytes(User userContext, Peer peer) throws InvalidArgumentException, TransactionException {
+
+        try {
+            Block configBlock = getConfigBlock(getTransactionContext(userContext), Arrays.asList(peer));
+
+            Envelope envelopeRet = Envelope.parseFrom(configBlock.getData().getData(0));
+
+            Payload payload = Payload.parseFrom(envelopeRet.getPayload());
+
+            ConfigEnvelope configEnvelope = ConfigEnvelope.parseFrom(payload.getData());
+            return configEnvelope.getConfig().toByteArray();
+
+        } catch (Exception e) {
+            throw new TransactionException(e);
+        }
+
+    }
+
+    public byte[] getChannelConfigurationBytes() throws InvalidArgumentException, TransactionException {
+        return getChannelConfigurationBytes(client.getUserContext());
+    }
+
+    /**
+     * Channel Configuration bytes. Bytes that can be used with configtxlator tool to upgrade the channel.
+     * If Peers exist on the channel config block will be retrieved from them.
+     * If only Orderers exist the configblock is retrieved from them.
+     * Convert to Json for editing  with:
+     * {@code
+     * <p>
+     * curl -v   POST --data-binary @fooConfig http://host/protolator/decode/common.Config
+     * <p>
+     * }
+     * See http://hyperledger-fabric.readthedocs.io/en/latest/configtxlator.html
+     *
+     * @return Channel configuration bytes.
+     * @throws TransactionException
+     */
+
+    public byte[] getChannelConfigurationBytes(User userContext) throws InvalidArgumentException, TransactionException {
+        Block configBlock = null;
+        try {
+
+            Collection<Peer> peers = getShuffledPeers();
+
+            if (!peers.isEmpty()) { // prefer peers.
+                configBlock = getConfigBlock(getTransactionContext(userContext), new ArrayList<>(peers));
+
+            } else { // no peers so look to orderers.
+
+                List<Orderer> shuffledOrderers = getShuffledOrderers();
+                if (shuffledOrderers.isEmpty()) {
+                    throw new InvalidArgumentException(format("Channel %s has no peer or orderers defined. Can not get configuration block", name));
+                }
+                StringBuilder sb = new StringBuilder(1000);
+                Exception fe = null;
+                String sep = "";
+                for (Orderer orderer : shuffledOrderers) {
+                    try {
+                        configBlock = getConfigurationBlock(getTransactionContext(userContext), orderer);
+                        fe = null; // looks good.
+                        break;
+                    } catch (Exception e) {
+                        fe = e;
+                        sb.append(sep).append(orderer.toString()).append("-").append(e.getMessage());
+                        sep = ", ";
+
+                    }
+
+                }
+                if (fe != null) {
+                    throw new TransactionException(sb.toString(), fe);
+                }
+
+            }
+            if (configBlock == null) {
+                throw new TransactionException("Transaction block could not be retrieved.");
+            }
+
+            Envelope envelopeRet = Envelope.parseFrom(configBlock.getData().getData(0));
+
+            Payload payload = Payload.parseFrom(envelopeRet.getPayload());
+
+            ConfigEnvelope configEnvelope = ConfigEnvelope.parseFrom(payload.getData());
+            return configEnvelope.getConfig().toByteArray();
+
+        } catch (Exception e) {
+            throw new TransactionException(e);
+        }
+
+    }
+
+    private long getLastConfigIndex(TransactionContext transactionContext, Orderer orderer) throws TransactionException, InvalidProtocolBufferException {
+        Block latestBlock;
+        latestBlock = getLatestBlock(orderer, transactionContext);
 
         BlockMetadata blockMetadata = latestBlock.getMetadata();
 
@@ -2502,7 +2628,7 @@ public class Channel implements Serializable {
         return lastConfig.getIndex();
     }
 
-    private Block getBlockByNumber(final long number) throws TransactionException {
+    private Block getBlockByNumber(TransactionContext transactionContext, Orderer orderer, final long number) throws TransactionException {
 
         logger.trace(format("getConfigurationBlock for channel %s", name));
 
@@ -2524,7 +2650,7 @@ public class Channel implements Serializable {
 
             ArrayList<DeliverResponse> deliverResponses = new ArrayList<>();
 
-            seekBlock(seekInfo, deliverResponses, getRandomOrderer());
+            seekBlock(transactionContext, seekInfo, deliverResponses, orderer);
 
             DeliverResponse blockresp = deliverResponses.get(1);
 
@@ -2553,7 +2679,7 @@ public class Channel implements Serializable {
 
     }
 
-    private int seekBlock(SeekInfo seekInfo, List<DeliverResponse> deliverResponses, Orderer ordererIn) throws TransactionException {
+    private int seekBlock(TransactionContext txContext, SeekInfo seekInfo, List<DeliverResponse> deliverResponses, Orderer ordererIn) throws TransactionException {
 
         logger.trace(format("seekBlock for channel %s", name));
         final long start = System.currentTimeMillis();
@@ -2567,8 +2693,6 @@ public class Channel implements Serializable {
                 statusRC = 404;
 
                 final Orderer orderer = ordererIn != null ? ordererIn : getRandomOrderer();
-
-                TransactionContext txContext = getTransactionContext();
 
                 DeliverResponse[] deliver = orderer.sendDeliver(createSeekInfoEnvelope(txContext, seekInfo, orderer.getClientTLSCertificateDigest()));
 
@@ -2630,7 +2754,7 @@ public class Channel implements Serializable {
 
     }
 
-    private Block getLatestBlock(Orderer orderer) throws TransactionException {
+    private Block getLatestBlock(Orderer orderer, TransactionContext transactionContext) throws TransactionException {
 
         logger.debug(format("getConfigurationBlock for channel %s", name));
 
@@ -2646,7 +2770,7 @@ public class Channel implements Serializable {
 
         ArrayList<DeliverResponse> deliverResponses = new ArrayList<>();
 
-        seekBlock(seekInfo, deliverResponses, orderer);
+        seekBlock(transactionContext, seekInfo, deliverResponses, orderer);
 
         DeliverResponse blockresp = deliverResponses.get(1);
 
@@ -3004,6 +3128,13 @@ public class Channel implements Serializable {
         ArrayList<Peer> peers = new ArrayList<>(getPeers(roles));
         Collections.shuffle(peers);
         return peers;
+    }
+
+    private List<Orderer> getShuffledOrderers() {
+
+        ArrayList<Orderer> orderers = new ArrayList<>(getOrderers());
+        Collections.shuffle(orderers);
+        return orderers;
     }
 
     private Orderer getRandomOrderer() throws InvalidArgumentException {
