@@ -1,3 +1,10 @@
+## v1.4.4
+Tue Jun 11 08:56:25 EDT 2019
+
+* [dc4b7e8f](https://github.com/hyperledger/fabric-sdk-java/commit/dc4b7e8f) FABJ-448 Provide access to system channel configuration
+* [7039a861](https://github.com/hyperledger/fabric-sdk-java/commit/7039a861) FABJ-446 Start of 1.4.4
+* [69c15a82](https://github.com/hyperledger/fabric-sdk-java/commit/69c15a82) FABJ-434 Expose org info for peers
+
 ## v1.4.3
 Tue May 21 11:15:04 EDT 2019
 
