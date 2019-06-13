@@ -226,6 +226,31 @@ public class NetworkConfig {
         setNodeProperties("EventHub", name, eventHubs, properties);
     }
 
+    private String getNodeUrl(String type, String name, Map<String, Node> nodes) throws InvalidArgumentException {
+        if (isNullOrEmpty(name)) {
+            throw new InvalidArgumentException("Parameter name is null or empty.");
+        }
+
+        Node node = nodes.get(name);
+        if (node == null) {
+            throw new InvalidArgumentException(format("%s %s not found.", type, name));
+        }
+
+        return node.getUrl();
+    }
+
+    /**
+     * Get URL for a specific peer.
+     *
+     * @param name Name of peer to get the URL for.
+     * @return The peer's URL.
+     * @throws InvalidArgumentException
+     */
+    public String getPeerUrl(String name) throws InvalidArgumentException {
+        return getNodeUrl("Peer", name, peers);
+
+    }
+
     // Organizations, keyed on org name (and not on mspid!)
     private Map<String, OrgInfo> organizations;
 
@@ -1208,6 +1233,7 @@ public class NetworkConfig {
             return enrollment;
         }
 
+        @Override
         public String getMspId() {
             return mspid;
         }
