@@ -666,7 +666,6 @@ public class HFClient {
 
         clientCheck();
 
-        installProposalRequest.setSubmitted();
         Channel systemChannel = Channel.newSystemChannel(this);
 
         return systemChannel.sendInstallProposal(installProposalRequest, peers);
