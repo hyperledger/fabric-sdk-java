@@ -2776,8 +2776,6 @@ public class Channel implements Serializable {
             throw new InvalidArgumentException("InstantiateProposalRequest is null");
         }
 
-        instantiateProposalRequest.setSubmitted();
-
         checkPeers(peers);
 
         try {
@@ -4725,8 +4723,6 @@ public class Channel implements Serializable {
 
         for (Peer peer : peers) {
 
-            proposalRequest.submitted = false;
-
             try {
 
                 Collection<ProposalResponse> proposalResponses = sendProposal(proposalRequest, Collections.singletonList(peer));
@@ -4790,8 +4786,6 @@ public class Channel implements Serializable {
 //        if (proposalRequest.getChaincodeID() == null) {
 //            throw new InvalidArgumentException("The proposalRequest's chaincode ID is null");
 //        }
-
-        proposalRequest.setSubmitted();
 
         try {
             TransactionContext transactionContext = getTransactionContext(proposalRequest.getUserContext());

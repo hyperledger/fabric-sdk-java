@@ -30,8 +30,6 @@ public class TransactionRequest {
     protected boolean init = false;
     private User userContext;
 
-    boolean submitted = false;
-
     private final Config config = Config.getConfig();
 
     // The local path containing the chaincode to deploy in network mode.
@@ -353,26 +351,6 @@ public class TransactionRequest {
      */
     public void setProposalWaitTime(long proposalWaitTime) {
         this.proposalWaitTime = proposalWaitTime;
-    }
-
-    /**
-     * If this request has been submitted already.
-     *
-     * @return true if the already submitted.
-     */
-
-    public boolean isSubmitted() {
-        return submitted;
-    }
-
-    void setSubmitted() throws InvalidArgumentException {
-
-        if (submitted) {
-            // Has already been submitted.
-            throw new InvalidArgumentException("Request has been already submitted and can not be reused.");
-        }
-        User.userContextCheck(userContext);
-        this.submitted = true;
     }
 
     protected TransactionRequest(User userContext) {
