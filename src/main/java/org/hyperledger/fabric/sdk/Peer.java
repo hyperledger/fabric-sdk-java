@@ -144,10 +144,7 @@ public class Peer implements Serializable {
 
         this.transactionContext = transactionContext.retryTransactionSameContext();
 
-        if (peerEventingClient == null) {
-
-            //PeerEventServiceClient(Peer peer, ManagedChannelBuilder<?> channelBuilder, Properties properties)
-            //   peerEventingClient = new PeerEventServiceClient(this, new HashSet<Channel>(Arrays.asList(new Channel[] {channel})));
+        if (peerEventingClient == null && !shutdown) {
 
             peerEventingClient = new PeerEventServiceClient(this, Endpoint.createEndpoint(url, properties), properties, peersOptions);
 
@@ -167,6 +164,10 @@ public class Peer implements Serializable {
 
         return channel;
 
+    }
+
+    boolean isShutdown() {
+        return shutdown;
     }
 
     /**
@@ -434,10 +435,12 @@ public class Peer implements Serializable {
                         peerOptions.startEvents(startBLockNumber);
                     }
 
-                    PeerEventServiceClient lpeerEventingClient = new PeerEventServiceClient(Peer.this,
-                            Endpoint.createEndpoint(url, properties), properties, peerOptions);
-                    lpeerEventingClient.connect(fltransactionContext);
-                    peerEventingClient = lpeerEventingClient;
+                    if (!shutdown) {
+                        PeerEventServiceClient lpeerEventingClient = new PeerEventServiceClient(Peer.this,
+                                Endpoint.createEndpoint(url, properties), properties, peerOptions);
+                        lpeerEventingClient.connect(fltransactionContext);
+                        peerEventingClient = lpeerEventingClient;
+                    }
 
                 }
             }));
