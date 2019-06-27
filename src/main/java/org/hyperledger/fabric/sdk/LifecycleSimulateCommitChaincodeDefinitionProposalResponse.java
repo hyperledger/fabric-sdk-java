@@ -22,18 +22,18 @@ import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 import static java.lang.String.format;
 
 /**
- * Returns the response for a LifecycleQueryApprovalStatus showing what organizations have or have not approved yet.
+ * Returns the response for a LifecycleSimulateCommitChaincodeDefinitionStatus showing what organizations have or have not approved yet.
  */
-public class LifecycleQueryApprovalStatusProposalResponse extends ProposalResponse {
-    LifecycleQueryApprovalStatusProposalResponse(TransactionContext transactionContext, int status, String message) {
+public class LifecycleSimulateCommitChaincodeDefinitionProposalResponse extends ProposalResponse {
+    LifecycleSimulateCommitChaincodeDefinitionProposalResponse(TransactionContext transactionContext, int status, String message) {
         super(transactionContext, status, message);
     }
 
-    Lifecycle.QueryApprovalStatusResults queryApprovalStatusResults;
+    Lifecycle.SimulateCommitChaincodeDefinitionResult simulateCommitChaincodeDefinitionResults;
 
-    private Lifecycle.QueryApprovalStatusResults parsePayload() throws ProposalException {
+    private Lifecycle.SimulateCommitChaincodeDefinitionResult parsePayload() throws ProposalException {
 
-        if (null == queryApprovalStatusResults) {
+        if (null == simulateCommitChaincodeDefinitionResults) {
 
             if (getStatus() != Status.SUCCESS) {
                 throw new ProposalException(format("Fabric response failed on peer %s  %s", getPeer(), getMessage()));
@@ -52,16 +52,16 @@ public class LifecycleQueryApprovalStatusProposalResponse extends ProposalRespon
             }
 
             try {
-                queryApprovalStatusResults = Lifecycle.QueryApprovalStatusResults.parseFrom(payload);
+                simulateCommitChaincodeDefinitionResults = Lifecycle.SimulateCommitChaincodeDefinitionResult.parseFrom(payload);
             } catch (Exception e) {
                 throw new ProposalException(format("Failure on peer %s %s", getPeer(), e.getMessage()), e);
             }
         }
 
-        return queryApprovalStatusResults;
+        return simulateCommitChaincodeDefinitionResults;
     }
 
-    public Lifecycle.QueryApprovalStatusResults getApprovalStatusResults() throws ProposalException {
+    public Lifecycle.SimulateCommitChaincodeDefinitionResult getApprovalStatusResults() throws ProposalException {
 
         return parsePayload();
 
@@ -100,7 +100,7 @@ public class LifecycleQueryApprovalStatusProposalResponse extends ProposalRespon
      */
     public Map<String, Boolean> getApprovalMap() throws ProposalException {
 
-        Lifecycle.QueryApprovalStatusResults rs = getApprovalStatusResults();
+        Lifecycle.SimulateCommitChaincodeDefinitionResult rs = getApprovalStatusResults();
         if (rs == null) {
             return Collections.emptyMap();
         }
@@ -109,7 +109,7 @@ public class LifecycleQueryApprovalStatusProposalResponse extends ProposalRespon
 
     private void sort() throws ProposalException {
 
-        Lifecycle.QueryApprovalStatusResults rs = getApprovalStatusResults();
+        Lifecycle.SimulateCommitChaincodeDefinitionResult rs = getApprovalStatusResults();
         if (null != rs) {
             if (null != approved) {
                 return;

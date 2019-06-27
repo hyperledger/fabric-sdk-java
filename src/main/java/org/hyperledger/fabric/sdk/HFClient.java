@@ -469,12 +469,12 @@ public class HFClient {
     }
 
     /**
-     * Get a LifecycleQueryApprovalStatusRequest to find which chaincodes are approved by which organization.
+     * Get a LifecycleSimulateCommitChaincodeDefinitionRequest to find which chaincodes are approved by which organization.
      *
      * @return
      */
-    public LifecycleQueryApprovalStatusRequest newLifecycleQueryApprovalStatusRequest() {
-        return new LifecycleQueryApprovalStatusRequest(userContext);
+    public LifecycleSimulateCommitChaincodeDefinitionRequest newLifecycleSimulateCommitChaincodeDefinitionRequest() {
+        return new LifecycleSimulateCommitChaincodeDefinitionRequest(userContext);
     }
 
     /**

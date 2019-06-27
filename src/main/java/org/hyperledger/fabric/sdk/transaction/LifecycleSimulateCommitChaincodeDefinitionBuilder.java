@@ -20,7 +20,7 @@ import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.helper.Utils;
 
-public class LifecycleQueryApprovalStatusBuilder extends LifecycleProposalBuilder {
+public class LifecycleSimulateCommitChaincodeDefinitionBuilder extends LifecycleProposalBuilder {
     static Config config = Config.getConfig();
 
     static Boolean lifecycleInitRequiredDefault = null;
@@ -29,9 +29,9 @@ public class LifecycleQueryApprovalStatusBuilder extends LifecycleProposalBuilde
         lifecycleInitRequiredDefault = config.getLifecycleInitRequiredDefault();
     }
 
-    private final Lifecycle.QueryApprovalStatusArgs.Builder builder = Lifecycle.QueryApprovalStatusArgs.newBuilder();
+    private final Lifecycle.SimulateCommitChaincodeDefinitionArgs.Builder builder = Lifecycle.SimulateCommitChaincodeDefinitionArgs.newBuilder();
 
-    private LifecycleQueryApprovalStatusBuilder() {
+    private LifecycleSimulateCommitChaincodeDefinitionBuilder() {
 
         if (null != lifecycleInitRequiredDefault) {
             builder.setInitRequired(lifecycleInitRequiredDefault);
@@ -39,7 +39,7 @@ public class LifecycleQueryApprovalStatusBuilder extends LifecycleProposalBuilde
     }
 
     @Override
-    public LifecycleQueryApprovalStatusBuilder context(TransactionContext context) {
+    public LifecycleSimulateCommitChaincodeDefinitionBuilder context(TransactionContext context) {
         super.context(context);
         if (!Utils.isNullOrEmpty(config.getDefaultChaincodeEndorsementPlugin())) {
 
@@ -58,8 +58,8 @@ public class LifecycleQueryApprovalStatusBuilder extends LifecycleProposalBuilde
         return this;
     }
 
-    public static LifecycleQueryApprovalStatusBuilder newBuilder() {
-        return new LifecycleQueryApprovalStatusBuilder();
+    public static LifecycleSimulateCommitChaincodeDefinitionBuilder newBuilder() {
+        return new LifecycleSimulateCommitChaincodeDefinitionBuilder();
     }
 
     public void setSequence(long sequence) {
@@ -98,7 +98,7 @@ public class LifecycleQueryApprovalStatusBuilder extends LifecycleProposalBuilde
     public FabricProposal.Proposal build() throws ProposalException, InvalidArgumentException {
 
         List<ByteString> argList = new ArrayList<>();
-        argList.add(ByteString.copyFromUtf8("QueryApprovalStatus"));
+        argList.add(ByteString.copyFromUtf8("SimulateCommitChaincodeDefinition"));
         argList.add(builder.build().toByteString());
         args(argList);
         return super.build();

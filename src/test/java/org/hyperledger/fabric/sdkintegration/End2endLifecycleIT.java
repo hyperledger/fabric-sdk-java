@@ -43,8 +43,6 @@ import org.hyperledger.fabric.sdk.LifecycleCommitChaincodeDefinitionProposalResp
 import org.hyperledger.fabric.sdk.LifecycleCommitChaincodeDefinitionRequest;
 import org.hyperledger.fabric.sdk.LifecycleInstallChaincodeProposalResponse;
 import org.hyperledger.fabric.sdk.LifecycleInstallChaincodeRequest;
-import org.hyperledger.fabric.sdk.LifecycleQueryApprovalStatusProposalResponse;
-import org.hyperledger.fabric.sdk.LifecycleQueryApprovalStatusRequest;
 import org.hyperledger.fabric.sdk.LifecycleQueryChaincodeDefinitionProposalResponse;
 import org.hyperledger.fabric.sdk.LifecycleQueryInstalledChaincodeProposalResponse;
 import org.hyperledger.fabric.sdk.LifecycleQueryInstalledChaincodeRequest;
@@ -52,6 +50,8 @@ import org.hyperledger.fabric.sdk.LifecycleQueryInstalledChaincodesProposalRespo
 import org.hyperledger.fabric.sdk.LifecycleQueryInstalledChaincodesProposalResponse.LifecycleQueryInstalledChaincodesResult;
 import org.hyperledger.fabric.sdk.LifecycleQueryNamespaceDefinitionsProposalResponse;
 import org.hyperledger.fabric.sdk.LifecycleQueryNamespaceDefinitionsRequest;
+import org.hyperledger.fabric.sdk.LifecycleSimulateCommitChaincodeDefinitionProposalResponse;
+import org.hyperledger.fabric.sdk.LifecycleSimulateCommitChaincodeDefinitionRequest;
 import org.hyperledger.fabric.sdk.Orderer;
 import org.hyperledger.fabric.sdk.Peer;
 import org.hyperledger.fabric.sdk.Peer.PeerRole;
@@ -389,7 +389,7 @@ public class End2endLifecycleIT {
                     .get(testConfig.getTransactionWaitTime(), TimeUnit.SECONDS);
             assertTrue(transactionEvent.isValid());
 
-            verifyByQueryApprovalStatus(org1Client, org1Channel, sequence, chaincodeName, chaincodeVersion,
+            verifyBySimulateCommitChaincodeDefinitionStatus(org1Client, org1Channel, sequence, chaincodeName, chaincodeVersion,
                     lifecycleChaincodeEndorsementPolicy, chaincodeCollectionConfiguration, initRequired, org1MyPeers,
                     new HashSet<>(Arrays.asList(ORG_1_MSP)), // Approved
                     new HashSet<>(Arrays.asList(ORG_2_MSP))); // Un approved.
@@ -426,12 +426,12 @@ public class End2endLifecycleIT {
             assertTrue(org2TransactionEvent.isValid());
 
             out("Checking on org2's network for approvals");
-            verifyByQueryApprovalStatus(org2Client, org2Channel, sequence, chaincodeName, chaincodeVersion, lifecycleChaincodeEndorsementPolicy, chaincodeCollectionConfiguration, initRequired, org2MyPeers,
+            verifyBySimulateCommitChaincodeDefinitionStatus(org2Client, org2Channel, sequence, chaincodeName, chaincodeVersion, lifecycleChaincodeEndorsementPolicy, chaincodeCollectionConfiguration, initRequired, org2MyPeers,
                     new HashSet<>(Arrays.asList(ORG_1_MSP, ORG_2_MSP)), // Approved
                     Collections.emptySet()); // Un approved.
 
             out("Checking on org1's network for approvals");
-            verifyByQueryApprovalStatus(org1Client, org1Channel, sequence, chaincodeName, chaincodeVersion, lifecycleChaincodeEndorsementPolicy, chaincodeCollectionConfiguration, initRequired, org1MyPeers,
+            verifyBySimulateCommitChaincodeDefinitionStatus(org1Client, org1Channel, sequence, chaincodeName, chaincodeVersion, lifecycleChaincodeEndorsementPolicy, chaincodeCollectionConfiguration, initRequired, org1MyPeers,
                     new HashSet<>(Arrays.asList(ORG_1_MSP, ORG_2_MSP)), // Approved
                     Collections.emptySet()); // unapproved.
 
@@ -617,24 +617,24 @@ public class End2endLifecycleIT {
 
     // Lifecycle Queries to used to verify code...
 
-    private void verifyByQueryApprovalStatus(HFClient client, Channel channel, long definitionSequence, String chaincodeName,
-                                             String chaincodeVersion, LifecycleChaincodeEndorsementPolicy chaincodeEndorsementPolicy,
-                                             ChaincodeCollectionConfiguration chaincodeCollectionConfiguration, boolean initRequired, Collection<Peer> org1MyPeers,
-                                             Set<String> expectedApproved, Set<String> expectedUnApproved) throws InvalidArgumentException, ProposalException {
-        LifecycleQueryApprovalStatusRequest lifecycleQueryApprovalStatusRequest = client.newLifecycleQueryApprovalStatusRequest();
-        lifecycleQueryApprovalStatusRequest.setSequence(definitionSequence);
-        lifecycleQueryApprovalStatusRequest.setChaincodeName(chaincodeName);
-        lifecycleQueryApprovalStatusRequest.setChaincodeVersion(chaincodeVersion);
+    private void verifyBySimulateCommitChaincodeDefinitionStatus(HFClient client, Channel channel, long definitionSequence, String chaincodeName,
+                                                                 String chaincodeVersion, LifecycleChaincodeEndorsementPolicy chaincodeEndorsementPolicy,
+                                                                 ChaincodeCollectionConfiguration chaincodeCollectionConfiguration, boolean initRequired, Collection<Peer> org1MyPeers,
+                                                                 Set<String> expectedApproved, Set<String> expectedUnApproved) throws InvalidArgumentException, ProposalException {
+        LifecycleSimulateCommitChaincodeDefinitionRequest lifecycleSimulateCommitChaincodeDefinitionRequest = client.newLifecycleSimulateCommitChaincodeDefinitionRequest();
+        lifecycleSimulateCommitChaincodeDefinitionRequest.setSequence(definitionSequence);
+        lifecycleSimulateCommitChaincodeDefinitionRequest.setChaincodeName(chaincodeName);
+        lifecycleSimulateCommitChaincodeDefinitionRequest.setChaincodeVersion(chaincodeVersion);
         if (null != chaincodeEndorsementPolicy) {
-            lifecycleQueryApprovalStatusRequest.setChaincodeEndorsementPolicy(chaincodeEndorsementPolicy);
+            lifecycleSimulateCommitChaincodeDefinitionRequest.setChaincodeEndorsementPolicy(chaincodeEndorsementPolicy);
         }
         if (null != chaincodeCollectionConfiguration) {
-            lifecycleQueryApprovalStatusRequest.setChaincodeCollectionConfiguration(chaincodeCollectionConfiguration);
+            lifecycleSimulateCommitChaincodeDefinitionRequest.setChaincodeCollectionConfiguration(chaincodeCollectionConfiguration);
         }
-        lifecycleQueryApprovalStatusRequest.setInitRequired(initRequired);
+        lifecycleSimulateCommitChaincodeDefinitionRequest.setInitRequired(initRequired);
 
-        Collection<LifecycleQueryApprovalStatusProposalResponse> lifecycleQueryApprovalStatusProposalResponses = channel.sendLifecycleQueryApprovalStatusRequest(lifecycleQueryApprovalStatusRequest, org1MyPeers);
-        for (LifecycleQueryApprovalStatusProposalResponse resp : lifecycleQueryApprovalStatusProposalResponses) {
+        Collection<LifecycleSimulateCommitChaincodeDefinitionProposalResponse> lifecycleSimulateCommitChaincodeDefinitionProposalRespons = channel.sendLifecycleSimulateCommitChaincodeDefinitionRequest(lifecycleSimulateCommitChaincodeDefinitionRequest, org1MyPeers);
+        for (LifecycleSimulateCommitChaincodeDefinitionProposalResponse resp : lifecycleSimulateCommitChaincodeDefinitionProposalRespons) {
             final Peer peer = resp.getPeer();
             assertEquals(ChaincodeResponse.Status.SUCCESS, resp.getStatus());
             assertEquals(format("Approved orgs failed on %s", peer), expectedApproved, resp.getApprovedOrgs());
