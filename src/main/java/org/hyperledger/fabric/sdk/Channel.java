@@ -4440,11 +4440,11 @@ public class Channel implements Serializable {
         logger.trace(format("Channel %s chaincode %s discovered: %s", name, chaincodeName, "" + sdChaindcode));
 
         if (null == sdChaindcode) {
-            throw new ServiceDiscoveryException(format("Channel %s failed to find and endorsers for chaincode %s", name, chaincodeName));
+            throw new ServiceDiscoveryException(format("Channel %s failed to find any endorsers for chaincode %s", name, chaincodeName));
         }
 
         if (sdChaindcode.getLayouts() == null || sdChaindcode.getLayouts().isEmpty()) {
-            throw new ServiceDiscoveryException(format("Channel %s failed to find and endorsers for chaincode %s no layouts found.", name, chaincodeName));
+            throw new ServiceDiscoveryException(format("Channel %s failed to find any endorsers for chaincode %s no layouts found.", name, chaincodeName));
         }
 
         SDChaindcode sdChaindcodeEndorsementCopy = new SDChaindcode(sdChaindcode); //copy. no ignored.

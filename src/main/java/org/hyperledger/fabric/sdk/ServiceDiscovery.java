@@ -92,7 +92,7 @@ public class ServiceDiscovery {
         Map<String, SDChaindcode> dchaindcodeMap = discoverEndorserEndpoints(transactionContext, ccl);
         final SDChaindcode sdChaindcode = dchaindcodeMap.get(name);
         if (null == sdChaindcode) {
-            throw new ServiceDiscoveryException(format("Failed to find and endorsers for chaincode %s. See logs for details", name));
+            throw new ServiceDiscoveryException(format("Failed to find any endorsers for chaincode %s. See logs for details", name));
         }
         return sdChaindcode;
     }
