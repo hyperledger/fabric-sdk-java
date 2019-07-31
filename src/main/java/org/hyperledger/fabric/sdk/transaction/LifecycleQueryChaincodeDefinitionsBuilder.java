@@ -17,27 +17,26 @@ import org.hyperledger.fabric.protos.peer.lifecycle.Lifecycle;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 
-public class LifecycleQueryNamespaceDefinitionsBuilder extends LifecycleProposalBuilder {
+public class LifecycleQueryChaincodeDefinitionsBuilder extends LifecycleProposalBuilder {
 
-    private LifecycleQueryNamespaceDefinitionsBuilder() {
+    private LifecycleQueryChaincodeDefinitionsBuilder() {
     }
 
     @Override
-    public LifecycleQueryNamespaceDefinitionsBuilder context(TransactionContext context) {
+    public LifecycleQueryChaincodeDefinitionsBuilder context(TransactionContext context) {
         super.context(context);
         return this;
     }
 
-    public static LifecycleQueryNamespaceDefinitionsBuilder newBuilder() {
-        return new LifecycleQueryNamespaceDefinitionsBuilder();
+    public static LifecycleQueryChaincodeDefinitionsBuilder newBuilder() {
+        return new LifecycleQueryChaincodeDefinitionsBuilder();
     }
 
     @Override
     public FabricProposal.Proposal build() throws ProposalException, InvalidArgumentException {
-
         List<ByteString> argList = new ArrayList<>();
-        argList.add(ByteString.copyFromUtf8("QueryNamespaceDefinitions"));
-        argList.add(Lifecycle.QueryNamespaceDefinitionsArgs.getDefaultInstance().toByteString());
+        argList.add(ByteString.copyFromUtf8("QueryChaincodeDefinitions"));
+        argList.add(Lifecycle.QueryChaincodeDefinitionsArgs.getDefaultInstance().toByteString());
         args(argList);
         return super.build();
     }

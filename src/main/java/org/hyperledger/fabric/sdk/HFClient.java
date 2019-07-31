@@ -473,8 +473,8 @@ public class HFClient {
      *
      * @return
      */
-    public LifecycleSimulateCommitChaincodeDefinitionRequest newLifecycleSimulateCommitChaincodeDefinitionRequest() {
-        return new LifecycleSimulateCommitChaincodeDefinitionRequest(userContext);
+    public LifecycleCheckCommitReadinessRequest newLifecycleSimulateCommitChaincodeDefinitionRequest() {
+        return new LifecycleCheckCommitReadinessRequest(userContext);
     }
 
     /**
@@ -487,12 +487,12 @@ public class HFClient {
     }
 
     /**
-     * newLifecycleApproveChaincodeDefinitionForMyOrgRequest get new Install proposal request.
+     * Create a new QueryChaincodeDefinitions proposal request.
      *
-     * @return LifecycleCommitChaincodeDefinitionRequest
+     * @return A proposal request.
      */
-    public LifecycleQueryNamespaceDefinitionsRequest newLifecycleQueryNamespaceDefinitionsRequestRequest() {
-        return new LifecycleQueryNamespaceDefinitionsRequest(userContext);
+    public LifecycleQueryChaincodeDefinitionsRequest newLifecycleQueryChaincodeDefinitionsRequest() {
+        return new LifecycleQueryChaincodeDefinitionsRequest(userContext);
     }
 
     /**

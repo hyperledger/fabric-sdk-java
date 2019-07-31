@@ -120,13 +120,13 @@ import org.hyperledger.fabric.sdk.transaction.InstallProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.InstantiateProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.JoinPeerProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.LifecycleApproveChaincodeDefinitionForMyOrgProposalBuilder;
+import org.hyperledger.fabric.sdk.transaction.LifecycleCheckCommitReadinessBuilder;
 import org.hyperledger.fabric.sdk.transaction.LifecycleCommitChaincodeDefinitionProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.LifecycleInstallProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.LifecycleQueryChaincodeDefinitionBuilder;
+import org.hyperledger.fabric.sdk.transaction.LifecycleQueryChaincodeDefinitionsBuilder;
 import org.hyperledger.fabric.sdk.transaction.LifecycleQueryInstalledChaincodeBuilder;
 import org.hyperledger.fabric.sdk.transaction.LifecycleQueryInstalledChaincodesBuilder;
-import org.hyperledger.fabric.sdk.transaction.LifecycleQueryNamespaceDefinitionsBuilder;
-import org.hyperledger.fabric.sdk.transaction.LifecycleSimulateCommitChaincodeDefinitionBuilder;
 import org.hyperledger.fabric.sdk.transaction.ProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.ProtoUtils;
 import org.hyperledger.fabric.sdk.transaction.QueryCollectionsConfigBuilder;
@@ -4023,51 +4023,46 @@ public class Channel implements Serializable {
     /**
      * Query namespaces.  Takes no specific arguments returns namespaces including chaincode names that have been committed.
      *
-     * @param queryNamespaceDefinitionsRequest the request see {@link LifecycleQueryNamespaceDefinitionsRequest}
-     * @param peers                            to send the request.
-     * @return A  {@link LifecycleQueryNamespaceDefinitionsProposalResponse}
-     * @throws InvalidArgumentException
+     * @param proposalRequest the request.
+     * @param peers The peers to which the request will be sent.
+     * @return Peer responses.
+     * @throws InvalidArgumentException if the channel is in an invalid state.
      * @throws ProposalException
      */
 
-    public Collection<LifecycleQueryNamespaceDefinitionsProposalResponse> lifecycleQueryNamespaceDefinitions(LifecycleQueryNamespaceDefinitionsRequest queryNamespaceDefinitionsRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
-
-        if (null == queryNamespaceDefinitionsRequest) {
-            throw new InvalidArgumentException("The queryNamespaceDefinitionsRequest parameter can not be null.");
+    public Collection<LifecycleQueryChaincodeDefinitionsProposalResponse> lifecycleQueryChaincodeDefinitions(LifecycleQueryChaincodeDefinitionsRequest proposalRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
+        if (null == proposalRequest) {
+            throw new InvalidArgumentException("The proposal request can not be null.");
         }
         checkChannelState();
         checkPeers(peers);
 
         try {
+            logger.trace(format("lifecycleQueryChaincodeDefinitions channel: %s", name));
 
-            logger.trace(format("lifecycleQueryNamespaceDefinitions channel: %s", name));
+            TransactionContext context = getTransactionContext(proposalRequest);
+            LifecycleQueryChaincodeDefinitionsBuilder proposalBuilder = LifecycleQueryChaincodeDefinitionsBuilder.newBuilder();
+            proposalBuilder.context(context);
+            SignedProposal proposal = getSignedProposal(context, proposalBuilder.build());
 
-            TransactionContext context = getTransactionContext(queryNamespaceDefinitionsRequest);
-
-            LifecycleQueryNamespaceDefinitionsBuilder q = LifecycleQueryNamespaceDefinitionsBuilder.newBuilder();
-            q.context(context);
-            SignedProposal qProposal = getSignedProposal(context, q.build());
-            return sendProposalToPeers(peers, qProposal, context, LifecycleQueryNamespaceDefinitionsProposalResponse.class);
-
+            return sendProposalToPeers(peers, proposal, context, LifecycleQueryChaincodeDefinitionsProposalResponse.class);
         } catch (Exception e) {
-            throw new ProposalException(format("QueryNamespaceDefinitions %s channel failed. " + e.getMessage(), name), e);
-
+            throw new ProposalException(format("QueryChaincodeDefinitions %s channel failed. " + e.getMessage(), name), e);
         }
-
     }
 
     /**
      * Query approval status for all organizations.
      *
-     * @param lifecycleSimulateCommitChaincodeDefinitionRequest The request see {@link LifecycleSimulateCommitChaincodeDefinitionRequest}
+     * @param lifecycleCheckCommitReadinessRequest The request see {@link LifecycleCheckCommitReadinessRequest}
      * @param peers                               Peers to send the request. Usually only need one.
-     * @return A {@link LifecycleSimulateCommitChaincodeDefinitionProposalResponse}
+     * @return A {@link LifecycleCheckCommitReadinessProposalResponse}
      * @throws InvalidArgumentException
      * @throws ProposalException
      */
-    public Collection<LifecycleSimulateCommitChaincodeDefinitionProposalResponse> sendLifecycleSimulateCommitChaincodeDefinitionRequest(LifecycleSimulateCommitChaincodeDefinitionRequest lifecycleSimulateCommitChaincodeDefinitionRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
+    public Collection<LifecycleCheckCommitReadinessProposalResponse> sendLifecycleCheckCommitReadinessRequest(LifecycleCheckCommitReadinessRequest lifecycleCheckCommitReadinessRequest, Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
 
-        if (null == lifecycleSimulateCommitChaincodeDefinitionRequest) {
+        if (null == lifecycleCheckCommitReadinessRequest) {
             throw new InvalidArgumentException("The lifecycleSimulateCommitChaincodeDefinitionRequest parameter can not be null.");
         }
 
@@ -4080,7 +4075,7 @@ public class Channel implements Serializable {
 
                 String collectionData = "null";
 
-                final org.hyperledger.fabric.protos.common.Collection.CollectionConfigPackage chaincodeCollectionConfiguration = lifecycleSimulateCommitChaincodeDefinitionRequest.getCollectionConfigPackage();
+                final org.hyperledger.fabric.protos.common.Collection.CollectionConfigPackage chaincodeCollectionConfiguration = lifecycleCheckCommitReadinessRequest.getCollectionConfigPackage();
                 if (null != chaincodeCollectionConfiguration) {
                     final byte[] asBytes = chaincodeCollectionConfiguration.toByteArray();
                     if (null != asBytes) {
@@ -4092,57 +4087,57 @@ public class Channel implements Serializable {
                                 ", isInitRequired: %s, validationParameter: '%s', endorsementPolicyPlugin: %s, validationPlugin: %s" +
                                 ", collectionConfiguration: %s",
                         name,
-                        lifecycleSimulateCommitChaincodeDefinitionRequest.getSequence(),
-                        lifecycleSimulateCommitChaincodeDefinitionRequest.getChaincodeName(),
-                        lifecycleSimulateCommitChaincodeDefinitionRequest.getChaincodeVersion(),
+                        lifecycleCheckCommitReadinessRequest.getSequence(),
+                        lifecycleCheckCommitReadinessRequest.getChaincodeName(),
+                        lifecycleCheckCommitReadinessRequest.getChaincodeVersion(),
 
-                        lifecycleSimulateCommitChaincodeDefinitionRequest.isInitRequired() + "",
-                        toHexString(lifecycleSimulateCommitChaincodeDefinitionRequest.getValidationParameter()),
-                        lifecycleSimulateCommitChaincodeDefinitionRequest.getChaincodeEndorsementPlugin(),
-                        lifecycleSimulateCommitChaincodeDefinitionRequest.getChaincodeValidationPlugin(),
+                        lifecycleCheckCommitReadinessRequest.isInitRequired() + "",
+                        toHexString(lifecycleCheckCommitReadinessRequest.getValidationParameter()),
+                        lifecycleCheckCommitReadinessRequest.getChaincodeEndorsementPlugin(),
+                        lifecycleCheckCommitReadinessRequest.getChaincodeValidationPlugin(),
                         collectionData));
 
             }
 
-            TransactionContext context = getTransactionContext(lifecycleSimulateCommitChaincodeDefinitionRequest);
+            TransactionContext context = getTransactionContext(lifecycleCheckCommitReadinessRequest);
 
-            LifecycleSimulateCommitChaincodeDefinitionBuilder lifecycleSimulateCommitChaincodeDefinitionBuilder = LifecycleSimulateCommitChaincodeDefinitionBuilder.newBuilder();
-            lifecycleSimulateCommitChaincodeDefinitionBuilder.setSequence(lifecycleSimulateCommitChaincodeDefinitionRequest.getSequence());
-            lifecycleSimulateCommitChaincodeDefinitionBuilder.setName(lifecycleSimulateCommitChaincodeDefinitionRequest.getChaincodeName());
-            lifecycleSimulateCommitChaincodeDefinitionBuilder.setVersion(lifecycleSimulateCommitChaincodeDefinitionRequest.getChaincodeVersion());
-            String endorsementPlugin = lifecycleSimulateCommitChaincodeDefinitionRequest.getChaincodeEndorsementPlugin();
+            LifecycleCheckCommitReadinessBuilder lifecycleCheckCommitReadinessBuilder = LifecycleCheckCommitReadinessBuilder.newBuilder();
+            lifecycleCheckCommitReadinessBuilder.setSequence(lifecycleCheckCommitReadinessRequest.getSequence());
+            lifecycleCheckCommitReadinessBuilder.setName(lifecycleCheckCommitReadinessRequest.getChaincodeName());
+            lifecycleCheckCommitReadinessBuilder.setVersion(lifecycleCheckCommitReadinessRequest.getChaincodeVersion());
+            String endorsementPlugin = lifecycleCheckCommitReadinessRequest.getChaincodeEndorsementPlugin();
             if (!isNullOrEmpty(endorsementPlugin)) {
-                lifecycleSimulateCommitChaincodeDefinitionBuilder.setEndorsementPlugin(endorsementPlugin);
+                lifecycleCheckCommitReadinessBuilder.setEndorsementPlugin(endorsementPlugin);
             }
-            String validationPlugin = lifecycleSimulateCommitChaincodeDefinitionRequest.getChaincodeValidationPlugin();
+            String validationPlugin = lifecycleCheckCommitReadinessRequest.getChaincodeValidationPlugin();
 
             if (!isNullOrEmpty(validationPlugin)) {
-                lifecycleSimulateCommitChaincodeDefinitionBuilder.setValidationPlugin(validationPlugin);
+                lifecycleCheckCommitReadinessBuilder.setValidationPlugin(validationPlugin);
             }
 
-            ByteString validationParameter = lifecycleSimulateCommitChaincodeDefinitionRequest.getValidationParameter();
+            ByteString validationParameter = lifecycleCheckCommitReadinessRequest.getValidationParameter();
             if (null != validationParameter) {
-                lifecycleSimulateCommitChaincodeDefinitionBuilder.setValidationParameter(validationParameter);
+                lifecycleCheckCommitReadinessBuilder.setValidationParameter(validationParameter);
             }
 
-            org.hyperledger.fabric.protos.common.Collection.CollectionConfigPackage collectionConfigPackage = lifecycleSimulateCommitChaincodeDefinitionRequest.getCollectionConfigPackage();
+            org.hyperledger.fabric.protos.common.Collection.CollectionConfigPackage collectionConfigPackage = lifecycleCheckCommitReadinessRequest.getCollectionConfigPackage();
 
             if (null != collectionConfigPackage) {
-                lifecycleSimulateCommitChaincodeDefinitionBuilder.setCollections(collectionConfigPackage);
+                lifecycleCheckCommitReadinessBuilder.setCollections(collectionConfigPackage);
             }
 
-            Boolean initRequired = lifecycleSimulateCommitChaincodeDefinitionRequest.isInitRequired();
+            Boolean initRequired = lifecycleCheckCommitReadinessRequest.isInitRequired();
             if (null != initRequired) {
-                lifecycleSimulateCommitChaincodeDefinitionBuilder.setInitRequired(initRequired);
+                lifecycleCheckCommitReadinessBuilder.setInitRequired(initRequired);
             }
 
-            lifecycleSimulateCommitChaincodeDefinitionBuilder.context(context);
+            lifecycleCheckCommitReadinessBuilder.context(context);
 
-            SignedProposal qProposal = getSignedProposal(context, lifecycleSimulateCommitChaincodeDefinitionBuilder.build());
-            return sendProposalToPeers(peers, qProposal, context, LifecycleSimulateCommitChaincodeDefinitionProposalResponse.class);
+            SignedProposal qProposal = getSignedProposal(context, lifecycleCheckCommitReadinessBuilder.build());
+            return sendProposalToPeers(peers, qProposal, context, LifecycleCheckCommitReadinessProposalResponse.class);
 
         } catch (Exception e) {
-            throw new ProposalException(format("QueryNamespaceDefinitions %s channel failed. " + e.getMessage(), name), e);
+            throw new ProposalException(format("CheckCommitReadiness %s channel failed. " + e.getMessage(), name), e);
 
         }
     }

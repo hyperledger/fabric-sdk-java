@@ -407,8 +407,8 @@ Application: &ApplicationDefaults
     # ACL policy for _lifecycle's "QueryChaincodeDefinition" function
     _lifecycle/QueryChaincodeDefinition: /Channel/Application/Readers
 
-    # ACL policy for _lifecycle's "QueryNamespaceDefinitions" function
-    _lifecycle/QueryNamespaceDefinitions: /Channel/Application/Readers
+    # ACL policy for _lifecycle's "QueryChaincodeDefinitions" function
+    _lifecycle/QueryChaincodeDefinitions: /Channel/Application/Readers
 
     #---Lifecycle System Chaincode (lscc) function to policy mapping for access control---#
 

@@ -16,36 +16,28 @@ import org.hyperledger.fabric.sdk.helper.Config;
 import static org.hyperledger.fabric.sdk.helper.Utils.isNullOrEmpty;
 
 /**
- * LifecycleSimulateCommitChaincodeDefinitionRequest queries the approval status of organizations for chaincode sequence.
+ * Queries the approval status of organizations for chaincode sequence.
  */
-public class LifecycleSimulateCommitChaincodeDefinitionRequest extends LifecycleRequest {
-
-    static Config config = Config.getConfig();
-    static Boolean lifecycleInitRequiredDefault = null;
-
-    static {
-        lifecycleInitRequiredDefault = config.getLifecycleInitRequiredDefault();
-    }
+public class LifecycleCheckCommitReadinessRequest extends LifecycleRequest {
+    private static final Config config = Config.getConfig();
+    private static final Boolean lifecycleInitRequiredDefault = config.getLifecycleInitRequiredDefault();
 
     private long sequence;
     private String chaincodeName;
     private String chaincodeVersion;
     private String chaincodeEndorsementPlugin;
     private String chaincodeValidationPlugin;
-    private LifecycleChaincodeEndorsementPolicy lifecycleChaincodeEndorsementPolicy;
     private Collection.CollectionConfigPackage collectionConfigPackage;
     private Boolean initRequired;
     private ByteString validationParameter;
 
-    LifecycleSimulateCommitChaincodeDefinitionRequest(User userContext) {
+    LifecycleCheckCommitReadinessRequest(User userContext) {
         super(userContext);
         if (!isNullOrEmpty(config.getDefaultChaincodeEndorsementPlugin())) {
-
             chaincodeEndorsementPlugin = config.getDefaultChaincodeEndorsementPlugin();
         }
 
         if (!isNullOrEmpty(config.getDefaultChaincodeValidationPlugin())) {
-
             chaincodeValidationPlugin = config.getDefaultChaincodeValidationPlugin();
         }
 
@@ -65,7 +57,7 @@ public class LifecycleSimulateCommitChaincodeDefinitionRequest extends Lifecycle
      */
     public void setValidationParameter(byte[] validationParameter) throws InvalidArgumentException {
         if (null == validationParameter) {
-            throw new InvalidArgumentException(" The parameter validationParameter may not be null.");
+            throw new InvalidArgumentException("The parameter validationParameter may not be null.");
         }
         this.validationParameter = ByteString.copyFrom(validationParameter);
     }
@@ -80,7 +72,6 @@ public class LifecycleSimulateCommitChaincodeDefinitionRequest extends Lifecycle
      * @param sequence
      */
     public void setSequence(long sequence) {
-
         this.sequence = sequence;
     }
 
@@ -112,11 +103,9 @@ public class LifecycleSimulateCommitChaincodeDefinitionRequest extends Lifecycle
      * @throws InvalidArgumentException
      */
     public void setChaincodeVersion(String chaincodeVersion) throws InvalidArgumentException {
-
         if (isNullOrEmpty(chaincodeVersion)) {
             throw new InvalidArgumentException("The version parameter can not be null or empty.");
         }
-
         this.chaincodeVersion = chaincodeVersion;
     }
 
@@ -131,12 +120,10 @@ public class LifecycleSimulateCommitChaincodeDefinitionRequest extends Lifecycle
      * @throws InvalidArgumentException
      */
     public void setChaincodeEndorsementPlugin(String chaincodeEndorsementPlugin) throws InvalidArgumentException {
-
         if (isNullOrEmpty(chaincodeEndorsementPlugin)) {
             throw new InvalidArgumentException("The chaincodeEndorsementPlugin parameter can not be null or empty.");
         }
-
-        this.chaincodeEndorsementPlugin = this.chaincodeEndorsementPlugin;
+        this.chaincodeEndorsementPlugin = chaincodeEndorsementPlugin;
     }
 
     String getChaincodeValidationPlugin() {
@@ -150,11 +137,9 @@ public class LifecycleSimulateCommitChaincodeDefinitionRequest extends Lifecycle
      * @throws InvalidArgumentException
      */
     public void setChaincodeValidationPlugin(String chaincodeValidationPlugin) throws InvalidArgumentException {
-
         if (isNullOrEmpty(chaincodeValidationPlugin)) {
             throw new InvalidArgumentException("The chaincodeValidationPlugin parameter can not be null or empty.");
         }
-
         this.chaincodeValidationPlugin = chaincodeValidationPlugin;
     }
 
@@ -186,7 +171,6 @@ public class LifecycleSimulateCommitChaincodeDefinitionRequest extends Lifecycle
      * @param initRequired
      */
     public void setInitRequired(boolean initRequired) {
-
         this.initRequired = initRequired;
     }
 

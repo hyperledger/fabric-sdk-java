@@ -14,13 +14,13 @@ option java_package = "org.hyperledger.fabric.protos.peer.lifecycle";
 option go_package = "github.com/hyperledger/fabric/protos/peer/lifecycle";
 
 // InstallChaincodeArgs is the message used as the argument to
-// '_lifecycle.InstallChaincode'
+// '_lifecycle.InstallChaincode'.
 message InstallChaincodeArgs {
     bytes chaincode_install_package = 1; // This should be a marshaled lifecycle.ChaincodePackage
 }
 
 // InstallChaincodeArgs is the message returned by
-// '_lifecycle.InstallChaincode'
+// '_lifecycle.InstallChaincode'.
 message InstallChaincodeResult {
     string package_id = 1;
     string label = 2;
@@ -39,6 +39,18 @@ message QueryInstalledChaincodeResult {
     string label = 2;
 }
 
+// GetInstalledChaincodePackageArgs is the message used as the argument to
+// '_lifecycle.GetInstalledChaincodePackage'.
+message GetInstalledChaincodePackageArgs {
+    string package_id = 1;
+}
+
+// GetInstalledChaincodePackageResult is the message returned by
+// '_lifecycle.GetInstalledChaincodePackage'.
+message GetInstalledChaincodePackageResult {
+    bytes chaincode_install_package = 1;
+}
+
 // QueryInstalledChaincodesArgs currently is an empty argument to
 // '_lifecycle.QueryInstalledChaincodes'.   In the future, it may be
 // extended to have parameters.
@@ -46,13 +58,25 @@ message QueryInstalledChaincodesArgs {
 }
 
 // QueryInstalledChaincodesResult is the message returned by
-// '_lifecycle.QueryInstalledChaincodes'.  It returns a list of
-// installed chaincodes.
+// '_lifecycle.QueryInstalledChaincodes'.  It returns a list of installed
+// chaincodes, including a map of channel name to chaincode name and version
+// pairs of chaincode definitions that reference this chaincode package.
 message QueryInstalledChaincodesResult {
     message InstalledChaincode {
         string package_id = 1;
         string label = 2;
+        map<string, References> references = 3;
     }
+
+    message References {
+        repeated Chaincode chaincodes = 1;
+    }
+
+    message Chaincode {
+        string name = 1;
+        string version = 2;
+    }
+
     repeated InstalledChaincode installed_chaincodes = 1;
 }
 
@@ -71,8 +95,7 @@ message ApproveChaincodeDefinitionForMyOrgArgs {
 }
 
 message ChaincodeSource {
-    message Unavailable {
-    }
+    message Unavailable {}
 
     message Local {
         string package_id = 1;
@@ -109,9 +132,9 @@ message CommitChaincodeDefinitionArgs {
 message CommitChaincodeDefinitionResult {
 }
 
-// SimulateCommitChaincodeDefinitionArgs is the message used as arguments to
-// `_lifecycle.SimulateCommitChaincodeDefinition`.
-message SimulateCommitChaincodeDefinitionArgs {
+// CheckCommitReadinessArgs is the message used as arguments to
+// `_lifecycle.CheckCommitReadiness`.
+message CheckCommitReadinessArgs {
     int64 sequence = 1;
     string name = 2;
     string version = 3;
@@ -122,20 +145,21 @@ message SimulateCommitChaincodeDefinitionArgs {
     bool init_required = 8;
 }
 
-// SimulateCommitChaincodeDefinitionResult is the message returned by
-// `_lifecycle.SimulateCommitChaincodeDefinition`. It returns a map of
-// orgs to their approval (true/false) for the definition supplied as args.
-message SimulateCommitChaincodeDefinitionResult {
-    map<string, bool> approved = 1;
+// CheckCommitReadinessResult is the message returned by
+// `_lifecycle.CheckCommitReadiness`. It returns a map of
+// orgs to their approval (true/false) for the definition 
+// supplied as args.
+message CheckCommitReadinessResult{
+    map<string, bool> approvals = 1;
 }
 
-// QueryChaincodeDefinition is the message used as arguments to
+// QueryChaincodeDefinitionArgs is the message used as arguments to
 // `_lifecycle.QueryChaincodeDefinition`.
 message QueryChaincodeDefinitionArgs {
     string name = 1;
 }
 
-// CommitChaincodeDefinitionResult is the message returned by
+// QueryChaincodeDefinitionResult is the message returned by
 // `_lifecycle.QueryChaincodeDefinition`.
 message QueryChaincodeDefinitionResult {
     int64 sequence = 1;
@@ -145,19 +169,26 @@ message QueryChaincodeDefinitionResult {
     bytes validation_parameter = 5;
     common.CollectionConfigPackage collections = 6;
     bool init_required = 7;
+    map<string,bool> approvals = 8;
 }
 
-// QueryNamespaceDefinitions is the message used as arguments to
-// `_lifecycle.QueryNamespaceDefinitions`.
-message QueryNamespaceDefinitionsArgs {
+// QueryChaincodeDefinitionsArgs is the message used as arguments to
+// `_lifecycle.QueryChaincodeDefinitions`.
+message QueryChaincodeDefinitionsArgs {
 }
 
-// QueryNamespaceDefinitions is the message returned by
-// `_lifecycle.QueryNamespaceDefinitions`.
-message QueryNamespaceDefinitionsResult {
-    message Namespace {
-        string type = 1;
+// QueryChaincodeDefinitionsResult is the message returned by
+// `_lifecycle.QueryChaincodeDefinitions`.
+message QueryChaincodeDefinitionsResult {
+    message ChaincodeDefinition {
+        string name = 1;
+        int64 sequence = 2;
+        string version = 3;
+        string endorsement_plugin = 4;
+        string validation_plugin = 5;
+        bytes validation_parameter = 6;
+        common.CollectionConfigPackage collections = 7;
+        bool init_required = 8;
     }
-
-    map<string, Namespace> namespaces = 1; // A map from namespace name to namespace
+    repeated ChaincodeDefinition chaincode_definitions = 1;
 }
