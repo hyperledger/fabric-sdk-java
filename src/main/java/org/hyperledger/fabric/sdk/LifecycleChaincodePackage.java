@@ -178,7 +178,7 @@ public class LifecycleChaincodePackage {
         archiveOutputStream.write(mataDataBytes);
         archiveOutputStream.closeArchiveEntry();
 
-        archiveEntry = new TarArchiveEntry(chaincodeType.toPackageName().toUpperCase() + "-Code-Package.tar.gz");
+        archiveEntry = new TarArchiveEntry("code.tar.gz");
         archiveEntry.setMode(0100644);
         archiveEntry.setSize(dataBytes.length);
         archiveOutputStream.putArchiveEntry(archiveEntry);
