@@ -17,9 +17,6 @@ import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.protos.peer.FabricProposal;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
-import org.omg.CORBA.DynAnyPackage.Invalid;
-
-import static org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type.GOLANG;
 
 public class LSCCProposalBuilder extends ProposalBuilder {
     private static final String LSCC_CHAIN_NAME = "lscc";

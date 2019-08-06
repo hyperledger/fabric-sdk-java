@@ -214,6 +214,13 @@
             <version>0.4.0</version>
         </dependency>
 
+        <dependency>
+            <!-- Required if using Java 11+ as no longer bundled in the core libraries -->
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+            <version>2.3.1</version>
+        </dependency>
+
     </dependencies>
 
 
