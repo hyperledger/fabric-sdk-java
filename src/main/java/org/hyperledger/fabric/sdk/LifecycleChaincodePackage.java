@@ -171,7 +171,7 @@ public class LifecycleChaincodePackage {
         TarArchiveOutputStream archiveOutputStream = new TarArchiveOutputStream(new GzipCompressorOutputStream(bos));
         archiveOutputStream.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
 
-        TarArchiveEntry archiveEntry = new TarArchiveEntry("Chaincode-Package-Metadata.json");
+        TarArchiveEntry archiveEntry = new TarArchiveEntry("metadata.json");
         archiveEntry.setMode(0100644);
         archiveEntry.setSize(mataDataBytes.length);
         archiveOutputStream.putArchiveEntry(archiveEntry);
@@ -336,7 +336,7 @@ public class LifecycleChaincodePackage {
 
             TarArchiveEntry currentEntry = tarInput.getNextTarEntry();
             while (currentEntry != null) {
-                if (currentEntry.getName().equals("Chaincode-Package-Metadata.json")) {
+                if (currentEntry.getName().equals("metadata.json")) {
                     byte[] buf = new byte[(int) currentEntry.getSize()];
                     tarInput.read(buf, 0, (int) currentEntry.getSize());
 
@@ -362,7 +362,7 @@ public class LifecycleChaincodePackage {
 
             TarArchiveEntry currentEntry = tarInput.getNextTarEntry();
             while (currentEntry != null) {
-                if (!currentEntry.getName().equals("Chaincode-Package-Metadata.json")) { // right now anything but this
+                if (!currentEntry.getName().equals("metadata.json")) { // right now anything but this
                     byte[] buf = new byte[(int) currentEntry.getSize()];
                     tarInput.read(buf, 0, (int) currentEntry.getSize());
 
