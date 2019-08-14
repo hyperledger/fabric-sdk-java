@@ -27,64 +27,38 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECGenParameterSpec;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.google.protobuf.ByteString;
 import org.apache.milagro.amcl.FP256BN.BIG;
+import org.apache.milagro.amcl.FP256BN.ECP;
 import org.hyperledger.fabric.protos.idemix.Idemix;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 
 public class RevocationAuthority {
-    private RevocationAuthority() {
-        // private constructor for utility class
+    protected PublicKey pk;
+    protected PrivateKey sk;
+
+    public RevocationAuthority(PublicKey pk) {
+        this.pk = pk;
     }
 
-    /**
-     * Depending on the selected revocation algorithm, the proof data length will be different.
-     * This method will give the proof length for any supported revocation algorithm.
-     *
-     * @param alg The revocation algorithm
-     * @return The proof data length for the given revocation algorithm
-     */
-    public static int getProofBytes(RevocationAlgorithm alg) {
-        if (alg == null) {
-            throw new IllegalArgumentException("Revocation algorithm cannot be null");
-        }
-        switch (alg) {
-            case ALG_NO_REVOCATION:
-                return 0;
-            default:
-                throw new IllegalArgumentException("Unsupported RevocationAlgorithm: " + alg.name());
-        }
-    }
-
-    /**
-     * Generate a long term ECDSA key pair used for revocation
-     *
-     * @return Freshly generated ECDSA key pair
-     */
-    public static java.security.KeyPair generateLongTermRevocationKey() {
-        try {
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC");
-            SecureRandom random = new SecureRandom();
-            AlgorithmParameterSpec params = new ECGenParameterSpec("secp384r1");
-            keyGen.initialize(params, random);
-
-            return keyGen.generateKeyPair();
-        } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
-            throw new RuntimeException("Error during the LTRevocation key. Invalid algorithm");
-        }
+    public RevocationAuthority() {
+        java.security.KeyPair keyPair = generateLongTermRevocationKey();
+        this.pk = keyPair.getPublic();
+        this.sk = keyPair.getPrivate();
     }
 
     /**
      * Creates a Credential Revocation Information object
      *
-     * @param key              Private key
      * @param unrevokedHandles Array of unrevoked revocation handles
      * @param epoch            The counter (representing a time window) in which this CRI is valid
      * @param alg              Revocation algorithm
      * @return CredentialRevocationInformation object
      */
-    public static Idemix.CredentialRevocationInformation createCRI(PrivateKey key, BIG[] unrevokedHandles, int epoch, RevocationAlgorithm alg) throws CryptoException {
+    public Idemix.CredentialRevocationInformation createCRI(BIG[] unrevokedHandles, int epoch, RevocationAlgorithm alg) throws CryptoException {
         Idemix.CredentialRevocationInformation.Builder builder = Idemix.CredentialRevocationInformation.newBuilder();
         builder.setRevocationAlg(alg.ordinal());
         builder.setEpoch(epoch);
@@ -104,7 +78,7 @@ public class RevocationAuthority {
         try {
             Idemix.CredentialRevocationInformation cri = builder.build();
             Signature ecdsa = Signature.getInstance("SHA256withECDSA");
-            ecdsa.initSign(key);
+            ecdsa.initSign(this.sk);
             ecdsa.update(cri.toByteArray());
             signed = ecdsa.sign();
 
@@ -116,8 +90,31 @@ public class RevocationAuthority {
         if (alg == RevocationAlgorithm.ALG_NO_REVOCATION) {
             // build and return the credential information object
             return builder.build();
+        } else if (alg == RevocationAlgorithm.ALG_PLAIN_SIGNATURE) {
+            // Create revocation object
+            Idemix.PlainSigRevocationData.Builder plainSigBuilder = Idemix.PlainSigRevocationData.newBuilder();
+
+            // message signatures object
+            Idemix.MessageSignature.Builder messageSigBuilder = Idemix.MessageSignature.newBuilder();
+
+            // Add message signatures to the revocation object
+            List<Idemix.MessageSignature> signaturesList = new ArrayList<>();
+            for (BIG rh : unrevokedHandles) {
+                ECP sig = WeakBB.weakBBSign(keyPair.getSk(), rh);
+                messageSigBuilder.setRevocationHandle(ByteString.copyFrom(IdemixUtils.bigToBytes(rh)));
+                messageSigBuilder.setRhSignature(IdemixUtils.transformToProto(sig));
+                signaturesList.add(messageSigBuilder.build());
+            }
+            plainSigBuilder.addAllSignatures(signaturesList);
+
+            // Build the revocation data
+            byte[] revocationDataBytes = plainSigBuilder.build().toByteArray();
+            builder.setRevocationData(ByteString.copyFrom(revocationDataBytes));
+
+            // build and return the credential information object
+            return builder.build();
         } else {
-            // If alg not supported, return null
+            // If alg not supported, throw exception
             throw new IllegalArgumentException("Algorithm " + alg.name() + " not supported");
         }
     }
@@ -126,14 +123,13 @@ public class RevocationAuthority {
      * Verifies that the revocation PK for a certain epoch is valid,
      * by checking that it was signed with the long term revocation key
      *
-     * @param pk         Public Key
      * @param epochPK    Epoch PK
      * @param epochPkSig Epoch PK Signature
      * @param epoch      Epoch
      * @param alg        Revocation algorithm
      * @return True if valid
      */
-    public static boolean verifyEpochPK(PublicKey pk, Idemix.ECP2 epochPK, byte[] epochPkSig, long epoch, RevocationAlgorithm alg) throws CryptoException {
+    public boolean verifyEpochPK(Idemix.ECP2 epochPK, byte[] epochPkSig, long epoch, RevocationAlgorithm alg) throws CryptoException {
         Idemix.CredentialRevocationInformation.Builder builder = Idemix.CredentialRevocationInformation.newBuilder();
         builder.setRevocationAlg(alg.ordinal());
         builder.setEpochPk(epochPK);
@@ -150,4 +146,27 @@ public class RevocationAuthority {
             throw new CryptoException("Error during the EpochPK verification", e);
         }
     }
+
+    public PublicKey getPk() {
+        return pk;
+    }
+
+    /**
+     * Generate a long term ECDSA key pair used for revocation
+     *
+     * @return Freshly generated ECDSA key pair
+     */
+    protected java.security.KeyPair generateLongTermRevocationKey() {
+        try {
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC");
+            SecureRandom random = new SecureRandom();
+            AlgorithmParameterSpec params = new ECGenParameterSpec("secp384r1");
+            keyGen.initialize(params, random);
+
+            return keyGen.generateKeyPair();
+        } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
+            throw new RuntimeException("Error during the LTRevocation key. Invalid algorithm");
+        }
+    }
+
 }

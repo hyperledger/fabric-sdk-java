@@ -19,8 +19,6 @@ package org.hyperledger.fabric.sdk.idemix;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.google.protobuf.ByteString;
 import org.apache.milagro.amcl.FP256BN.BIG;
@@ -152,6 +150,9 @@ public final class IdemixUtils {
      * @return a new byte[] of data + toAppend
      */
     static byte[] append(byte[] data, byte[] toAppend) {
+        if (toAppend.length == 0) {
+            return data;
+        }
 
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         try {

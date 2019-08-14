@@ -19,9 +19,9 @@ import org.apache.milagro.amcl.FP256BN.BIG;
 import org.hyperledger.fabric.protos.idemix.Idemix;
 
 /**
- * NopNonRevocationProver is a concrete NonRevocationProver for RevocationAlgorithm "ALG_NO_REVOCATION"
+ * NopRevocationProver is a concrete RevocationProver for RevocationAlgorithm "ALG_NO_REVOCATION"
  */
-class NopNonRevocationProver implements NonRevocationProver {
+class NopRevocationProver implements RevocationProver {
     private final byte[] empty = new byte[0];
 
     public byte[] getFSContribution(BIG rh, BIG rRh, Idemix.CredentialRevocationInformation cri) {
