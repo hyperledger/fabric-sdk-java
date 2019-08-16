@@ -20,13 +20,5 @@ package org.hyperledger.fabric.sdk.idemix;
  * Enum for the supported revocation algorithms
  */
 public enum RevocationAlgorithm {
-    /**
-     * No revocation support
-     */
-    ALG_NO_REVOCATION,
-
-    /**
-     * Signature-based whitelisting
-     */
-    ALG_PLAIN_SIGNATURE
+    ALG_NO_REVOCATION
 }
