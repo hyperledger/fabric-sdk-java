@@ -18,6 +18,7 @@ package org.hyperledger.fabric.sdk.idemix;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 

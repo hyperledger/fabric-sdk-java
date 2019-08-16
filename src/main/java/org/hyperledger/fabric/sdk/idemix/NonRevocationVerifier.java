@@ -21,25 +21,23 @@ import org.apache.milagro.amcl.FP256BN.ECP2;
 import org.hyperledger.fabric.protos.idemix.Idemix;
 
 /**
- * A RevocationProver is a prover that can prove that an identity mixer credential is not revoked.
- * For every RevocationAlgorithm, there will be an instantiation of RevocationProver.
+ * A NonRevocationProver is a prover that can prove that an identity mixer credential is not revoked.
+ * For every RevocationAlgorithm, there will be an instantiation of NonRevocationProver.
  */
-interface RevocationVerifier {
+interface NonRevocationVerifier {
     /**
      * This method provides a non-revocation verifier depending on the Revocation algorithm
      *
      * @param algorithm Revocation mechanism to use
-     * @return RevocationVerifier or null if not allowed
+     * @return NonRevocationVerifier or null if not allowed
      */
-    static RevocationVerifier getVerifier(RevocationAlgorithm algorithm) {
+    static NonRevocationVerifier getNonRevocationVerifier(RevocationAlgorithm algorithm) {
         if (algorithm == null) {
             throw new IllegalArgumentException("Revocation algorithm cannot be null");
         }
         switch (algorithm) {
             case ALG_NO_REVOCATION:
-                return new NopRevocationVerifier();
-            case ALG_PLAIN_SIGNATURE:
-                return new PlainSignRevocationVerifier();
+                return new NopNonRevocationVerifier();
             default:
                 // Revocation algorithm not supported
                 throw new Error("Revocation algorithm " + algorithm.name() + " not supported");
