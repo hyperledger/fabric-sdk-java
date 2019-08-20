@@ -301,10 +301,12 @@ public class NetworkConfigTest {
             assertNotNull(properties);
             // check for default properties
             Object[] o = (Object[]) properties.get("grpc.NettyChannelBuilderOption.keepAliveTime");
-            assertEquals(o[0], 120000L);
+            assertEquals(o[0], 2L);
+            assertEquals(o[1], TimeUnit.MINUTES);
 
             o = (Object[]) properties.get("grpc.NettyChannelBuilderOption.keepAliveTimeout");
-            assertEquals(o[0], 20000L);
+            assertEquals(o[0], 20L);
+            assertEquals(o[1], TimeUnit.SECONDS);
 
             o = (Object[]) properties.get("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls");
             assertEquals(o[0], true);
