@@ -26,9 +26,8 @@ import com.google.protobuf.ByteString;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeDeploymentSpec;
-import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type;
-import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.protos.peer.Chaincode;
+import org.hyperledger.fabric.protos.peer.ProposalPackage;
 import org.hyperledger.fabric.sdk.TransactionRequest;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
@@ -96,7 +95,7 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
     }
 
     @Override
-    public FabricProposal.Proposal build() throws ProposalException, InvalidArgumentException {
+    public ProposalPackage.Proposal build() throws ProposalException, InvalidArgumentException {
 
         constructInstallProposal();
         return super.build();
@@ -125,7 +124,7 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
             throw new IllegalArgumentException("Both chaincodeSource and chaincodeInputStream in InstallRequest were set. Specify one or the other");
         }
 
-        final Type ccType;
+        final Chaincode.ChaincodeSpec.Type ccType;
         File projectSourceDir = null;
         String targetPathPrefix = null;
         String dplang;
@@ -176,7 +175,7 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
                 }
 
                 dplang = "Go";
-                ccType = Type.GOLANG;
+                ccType = Chaincode.ChaincodeSpec.Type.GOLANG;
                 if (null != chaincodeSource) {
 
                     projectSourceDir = Paths.get(chaincodeSource.toString(), "src", chaincodePath).toFile();
@@ -195,7 +194,7 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
                 }
 
                 dplang = "Java";
-                ccType = Type.JAVA;
+                ccType = Chaincode.ChaincodeSpec.Type.JAVA;
                 if (null != chaincodeSource) {
                     targetPathPrefix = "src";
                     projectSourceDir = Paths.get(chaincodeSource.toString()).toFile();
@@ -213,7 +212,7 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
                 }
 
                 dplang = "Node";
-                ccType = Type.NODE;
+                ccType = Chaincode.ChaincodeSpec.Type.NODE;
                 if (null != chaincodeSource) {
 
                     projectSourceDir = Paths.get(chaincodeSource.toString()).toFile();
@@ -266,7 +265,7 @@ public class InstallProposalBuilder extends LSCCProposalBuilder {
 
         }
 
-        final ChaincodeDeploymentSpec depspec = createDeploymentSpec(
+        final Chaincode.ChaincodeDeploymentSpec depspec = createDeploymentSpec(
                 ccType, this.chaincodeName, this.chaincodePath, this.chaincodeVersion, null, data);
 
         // set args

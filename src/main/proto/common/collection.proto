@@ -1,17 +1,15 @@
-/*
-Copyright IBM Corp. All Rights Reserved.
-
-SPDX-License-Identifier: Apache-2.0
-*/
+// Copyright the Hyperledger Fabric contributors. All rights reserved.
+//
+// SPDX-License-Identifier: Apache-2.0
 
 syntax = "proto3";
 
-import "common/policies.proto";
-
-option go_package = "github.com/hyperledger/fabric/protos/common";
+option go_package = "github.com/hyperledger/fabric-protos-go/common";
 option java_package = "org.hyperledger.fabric.protos.common";
 
 package common;
+
+import "common/policies.proto";
 
 // CollectionConfigPackage represents an array of CollectionConfig
 // messages; the extra struct is required because repeated oneof is
@@ -75,9 +73,10 @@ message CollectionPolicyConfig {
         // Later, the SignaturePolicy will be replaced by a Policy.
         //        Policy policy = 1;
         // A reference to a Policy is planned to be added later.
-        //        string reference = 2;
+//        string reference = 2;
     }
 }
+
 
 // CollectionCriteria defines an element of a private data that corresponds
 // to a certain transaction and collection

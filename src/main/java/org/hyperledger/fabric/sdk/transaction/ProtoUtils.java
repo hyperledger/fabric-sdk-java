@@ -28,22 +28,11 @@ import com.google.protobuf.util.Timestamps;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common;
-import org.hyperledger.fabric.protos.common.Common.ChannelHeader;
-import org.hyperledger.fabric.protos.common.Common.Envelope;
-import org.hyperledger.fabric.protos.common.Common.HeaderType;
-import org.hyperledger.fabric.protos.common.Common.Payload;
-import org.hyperledger.fabric.protos.common.Common.SignatureHeader;
 import org.hyperledger.fabric.protos.common.Configtx;
 import org.hyperledger.fabric.protos.msp.Identities;
-import org.hyperledger.fabric.protos.orderer.Ab.SeekInfo;
-import org.hyperledger.fabric.protos.orderer.Ab.SeekInfo.SeekBehavior;
-import org.hyperledger.fabric.protos.orderer.Ab.SeekPosition;
-import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeDeploymentSpec;
-import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeID;
-import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInput;
-import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec;
-import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec.Type;
-import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeHeaderExtension;
+import org.hyperledger.fabric.protos.orderer.Ab;
+import org.hyperledger.fabric.protos.peer.Chaincode;
+import org.hyperledger.fabric.protos.peer.ProposalPackage;
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
@@ -86,10 +75,9 @@ public final class ProtoUtils {
      * @param tlsCertHash
      * @return a new chain header.
      */
-    public static ChannelHeader createChannelHeader(HeaderType type, String txID, String channelID, long epoch,
-                                                    Timestamp timeStamp, ChaincodeHeaderExtension chaincodeHeaderExtension,
+    public static Common.ChannelHeader createChannelHeader(Common.HeaderType type, String txID, String channelID, long epoch,
+                                                    Timestamp timeStamp, ProposalPackage.ChaincodeHeaderExtension chaincodeHeaderExtension,
                                                     byte[] tlsCertHash) {
-
         if (isDebugLevel) {
             String tlschs = "";
             if (tlsCertHash != null) {
@@ -98,10 +86,9 @@ public final class ProtoUtils {
             }
             logger.debug(format("ChannelHeader: type: %s, version: 1, Txid: %s, channelId: %s, epoch %d, clientTLSCertificate digest: %s",
                     type.name(), txID, channelID, epoch, tlschs));
-
         }
 
-        ChannelHeader.Builder ret = ChannelHeader.newBuilder()
+        Common.ChannelHeader.Builder ret = Common.ChannelHeader.newBuilder()
                 .setType(type.getNumber())
                 .setVersion(1)
                 .setTxId(txID)
@@ -117,34 +104,32 @@ public final class ProtoUtils {
         }
 
         return ret.build();
-
     }
 
-    public static ChaincodeDeploymentSpec createDeploymentSpec(Type ccType, String name, String chaincodePath,
+    public static Chaincode.ChaincodeDeploymentSpec createDeploymentSpec(Chaincode.ChaincodeSpec.Type ccType, String name, String chaincodePath,
                                                                String chaincodeVersion, List<String> args,
                                                                byte[] codePackage) {
-
-        ChaincodeID.Builder chaincodeIDBuilder = ChaincodeID.newBuilder().setName(name).setVersion(chaincodeVersion);
+        Chaincode.ChaincodeID.Builder chaincodeIDBuilder = Chaincode.ChaincodeID.newBuilder().setName(name).setVersion(chaincodeVersion);
         if (chaincodePath != null) {
             chaincodeIDBuilder = chaincodeIDBuilder.setPath(chaincodePath);
         }
 
-        ChaincodeID chaincodeID = chaincodeIDBuilder.build();
+        Chaincode.ChaincodeID chaincodeID = chaincodeIDBuilder.build();
 
         // build chaincodeInput
         List<ByteString> argList = new ArrayList<>(args == null ? 0 : args.size());
         if (args != null && args.size() != 0) {
-
             for (String arg : args) {
                 argList.add(ByteString.copyFrom(arg.getBytes(UTF_8)));
             }
-
         }
 
-        ChaincodeInput chaincodeInput = ChaincodeInput.newBuilder().addAllArgs(argList).setIsInit(false).build();
+        Chaincode.ChaincodeInput chaincodeInput = Chaincode.ChaincodeInput.newBuilder().addAllArgs(argList).setIsInit(false).build();
 
         // Construct the ChaincodeSpec
-        ChaincodeSpec chaincodeSpec = ChaincodeSpec.newBuilder().setType(ccType).setChaincodeId(chaincodeID)
+        Chaincode.ChaincodeSpec chaincodeSpec = Chaincode.ChaincodeSpec.newBuilder()
+                .setType(ccType)
+                .setChaincodeId(chaincodeID)
                 .setInput(chaincodeInput)
                 .build();
 
@@ -168,59 +153,47 @@ public final class ProtoUtils {
 
             }
             sb.append(")");
-
             logger.debug(sb.toString());
-
         }
 
-        ChaincodeDeploymentSpec.Builder chaincodeDeploymentSpecBuilder = ChaincodeDeploymentSpec
-                .newBuilder().setChaincodeSpec(chaincodeSpec) //.setEffectiveDate(context.getFabricTimestamp())
-                .setExecEnv(ChaincodeDeploymentSpec.ExecutionEnvironment.DOCKER);
+        Chaincode.ChaincodeDeploymentSpec.Builder chaincodeDeploymentSpecBuilder = Chaincode.ChaincodeDeploymentSpec.newBuilder()
+//                .setEffectiveDate(context.getFabricTimestamp())
+//                .setExecEnv(ChaincodeDeploymentSpec.ExecutionEnvironment.DOCKER)
+                .setChaincodeSpec(chaincodeSpec);
 
         if (codePackage != null) {
             chaincodeDeploymentSpecBuilder.setCodePackage(ByteString.copyFrom(codePackage));
-
         }
 
         return chaincodeDeploymentSpecBuilder.build();
-
     }
 
     public static ByteString getSignatureHeaderAsByteString(TransactionContext transactionContext) {
-
         return getSignatureHeaderAsByteString(transactionContext.getUser(), transactionContext);
     }
 
     public static ByteString getSignatureHeaderAsByteString(User user, TransactionContext transactionContext) {
-
         final Identities.SerializedIdentity identity = transactionContext.getSerializedIdentity();
 
         if (isDebugLevel) {
-
             Enrollment enrollment = user.getEnrollment();
             String cert = enrollment.getCert();
             logger.debug(format(" User: %s Certificate: %s", user.getName(), cert == null ? "null" : toHexString(cert.getBytes(UTF_8))));
 
             if (enrollment instanceof X509Enrollment) {
                 if (null == suite) {
-
                     try {
                         suite = CryptoSuite.Factory.getCryptoSuite();
                     } catch (Exception e) {
                         //best try.
                     }
-
                 }
                 if (null != suite && suite instanceof CryptoPrimitives) {
-
                     CryptoPrimitives cp = (CryptoPrimitives) suite;
                     byte[] der = cp.certificateToDER(cert);
                     if (null != der && der.length > 0) {
-
                         cert = toHexString(suite.hash(der));
-
                     }
-
                 }
             }
 
@@ -232,16 +205,15 @@ public final class ProtoUtils {
                         toHexString(cert)
                 ));
             }
-
         }
-        return SignatureHeader.newBuilder()
+
+        return Common.SignatureHeader.newBuilder()
                 .setCreator(identity.toByteString())
                 .setNonce(transactionContext.getNonce())
                 .build().toByteString();
     }
 
     public static Identities.SerializedIdentity createSerializedIdentity(User user) {
-
         return Identities.SerializedIdentity.newBuilder()
                 .setIdBytes(ByteString.copyFromUtf8(user.getEnrollment().getCert()))
                 .setMspid(user.getMspId()).build();
@@ -258,19 +230,17 @@ public final class ProtoUtils {
     }
 
     static Timestamp getTimestampFromDate(Date date) {
-
         long millis = date.getTime();
         return Timestamp.newBuilder().setSeconds(millis / 1000)
                 .setNanos((int) ((millis % 1000) * 1000000)).build();
     }
 
-    public static Envelope createSeekInfoEnvelope(TransactionContext transactionContext, SeekInfo seekInfo, byte[] tlsCertHash) throws CryptoException, InvalidArgumentException {
-
-        ChannelHeader seekInfoHeader = createChannelHeader(Common.HeaderType.DELIVER_SEEK_INFO,
+    public static Common.Envelope createSeekInfoEnvelope(TransactionContext transactionContext, Ab.SeekInfo seekInfo, byte[] tlsCertHash) throws CryptoException, InvalidArgumentException {
+        Common.ChannelHeader seekInfoHeader = createChannelHeader(Common.HeaderType.DELIVER_SEEK_INFO,
                 transactionContext.getTxID(), transactionContext.getChannelID(), transactionContext.getEpoch(),
                 transactionContext.getFabricTimestamp(), null, tlsCertHash);
 
-        SignatureHeader signatureHeader = SignatureHeader.newBuilder()
+        Common.SignatureHeader signatureHeader = Common.SignatureHeader.newBuilder()
                 .setCreator(transactionContext.getIdentity().toByteString())
                 .setNonce(transactionContext.getNonce())
                 .build();
@@ -280,33 +250,29 @@ public final class ProtoUtils {
                 .setChannelHeader(seekInfoHeader.toByteString())
                 .build();
 
-        Payload seekPayload = Payload.newBuilder()
+        Common.Payload seekPayload = Common.Payload.newBuilder()
                 .setHeader(seekHeader)
                 .setData(seekInfo.toByteString())
                 .build();
 
-        return Envelope.newBuilder().setSignature(transactionContext.signByteString(seekPayload.toByteArray()))
+        return Common.Envelope.newBuilder().setSignature(transactionContext.signByteString(seekPayload.toByteArray()))
                 .setPayload(seekPayload.toByteString())
                 .build();
-
     }
 
-    public static Envelope createSeekInfoEnvelope(TransactionContext transactionContext, SeekPosition startPosition,
-                                                  SeekPosition stopPosition,
-                                                  SeekBehavior seekBehavior, byte[] tlsCertHash) throws CryptoException, InvalidArgumentException {
-
-        return createSeekInfoEnvelope(transactionContext, SeekInfo.newBuilder()
+    public static Common.Envelope createSeekInfoEnvelope(TransactionContext transactionContext, Ab.SeekPosition startPosition,
+                                                  Ab.SeekPosition stopPosition,
+                                                  Ab.SeekInfo.SeekBehavior seekBehavior, byte[] tlsCertHash) throws CryptoException, InvalidArgumentException {
+        return createSeekInfoEnvelope(transactionContext, Ab.SeekInfo.newBuilder()
                 .setStart(startPosition)
                 .setStop(stopPosition)
                 .setBehavior(seekBehavior)
                 .build(), tlsCertHash);
-
     }
 
     // not an api
 
     public static boolean computeUpdate(String channelId, Configtx.Config original, Configtx.Config update, Configtx.ConfigUpdate.Builder configUpdateBuilder) {
-
         Configtx.ConfigGroup.Builder readSetBuilder = Configtx.ConfigGroup.newBuilder();
         Configtx.ConfigGroup.Builder writeSetBuilder = Configtx.ConfigGroup.newBuilder();
 
@@ -314,17 +280,14 @@ public final class ProtoUtils {
             configUpdateBuilder.setReadSet(readSetBuilder.build())
                     .setWriteSet(writeSetBuilder.build())
                     .setChannelId(channelId);
-
             return true;
         }
 
         return false;
-
     }
 
     private static boolean computeGroupUpdate(Configtx.ConfigGroup original, Configtx.ConfigGroup updated,
                                               Configtx.ConfigGroup.Builder readSetBuilder, Configtx.ConfigGroup.Builder writeSetBuilder) {
-
         Map<String, Configtx.ConfigPolicy> readSetPolicies = new HashMap<>();
         Map<String, Configtx.ConfigPolicy> writeSetPolicies = new HashMap<>();
         Map<String, Configtx.ConfigPolicy> sameSetPolicies = new HashMap<>();
@@ -350,13 +313,10 @@ public final class ProtoUtils {
             // nothing changed.
 
             if (writeSetValues.isEmpty() && writeSetPolicies.isEmpty() && writeSetGroups.isEmpty() && readSetGroups.isEmpty()) {
-
                 readSetBuilder.setVersion(original.getVersion());
                 writeSetBuilder.setVersion(original.getVersion());
-
                 return false;
             } else {
-
                 readSetBuilder.setVersion(original.getVersion())
                         .putAllGroups(readSetGroups);
                 writeSetBuilder.setVersion(original.getVersion())
@@ -364,9 +324,7 @@ public final class ProtoUtils {
                         .putAllValues(writeSetValues)
                         .putAllGroups(writeSetGroups);
                 return true;
-
             }
-
         }
 
         for (Map.Entry<String, Configtx.ConfigPolicy> i : sameSetPolicies.entrySet()) {
@@ -374,7 +332,6 @@ public final class ProtoUtils {
             final Configtx.ConfigPolicy value = i.getValue();
             readSetPolicies.put(name, value);
             writeSetPolicies.put(name, value);
-
         }
 
         for (Map.Entry<String, Configtx.ConfigValue> i : sameSetValues.entrySet()) {
@@ -382,7 +339,6 @@ public final class ProtoUtils {
             final Configtx.ConfigValue value = i.getValue();
             readSetValues.put(name, value);
             writeSetValues.put(name, value);
-
         }
 
         for (Map.Entry<String, Configtx.ConfigGroup> i : sameSetGroups.entrySet()) {
@@ -390,7 +346,6 @@ public final class ProtoUtils {
             final Configtx.ConfigGroup value = i.getValue();
             readSetGroups.put(name, value);
             writeSetGroups.put(name, value);
-
         }
 
         readSetBuilder.setVersion(original.getVersion())
@@ -417,7 +372,6 @@ public final class ProtoUtils {
 
             if (!updated.containsKey(groupName) || null == updated.get(groupName)) {
                 updatedMembers = true; //missing from updated ie deleted.
-
             } else {
                 final Configtx.ConfigGroup updatedGroup = updated.get(groupName);
 
@@ -426,14 +380,11 @@ public final class ProtoUtils {
 
                 if (!computeGroupUpdate(originalGroup, updatedGroup, readSetBuilder, writeSetBuilder)) {
                     sameSet.put(groupName, readSetBuilder.build());
-
                 } else {
                     readSet.put(groupName, readSetBuilder.build());
                     writeSet.put(groupName, writeSetBuilder.build());
                 }
-
             }
-
         }
 
         for (Map.Entry<String, Configtx.ConfigGroup> i : updated.entrySet()) {
@@ -452,12 +403,8 @@ public final class ProtoUtils {
                         .putAllPolicies(writeSetBuilder.getPoliciesMap())
                         .putAllValues(writeSetBuilder.getValuesMap())
                         .putAllGroups(writeSetBuilder.getGroupsMap())
-                        .build()
-
-                );
-
+                        .build());
             }
-
         }
 
         return updatedMembers;
@@ -465,7 +412,6 @@ public final class ProtoUtils {
 
     private static boolean computeValuesMapUpdate(Map<String, Configtx.ConfigValue> original, Map<String, Configtx.ConfigValue> updated,
                                                   Map<String, Configtx.ConfigValue> writeSet, Map<String, Configtx.ConfigValue> sameSet) {
-
         boolean updatedMembers = false;
 
         for (Map.Entry<String, Configtx.ConfigValue> i : original.entrySet()) {
@@ -473,27 +419,20 @@ public final class ProtoUtils {
             final Configtx.ConfigValue originalValue = i.getValue();
             if (!updated.containsKey(valueName) || null == updated.get(valueName)) {
                 updatedMembers = true; //missing from updated ie deleted.
-
             } else { // is in both...
-
                 final Configtx.ConfigValue updatedValue = updated.get(valueName);
                 if (originalValue.getModPolicy().equals(updatedValue.getModPolicy()) &&
                         originalValue.getValue().equals(updatedValue.getValue())) { //same value
 
                     sameSet.put(valueName, Configtx.ConfigValue.newBuilder().setVersion(originalValue.getVersion()).build());
-
                 } else { // new value put in writeset.
-
                     writeSet.put(valueName, Configtx.ConfigValue.newBuilder()
                             .setVersion(originalValue.getVersion() + 1)
                             .setModPolicy(updatedValue.getModPolicy())
                             .setValue(updatedValue.getValue())
                             .build());
-
                 }
-
             }
-
         }
 
         for (Map.Entry<String, Configtx.ConfigValue> i : updated.entrySet()) {
@@ -501,25 +440,20 @@ public final class ProtoUtils {
             final Configtx.ConfigValue updatedValue = i.getValue();
 
             if (!original.containsKey(valueName) || null == original.get(valueName)) {
-
                 updatedMembers = true;
-
                 writeSet.put(valueName, Configtx.ConfigValue.newBuilder()
                         .setVersion(0)
                         .setModPolicy(updatedValue.getModPolicy())
                         .setValue(updatedValue.getValue())
                         .build());
-
             }
         }
 
         return updatedMembers;
-
     }
 
     private static boolean computePoliciesMapUpdate(Map<String, Configtx.ConfigPolicy> original, Map<String, Configtx.ConfigPolicy> updated,
                                                     Map<String, Configtx.ConfigPolicy> writeSet, Map<String, Configtx.ConfigPolicy> sameSet) {
-
         boolean updatedMembers = false;
 
         for (Map.Entry<String, Configtx.ConfigPolicy> i : original.entrySet()) {
@@ -527,27 +461,19 @@ public final class ProtoUtils {
             final Configtx.ConfigPolicy originalPolicy = i.getValue();
             if (!updated.containsKey(policyName) || null == updated.get(policyName)) {
                 updatedMembers = true; //missing from updated ie deleted.
-
             } else { // is in both...
-
                 final Configtx.ConfigPolicy updatedPolicy = updated.get(policyName);
                 if (originalPolicy.getModPolicy().equals(updatedPolicy.getModPolicy()) &&
                         originalPolicy.toByteString().equals(updatedPolicy.toByteString())) { //same policy
-
                     sameSet.put(policyName, Configtx.ConfigPolicy.newBuilder().setVersion(originalPolicy.getVersion()).build());
-
                 } else { // new policy put in writeset.
-
                     writeSet.put(policyName, Configtx.ConfigPolicy.newBuilder()
                             .setVersion(originalPolicy.getVersion() + 1)
                             .setModPolicy(updatedPolicy.getModPolicy())
                             .setPolicy(updatedPolicy.getPolicy().newBuilderForType().build())
                             .build());
-
                 }
-
             }
-
         }
 
         for (Map.Entry<String, Configtx.ConfigPolicy> i : updated.entrySet()) {
@@ -555,15 +481,12 @@ public final class ProtoUtils {
             final Configtx.ConfigPolicy updatedPolicy = i.getValue();
 
             if (!original.containsKey(policyName) || null == original.get(policyName)) {
-
                 updatedMembers = true;
-
                 writeSet.put(policyName, Configtx.ConfigPolicy.newBuilder()
                         .setVersion(0)
                         .setModPolicy(updatedPolicy.getModPolicy())
                         .setPolicy(updatedPolicy.getPolicy().newBuilderForType().build())
                         .build());
-
             }
         }
 
@@ -592,5 +515,4 @@ public final class ProtoUtils {
 //        // out(printer.print(json));
 //
 //    }
-
 }

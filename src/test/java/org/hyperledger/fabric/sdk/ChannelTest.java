@@ -39,8 +39,8 @@ import io.grpc.StatusRuntimeException;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.peer.Chaincode;
-import org.hyperledger.fabric.protos.peer.FabricProposal;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.protos.peer.ProposalPackage;
+import org.hyperledger.fabric.protos.peer.ProposalResponsePackage;
 import org.hyperledger.fabric.sdk.Channel.NOfEvents;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.PeerException;
@@ -72,7 +72,6 @@ import static org.junit.Assert.assertTrue;
 //CHECKSTYLE.ON: IllegalImport
 
 public class ChannelTest {
-
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -85,7 +84,6 @@ public class ChannelTest {
 
     @BeforeClass
     public static void setupClient() {
-
         try {
             hfclient = TestHFClient.newInstance();
 
@@ -95,7 +93,6 @@ public class ChannelTest {
             setField(shutdownChannel, "shutdown", true);
 
             throwOrderer = new Orderer("foo", "grpc://localhost:8", null) {
-
                 @Override
                 Ab.BroadcastResponse sendTransaction(Common.Envelope transaction) throws Exception {
                     throw new Exception(BAD_STUFF);
@@ -105,25 +102,19 @@ public class ChannelTest {
                 Ab.DeliverResponse[] sendDeliver(Common.Envelope transaction) throws TransactionException {
                     throw new TransactionException(BAD_STUFF);
                 }
-
             };
 
             throwChannel = new Channel("throw", hfclient);
-
             throwChannel.addOrderer(throwOrderer);
-
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail("Unexpected Exception " + e.getMessage());
-
         }
     }
 
     @Test
     public void testChannelCreation() {
-
         try {
-
             final String channelName = "channel3";
             Channel testchannel = new Channel(channelName, hfclient);
             Assert.assertEquals(channelName, testchannel.getName());
@@ -131,16 +122,13 @@ public class ChannelTest {
             Assert.assertEquals(testchannel.getOrderers().size(), 0);
             Assert.assertEquals(testchannel.getPeers().size(), 0);
             Assert.assertEquals(testchannel.isInitialized(), false);
-
         } catch (InvalidArgumentException e) {
             Assert.fail("Unexpected exception " + e.getMessage());
         }
-
     }
 
     @Test
     public void testChannelAddPeer() throws Exception {
-
         final String channelName = "channel3";
         final Channel testchannel = new Channel(channelName, hfclient);
         final Peer peer = hfclient.newPeer("peer_", "grpc://localhost:7051");
@@ -149,12 +137,10 @@ public class ChannelTest {
 
         Assert.assertEquals(testchannel.getPeers().size(), 1);
         Assert.assertEquals(testchannel.getPeers().iterator().next(), peer);
-
     }
 
     @Test
     public void testChannelAddOrder() throws Exception {
-
         final Channel testChannel = new Channel(CHANNEL_NAME, hfclient);
         final Orderer orderer = hfclient.newOrderer("testorder", "grpc://localhost:7051");
 
@@ -162,17 +148,14 @@ public class ChannelTest {
 
         Assert.assertEquals(testChannel.getOrderers().size(), 1);
         Assert.assertEquals(testChannel.getOrderers().iterator().next(), orderer);
-
     }
 
     @Test
     public void testChannelNullClient() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Channel client is invalid can not be null.");
 
         new Channel(CHANNEL_NAME, null);
-
     }
 
     @Test
@@ -180,18 +163,14 @@ public class ChannelTest {
         Channel testChannel = null;
 
         try {
-
             testChannel = new Channel(CHANNEL_NAME, hfclient);
 
             testChannel.addPeer(null);
-
             Assert.fail("Expected set null peer to throw exception.");
-
         } catch (InvalidArgumentException e) {
             Assert.assertEquals(testChannel.getPeers().size(), 0);
             Assert.assertTrue(e.getClass() == InvalidArgumentException.class);
         }
-
     }
 
     @Test
@@ -199,7 +178,6 @@ public class ChannelTest {
         Channel testChannel = null;
 
         try {
-
             testChannel = new Channel(CHANNEL_NAME, hfclient);
             final Peer peer = hfclient.newPeer(null, "grpc://localhost:7051");
 
@@ -210,7 +188,6 @@ public class ChannelTest {
             Assert.assertEquals(testChannel.getPeers().size(), 0);
             Assert.assertTrue(e.getClass() == InvalidArgumentException.class);
         }
-
     }
 
     @Test
@@ -218,39 +195,30 @@ public class ChannelTest {
         Channel testChannel = null;
 
         try {
-
             testChannel = new Channel(CHANNEL_NAME, hfclient);
 
             testChannel.addOrderer(null);
-
             Assert.fail("Expected set null order to throw exception.");
-
         } catch (InvalidArgumentException e) {
             Assert.assertEquals(testChannel.getOrderers().size(), 0);
             Assert.assertTrue(e.getClass() == InvalidArgumentException.class);
         }
-
     }
 
     @Test
     public void testChannelInitialize() throws Exception { //test may not be doable once initialize is done
-
         class MockChannel extends Channel {
-
             MockChannel(String name, HFClient client) throws InvalidArgumentException {
                 super(name, client);
             }
 
             @Override
             protected Map<String, MSP> parseConfigBlock(boolean force) {
-
                 return null;
             }
 
             @Override
-            protected void loadCACertificates(boolean force) {
-
-            }
+            protected void loadCACertificates(boolean force) { }
         }
 
         final Channel testChannel = new MockChannel(CHANNEL_NAME, hfclient);
@@ -260,7 +228,6 @@ public class ChannelTest {
         assertFalse(testChannel.isInitialized());
         testChannel.initialize();
         Assert.assertTrue(testChannel.isInitialized());
-
     }
 //     Allow no peers
 //    @Test
@@ -287,83 +254,66 @@ public class ChannelTest {
 
     @Test
     public void testChannelShutdown() {
-
         try {
-
             Assert.assertTrue(shutdownChannel.isShutdown());
-
         } catch (Exception e) {
-
             Assert.assertTrue(e.getClass() == InvalidArgumentException.class);
             Assert.assertTrue(shutdownChannel.isInitialized());
         }
-
     }
 
     @Test
     public void testChannelShutdownAddPeer() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Channel shutdown has been shutdown.");
 
         Assert.assertTrue(shutdownChannel.isShutdown());
         shutdownChannel.addPeer(hfclient.newPeer("name", "grpc://myurl:90"));
-
     }
 
     @Test
     public void testChannelShutdownAddOrderer() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Channel shutdown has been shutdown.");
 
         Assert.assertTrue(shutdownChannel.isShutdown());
         shutdownChannel.addOrderer(hfclient.newOrderer("name", "grpc://myurl:90"));
-
     }
 
     @Test
     public void testChannelShutdownJoinPeer() throws Exception {
-
         thrown.expect(ProposalException.class);
         thrown.expectMessage("Channel shutdown has been shutdown.");
 
         Assert.assertTrue(shutdownChannel.isShutdown());
         shutdownChannel.joinPeer(hfclient.newPeer("name", "grpc://myurl:90"));
-
     }
 
     @Test
     public void testChannelShutdownInitialize() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Channel shutdown has been shutdown.");
 
         shutdownChannel.initialize();
-
     }
 
     @Test
     public void testChannelShutdownInstiateProposal() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Channel shutdown has been shutdown.");
 
         Assert.assertTrue(shutdownChannel.isShutdown());
         shutdownChannel.sendInstantiationProposal(hfclient.newInstantiationProposalRequest());
-
     }
 
     @Test
     public void testChannelShutdownQueryTransactionByIDl() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
 
         thrown.expectMessage("Channel shutdown has been shutdown.");
 
         Assert.assertTrue(shutdownChannel.isShutdown());
         shutdownChannel.queryBlockByHash(new byte[] {});
-
     }
 
     @Test
@@ -373,12 +323,10 @@ public class ChannelTest {
 
         CompletableFuture<BlockEvent.TransactionEvent> future = shutdownChannel.sendTransaction(null);
         future.get();
-
     }
 
     @Test
     public void testChannelBadPeerNull() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Peer value is null.");
 
@@ -388,7 +336,6 @@ public class ChannelTest {
 
     @Test
     public void testChannelBadPeerDoesNotBelong() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Channel channel does not have peer peer2");
 
@@ -399,12 +346,10 @@ public class ChannelTest {
         createRunningChannel("testChannelBadPeerDoesNotBelong", peers);
 
         channel.sendInstantiationProposal(hfclient.newInstantiationProposalRequest(), peers);
-
     }
 
     @Test
     public void testChannelBadPeerDoesNotBelong2() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Peer peer1 not set for channel channel");
 
@@ -417,12 +362,10 @@ public class ChannelTest {
         setField(peer, "channel", channel2);
 
         channel.sendInstantiationProposal(hfclient.newInstantiationProposalRequest());
-
     }
 
     @Test
     public void testChannelBadPeerCollection() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Peer value is null.");
 
@@ -430,12 +373,10 @@ public class ChannelTest {
 
         channel.queryByChaincode(hfclient.newQueryProposalRequest(),
                 Arrays.asList((Peer[]) new Peer[] {null}));
-
     }
 
     @Test
     public void testChannelBadPeerCollectionEmpty() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Collection of peers is empty.");
 
@@ -444,30 +385,25 @@ public class ChannelTest {
         channel.sendUpgradeProposal(hfclient.newUpgradeProposalRequest(),
                 Arrays.asList((Peer[]) new Peer[] {})
         );
-
     }
 
     @Test
     public void testChannelBadPeerCollectionNull() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Collection of peers is null.");
 
         final Channel channel = createRunningChannel(null);
 
         channel.sendTransactionProposal(hfclient.newTransactionProposalRequest(), null);
-
     }
 
     @Test
     public void testTwoChannelsSameName() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Channel by the name testTwoChannelsSameName already exists");
 
         createRunningChannel("testTwoChannelsSameName", null);
         createRunningChannel("testTwoChannelsSameName", null);
-
     }
 
     @Test
@@ -552,7 +488,6 @@ public class ChannelTest {
 
         assertTrue(channel.getPeersForOrganization("fud").isEmpty());
         assertTrue(channel.getPeersForOrganization("blah").isEmpty());
-
     }
 
     @Test
@@ -641,7 +576,6 @@ public class ChannelTest {
 
     @Test
     public void testSD() throws Exception {
-
         Channel sd = createRunningChannel("testTwoChannelsSameName", null);
 
         Class<?>[] declaredClasses = Channel.class.getDeclaredClasses();
@@ -729,7 +663,6 @@ public class ChannelTest {
         peer = sd.sdPeerAddition.addPeer(sdPeerAdditionInfo);
         properties = peer.getProperties();
         assertArrayEquals(new byte[] {88, 2, 4}, (byte[]) properties.get("clientKeyBytes"));
-
     }
 
     static final String CHANNEL_NAME2 = "channel";
@@ -743,7 +676,6 @@ public class ChannelTest {
     }
 
     public static Channel createRunningChannel(String channelName, Collection<Peer> peers) throws InvalidArgumentException, NoSuchFieldException, IllegalAccessException {
-
         Channel channel = hfclient.newChannel(channelName);
         if (peers == null) {
             Peer peer = hfclient.newPeer("peer1", "grpc://localhost:22");
@@ -752,19 +684,16 @@ public class ChannelTest {
         } else {
             for (Peer peer : peers) {
                 channel.addPeer(peer);
-
             }
         }
 
         setField(channel, "initialized", true);
 
         return channel;
-
     }
 
     @Test
     public void testChannelBadPeerDoesNotBelongJoin() throws Exception {
-
         thrown.expect(ProposalException.class);
         thrown.expectMessage("Can not add peer peer2 to channel testChannelBadPeerDoesNotBelongJoin because it already belongs to channel testChannelBadPeerDoesNotBelongJoin2");
 
@@ -777,12 +706,10 @@ public class ChannelTest {
         //Peer joining channel when it belongs to another channel.
 
         channel.joinPeer(peers.iterator().next());
-
     }
 
     @Test
     public void testChannelPeerJoinNoOrderer() throws Exception {
-
         thrown.expect(ProposalException.class);
         thrown.expectMessage("Channel channel does not have any orderers associated with it.");
 
@@ -793,12 +720,10 @@ public class ChannelTest {
         //Peer joining channel were no orderer is there .. not likely.
 
         channel.joinPeer(hfclient.newPeer("peerJoiningNOT", "grpc://localhost:22"));
-
     }
 
     @Test
     public void testChannelInitNoname() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Can not initialize channel without a valid name.");
 
@@ -806,12 +731,10 @@ public class ChannelTest {
         setField(channel, "name", null);
 
         channel.initialize();
-
     }
 
     @Test
     public void testChannelInitNullClient() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Can not initialize channel without a client object.");
 
@@ -819,62 +742,52 @@ public class ChannelTest {
         setField(channel, "client", null);
 
         channel.initialize();
-
     }
 
     @Test
     public void testChannelsendInstantiationProposalNull() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("InstantiateProposalRequest is null");
 
         final Channel channel = createRunningChannel(null);
 
         channel.sendInstantiationProposal(null);
-
     }
 
     @Test
     public void testChannelsendInstallProposalNull() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("InstallProposalRequest is null");
 
         final Channel channel = createRunningChannel(null);
 
         channel.sendInstallProposal(null);
-
     }
 
     @Test
     public void testChannelsendUpgradeProposalNull() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Upgradeproposal is null");
 
         final Channel channel = createRunningChannel(null);
 
         channel.sendUpgradeProposal(null);
-
     }
 
     //queryBlockByHash
 
     @Test
     public void testChannelQueryBlockByHashNull() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("blockHash parameter is null.");
 
         final Channel channel = createRunningChannel(null);
 
         channel.queryBlockByHash(null);
-
     }
 
     @Test
     public void testChannelQueryBlockByHashNotInitialized() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Channel channel has not been initialized.");
 
@@ -882,36 +795,30 @@ public class ChannelTest {
         setField(channel, "initialized", false);
 
         channel.queryBlockByHash("hyper this hyper that".getBytes());
-
     }
 
     @Test
     public void testChannelQueryBlockByTransactionIDNull() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("TxID parameter is null.");
 
         final Channel channel = createRunningChannel(null);
 
         channel.queryBlockByTransactionID(null);
-
     }
 
     @Test
     public void testChannelQueryTransactionByIDNull() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("TxID parameter is null.");
 
         final Channel channel = createRunningChannel(null);
 
         channel.queryTransactionByID(null);
-
     }
 
     @Test
     public void testQueryInstalledChaincodesThrowInterrupted() throws Exception {
-
         thrown.expect(ProposalException.class);
         thrown.expectMessage("You interrupting me?");
 
@@ -921,12 +828,10 @@ public class ChannelTest {
         setField(peer, "endorserClent", new MockEndorserClient(new InterruptedException("You interrupting me?")));
 
         hfclient.queryChannels(peer);
-
     }
 
     @Test
     public void testQueryInstalledChaincodesThrowPeerException() throws Exception {
-
         thrown.expect(ProposalException.class);
         thrown.expectMessage("rick did this:)");
 
@@ -936,12 +841,10 @@ public class ChannelTest {
         setField(peer, "endorserClent", new MockEndorserClient(new PeerException("rick did this:)")));
 
         hfclient.queryChannels(peer);
-
     }
 
     @Test
     public void testQueryInstalledChaincodesThrowTimeoutException() throws Exception {
-
         thrown.expect(ProposalException.class);
         thrown.expectMessage("What time is it?");
 
@@ -951,43 +854,38 @@ public class ChannelTest {
         setField(peer, "endorserClent", new MockEndorserClient(new PeerException("What time is it?")));
 
         hfclient.queryChannels(peer);
-
     }
 
     @Test
     public void testQueryInstalledChaincodesERROR() throws Exception {
-
         thrown.expect(Error.class);
         thrown.expectMessage("Error bad bad bad");
 
         final Channel channel = createRunningChannel(null);
         Peer peer = channel.getPeers().iterator().next();
 
-        final CompletableFuture<FabricProposalResponse.ProposalResponse> settableFuture = new CompletableFuture<>();
+        final CompletableFuture<ProposalResponsePackage.ProposalResponse> settableFuture = new CompletableFuture<>();
         //  settableFuture.setException(new Error("Error bad bad bad"));
         settableFuture.completeExceptionally(new Error("Error bad bad bad"));
         setField(peer, "endorserClent", new MockEndorserClient(settableFuture));
 
         hfclient.queryChannels(peer);
-
     }
 
     @Test
     public void testQueryInstalledChaincodesStatusRuntimeException() throws Exception {
-
         thrown.expect(ProposalException.class);
         thrown.expectMessage("ABORTED");
 
         final Channel channel = createRunningChannel(null);
         Peer peer = channel.getPeers().iterator().next();
 
-        final CompletableFuture<FabricProposalResponse.ProposalResponse> settableFuture = new CompletableFuture<>();
+        final CompletableFuture<ProposalResponsePackage.ProposalResponse> settableFuture = new CompletableFuture<>();
         settableFuture.completeExceptionally(new StatusRuntimeException(Status.ABORTED));
 
         setField(peer, "endorserClent", new MockEndorserClient(settableFuture));
 
         hfclient.queryChannels(peer);
-
     }
 
     private static final String SAMPLE_GO_CC = "src/test/fixture/sdkintegration/gocc/sample1";
@@ -1010,9 +908,9 @@ public class ChannelTest {
 
         installProposalBuilder.context(transactionContext);
 
-        FabricProposal.Proposal proposal = installProposalBuilder.build(); // Build it get the proposal. Then unpack it to see if it's what we expect.
+        ProposalPackage.Proposal proposal = installProposalBuilder.build(); // Build it get the proposal. Then unpack it to see if it's what we expect.
 
-        FabricProposal.ChaincodeProposalPayload chaincodeProposalPayload = FabricProposal.ChaincodeProposalPayload.parseFrom(proposal.getPayload());
+        ProposalPackage.ChaincodeProposalPayload chaincodeProposalPayload = ProposalPackage.ChaincodeProposalPayload.parseFrom(proposal.getPayload());
         Chaincode.ChaincodeInvocationSpec chaincodeInvocationSpec = Chaincode.ChaincodeInvocationSpec.parseFrom(chaincodeProposalPayload.getInput());
         Chaincode.ChaincodeSpec chaincodeSpec = chaincodeInvocationSpec.getChaincodeSpec();
         Chaincode.ChaincodeInput input = chaincodeSpec.getInput();
@@ -1044,8 +942,8 @@ public class ChannelTest {
 
         installProposalBuilder.context(transactionContext);
 
-        FabricProposal.Proposal proposal = installProposalBuilder.build(); // Build it get the proposal. Then unpack it to see if it's what we expect.
-        FabricProposal.ChaincodeProposalPayload chaincodeProposalPayload = FabricProposal.ChaincodeProposalPayload.parseFrom(proposal.getPayload());
+        ProposalPackage.Proposal proposal = installProposalBuilder.build(); // Build it get the proposal. Then unpack it to see if it's what we expect.
+        ProposalPackage.ChaincodeProposalPayload chaincodeProposalPayload = ProposalPackage.ChaincodeProposalPayload.parseFrom(proposal.getPayload());
         Chaincode.ChaincodeInvocationSpec chaincodeInvocationSpec = Chaincode.ChaincodeInvocationSpec.parseFrom(chaincodeProposalPayload.getInput());
         Chaincode.ChaincodeSpec chaincodeSpec = chaincodeInvocationSpec.getChaincodeSpec();
         Chaincode.ChaincodeInput input = chaincodeSpec.getInput();
@@ -1062,7 +960,6 @@ public class ChannelTest {
 
     @Test
     public void testProposalBuilderWithNoMetaInfDir() throws Exception {
-
         thrown.expect(java.lang.IllegalArgumentException.class);
         thrown.expectMessage(matchesRegex("The META-INF directory does not exist in.*src.test.fixture.meta-infs.test1.META-INF"));
 
@@ -1085,7 +982,6 @@ public class ChannelTest {
 
     @Test
     public void testProposalBuilderWithMetaInfExistsNOT() throws Exception {
-
         thrown.expect(java.lang.IllegalArgumentException.class);
         thrown.expectMessage(matchesRegex("Directory to find chaincode META-INF.*tmp.fdsjfksfj.fjksfjskd.fjskfjdsk.should never exist does not exist"));
 
@@ -1108,7 +1004,6 @@ public class ChannelTest {
 
     @Test
     public void testNOf() throws Exception {
-
         Peer peer1Org1 = new Peer("peer1Org1", "grpc://localhost:9", null);
         Peer peer1Org12nd = new Peer("org12nd", "grpc://localhost:9", null);
         Peer peer2Org2 = new Peer("peer2Org2", "grpc://localhost:9", null);
@@ -1156,12 +1051,10 @@ public class ChannelTest {
 
         nOfEvents = NOfEvents.createNoEvents();
         assertTrue(nOfEvents.ready);
-
     }
 
     @Test
     public void testProposalBuilderWithMetaInfEmpty() throws Exception {
-
         thrown.expect(java.lang.IllegalArgumentException.class);
         thrown.expectMessage(matchesRegex("The META-INF directory.*src.test.fixture.meta-infs.emptyMetaInf.META-INF is empty\\."));
 
@@ -1185,85 +1078,73 @@ public class ChannelTest {
 
         installProposalBuilder.context(transactionContext);
 
-        FabricProposal.Proposal proposal = installProposalBuilder.build(); // Build it get the proposal. Then unpack it to see if it's what we epect.
+        ProposalPackage.Proposal proposal = installProposalBuilder.build(); // Build it get the proposal. Then unpack it to see if it's what we epect.
     }
 
     //testing of blocklistner
 
     @Test
     public void testRegisterBlockListenerNULL() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("BlockEventQueue parameter is null.");
 
         Channel channel = hfclient.newChannel("testRegisterBlockListenerNULL");
         BlockingQueue<QueuedBlockEvent> nblis = null;
         channel.registerBlockListener(nblis);
-
     }
 
     @Test
     public void testRegisterBlockListenerNULL2() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("BlockEventQueue parameter is null.");
 
         Channel channel = hfclient.newChannel("testRegisterBlockListenerNULL2");
         BlockingQueue<QueuedBlockEvent> nblis = null;
         channel.registerBlockListener(nblis, 10, TimeUnit.SECONDS);
-
     }
 
     @Test
     public void testRegisterBlockListenerBadArg() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Timeout parameter must be greater than 0 not -1");
 
         Channel channel = hfclient.newChannel("testRegisterBlockListenerBadArg");
         BlockingQueue<QueuedBlockEvent> nblis = null;
         channel.registerBlockListener(new LinkedBlockingQueue<>(), -1, TimeUnit.SECONDS);
-
     }
 
     @Test
     public void testRegisterBlockListenerBadNULLArg() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("TimeUnit parameter must not be null.");
 
         Channel channel = hfclient.newChannel("testRegisterBlockListenerBadNULLArg");
         channel.registerBlockListener(new LinkedBlockingQueue<>(), 10, null);
-
     }
 
     @Test
     public void testRegisterBlockListenerShutdown() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Channel testRegisterBlockListenerShutdown has been shutdown.");
 
         Channel channel = hfclient.newChannel("testRegisterBlockListenerShutdown");
         channel.shutdown(false);
         channel.registerBlockListener(new LinkedBlockingQueue<>(), 10, TimeUnit.SECONDS);
-
     }
 
     @Test
     public void testRegisterBlockListenerShutdown2() throws Exception {
-
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("Channel testRegisterBlockListenerShutdown2 has been shutdown.");
 
         Channel channel = hfclient.newChannel("testRegisterBlockListenerShutdown2");
         channel.shutdown(false);
         channel.registerBlockListener(new LinkedBlockingQueue<>());
-
     }
 
     class MockEndorserClient extends EndorserClient {
         final Throwable throwThis;
-        private final CompletableFuture<FabricProposalResponse.ProposalResponse> returnedFuture;
+        private final CompletableFuture<ProposalResponsePackage.ProposalResponse> returnedFuture;
 
         MockEndorserClient(Throwable throwThis) {
             super("blahchannlname", "blahpeerName", "blahURL", new Endpoint("grpc://loclhost:99", null).getChannelBuilder());
@@ -1274,26 +1155,23 @@ public class ChannelTest {
             this.returnedFuture = null;
         }
 
-        MockEndorserClient(CompletableFuture<FabricProposalResponse.ProposalResponse> returnedFuture) {
+        MockEndorserClient(CompletableFuture<ProposalResponsePackage.ProposalResponse> returnedFuture) {
             super("blahchannlname", "blahpeerName", "blahURL", new Endpoint("grpc://loclhost:99", null).getChannelBuilder());
             this.throwThis = null;
             this.returnedFuture = returnedFuture;
         }
 
         @Override
-        public CompletableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal) {
+        public CompletableFuture<ProposalResponsePackage.ProposalResponse> sendProposalAsync(ProposalPackage.SignedProposal proposal) {
             if (throwThis != null) {
                 getUnsafe().throwException(throwThis);
             }
             return returnedFuture;
-
         }
 
         @Override
         public boolean isChannelActive() {
-
             return true;
-
         }
 
         private Unsafe getUnsafe() {  //lets us throw undeclared exceptions.

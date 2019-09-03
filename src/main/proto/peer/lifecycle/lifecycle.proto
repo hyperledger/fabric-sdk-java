@@ -1,17 +1,15 @@
-/*
-Copyright IBM Corp. All Rights Reserved.
-
-SPDX-License-Identifier: Apache-2.0
-*/
+// Copyright the Hyperledger Fabric contributors. All rights reserved.
+//
+// SPDX-License-Identifier: Apache-2.0
 
 syntax = "proto3";
 
-import "common/collection.proto";
+option java_package = "org.hyperledger.fabric.protos.peer.lifecycle";
+option go_package = "github.com/hyperledger/fabric-protos-go/peer/lifecycle";
 
 package lifecycle;
 
-option java_package = "org.hyperledger.fabric.protos.peer.lifecycle";
-option go_package = "github.com/hyperledger/fabric/protos/peer/lifecycle";
+import "common/collection.proto";
 
 // InstallChaincodeArgs is the message used as the argument to
 // '_lifecycle.InstallChaincode'.
@@ -37,6 +35,16 @@ message QueryInstalledChaincodeArgs {
 message QueryInstalledChaincodeResult {
     string package_id = 1;
     string label = 2;
+    map<string, References> references = 3;
+
+    message References {
+        repeated Chaincode chaincodes = 1;
+    }
+
+    message Chaincode {
+        string name = 1;
+        string version = 2;
+    }
 }
 
 // GetInstalledChaincodePackageArgs is the message used as the argument to
@@ -174,8 +182,7 @@ message QueryChaincodeDefinitionResult {
 
 // QueryChaincodeDefinitionsArgs is the message used as arguments to
 // `_lifecycle.QueryChaincodeDefinitions`.
-message QueryChaincodeDefinitionsArgs {
-}
+message QueryChaincodeDefinitionsArgs { }
 
 // QueryChaincodeDefinitionsResult is the message returned by
 // `_lifecycle.QueryChaincodeDefinitions`.

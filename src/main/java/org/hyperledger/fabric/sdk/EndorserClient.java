@@ -26,8 +26,8 @@ import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.discovery.DiscoveryGrpc;
 import org.hyperledger.fabric.protos.discovery.Protocol;
 import org.hyperledger.fabric.protos.peer.EndorserGrpc;
-import org.hyperledger.fabric.protos.peer.FabricProposal;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.protos.peer.ProposalPackage;
+import org.hyperledger.fabric.protos.peer.ProposalResponsePackage;
 import org.hyperledger.fabric.sdk.exception.PeerException;
 import org.hyperledger.fabric.sdk.helper.Config;
 
@@ -112,14 +112,14 @@ class EndorserClient {
         }
     }
 
-    public CompletableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal) {
+    public CompletableFuture<ProposalResponsePackage.ProposalResponse> sendProposalAsync(ProposalPackage.SignedProposal proposal) {
         if (shutdown) {
-            CompletableFuture<FabricProposalResponse.ProposalResponse> ret = new CompletableFuture<>();
+            CompletableFuture<ProposalResponsePackage.ProposalResponse> ret = new CompletableFuture<>();
             ret.completeExceptionally(new PeerException("Shutdown " + toString()));
             return ret;
         }
 
-        CompletableFuture<FabricProposalResponse.ProposalResponse> future = CompletableFuturesExtra.toCompletableFuture(futureStub.processProposal(proposal));
+        CompletableFuture<ProposalResponsePackage.ProposalResponse> future = CompletableFuturesExtra.toCompletableFuture(futureStub.processProposal(proposal));
 
         return future.exceptionally(throwable -> {
             throw new CompletionException(format("%s %s", toString, throwable.getMessage()), throwable);

@@ -80,7 +80,7 @@ import org.hyperledger.fabric.protos.common.Configtx.ConfigUpdateEnvelope;
 import org.hyperledger.fabric.protos.common.Configtx.ConfigValue;
 import org.hyperledger.fabric.protos.common.Ledger;
 import org.hyperledger.fabric.protos.discovery.Protocol;
-import org.hyperledger.fabric.protos.msp.MspConfig;
+import org.hyperledger.fabric.protos.msp.MspConfigPackage;
 import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.orderer.Ab.BroadcastResponse;
 import org.hyperledger.fabric.protos.orderer.Ab.DeliverResponse;
@@ -88,15 +88,10 @@ import org.hyperledger.fabric.protos.orderer.Ab.SeekInfo;
 import org.hyperledger.fabric.protos.orderer.Ab.SeekPosition;
 import org.hyperledger.fabric.protos.orderer.Ab.SeekSpecified;
 import org.hyperledger.fabric.protos.peer.Configuration;
-import org.hyperledger.fabric.protos.peer.FabricProposal;
-import org.hyperledger.fabric.protos.peer.FabricProposal.SignedProposal;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse.Response;
-import org.hyperledger.fabric.protos.peer.FabricTransaction.ProcessedTransaction;
+import org.hyperledger.fabric.protos.peer.ProposalPackage;
+import org.hyperledger.fabric.protos.peer.ProposalResponsePackage;
 import org.hyperledger.fabric.protos.peer.Query;
-import org.hyperledger.fabric.protos.peer.Query.ChaincodeInfo;
-import org.hyperledger.fabric.protos.peer.Query.ChaincodeQueryResponse;
-import org.hyperledger.fabric.protos.peer.Query.ChannelQueryResponse;
+import org.hyperledger.fabric.protos.peer.TransactionPackage;
 import org.hyperledger.fabric.sdk.BlockEvent.TransactionEvent;
 import org.hyperledger.fabric.sdk.Peer.PeerRole;
 import org.hyperledger.fabric.sdk.ServiceDiscovery.SDChaindcode;
@@ -869,13 +864,13 @@ public class Channel implements Serializable {
 
             TransactionContext transactionContext = systemChannel.getTransactionContext();
 
-            FabricProposal.Proposal joinProposal = JoinPeerProposalBuilder.newBuilder()
+            ProposalPackage.Proposal joinProposal = JoinPeerProposalBuilder.newBuilder()
                     .context(transactionContext)
                     .genesisBlock(genesisBlock)
                     .build();
 
             logger.debug("Getting signed proposal.");
-            SignedProposal signedProposal = getSignedProposal(transactionContext, joinProposal);
+            ProposalPackage.SignedProposal signedProposal = getSignedProposal(transactionContext, joinProposal);
             logger.debug("Got signed proposal.");
 
             addPeer(peer, peerOptions); //need to add peer.
@@ -923,12 +918,12 @@ public class Channel implements Serializable {
             throw new ProposalException("No peers go get config block");
         }
 
-        SignedProposal signedProposal = null;
+        ProposalPackage.SignedProposal signedProposal = null;
         try {
 
             transactionContext.verify(false); // can't verify till we get the config block.
 
-            FabricProposal.Proposal proposal = GetConfigBlockBuilder.newBuilder()
+            ProposalPackage.Proposal proposal = GetConfigBlockBuilder.newBuilder()
                     .context(transactionContext)
                     .channelId(name)
                     .build();
@@ -1987,10 +1982,10 @@ public class Channel implements Serializable {
         if (null != mspv) {
             if (!msps.containsKey(name)) {
 
-                MspConfig.MSPConfig mspConfig = MspConfig.MSPConfig.parseFrom(mspv.getValue());
+                MspConfigPackage.MSPConfig mspConfig = MspConfigPackage.MSPConfig.parseFrom(mspv.getValue());
                 Integer type = mspConfig.getType();
                 if (type == 0) {
-                    MspConfig.FabricMSPConfig fabricMSPConfig = MspConfig.FabricMSPConfig.parseFrom(mspConfig.getConfig());
+                    MspConfigPackage.FabricMSPConfig fabricMSPConfig = MspConfigPackage.FabricMSPConfig.parseFrom(mspConfig.getConfig());
 
                     msps.put(name, new MSP(name, fabricMSPConfig));
                 }
@@ -2792,8 +2787,8 @@ public class Channel implements Serializable {
             instantiateProposalbuilder.chaincodeCollectionConfiguration(instantiateProposalRequest.getChaincodeCollectionConfiguration());
             instantiateProposalbuilder.setTransientMap(instantiateProposalRequest.getTransientMap());
 
-            FabricProposal.Proposal instantiateProposal = instantiateProposalbuilder.build();
-            SignedProposal signedProposal = getSignedProposal(transactionContext, instantiateProposal);
+            ProposalPackage.Proposal instantiateProposal = instantiateProposalbuilder.build();
+            ProposalPackage.SignedProposal signedProposal = getSignedProposal(transactionContext, instantiateProposal);
 
             return sendProposalToPeers(peers, signedProposal, transactionContext);
         } catch (Exception e) {
@@ -2873,8 +2868,8 @@ public class Channel implements Serializable {
             installProposalbuilder.setChaincodeInputStream(installProposalRequest.getChaincodeInputStream());
             installProposalbuilder.setChaincodeMetaInfLocation(installProposalRequest.getChaincodeMetaInfLocation());
 
-            FabricProposal.Proposal deploymentProposal = installProposalbuilder.build();
-            SignedProposal signedProposal = getSignedProposal(transactionContext, deploymentProposal);
+            ProposalPackage.Proposal deploymentProposal = installProposalbuilder.build();
+            ProposalPackage.SignedProposal signedProposal = getSignedProposal(transactionContext, deploymentProposal);
 
             return sendProposalToPeers(peers, signedProposal, transactionContext);
         } catch (Exception e) {
@@ -2933,7 +2928,7 @@ public class Channel implements Serializable {
             upgradeProposalBuilder.chaincodEndorsementPolicy(upgradeProposalRequest.getChaincodeEndorsementPolicy());
             upgradeProposalBuilder.chaincodeCollectionConfiguration(upgradeProposalRequest.getChaincodeCollectionConfiguration());
 
-            SignedProposal signedProposal = getSignedProposal(transactionContext, upgradeProposalBuilder.build());
+            ProposalPackage.SignedProposal signedProposal = getSignedProposal(transactionContext, upgradeProposalBuilder.build());
 
             return sendProposalToPeers(peers, signedProposal, transactionContext);
         } catch (Exception e) {
@@ -2941,10 +2936,10 @@ public class Channel implements Serializable {
         }
     }
 
-    private SignedProposal getSignedProposal(TransactionContext transactionContext, FabricProposal.Proposal proposal) throws CryptoException, InvalidArgumentException {
+    private ProposalPackage.SignedProposal getSignedProposal(TransactionContext transactionContext, ProposalPackage.Proposal proposal) throws CryptoException, InvalidArgumentException {
 
-        SignedProposal sp;
-        sp = SignedProposal.newBuilder()
+        ProposalPackage.SignedProposal sp;
+        sp = ProposalPackage.SignedProposal.newBuilder()
                 .setProposalBytes(proposal.toByteString())
                 .setSignature(transactionContext.signByteString(proposal.toByteArray()))
                 .build();
@@ -3572,7 +3567,7 @@ public class Channel implements Serializable {
 
             ProposalResponse proposalResponse = sendProposalSerially(querySCCRequest, peers);
 
-            return new TransactionInfo(txID, ProcessedTransaction.parseFrom(proposalResponse.getProposalResponse().getResponse().getPayload()));
+            return new TransactionInfo(txID, TransactionPackage.ProcessedTransaction.parseFrom(proposalResponse.getProposalResponse().getResponse().getPayload()));
         } catch (Exception e) {
 
             logger.error(e);
@@ -3596,9 +3591,9 @@ public class Channel implements Serializable {
 
             TransactionContext context = getTransactionContext();
 
-            FabricProposal.Proposal q = QueryPeerChannelsBuilder.newBuilder().context(context).build();
+            ProposalPackage.Proposal q = QueryPeerChannelsBuilder.newBuilder().context(context).build();
 
-            SignedProposal qProposal = getSignedProposal(context, q);
+            ProposalPackage.SignedProposal qProposal = getSignedProposal(context, q);
             Collection<ProposalResponse> proposalResponses = sendProposalToPeers(Collections.singletonList(peer), qProposal, context);
 
             if (null == proposalResponses) {
@@ -3616,13 +3611,13 @@ public class Channel implements Serializable {
 
             }
 
-            FabricProposalResponse.ProposalResponse fabricResponse = proposalResponse.getProposalResponse();
+            ProposalResponsePackage.ProposalResponse fabricResponse = proposalResponse.getProposalResponse();
             if (null == fabricResponse) {
                 throw new ProposalException(format("Peer %s channel query return with empty fabric response", peer.getName()));
 
             }
 
-            final Response fabricResponseResponse = fabricResponse.getResponse();
+            final ProposalResponsePackage.Response fabricResponseResponse = fabricResponse.getResponse();
 
             if (null == fabricResponseResponse) { //not likely but check it.
                 throw new ProposalException(format("Peer %s channel query return with empty fabricResponseResponse", peer.getName()));
@@ -3634,7 +3629,7 @@ public class Channel implements Serializable {
 
             }
 
-            ChannelQueryResponse qr = ChannelQueryResponse.parseFrom(fabricResponseResponse.getPayload());
+            Query.ChannelQueryResponse qr = Query.ChannelQueryResponse.parseFrom(fabricResponseResponse.getPayload());
 
             Set<String> ret = new HashSet<>(qr.getChannelsCount());
 
@@ -3653,7 +3648,7 @@ public class Channel implements Serializable {
 
     }
 
-    List<ChaincodeInfo> queryInstalledChaincodes(Peer peer) throws InvalidArgumentException, ProposalException {
+    List<Query.ChaincodeInfo> queryInstalledChaincodes(Peer peer) throws InvalidArgumentException, ProposalException {
 
         checkPeer(peer);
 
@@ -3665,9 +3660,9 @@ public class Channel implements Serializable {
 
             TransactionContext context = getTransactionContext();
 
-            FabricProposal.Proposal q = QueryInstalledChaincodesBuilder.newBuilder().context(context).build();
+            ProposalPackage.Proposal q = QueryInstalledChaincodesBuilder.newBuilder().context(context).build();
 
-            SignedProposal qProposal = getSignedProposal(context, q);
+            ProposalPackage.SignedProposal qProposal = getSignedProposal(context, q);
             Collection<ProposalResponse> proposalResponses = sendProposalToPeers(Collections.singletonList(peer), qProposal, context);
 
             if (null == proposalResponses) {
@@ -3681,13 +3676,13 @@ public class Channel implements Serializable {
 
             ProposalResponse proposalResponse = proposalResponses.iterator().next();
 
-            FabricProposalResponse.ProposalResponse fabricResponse = proposalResponse.getProposalResponse();
+            ProposalResponsePackage.ProposalResponse fabricResponse = proposalResponse.getProposalResponse();
             if (null == fabricResponse) {
                 throw new ProposalException(format("Peer %s channel query return with empty fabric response", peer.getName()));
 
             }
 
-            final Response fabricResponseResponse = fabricResponse.getResponse();
+            final ProposalResponsePackage.Response fabricResponseResponse = fabricResponse.getResponse();
 
             if (null == fabricResponseResponse) { //not likely but check it.
                 throw new ProposalException(format("Peer %s channel query return with empty fabricResponseResponse", peer.getName()));
@@ -3699,7 +3694,7 @@ public class Channel implements Serializable {
 
             }
 
-            ChaincodeQueryResponse chaincodeQueryResponse = ChaincodeQueryResponse.parseFrom(fabricResponseResponse.getPayload());
+            Query.ChaincodeQueryResponse chaincodeQueryResponse = Query.ChaincodeQueryResponse.parseFrom(fabricResponseResponse.getPayload());
 
             return chaincodeQueryResponse.getChaincodesList();
 
@@ -3740,8 +3735,8 @@ public class Channel implements Serializable {
             LifecycleInstallProposalBuilder installProposalbuilder = LifecycleInstallProposalBuilder.newBuilder();
             installProposalbuilder.setChaincodeBytes(chaincodeBytes);
             installProposalbuilder.context(transactionContext);
-            FabricProposal.Proposal deploymentProposal = installProposalbuilder.build();
-            SignedProposal signedProposal = getSignedProposal(transactionContext, deploymentProposal);
+            ProposalPackage.Proposal deploymentProposal = installProposalbuilder.build();
+            ProposalPackage.SignedProposal signedProposal = getSignedProposal(transactionContext, deploymentProposal);
 
             return sendProposalToPeers(peers, signedProposal, transactionContext, LifecycleInstallChaincodeProposalResponse.class);
         } catch (Exception e) {
@@ -3852,8 +3847,8 @@ public class Channel implements Serializable {
                 approveChaincodeDefinitionForMyOrgProposalBuilder.chaincodeCollectionConfiguration(chaincodeCollectionConfiguration.getCollectionConfigPackage());
             }
 
-            FabricProposal.Proposal deploymentProposal = approveChaincodeDefinitionForMyOrgProposalBuilder.build();
-            SignedProposal signedProposal = getSignedProposal(transactionContext, deploymentProposal);
+            ProposalPackage.Proposal deploymentProposal = approveChaincodeDefinitionForMyOrgProposalBuilder.build();
+            ProposalPackage.SignedProposal signedProposal = getSignedProposal(transactionContext, deploymentProposal);
 
             return sendProposalToPeers(peers, signedProposal, transactionContext, LifecycleApproveChaincodeDefinitionForMyOrgProposalResponse.class);
         } catch (Exception e) {
@@ -3942,8 +3937,8 @@ public class Channel implements Serializable {
                 commitChaincodeDefinitionProposalBuilder.chaincodeCollectionConfiguration(chaincodeCollectionConfiguration.getCollectionConfigPackage());
             }
 
-            FabricProposal.Proposal deploymentProposal = commitChaincodeDefinitionProposalBuilder.build();
-            SignedProposal signedProposal = getSignedProposal(transactionContext, deploymentProposal);
+            ProposalPackage.Proposal deploymentProposal = commitChaincodeDefinitionProposalBuilder.build();
+            ProposalPackage.SignedProposal signedProposal = getSignedProposal(transactionContext, deploymentProposal);
 
             return sendProposalToPeers(peers, signedProposal, transactionContext, LifecycleCommitChaincodeDefinitionProposalResponse.class);
         } catch (Exception e) {
@@ -3969,9 +3964,9 @@ public class Channel implements Serializable {
 
             TransactionContext context = getTransactionContext(lifecycleQueryInstalledChaincodesRequest);
 
-            FabricProposal.Proposal proposalBuilder = LifecycleQueryInstalledChaincodesBuilder.newBuilder().context(context).build();
+            ProposalPackage.Proposal proposalBuilder = LifecycleQueryInstalledChaincodesBuilder.newBuilder().context(context).build();
 
-            SignedProposal qProposal = getSignedProposal(context, proposalBuilder);
+            ProposalPackage.SignedProposal qProposal = getSignedProposal(context, proposalBuilder);
 
             return sendProposalToPeers(peers, qProposal, context, LifecycleQueryInstalledChaincodesProposalResponse.class);
 
@@ -4008,7 +4003,7 @@ public class Channel implements Serializable {
             lifecycleQueryInstalledChaincodeBuilder.setPackageId(lifecycleQueryInstalledChaincodeRequest.getPackageId());
             lifecycleQueryInstalledChaincodeBuilder.context(context);
 
-            SignedProposal qProposal = getSignedProposal(context, lifecycleQueryInstalledChaincodeBuilder.build());
+            ProposalPackage.SignedProposal qProposal = getSignedProposal(context, lifecycleQueryInstalledChaincodeBuilder.build());
             return sendProposalToPeers(peers, qProposal, context, LifecycleQueryInstalledChaincodeProposalResponse.class);
 
         } catch (ProposalException e) {
@@ -4043,7 +4038,7 @@ public class Channel implements Serializable {
             TransactionContext context = getTransactionContext(proposalRequest);
             LifecycleQueryChaincodeDefinitionsBuilder proposalBuilder = LifecycleQueryChaincodeDefinitionsBuilder.newBuilder();
             proposalBuilder.context(context);
-            SignedProposal proposal = getSignedProposal(context, proposalBuilder.build());
+            ProposalPackage.SignedProposal proposal = getSignedProposal(context, proposalBuilder.build());
 
             return sendProposalToPeers(peers, proposal, context, LifecycleQueryChaincodeDefinitionsProposalResponse.class);
         } catch (Exception e) {
@@ -4133,7 +4128,7 @@ public class Channel implements Serializable {
 
             lifecycleCheckCommitReadinessBuilder.context(context);
 
-            SignedProposal qProposal = getSignedProposal(context, lifecycleCheckCommitReadinessBuilder.build());
+            ProposalPackage.SignedProposal qProposal = getSignedProposal(context, lifecycleCheckCommitReadinessBuilder.build());
             return sendProposalToPeers(peers, qProposal, context, LifecycleCheckCommitReadinessProposalResponse.class);
 
         } catch (Exception e) {
@@ -4169,7 +4164,7 @@ public class Channel implements Serializable {
             LifecycleQueryChaincodeDefinitionBuilder lifecycleQueryChaincodeDefinitionBuilder = LifecycleQueryChaincodeDefinitionBuilder.newBuilder();
             lifecycleQueryChaincodeDefinitionBuilder.context(context).setChaincodeName(queryLifecycleQueryChaincodeDefinitionRequest.getChaincodeName());
 
-            SignedProposal qProposal = getSignedProposal(context, lifecycleQueryChaincodeDefinitionBuilder.build());
+            ProposalPackage.SignedProposal qProposal = getSignedProposal(context, lifecycleQueryChaincodeDefinitionBuilder.build());
             return sendProposalToPeers(peers, qProposal, context, LifecycleQueryChaincodeDefinitionProposalResponse.class);
 
         } catch (ProposalException e) {
@@ -4187,12 +4182,12 @@ public class Channel implements Serializable {
      * <STRONG>This method may not be thread safe if client context is changed!</STRONG>
      *
      * @param peer The peer to query.
-     * @return A list of ChaincodeInfo @see {@link ChaincodeInfo}
+     * @return A list of ChaincodeInfo @see {@link Query.ChaincodeInfo}
      * @throws InvalidArgumentException
      * @throws ProposalException
      */
 
-    public List<ChaincodeInfo> queryInstantiatedChaincodes(Peer peer) throws InvalidArgumentException, ProposalException {
+    public List<Query.ChaincodeInfo> queryInstantiatedChaincodes(Peer peer) throws InvalidArgumentException, ProposalException {
         return queryInstantiatedChaincodes(peer, client.getUserContext());
 
     }
@@ -4202,12 +4197,12 @@ public class Channel implements Serializable {
      *
      * @param peer        The peer to query.
      * @param userContext the user context.
-     * @return A list of ChaincodeInfo @see {@link ChaincodeInfo}
+     * @return A list of ChaincodeInfo @see {@link Query.ChaincodeInfo}
      * @throws InvalidArgumentException
      * @throws ProposalException
      */
 
-    public List<ChaincodeInfo> queryInstantiatedChaincodes(Peer peer, User userContext) throws InvalidArgumentException, ProposalException {
+    public List<Query.ChaincodeInfo> queryInstantiatedChaincodes(Peer peer, User userContext) throws InvalidArgumentException, ProposalException {
 
         checkChannelState();
         checkPeer(peer);
@@ -4217,9 +4212,9 @@ public class Channel implements Serializable {
 
             TransactionContext context = getTransactionContext(userContext);
 
-            FabricProposal.Proposal q = QueryInstantiatedChaincodesBuilder.newBuilder().context(context).build();
+            ProposalPackage.Proposal q = QueryInstantiatedChaincodesBuilder.newBuilder().context(context).build();
 
-            SignedProposal qProposal = getSignedProposal(context, q);
+            ProposalPackage.SignedProposal qProposal = getSignedProposal(context, q);
             Collection<ProposalResponse> proposalResponses = sendProposalToPeers(Collections.singletonList(peer), qProposal, context);
 
             if (null == proposalResponses) {
@@ -4233,13 +4228,13 @@ public class Channel implements Serializable {
 
             ProposalResponse proposalResponse = proposalResponses.iterator().next();
 
-            FabricProposalResponse.ProposalResponse fabricResponse = proposalResponse.getProposalResponse();
+            ProposalResponsePackage.ProposalResponse fabricResponse = proposalResponse.getProposalResponse();
             if (null == fabricResponse) {
                 throw new ProposalException(format("Peer %s channel query return with empty fabric response", peer.getName()));
 
             }
 
-            final Response fabricResponseResponse = fabricResponse.getResponse();
+            final ProposalResponsePackage.Response fabricResponseResponse = fabricResponse.getResponse();
 
             if (null == fabricResponseResponse) { //not likely but check it.
                 throw new ProposalException(format("Peer %s channel query return with empty fabricResponseResponse", peer.getName()));
@@ -4251,7 +4246,7 @@ public class Channel implements Serializable {
 
             }
 
-            ChaincodeQueryResponse chaincodeQueryResponse = ChaincodeQueryResponse.parseFrom(fabricResponseResponse.getPayload());
+            Query.ChaincodeQueryResponse chaincodeQueryResponse = Query.ChaincodeQueryResponse.parseFrom(fabricResponseResponse.getPayload());
 
             return chaincodeQueryResponse.getChaincodesList();
 
@@ -4291,9 +4286,9 @@ public class Channel implements Serializable {
             QueryCollectionsConfigBuilder queryCollectionsConfigBuilder = QueryCollectionsConfigBuilder.newBuilder()
                     .context(context).chaincodeName(chaincodeName);
 
-            FabricProposal.Proposal q = queryCollectionsConfigBuilder.build();
+            ProposalPackage.Proposal q = queryCollectionsConfigBuilder.build();
 
-            SignedProposal qProposal = getSignedProposal(context, q);
+            ProposalPackage.SignedProposal qProposal = getSignedProposal(context, q);
             Collection<ProposalResponse> proposalResponses = sendProposalToPeers(Collections.singletonList(peer), qProposal, context);
 
             if (null == proposalResponses) {
@@ -4307,13 +4302,13 @@ public class Channel implements Serializable {
 
             ProposalResponse proposalResponse = proposalResponses.iterator().next();
 
-            FabricProposalResponse.ProposalResponse fabricResponse = proposalResponse.getProposalResponse();
+            ProposalResponsePackage.ProposalResponse fabricResponse = proposalResponse.getProposalResponse();
             if (null == fabricResponse) {
                 throw new ProposalException(format("Peer %s channel query return with empty fabric response", peer.getName()));
 
             }
 
-            final Response fabricResponseResponse = fabricResponse.getResponse();
+            final ProposalResponsePackage.Response fabricResponseResponse = fabricResponse.getResponse();
 
             if (null == fabricResponseResponse) { //not likely but check it.
                 throw new ProposalException(format("Peer %s channel query return with empty fabricResponseResponse", peer.getName()));
@@ -4403,7 +4398,7 @@ public class Channel implements Serializable {
         proposalBuilder.context(transactionContext);
         proposalBuilder.request(transactionProposalRequest);
 
-        SignedProposal invokeProposal = null;
+        ProposalPackage.SignedProposal invokeProposal = null;
         try {
             invokeProposal = getSignedProposal(transactionContext, proposalBuilder.build());
         } catch (CryptoException e) {
@@ -4792,7 +4787,7 @@ public class Channel implements Serializable {
             proposalBuilder.context(transactionContext);
             proposalBuilder.request(proposalRequest);
 
-            SignedProposal invokeProposal = getSignedProposal(transactionContext, proposalBuilder.build());
+            ProposalPackage.SignedProposal invokeProposal = getSignedProposal(transactionContext, proposalBuilder.build());
             return sendProposalToPeers(peers, invokeProposal, transactionContext);
         } catch (ProposalException e) {
             throw e;
@@ -4814,7 +4809,7 @@ public class Channel implements Serializable {
     }
 
     private Collection<ProposalResponse> sendProposalToPeers(Collection<Peer> peers,
-                                                             SignedProposal signedProposal,
+                                                             ProposalPackage.SignedProposal signedProposal,
                                                              TransactionContext transactionContext) throws InvalidArgumentException, ProposalException {
 
         return sendProposalToPeers(peers,
@@ -4824,7 +4819,7 @@ public class Channel implements Serializable {
     }
 
     private <T extends ProposalResponse> Collection<T> sendProposalToPeers(Collection<Peer> peers,
-                                                                           SignedProposal signedProposal,
+                                                                           ProposalPackage.SignedProposal signedProposal,
                                                                            TransactionContext transactionContext, Class<T> clazz) throws InvalidArgumentException, ProposalException {
         checkPeers(peers);
 
@@ -4848,9 +4843,9 @@ public class Channel implements Serializable {
         class Pair {
             private final Peer peer;
 
-            private final Future<FabricProposalResponse.ProposalResponse> future;
+            private final Future<ProposalResponsePackage.ProposalResponse> future;
 
-            private Pair(Peer peer, Future<FabricProposalResponse.ProposalResponse> future) {
+            private Pair(Peer peer, Future<ProposalResponsePackage.ProposalResponse> future) {
                 this.peer = peer;
                 this.future = future;
             }
@@ -4863,25 +4858,21 @@ public class Channel implements Serializable {
             if (null != diagnosticFileDumper) {
                 logger.trace(format("Sending to channel %s, peer: %s, proposal: %s, txID: %s", name, peer, txID,
                         diagnosticFileDumper.createDiagnosticProtobufFile(signedProposal.toByteArray())));
-
             }
 
-            Future<FabricProposalResponse.ProposalResponse> proposalResponseListenableFuture;
+            Future<ProposalResponsePackage.ProposalResponse> proposalResponseListenableFuture;
             try {
                 proposalResponseListenableFuture = peer.sendProposalAsync(signedProposal);
             } catch (Exception e) {
                 proposalResponseListenableFuture = new CompletableFuture<>();
                 ((CompletableFuture) proposalResponseListenableFuture).completeExceptionally(e);
-
             }
             peerFuturePairs.add(new Pair(peer, proposalResponseListenableFuture));
-
         }
 
         Collection<T> proposalResponses = new ArrayList<>();
         for (Pair peerFuturePair : peerFuturePairs) {
-
-            FabricProposalResponse.ProposalResponse fabricResponse = null;
+            ProposalResponsePackage.ProposalResponse fabricResponse = null;
             String message;
             int status = 500;
             final String peerName = peerFuturePair.peer.toString();
@@ -4952,9 +4943,7 @@ public class Channel implements Serializable {
      * @return a future allowing access to the result of the transaction invocation once complete.
      */
     public CompletableFuture<TransactionEvent> sendTransaction(Collection<ProposalResponse> proposalResponses, User userContext) {
-
         return sendTransaction(proposalResponses, getOrderers(), userContext);
-
     }
 
     /**
@@ -4964,9 +4953,7 @@ public class Channel implements Serializable {
      * @return a future allowing access to the result of the transaction invocation once complete.
      */
     public CompletableFuture<TransactionEvent> sendTransaction(Collection<? extends ProposalResponse> proposalResponses) {
-
         return sendTransaction(proposalResponses, getOrderers());
-
     }
 
     /**
@@ -4978,7 +4965,6 @@ public class Channel implements Serializable {
      */
 
     public CompletableFuture<TransactionEvent> sendTransaction(Collection<? extends ProposalResponse> proposalResponses, Collection<Orderer> orderers) {
-
         return sendTransaction(proposalResponses, orderers, client.getUserContext());
     }
 
@@ -4995,14 +4981,10 @@ public class Channel implements Serializable {
      * <p>
      * NofEvents may also contain other NofEvent grouping. They can be nested.
      */
-
     public static class NOfEvents {
-
         public NOfEvents setN(int n) {
             if (n < 1) {
-
                 throw new IllegalArgumentException(format("N was %d but needs to be greater than 0.  ", n));
-
             }
             this.n = n;
             return this;
@@ -5022,7 +5004,6 @@ public class Channel implements Serializable {
          * @param peers The peers that need to see the transaction event to complete.
          * @return This NofEvents.
          */
-
         public NOfEvents addPeers(Peer... peers) {
             if (peers == null || peers.length == 0) {
                 throw new IllegalArgumentException("Peers added must be not null or empty.");
@@ -5030,7 +5011,6 @@ public class Channel implements Serializable {
             this.peers.addAll(Arrays.asList(peers));
 
             return this;
-
         }
 
         /**
@@ -5087,14 +5067,12 @@ public class Channel implements Serializable {
          * @param nofs The nested event group that need to set the transacton event to complete.
          * @return This NofEvents.
          */
-
         public NOfEvents addNOfs(Collection<NOfEvents> nofs) {
             addNOfs(nofs.toArray(new NOfEvents[nofs.size()]));
             return this;
         }
 
         synchronized Collection<Peer> unSeenPeers() {
-
             Set<Peer> unseen = new HashSet<>(16);
             unseen.addAll(peers);
             for (NOfEvents nOfEvents : nOfEvents) {
@@ -5109,14 +5087,12 @@ public class Channel implements Serializable {
                 n = Long.min(peers.size() + nOfEvents.size(), n);
             }
             if (!ready) {
-
                 if (peers.remove(peer)) {
                     if (--n == 0) {
                         ready = true;
                     }
                 }
                 if (!ready) {
-
                     for (Iterator<NOfEvents> ni = nOfEvents.iterator(); ni.hasNext();
                     ) { // for check style
                         NOfEvents e = ni.next();
@@ -5132,7 +5108,6 @@ public class Channel implements Serializable {
                 }
             }
             if (ready) {
-
                 peers.clear();
                 nOfEvents.clear();
             }
@@ -5154,9 +5129,7 @@ public class Channel implements Serializable {
             }
         }
 
-        private NOfEvents() {
-
-        }
+        private NOfEvents() { }
 
         public static NOfEvents createNofEvents() {
             return new NOfEvents();
@@ -5166,7 +5139,6 @@ public class Channel implements Serializable {
          * Special NofEvents indicating that no transaction events are needed to complete the Future.
          * This will result in the Future being completed as soon has the Orderer has seen the transaction.
          */
-
         public static NOfEvents nofNoEvents = new NOfEvents() {
             @Override
             public NOfEvents addNOfs(NOfEvents... nOfEvents) {
@@ -5195,9 +5167,7 @@ public class Channel implements Serializable {
 
         public static NOfEvents createNoEvents() {
             return nofNoEvents;
-
         }
-
     }
 
     /**
@@ -5209,7 +5179,6 @@ public class Channel implements Serializable {
      * @param orderers
      * @return Future allowing access to the result of the transaction invocation.
      */
-
     public CompletableFuture<TransactionEvent> sendTransaction(Collection<? extends ProposalResponse> proposalResponses, Collection<Orderer> orderers, User userContext) {
         return sendTransaction(proposalResponses, createTransactionOptions().orderers(orderers).userContext(userContext));
     }
@@ -5217,7 +5186,6 @@ public class Channel implements Serializable {
     /**
      * TransactionOptions class can be used to change how the SDK processes the Transaction.
      */
-
     public static class TransactionOptions {
         List<Orderer> orderers;
         boolean shuffleOrders = true;
@@ -5309,7 +5277,6 @@ public class Channel implements Serializable {
      * Additional metadata used by service discovery to find the endorsements needed.
      * Specify which chaincode is invoked and what collections are used.
      */
-
     public static class ServiceDiscoveryChaincodeCalls {
         String name;
         List<String> collections;
@@ -5324,7 +5291,6 @@ public class Channel implements Serializable {
          * @param collectionName name of collection.
          * @return
          */
-
         public ServiceDiscoveryChaincodeCalls addCollections(String... collectionName) {
             if (collections == null) {
                 collections = new LinkedList<>();
@@ -5334,7 +5300,6 @@ public class Channel implements Serializable {
         }
 
         String write(List<ServiceDiscoveryChaincodeCalls> dep) {
-
             StringBuilder cns = new StringBuilder(1000);
             cns.append("ServiceDiscoveryChaincodeCalls(name: ").append(name);
 
@@ -5360,12 +5325,10 @@ public class Channel implements Serializable {
                 }
 
                 cns.append("]");
-
             }
             cns.append(")");
 
             return cns.toString();
-
         }
 
         /**
@@ -5375,7 +5338,6 @@ public class Channel implements Serializable {
          * @return
          * @throws InvalidArgumentException
          */
-
         public static ServiceDiscoveryChaincodeCalls createServiceDiscoveryChaincodeCalls(String name) throws InvalidArgumentException {
             if (isNullOrEmpty(name)) {
                 throw new InvalidArgumentException("The name parameter must be non null nor an empty string.");
@@ -5386,9 +5348,7 @@ public class Channel implements Serializable {
         private Protocol.ChaincodeCall ret = null;
 
         Protocol.ChaincodeCall build() {
-
             if (ret == null) {
-
                 final Protocol.ChaincodeCall.Builder builder = Protocol.ChaincodeCall.newBuilder().setName(name);
                 if (collections != null && !collections.isEmpty()) {
                     builder.addAllCollectionNames(collections);
@@ -5397,7 +5357,6 @@ public class Channel implements Serializable {
             }
 
             return ret;
-
         }
 
         String getName() {
@@ -5469,7 +5428,6 @@ public class Channel implements Serializable {
          * @param serviceDiscoveryChaincodeInterests
          * @return DiscoveryOptions
          */
-
         public DiscoveryOptions setServiceDiscoveryChaincodeInterests(ServiceDiscoveryChaincodeCalls... serviceDiscoveryChaincodeInterests) {
 
             if (this.serviceDiscoveryChaincodeInterests == null) {
@@ -5485,7 +5443,6 @@ public class Channel implements Serializable {
          * @param forceDiscovery
          * @return
          */
-
         public DiscoveryOptions setForceDiscovery(boolean forceDiscovery) {
             this.forceDiscovery = forceDiscovery;
             return this;
@@ -5506,9 +5463,7 @@ public class Channel implements Serializable {
 
         Collection<String> getIgnoreList() {
             return ignoreList;
-
         }
-
     }
 
     /**
@@ -5520,11 +5475,9 @@ public class Channel implements Serializable {
      * @param transactionOptions
      * @return Future allowing access to the result of the transaction invocation.
      */
-
     public CompletableFuture<TransactionEvent> sendTransaction(Collection<? extends ProposalResponse> proposalResponses,
                                                                TransactionOptions transactionOptions) {
         try {
-
             if (null == transactionOptions) {
                 throw new InvalidArgumentException("Parameter transactionOptions can't be null");
             }
@@ -5554,13 +5507,11 @@ public class Channel implements Serializable {
                             "The proposal responses have %d inconsistent groups with %d that are invalid."
                                     + " Expected all to be consistent and none to be invalid.",
                             consistencyGroups, invalid.size()));
-
                 }
-
             }
 
-            List<FabricProposalResponse.Endorsement> ed = new LinkedList<>();
-            FabricProposal.Proposal proposal = null;
+            List<ProposalResponsePackage.Endorsement> ed = new LinkedList<>();
+            ProposalPackage.Proposal proposal = null;
             ByteString proposalResponsePayload = null;
             String proposalTransactionID = null;
             TransactionContext transactionContext = null;
@@ -5615,7 +5566,6 @@ public class Channel implements Serializable {
                 if (!anyAdded) {
                     nOfEvents = NOfEvents.createNoEvents();
                 }
-
             } else if (nOfEvents != NOfEvents.nofNoEvents) {
                 StringBuilder issues = new StringBuilder(100);
                 Collection<Peer> eventingPeers = getEventingPeers();
@@ -5626,7 +5576,6 @@ public class Channel implements Serializable {
                     } else if (!eventingPeers.contains(peer)) {
                         issues.append(format("Peer %s added to NOFEvents is not a eventing Peer in this channel. ", peer.getName()));
                     }
-
                 });
 
                 if (nOfEvents.unSeenPeers().isEmpty()) {
@@ -5661,7 +5610,6 @@ public class Channel implements Serializable {
                 }
                 failed = orderer;
                 try {
-
                     if (null != diagnosticFileDumper) {
                         logger.trace(format("Sending to channel %s, orderer: %s, transaction: %s", name, orderer.getName(),
                                 diagnosticFileDumper.createDiagnosticProtobufFile(transactionEnvelope.toByteArray())));
@@ -5686,9 +5634,7 @@ public class Channel implements Serializable {
 
                     logger.error(emsg);
                     lException = new Exception(emsg, e);
-
                 }
-
             }
 
             if (success) {
@@ -5699,7 +5645,6 @@ public class Channel implements Serializable {
                 }
                 return sret;
             } else {
-
                 String emsg = format("Channel %s failed to place transaction %s on Orderer. Cause: UNSUCCESSFUL. %s",
                         name, proposalTransactionID, getRespData(resp));
 
@@ -5710,13 +5655,10 @@ public class Channel implements Serializable {
                 return ret;
             }
         } catch (Exception e) {
-
             CompletableFuture<TransactionEvent> future = new CompletableFuture<>();
             future.completeExceptionally(e);
             return future;
-
         }
-
     }
 
     /**
@@ -5726,7 +5668,6 @@ public class Channel implements Serializable {
      * @return
      */
     private String getRespData(BroadcastResponse resp) {
-
         StringBuilder respdata = new StringBuilder(400);
         if (resp != null) {
             Status status = resp.getStatus();
@@ -5743,9 +5684,7 @@ public class Channel implements Serializable {
                 }
 
                 respdata.append("Additional information: ").append(info);
-
             }
-
         }
 
         return respdata.toString();
@@ -5753,38 +5692,27 @@ public class Channel implements Serializable {
     }
 
     private Envelope createTransactionEnvelope(Payload transactionPayload, TransactionContext transactionContext) throws CryptoException, InvalidArgumentException {
-
         return Envelope.newBuilder()
                 .setPayload(transactionPayload.toByteString())
                 .setSignature(ByteString.copyFrom(transactionContext.sign(transactionPayload.toByteArray())))
                 .build();
-
     }
 
     byte[] getChannelConfigurationSignature(ChannelConfiguration channelConfiguration, User signer) throws InvalidArgumentException {
-
         userContextCheck(signer);
 
         if (null == channelConfiguration) {
-
             throw new InvalidArgumentException("channelConfiguration is null");
-
         }
 
         try {
-
             Envelope ccEnvelope = Envelope.parseFrom(channelConfiguration.getChannelConfigurationAsBytes());
-
             final Payload ccPayload = Payload.parseFrom(ccEnvelope.getPayload());
-
             TransactionContext transactionContext = getTransactionContext(signer);
-
             final ConfigUpdateEnvelope configUpdateEnv = ConfigUpdateEnvelope.parseFrom(ccPayload.getData());
-
             final ByteString configUpdate = configUpdateEnv.getConfigUpdate();
 
             ByteString sigHeaderByteString = getSignatureHeaderAsByteString(signer, transactionContext);
-
             ByteString signatureByteSting = transactionContext.signByteStrings(new User[] {signer},
                     sigHeaderByteString, configUpdate)[0];
 
@@ -5792,14 +5720,11 @@ public class Channel implements Serializable {
                     .setSignatureHeader(sigHeaderByteString)
                     .setSignature(signatureByteSting)
                     .build().toByteArray();
-
         } catch (Exception e) {
-
             throw new InvalidArgumentException(e);
         } finally {
             logger.debug("finally done");
         }
-
     }
 
     /**
@@ -5810,7 +5735,6 @@ public class Channel implements Serializable {
      * @throws InvalidArgumentException if the channel is shutdown.
      */
     public String registerBlockListener(BlockListener listener) throws InvalidArgumentException {
-
         if (shutdown) {
             throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
@@ -5820,11 +5744,8 @@ public class Channel implements Serializable {
         }
 
         String handle = new BL(listener).getHandle();
-
         logger.trace(format("Register event BlockEvent listener %s", handle));
-
         return handle;
-
     }
 
     /**
@@ -5834,9 +5755,7 @@ public class Channel implements Serializable {
      * @return return a handle to ungregister the handler.
      * @throws InvalidArgumentException
      */
-
     public String registerBlockListener(BlockingQueue<QueuedBlockEvent> blockEventQueue) throws InvalidArgumentException {
-
         if (shutdown) {
             throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
@@ -5846,11 +5765,8 @@ public class Channel implements Serializable {
         }
 
         String handle = new BL(blockEventQueue, -1L, null).getHandle();
-
         logger.trace(format("Register QueuedBlockEvent listener %s", handle));
-
         return handle;
-
     }
 
     /**
@@ -5862,9 +5778,7 @@ public class Channel implements Serializable {
      * @return return a handle to ungregister the handler.
      * @throws InvalidArgumentException
      */
-
     public String registerBlockListener(BlockingQueue<QueuedBlockEvent> blockEventQueue, long timeout, TimeUnit timeUnit) throws InvalidArgumentException {
-
         if (shutdown) {
             throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
@@ -5882,11 +5796,8 @@ public class Channel implements Serializable {
         }
 
         String handle = new BL(blockEventQueue, timeout, timeUnit).getHandle();
-
         logger.trace(format("Register QueuedBlockEvent listener %s", handle));
-
         return handle;
-
     }
 
     /**
@@ -5897,7 +5808,6 @@ public class Channel implements Serializable {
      * @throws InvalidArgumentException if the channel is shutdown or invalid arguments.
      */
     public boolean unregisterBlockListener(String handle) throws InvalidArgumentException {
-
         if (shutdown) {
             throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
@@ -5911,14 +5821,11 @@ public class Channel implements Serializable {
         }
 
         synchronized (lblockListeners) {
-
             return null != lblockListeners.remove(handle);
-
         }
     }
 
     public Collection<String> getBlockListenerHandles() throws InvalidArgumentException {
-
         if (shutdown) {
             throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
@@ -5929,7 +5836,6 @@ public class Channel implements Serializable {
         }
 
         synchronized (lblockListeners) {
-
             Set<String> ret = new HashSet<>(lblockListeners.keySet());
             // remove the SDKs own transaction block listener.
             final String ltransactionListenerProcessorHandle = transactionListenerProcessorHandle;
@@ -5943,7 +5849,6 @@ public class Channel implements Serializable {
     //////////  Transaction monitoring  /////////////////////////////
 
     private void startEventQue() {
-
         if (eventQueueThread != null) {
             return;
         }
@@ -5968,7 +5873,6 @@ public class Channel implements Serializable {
                     if (!shutdown) {
                         logger.error(e);
                     }
-
                     continue;
                 }
                 if (blockEvent == null) {
@@ -5977,7 +5881,6 @@ public class Channel implements Serializable {
                 }
 
                 try {
-
                     final String blockchainID = blockEvent.getChannelId();
                     final String from =
                             format("Channel %s eventqueue got block event with block number: %d for channel: %s, from %s",
@@ -6002,19 +5905,14 @@ public class Channel implements Serializable {
                             if (l.listener != null) {
                                 client.getExecutorService().execute(() -> l.listener.received(blockEvent));
                             } else if (l.blockingQueue != null) {
-
                                 if (l.timeout < 0 || l.timeUnit == null) {
-
                                     l.blockingQueue.put(new QueuedBlockEvent(l.handle, blockEvent));
-
                                 } else {
-
                                     if (!l.blockingQueue.offer(new QueuedBlockEvent(l.handle, blockEvent), l.timeout, l.timeUnit)) {
                                         logger.warn(format("Error calling block listener %s on channel: %s event: %s could not be added in time %d %s ",
                                                 l.handle, name, from, l.timeout, l.timeUnit));
                                     }
                                 }
-
                             }
                         } catch (Throwable e) { //Don't let one register stop rest.
                             logger.error(format("Error calling block listener %s on channel: %s event: %s ", l.handle, name, from), e);
@@ -6029,7 +5927,6 @@ public class Channel implements Serializable {
 
             logger.info(format("Channel %s eventThread shutting down. shutdown: %b  thread: %s ", name, shutdown, Thread.currentThread().getName()));
         });
-
     }
 
     /**
@@ -6037,7 +5934,6 @@ public class Channel implements Serializable {
      *
      * @return
      */
-
     private String registerTransactionListenerProcessor() throws InvalidArgumentException {
         logger.debug(format("Channel %s registerTransactionListenerProcessor starting", name));
 
@@ -6057,30 +5953,23 @@ public class Channel implements Serializable {
             final Iterable<TransactionEvent> transactionEvents = blockEvent.getTransactionEvents();
 
             if (transactionEvents == null || !transactionEvents.iterator().hasNext()) {
-
                 // no transactions today we can assume it was a config or update block.
-
                 if (isLaterBlock(blockEvent.getBlockNumber())) {
                     ServiceDiscovery lserviceDiscovery = serviceDiscovery;
                     if (null != lserviceDiscovery) {
 
                         client.getExecutorService().execute(() -> lserviceDiscovery.fullNetworkDiscovery(true));
                     }
-
                 } else {
-
                     lclient.getExecutorService().execute(() -> {
                         try {
                             if (!shutdown) {
                                 loadCACertificates(true);
                             }
-
                         } catch (Exception e) {
                             logger.warn(format("Channel %s failed to load certificates for an update", name), e);
                         }
-
                     });
-
                 }
 
                 return;
@@ -6091,7 +5980,6 @@ public class Channel implements Serializable {
             }
 
             for (TransactionEvent transactionEvent : blockEvent.getTransactionEvents()) {
-
                 logger.debug(format("Channel %s got event from %s for transaction %s in block number: %d", name,
                         source, transactionEvent.getTransactionID(), blockEvent.getBlockNumber()));
 
@@ -6113,7 +6001,6 @@ public class Channel implements Serializable {
                         if (l.eventReceived(transactionEvent)) {
                             l.fire(transactionEvent);
                         }
-
                     } catch (Throwable e) {
                         logger.error(e); // Don't let one register stop rest.
                     }
@@ -6133,13 +6020,11 @@ public class Channel implements Serializable {
     }
 
     void runSweeper() {
-
         if (shutdown || DELTA_SWEEP < 1) {
             return;
         }
 
         if (sweeper == null) {
-
             sweeperExecutorService = Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread t = Executors.defaultThreadFactory().newThread(r);
                 t.setDaemon(true);
@@ -6147,16 +6032,10 @@ public class Channel implements Serializable {
             });
             sweeper = sweeperExecutorService.scheduleAtFixedRate(() -> {
                 try {
-
                     if (txListeners != null) {
-
                         synchronized (txListeners) {
-
-                            for (Iterator<Map.Entry<String, LinkedList<TL>>> it = txListeners.entrySet().iterator(); it.hasNext();
-                            ) {
-
+                            for (Iterator<Map.Entry<String, LinkedList<TL>>> it = txListeners.entrySet().iterator(); it.hasNext();) {
                                 Map.Entry<String, LinkedList<TL>> es = it.next();
-
                                 LinkedList<TL> tlLinkedList = es.getValue();
                                 tlLinkedList.removeIf(TL::sweepMe);
                                 if (tlLinkedList.isEmpty()) {
@@ -6168,10 +6047,8 @@ public class Channel implements Serializable {
                 } catch (Exception e) {
                     logger.warn("Sweeper got error:" + e.getMessage(), e);
                 }
-
             }, 0, DELTA_SWEEP, TimeUnit.MILLISECONDS);
         }
-
     }
 
     /**
@@ -6181,15 +6058,10 @@ public class Channel implements Serializable {
      * @param nOfEvents
      * @return
      */
-
     private CompletableFuture<TransactionEvent> registerTxListener(String txid, NOfEvents nOfEvents, boolean failFast) {
-
         CompletableFuture<TransactionEvent> future = new CompletableFuture<>();
-
         new TL(txid, future, nOfEvents, failFast);
-
         return future;
-
     }
 
     /**
@@ -6198,12 +6070,9 @@ public class Channel implements Serializable {
      * @param txid
      */
     private void unregisterTxListener(String txid) {
-
         synchronized (txListeners) {
-
             txListeners.remove(txid);
         }
-
     }
 
     /**
@@ -6216,9 +6085,7 @@ public class Channel implements Serializable {
      * @return Handle to be used to unregister the event listener {@link #unregisterChaincodeEventListener(String)}
      * @throws InvalidArgumentException
      */
-
     public String registerChaincodeEventListener(Pattern chaincodeId, Pattern eventName, ChaincodeEventListener chaincodeEventListener) throws InvalidArgumentException {
-
         if (shutdown) {
             throw new InvalidArgumentException(format("Channel %s has been shutdown.", name));
         }
@@ -6242,7 +6109,6 @@ public class Channel implements Serializable {
             }
         }
         return chaincodeEventListenerEntry.handle;
-
     }
 
     /**
@@ -6252,7 +6118,6 @@ public class Channel implements Serializable {
      * @return True if the chaincode handler was found and removed.
      * @throws InvalidArgumentException
      */
-
     public boolean unregisterChaincodeEventListener(String handle) throws InvalidArgumentException {
         boolean ret;
 
@@ -6264,19 +6129,16 @@ public class Channel implements Serializable {
 
         synchronized (chainCodeListeners) {
             ret = null != chainCodeListeners.remove(handle);
-
         }
 
         synchronized (this) {
             if (null != blh && chainCodeListeners.isEmpty()) {
-
                 unregisterBlockListener(blh);
                 blh = null;
             }
         }
 
         return ret;
-
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -6288,7 +6150,6 @@ public class Channel implements Serializable {
         // Chaincode event listener is internal Block listener for chaincode events.
 
         return registerBlockListener(blockEvent -> {
-
             if (chainCodeListeners.isEmpty()) {
                 return;
             }
@@ -6296,24 +6157,18 @@ public class Channel implements Serializable {
             LinkedList<ChaincodeEvent> chaincodeEvents = new LinkedList<>();
 
             //Find the chaincode events in the transactions.
-
             for (TransactionEvent transactionEvent : blockEvent.getTransactionEvents()) {
-
                 logger.debug(format("Channel %s got event for transaction %s ", name, transactionEvent.getTransactionID()));
 
                 for (BlockInfo.TransactionEnvelopeInfo.TransactionActionInfo info : transactionEvent.getTransactionActionInfos()) {
-
                     ChaincodeEvent event = info.getEvent();
                     if (null != event) {
                         chaincodeEvents.add(event);
                     }
-
                 }
-
             }
 
             if (!chaincodeEvents.isEmpty()) {
-
                 class MatchPair {
                     final ChaincodeEventListenerEntry eventListener;
                     final ChaincodeEvent event;
@@ -6327,32 +6182,22 @@ public class Channel implements Serializable {
                 List<MatchPair> matches = new LinkedList<>(); //Find matches.
 
                 synchronized (chainCodeListeners) {
-
                     for (ChaincodeEventListenerEntry chaincodeEventListenerEntry : chainCodeListeners.values()) {
-
                         for (ChaincodeEvent chaincodeEvent : chaincodeEvents) {
-
                             if (chaincodeEventListenerEntry.isMatch(chaincodeEvent)) {
-
                                 matches.add(new MatchPair(chaincodeEventListenerEntry, chaincodeEvent));
                             }
-
                         }
-
                     }
                 }
 
                 //fire events
                 for (MatchPair match : matches) {
-
                     ChaincodeEventListenerEntry chaincodeEventListenerEntry = match.eventListener;
                     ChaincodeEvent ce = match.event;
                     chaincodeEventListenerEntry.fire(blockEvent, ce);
-
                 }
-
             }
-
         });
     }
 
@@ -6361,9 +6206,7 @@ public class Channel implements Serializable {
      *
      * @param force force immediate shutdown.
      */
-
     public synchronized void shutdown(boolean force) {
-
         if (shutdown) {
             return;
         }
@@ -6371,7 +6214,6 @@ public class Channel implements Serializable {
         String ltransactionListenerProcessorHandle = transactionListenerProcessorHandle;
         transactionListenerProcessorHandle = null;
         if (null != ltransactionListenerProcessorHandle) {
-
             try {
                 unregisterBlockListener(ltransactionListenerProcessorHandle);
             } catch (Exception e) {
@@ -6382,7 +6224,6 @@ public class Channel implements Serializable {
         String lchaincodeEventUpgradeListenerHandle = chaincodeEventUpgradeListenerHandle;
         chaincodeEventUpgradeListenerHandle = null;
         if (null != lchaincodeEventUpgradeListenerHandle) {
-
             try {
                 unregisterChaincodeEventListener(lchaincodeEventUpgradeListenerHandle);
             } catch (Exception e) {
@@ -6401,7 +6242,6 @@ public class Channel implements Serializable {
 
         if (chainCodeListeners != null) {
             chainCodeListeners.clear();
-
         }
 
         if (blockListeners != null) {
@@ -6415,7 +6255,6 @@ public class Channel implements Serializable {
         client = null;
 
         for (Peer peer : new ArrayList<>(getPeers())) {
-
             try {
                 removePeerInternal(peer);
                 peer.shutdown(force);
@@ -6468,16 +6307,13 @@ public class Channel implements Serializable {
      * @throws IOException
      * @throws InvalidArgumentException
      */
-
     public void serializeChannel(File file) throws IOException, InvalidArgumentException {
-
         if (null == file) {
             throw new InvalidArgumentException("File parameter may not be null");
         }
 
         Files.write(Paths.get(file.getAbsolutePath()), serializeChannel(),
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-
     }
 
     /**
@@ -6488,7 +6324,6 @@ public class Channel implements Serializable {
      * @throws IOException
      */
     public byte[] serializeChannel() throws IOException, InvalidArgumentException {
-
         if (isShutdown()) {
             throw new InvalidArgumentException(format("Channel %s has been shutdown.", getName()));
         }
@@ -6510,14 +6345,12 @@ public class Channel implements Serializable {
                 }
             }
         }
-
     }
 
     @Override
     protected void finalize() throws Throwable {
         shutdown(true);
         super.finalize();
-
     }
 
     /**
@@ -6539,11 +6372,9 @@ public class Channel implements Serializable {
             sb.append("PeerOptions( " + format("newest: %s, startEvents: %s, stopEvents: %s, registerEventsForFilteredBlocks: %s", "" + newest, "" + startEvents, "" + stopEvents, registerEventsForFilteredBlocks));
 
             if (peerRoles != null && !peerRoles.isEmpty()) {
-
                 sb.append(", PeerRoles:[");
 
                 String sep = "";
-
                 for (PeerRole peerRole : peerRoles) {
                     sb.append(sep).append(peerRole.getPropertyName());
                     sep = " ,";
@@ -6568,7 +6399,6 @@ public class Channel implements Serializable {
          *
          * @return the PeerOptions instance.
          */
-
         public PeerOptions registerEventsForFilteredBlocks() {
             registerEventsForFilteredBlocks = true;
             return this;
@@ -6579,7 +6409,6 @@ public class Channel implements Serializable {
          *
          * @return the PeerOptions instance.
          */
-
         public PeerOptions registerEventsForBlocks() {
             registerEventsForFilteredBlocks = false;
             return this;
@@ -6599,7 +6428,6 @@ public class Channel implements Serializable {
          *
          * @return the start number
          */
-
         public Long getStartEvents() {
             return startEvents;
         }
@@ -6609,21 +6437,17 @@ public class Channel implements Serializable {
          *
          * @return the stop block number.
          */
-
         public Long getStopEvents() {
             return stopEvents;
         }
 
-        protected PeerOptions() {
-
-        }
+        protected PeerOptions() { }
 
         /**
          * Create an instance of PeerOptions.
          *
          * @return the PeerOptions instance.
          */
-
         public static PeerOptions createPeerOptions() {
             return new PeerOptions();
         }
@@ -6633,7 +6457,6 @@ public class Channel implements Serializable {
          *
          * @return the roles {@link PeerRole}
          */
-
         public EnumSet<PeerRole> getPeerRoles() {
             if (peerRoles == null) {
                 peerRoles = EnumSet.complementOf(EnumSet.of(PeerRole.SERVICE_DISCOVERY));
@@ -6647,7 +6470,6 @@ public class Channel implements Serializable {
          * @param peerRoles {@link PeerRole}
          * @return This PeerOptions.
          */
-
         public PeerOptions setPeerRoles(EnumSet<PeerRole> peerRoles) {
             this.peerRoles = peerRoles;
             return this;
@@ -6659,9 +6481,7 @@ public class Channel implements Serializable {
          * @param peerRole see {@link PeerRole}
          * @return This PeerOptions.
          */
-
         public PeerOptions addPeerRole(PeerRole peerRole) {
-
             if (peerRoles == null) {
                 peerRoles = EnumSet.noneOf(PeerRole.class);
 
@@ -6689,7 +6509,6 @@ public class Channel implements Serializable {
          *
          * @return This PeerOptions.
          */
-
         public PeerOptions startEventsNewest() {
             startEvents = null;
             newest = true;
@@ -6713,30 +6532,26 @@ public class Channel implements Serializable {
          *
          * @return return a duplicate of this instance.
          */
-
         public PeerOptions clone() {
             try {
                 return (PeerOptions) super.clone();
             } catch (CloneNotSupportedException e) {
                 throw new RuntimeException(e);
             }
-
         }
-
     }
 
     /**
      * MSPs
      */
-
     class MSP {
         final String orgName;
-        final MspConfig.FabricMSPConfig fabricMSPConfig;
+        final MspConfigPackage.FabricMSPConfig fabricMSPConfig;
         byte[][] adminCerts;
         byte[][] rootCerts;
         byte[][] intermediateCerts;
 
-        MSP(String orgName, MspConfig.FabricMSPConfig fabricMSPConfig) {
+        MSP(String orgName, MspConfigPackage.FabricMSPConfig fabricMSPConfig) {
             this.orgName = orgName;
             this.fabricMSPConfig = fabricMSPConfig;
         }
@@ -6746,10 +6561,8 @@ public class Channel implements Serializable {
          *
          * @return
          */
-
         String getID() {
             return fabricMSPConfig.getName();
-
         }
 
         /**
@@ -6758,7 +6571,6 @@ public class Channel implements Serializable {
          * @return array of admin certs in PEM bytes format.
          */
         byte[][] getAdminCerts() {
-
             if (null == adminCerts) {
                 adminCerts = new byte[fabricMSPConfig.getAdminsList().size()][];
                 int i = 0;
@@ -6775,7 +6587,6 @@ public class Channel implements Serializable {
          * @return array of admin certs in PEM bytes format.
          */
         byte[][] getRootCerts() {
-
             if (null == rootCerts) {
                 rootCerts = new byte[fabricMSPConfig.getRootCertsList().size()][];
                 int i = 0;
@@ -6793,7 +6604,6 @@ public class Channel implements Serializable {
          * @return array of intermediate certs in PEM bytes format.
          */
         byte[][] getIntermediateCerts() {
-
             if (null == intermediateCerts) {
                 intermediateCerts = new byte[fabricMSPConfig.getIntermediateCertsList().size()][];
                 int i = 0;
@@ -6803,11 +6613,9 @@ public class Channel implements Serializable {
             }
             return intermediateCerts;
         }
-
     }
 
     class ChannelEventQue {
-
         private final BlockingQueue<BlockEvent> events = new LinkedBlockingQueue<>(); //Thread safe
         private Throwable eventException;
 
@@ -6823,13 +6631,11 @@ public class Channel implements Serializable {
             events.add(event);
 
             return true;
-
         }
 
         BlockEvent getNextEvent() throws EventingException {
             if (shutdown) {
                 throw new EventingException(format("Channel %s has been shutdown", name));
-
             }
             BlockEvent ret = null;
             if (eventException != null) {
@@ -6840,11 +6646,9 @@ public class Channel implements Serializable {
             } catch (InterruptedException e) {
                 if (shutdown) {
                     throw new EventingException(format("channel %s is shutdown", name), e);
-
                 } else {
                     logger.warn(e);
                     if (eventException != null) {
-
                         EventingException eve = new EventingException(e);
                         logger.error(eve.getMessage(), eve);
                         throw eve;
@@ -6857,18 +6661,14 @@ public class Channel implements Serializable {
             }
 
             if (shutdown) {
-
                 throw new EventingException(format("Channel %s has been shutdown.", name));
-
             }
 
             return ret;
         }
-
     }
 
     class BL {
-
         final BlockListener listener;
         final String handle;
         private final BlockingQueue<QueuedBlockEvent> blockingQueue;
@@ -6880,19 +6680,15 @@ public class Channel implements Serializable {
             logger.debug(format("Channel %s blockListener %s starting", name, handle));
 
             synchronized (blockListeners) {
-
                 blockListeners.put(handle, this);
-
             }
         }
 
         BL(BlockListener listener) {
-
             this.listener = listener;
             blockingQueue = null;
             timeout = Long.MAX_VALUE;
             timeUnit = null;
-
         }
 
         BL(BlockingQueue<QueuedBlockEvent> blockingQueue, long timeout, TimeUnit timeUnit) {
@@ -6900,7 +6696,6 @@ public class Channel implements Serializable {
             this.timeout = timeout;
             this.timeUnit = timeUnit;
             listener = null;
-
         }
 
         public String getHandle() {
@@ -6969,11 +6764,9 @@ public class Channel implements Serializable {
         }
 
         boolean sweepMe() { // Sweeps DO NOT fire future. user needs to put timeout on their futures for timeouts.
-
             final boolean ret = sweepTime < System.currentTimeMillis() || fired.get() || future.isDone();
 
             if (IS_WARN_LEVEL && ret) {
-
                 StringBuilder sb = new StringBuilder(10000);
 
                 String sep = "Non reporting peers: ";
@@ -6990,11 +6783,9 @@ public class Channel implements Serializable {
             }
 
             return ret;
-
         }
 
         void fire(BlockEvent.TransactionEvent transactionEvent) {
-
             if (fired.getAndSet(true)) {
                 return;
             }
@@ -7027,11 +6818,9 @@ public class Channel implements Serializable {
                                 transactionEvent)));
             }
         }
-
     }
 
     private class ChaincodeEventListenerEntry {
-
         private final Pattern chaincodeIdPattern;
         private final Pattern eventNamePattern;
         private final ChaincodeEventListener chaincodeEventListener;
@@ -7044,23 +6833,16 @@ public class Channel implements Serializable {
             this.handle = CHAINCODE_EVENTS_TAG + Utils.generateUUID() + CHAINCODE_EVENTS_TAG;
 
             synchronized (chainCodeListeners) {
-
                 chainCodeListeners.put(handle, this);
-
             }
         }
 
         boolean isMatch(ChaincodeEvent chaincodeEvent) {
-
             return chaincodeIdPattern.matcher(chaincodeEvent.getChaincodeId()).matches() && eventNamePattern.matcher(chaincodeEvent.getEventName()).matches();
-
         }
 
         void fire(BlockEvent blockEvent, ChaincodeEvent ce) {
-
             client.getExecutorService().execute(() -> chaincodeEventListener.received(handle, blockEvent, ce));
-
         }
     }
-
 }

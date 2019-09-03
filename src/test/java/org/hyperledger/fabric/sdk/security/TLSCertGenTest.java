@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import javax.net.ssl.SSLSession;
 
 import io.grpc.Grpc;
@@ -41,8 +40,8 @@ import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 import org.hyperledger.fabric.protos.peer.EndorserGrpc;
-import org.hyperledger.fabric.protos.peer.FabricProposal;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.protos.peer.ProposalPackage;
+import org.hyperledger.fabric.protos.peer.ProposalResponsePackage;
 import org.hyperledger.fabric.sdk.security.certgen.TLSCertificateBuilder;
 import org.hyperledger.fabric.sdk.security.certgen.TLSCertificateKeyPair;
 import org.junit.AfterClass;
@@ -95,7 +94,7 @@ public class TLSCertGenTest {
                 .sslContext(getSslContextBuilder(clientCertFile, clientKeyFile, serverCertFile).protocols(TLS_PROTOCOL).build())
                 .negotiationType(NegotiationType.TLS);
         ManagedChannel chan = channelBuilder.build();
-        FabricProposal.SignedProposal prop = FabricProposal.SignedProposal.getDefaultInstance();
+        ProposalPackage.SignedProposal prop = ProposalPackage.SignedProposal.getDefaultInstance();
         EndorserGrpc.newBlockingStub(chan).processProposal(prop);
         // Ensure that TLS handshake occurred
         Assert.assertTrue("Handshake didn't occur", handshakeOccured.get());
@@ -144,9 +143,9 @@ public class TLSCertGenTest {
     }
 
     private static class MockEndorser extends EndorserGrpc.EndorserImplBase {
-        public void processProposal(org.hyperledger.fabric.protos.peer.FabricProposal.SignedProposal request,
-                                    io.grpc.stub.StreamObserver<org.hyperledger.fabric.protos.peer.FabricProposalResponse.ProposalResponse> responseObserver) {
-            responseObserver.onNext(FabricProposalResponse.ProposalResponse.newBuilder().getDefaultInstanceForType());
+        public void processProposal(org.hyperledger.fabric.protos.peer.ProposalPackage.SignedProposal request,
+                                    io.grpc.stub.StreamObserver<org.hyperledger.fabric.protos.peer.ProposalResponsePackage.ProposalResponse> responseObserver) {
+            responseObserver.onNext(ProposalResponsePackage.ProposalResponse.newBuilder().getDefaultInstanceForType());
             responseObserver.onCompleted();
         }
     }

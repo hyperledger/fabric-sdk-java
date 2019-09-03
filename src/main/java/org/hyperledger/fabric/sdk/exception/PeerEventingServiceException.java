@@ -16,7 +16,7 @@
 
 package org.hyperledger.fabric.sdk.exception;
 
-import org.hyperledger.fabric.protos.peer.PeerEvents;
+import org.hyperledger.fabric.protos.peer.EventsPackage;
 
 public class PeerEventingServiceException extends TransactionException {
 
@@ -36,11 +36,11 @@ public class PeerEventingServiceException extends TransactionException {
      *
      * @return Response error from peer if received otherwise null.
      */
-    public PeerEvents.DeliverResponse getResp() {
+    public EventsPackage.DeliverResponse getResp() {
         return resp;
     }
 
-    private PeerEvents.DeliverResponse resp;
+    private EventsPackage.DeliverResponse resp;
 
     public PeerEventingServiceException(String message, Throwable parent) {
         super(message, parent);
@@ -54,7 +54,7 @@ public class PeerEventingServiceException extends TransactionException {
         super(t);
     }
 
-    public void setResponse(PeerEvents.DeliverResponse resp) {
+    public void setResponse(EventsPackage.DeliverResponse resp) {
         this.resp = resp;
     }
 

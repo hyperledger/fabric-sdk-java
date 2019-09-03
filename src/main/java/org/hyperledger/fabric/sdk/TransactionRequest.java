@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.hyperledger.fabric.protos.peer.Chaincode;
-import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Config;
 
 /**
@@ -144,18 +143,13 @@ public class TransactionRequest {
     }
 
     public void setChaincodeID(ChaincodeID chaincodeID) {
-
         if (chaincodeName != null) {
-
             throw new IllegalArgumentException("Chaincode name has already been set.");
         }
         if (chaincodeVersion != null) {
-
             throw new IllegalArgumentException("Chaincode version has already been set.");
         }
-
         if (chaincodePath != null) {
-
             throw new IllegalArgumentException("Chaincode path has already been set.");
         }
 

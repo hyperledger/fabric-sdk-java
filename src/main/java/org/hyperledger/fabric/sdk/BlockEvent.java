@@ -19,7 +19,7 @@ import java.util.List;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.hyperledger.fabric.protos.common.Common.Block;
-import org.hyperledger.fabric.protos.peer.PeerEvents;
+import org.hyperledger.fabric.protos.peer.EventsPackage;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
 
 /**
@@ -30,7 +30,7 @@ import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeExceptio
 public class BlockEvent extends BlockInfo {
     private final Peer peer;
 
-    BlockEvent(Peer peer, PeerEvents.DeliverResponse resp) {
+    BlockEvent(Peer peer, EventsPackage.DeliverResponse resp) {
         super(resp);
         this.peer = peer;
     }
@@ -43,7 +43,6 @@ public class BlockEvent extends BlockInfo {
     public Peer getPeer() {
         return peer;
     }
-
 
     TransactionEvent getTransactionEvent(int index) throws InvalidProtocolBufferException {
         TransactionEvent ret = null;
@@ -65,7 +64,7 @@ public class BlockEvent extends BlockInfo {
             super(transactionEnvelopeInfo.getTransactionDeserializer());
         }
 
-        TransactionEvent(PeerEvents.FilteredTransaction filteredTransaction) {
+        TransactionEvent(EventsPackage.FilteredTransaction filteredTransaction) {
             super(filteredTransaction);
         }
 
@@ -74,11 +73,8 @@ public class BlockEvent extends BlockInfo {
          *
          * @return BlockEvent for this transaction.
          */
-
         public BlockEvent getBlockEvent() {
-
             return BlockEvent.this;
-
         }
 
         /**
@@ -86,28 +82,22 @@ public class BlockEvent extends BlockInfo {
          *
          * @return return peer producing the event.
          */
-
         public Peer getPeer() {
-
             return BlockEvent.this.getPeer();
         }
     }
 
     List<TransactionEvent> getTransactionEventsList() {
-
         ArrayList<TransactionEvent> ret = new ArrayList<TransactionEvent>(getTransactionCount());
         for (TransactionEvent transactionEvent : getTransactionEvents()) {
             ret.add(transactionEvent);
         }
 
         return ret;
-
     }
 
     public Iterable<TransactionEvent> getTransactionEvents() {
-
         return new TransactionEventIterable();
-
     }
 
     class TransactionEventIterator implements Iterator<TransactionEvent> {
@@ -122,22 +112,17 @@ public class BlockEvent extends BlockInfo {
         @Override
         public boolean hasNext() {
             return returned < max;
-
         }
 
         @Override
         public TransactionEvent next() {
-
             TransactionEvent ret = null;
             // Filter for only transactions but today it's not really needed.
             //  Blocks with transactions only has transactions or a single pdate.
             try {
                 do {
-
                     ret = getTransactionEvent(ci++);
-
                 } while (ret == null);
-
             } catch (InvalidProtocolBufferException e) {
                 throw new InvalidProtocolBufferRuntimeException(e);
             }
@@ -147,7 +132,6 @@ public class BlockEvent extends BlockInfo {
     }
 
     class TransactionEventIterable implements Iterable<TransactionEvent> {
-
         @Override
         public Iterator<TransactionEvent> iterator() {
             return new TransactionEventIterator();

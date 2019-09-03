@@ -1,12 +1,10 @@
-/*
-Copyright IBM Corp. All Rights Reserved.
-
-SPDX-License-Identifier: Apache-2.0
-*/
+// Copyright the Hyperledger Fabric contributors. All rights reserved.
+//
+// SPDX-License-Identifier: Apache-2.0
 
 syntax = "proto3";
 
-option go_package = "github.com/hyperledger/fabric/protos/ledger/rwset/kvrwset";
+option go_package = "github.com/hyperledger/fabric-protos-go/ledger/rwset/kvrwset";
 option java_package = "org.hyperledger.fabric.protos.ledger.rwset.kvrwset";
 
 package kvrwset;

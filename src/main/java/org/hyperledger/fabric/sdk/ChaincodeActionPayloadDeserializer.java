@@ -20,12 +20,12 @@ import java.lang.ref.WeakReference;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
-import org.hyperledger.fabric.protos.peer.FabricTransaction.ChaincodeActionPayload;
+import org.hyperledger.fabric.protos.peer.TransactionPackage;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
 
 class ChaincodeActionPayloadDeserializer {
     private final ByteString byteString;
-    private WeakReference<ChaincodeActionPayload> chaincodeActionPayload;
+    private WeakReference<TransactionPackage.ChaincodeActionPayload> chaincodeActionPayload;
     private WeakReference<ChaincodeEndorsedActionDeserializer> chaincodeEndorsedActionDeserializer;
     private WeakReference<ChaincodeProposalPayloadDeserializer> chaincodeProposalPayloadDeserializer;
 
@@ -33,66 +33,40 @@ class ChaincodeActionPayloadDeserializer {
         this.byteString = byteString;
     }
 
-    ChaincodeActionPayload getChaincodeActionPayload() {
-        ChaincodeActionPayload ret = null;
+    TransactionPackage.ChaincodeActionPayload getChaincodeActionPayload() {
+        TransactionPackage.ChaincodeActionPayload ret = chaincodeActionPayload != null ? chaincodeActionPayload.get() : null;
 
-        if (chaincodeActionPayload != null) {
-            ret = chaincodeActionPayload.get();
-
-        }
-        if (ret == null) {
-
+        if (null == ret) {
             try {
-                ret = ChaincodeActionPayload.parseFrom(byteString);
+                ret = TransactionPackage.ChaincodeActionPayload.parseFrom(byteString);
             } catch (InvalidProtocolBufferException e) {
                 throw new InvalidProtocolBufferRuntimeException(e);
             }
-
             chaincodeActionPayload = new WeakReference<>(ret);
-
         }
 
         return ret;
-
     }
 
     ChaincodeEndorsedActionDeserializer getAction() {
-        ChaincodeEndorsedActionDeserializer ret = null;
+        ChaincodeEndorsedActionDeserializer ret = chaincodeEndorsedActionDeserializer != null ? chaincodeEndorsedActionDeserializer.get() : null;
 
-        if (chaincodeEndorsedActionDeserializer != null) {
-            ret = chaincodeEndorsedActionDeserializer.get();
-
-        }
-        if (ret == null) {
-
+        if (null == ret) {
             ret = new ChaincodeEndorsedActionDeserializer(getChaincodeActionPayload().getAction());
-
             chaincodeEndorsedActionDeserializer = new WeakReference<>(ret);
-
         }
 
         return ret;
-
     }
 
     ChaincodeProposalPayloadDeserializer getChaincodeProposalPayload() {
+        ChaincodeProposalPayloadDeserializer ret = chaincodeProposalPayloadDeserializer != null ? chaincodeProposalPayloadDeserializer.get() : null;
 
-        ChaincodeProposalPayloadDeserializer ret = null;
-
-        if (chaincodeProposalPayloadDeserializer != null) {
-            ret = chaincodeProposalPayloadDeserializer.get();
-
-        }
-        if (ret == null) {
-
+        if (null == ret) {
             ret = new ChaincodeProposalPayloadDeserializer(getChaincodeActionPayload().getChaincodeProposalPayload());
-
             chaincodeProposalPayloadDeserializer = new WeakReference<>(ret);
-
         }
 
         return ret;
-
     }
-
 }

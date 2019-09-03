@@ -11,7 +11,7 @@ package org.hyperledger.fabric.sdk;
 import java.nio.file.Path;
 
 import com.google.protobuf.ByteString;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.protos.peer.ProposalResponsePackage;
 import org.hyperledger.fabric.protos.peer.lifecycle.Lifecycle;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
@@ -29,16 +29,12 @@ public class LifecycleQueryInstalledChaincodeProposalResponse extends ProposalRe
     Lifecycle.QueryInstalledChaincodeResult queryChaincodeDefinitionResult;
 
     private Lifecycle.QueryInstalledChaincodeResult parsePayload() throws ProposalException {
-
         if (null == queryChaincodeDefinitionResult) {
-
             if (getStatus() != Status.SUCCESS) {
                 throw new ProposalException(format("Fabric response failed on peer %s  %s", getPeer(), getMessage()));
             }
 
-            FabricProposalResponse.ProposalResponse fabricResponse = getProposalResponse();
-
-            //   getChaincodeActionResponsePayload()
+            ProposalResponsePackage.ProposalResponse fabricResponse = getProposalResponse();
 
             if (null == fabricResponse) {
                 throw new ProposalException(format("Proposal has no Fabric response. %s", getPeer()));
@@ -66,16 +62,13 @@ public class LifecycleQueryInstalledChaincodeProposalResponse extends ProposalRe
      * @return the packageId
      * @throws ProposalException
      */
-
     public String getPackageId() throws ProposalException {
-
         Lifecycle.QueryInstalledChaincodeResult queryInstalledChaincodeResult = parsePayload();
 
         if (queryInstalledChaincodeResult == null) {
             return null;
         }
         return queryInstalledChaincodeResult.getPackageId();
-
     }
 
     /**
@@ -84,14 +77,11 @@ public class LifecycleQueryInstalledChaincodeProposalResponse extends ProposalRe
      * @throws ProposalException
      */
     public String getLabel() throws ProposalException {
-
         Lifecycle.QueryInstalledChaincodeResult queryInstalledChaincodeResult = parsePayload();
 
         if (queryInstalledChaincodeResult == null) {
             return null;
         }
         return queryInstalledChaincodeResult.getLabel();
-
     }
-
 }

@@ -20,60 +20,42 @@ import java.lang.ref.WeakReference;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
+import org.hyperledger.fabric.protos.peer.ProposalResponsePackage;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
-
-import static org.hyperledger.fabric.protos.peer.FabricProposalResponse.ProposalResponsePayload;
 
 class ProposalResponsePayloadDeserializer {
     private final ByteString byteString;
-    private WeakReference<ProposalResponsePayload> proposalResponsePayload;
+    private WeakReference<ProposalResponsePackage.ProposalResponsePayload> proposalResponsePayload;
     private WeakReference<ChaincodeActionDeserializer> chaincodeAction;
 
     ProposalResponsePayloadDeserializer(ByteString byteString) {
         this.byteString = byteString;
     }
 
-    ProposalResponsePayload getProposalResponsePayload() {
-        ProposalResponsePayload ret = null;
+    ProposalResponsePackage.ProposalResponsePayload getProposalResponsePayload() {
+        ProposalResponsePackage.ProposalResponsePayload ret = proposalResponsePayload != null ? proposalResponsePayload.get() : null;
 
-        if (proposalResponsePayload != null) {
-            ret = proposalResponsePayload.get();
-
-        }
-        if (ret == null) {
-
+        if (null == ret) {
             try {
-                ret = ProposalResponsePayload.parseFrom(byteString);
+                ret = ProposalResponsePackage.ProposalResponsePayload.parseFrom(byteString);
             } catch (InvalidProtocolBufferException e) {
                 throw new InvalidProtocolBufferRuntimeException(e);
             }
 
             proposalResponsePayload = new WeakReference<>(ret);
-
         }
 
         return ret;
-
     }
 
     ChaincodeActionDeserializer getExtension() {
+        ChaincodeActionDeserializer ret = chaincodeAction != null ? chaincodeAction.get() : null;
 
-        ChaincodeActionDeserializer ret = null;
-
-        if (chaincodeAction != null) {
-            ret = chaincodeAction.get();
-
-        }
-        if (ret == null) {
-
+        if (null == ret) {
             ret = new ChaincodeActionDeserializer(getProposalResponsePayload().getExtension());
-
             chaincodeAction = new WeakReference<>(ret);
-
         }
 
         return ret;
-
     }
-
 }

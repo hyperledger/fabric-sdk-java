@@ -24,13 +24,12 @@ import java.util.WeakHashMap;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
+import org.hyperledger.fabric.protos.peer.TransactionPackage;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
-
-import static org.hyperledger.fabric.protos.peer.FabricTransaction.Transaction;
 
 class TransactionDeserializer {
     private final ByteString byteString;
-    private WeakReference<Transaction> transaction;
+    private WeakReference<TransactionPackage.Transaction> transaction;
     private final Map<Integer, WeakReference<TransactionActionDeserializer>> transactionActions =
             Collections.synchronizedMap(new WeakHashMap<Integer, WeakReference<TransactionActionDeserializer>>());
 
@@ -38,37 +37,28 @@ class TransactionDeserializer {
         this.byteString = byteString;
     }
 
-    Transaction getTransaction() {
-        Transaction ret = null;
+    TransactionPackage.Transaction getTransaction() {
+        TransactionPackage.Transaction ret = transaction != null ? transaction.get() : null;
 
-        if (transaction != null) {
-            ret = transaction.get();
-
-        }
-        if (ret == null) {
-
+        if (null == ret) {
             try {
-                ret = Transaction.parseFrom(byteString);
+                ret = TransactionPackage.Transaction.parseFrom(byteString);
             } catch (InvalidProtocolBufferException e) {
                 throw new InvalidProtocolBufferRuntimeException(e);
             }
 
             transaction = new WeakReference<>(ret);
-
         }
 
         return ret;
-
     }
 
     int getActionsCount() {
-
         return getTransaction().getActionsCount();
     }
 
     TransactionActionDeserializer getTransactionAction(int index) {
-
-        final Transaction transaction = getTransaction();
+        final TransactionPackage.Transaction transaction = getTransaction();
 
         if (index >= getActionsCount()) {
             return null;
@@ -83,17 +73,13 @@ class TransactionDeserializer {
         }
 
         TransactionActionDeserializer transactionActionDeserialize = new TransactionActionDeserializer(transaction.getActions(index));
-
         transactionActions.put(index, new WeakReference<>(transactionActionDeserialize));
 
         return transactionActionDeserialize;
-
     }
 
     Iterable<TransactionActionDeserializer> getTransactionActions() {
-
         return new TransactionActionIterable();
-
     }
 
     class TransactionActionIterator implements Iterator<TransactionActionDeserializer> {
@@ -102,7 +88,6 @@ class TransactionDeserializer {
 
         TransactionActionIterator() {
             max = getActionsCount();
-
         }
 
         @Override
@@ -122,5 +107,4 @@ class TransactionDeserializer {
             return new TransactionActionIterator();
         }
     }
-
 }

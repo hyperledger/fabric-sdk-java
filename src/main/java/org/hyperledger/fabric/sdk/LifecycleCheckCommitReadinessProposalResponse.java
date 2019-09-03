@@ -9,13 +9,12 @@
 package org.hyperledger.fabric.sdk;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.protobuf.ByteString;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.protos.peer.ProposalResponsePackage;
 import org.hyperledger.fabric.protos.peer.lifecycle.Lifecycle;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
@@ -38,7 +37,7 @@ public final class LifecycleCheckCommitReadinessProposalResponse extends Proposa
                 throw new ProposalException(format("Fabric response failed on peer %s  %s", getPeer(), getMessage()));
             }
 
-            FabricProposalResponse.ProposalResponse fabricResponse = getProposalResponse();
+            ProposalResponsePackage.ProposalResponse fabricResponse = getProposalResponse();
             if (null == fabricResponse) {
                 throw new ProposalException(format("Proposal has no Fabric response. %s", getPeer()));
             }

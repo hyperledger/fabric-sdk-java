@@ -20,59 +20,41 @@ import java.lang.ref.WeakReference;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
+import org.hyperledger.fabric.protos.peer.ProposalPackage;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
-
-import static org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeProposalPayload;
 
 class ChaincodeProposalPayloadDeserializer {
     private final ByteString byteString;
-    private WeakReference<ChaincodeProposalPayload> chaincodeProposalPayload;
+    private WeakReference<ProposalPackage.ChaincodeProposalPayload> chaincodeProposalPayload;
     private WeakReference<ChaincodeInvocationSpecDeserializer> invocationSpecDeserializer;
 
     ChaincodeProposalPayloadDeserializer(ByteString byteString) {
         this.byteString = byteString;
     }
 
-    ChaincodeProposalPayload getChaincodeProposalPayload() {
-        ChaincodeProposalPayload ret = null;
+    ProposalPackage.ChaincodeProposalPayload getChaincodeProposalPayload() {
+        ProposalPackage.ChaincodeProposalPayload ret = chaincodeProposalPayload != null ? chaincodeProposalPayload.get() : null;
 
-        if (chaincodeProposalPayload != null) {
-            ret = chaincodeProposalPayload.get();
-
-        }
-        if (ret == null) {
-
+        if (null == ret) {
             try {
-                ret = ChaincodeProposalPayload.parseFrom(byteString);
+                ret = ProposalPackage.ChaincodeProposalPayload.parseFrom(byteString);
             } catch (InvalidProtocolBufferException e) {
                 throw new InvalidProtocolBufferRuntimeException(e);
             }
-
             chaincodeProposalPayload = new WeakReference<>(ret);
-
         }
 
         return ret;
-
     }
 
     ChaincodeInvocationSpecDeserializer getChaincodeInvocationSpec() {
-        ChaincodeInvocationSpecDeserializer ret = null;
+        ChaincodeInvocationSpecDeserializer ret = invocationSpecDeserializer != null ? invocationSpecDeserializer.get() : null;
 
-        if (invocationSpecDeserializer != null) {
-            ret = invocationSpecDeserializer.get();
-
-        }
-        if (ret == null) {
-
+        if (null == ret) {
             ret = new ChaincodeInvocationSpecDeserializer(getChaincodeProposalPayload().getInput());
-
             invocationSpecDeserializer = new WeakReference<>(ret);
-
         }
 
         return ret;
-
     }
-
 }

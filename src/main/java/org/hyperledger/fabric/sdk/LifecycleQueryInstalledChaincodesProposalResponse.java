@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import com.google.protobuf.ByteString;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.protos.peer.ProposalResponsePackage;
 import org.hyperledger.fabric.protos.peer.lifecycle.Lifecycle;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
@@ -31,16 +31,12 @@ public class LifecycleQueryInstalledChaincodesProposalResponse extends ProposalR
     Lifecycle.QueryInstalledChaincodesResult queryChaincodeDefinitionResult;
 
     private Lifecycle.QueryInstalledChaincodesResult parsePayload() throws ProposalException {
-
         if (null == queryChaincodeDefinitionResult) {
-
             if (getStatus() != Status.SUCCESS) {
                 throw new ProposalException(format("Fabric response failed on peer %s  %s", getPeer(), getMessage()));
             }
 
-            FabricProposalResponse.ProposalResponse fabricResponse = getProposalResponse();
-
-            //   getChaincodeActionResponsePayload()
+            ProposalResponsePackage.ProposalResponse fabricResponse = getProposalResponse();
 
             if (null == fabricResponse) {
                 throw new ProposalException(format("Proposal has no Fabric response. %s", getPeer()));
@@ -63,7 +59,6 @@ public class LifecycleQueryInstalledChaincodesProposalResponse extends ProposalR
     }
 
     public Collection<LifecycleQueryInstalledChaincodesResult> getLifecycleQueryInstalledChaincodesResult() throws ProposalException {
-
         Lifecycle.QueryInstalledChaincodesResult queryInstalledChaincodesResult = parsePayload();
 
         Collection<LifecycleQueryInstalledChaincodesResult> ret = new ArrayList<>(queryInstalledChaincodesResult.getInstalledChaincodesCount());
@@ -72,13 +67,10 @@ public class LifecycleQueryInstalledChaincodesProposalResponse extends ProposalR
             ret.add(new LifecycleQueryInstalledChaincodesResult(qr));
         }
         return ret;
-
     }
 
     public class LifecycleQueryInstalledChaincodesResult {
-
         LifecycleQueryInstalledChaincodesResult(Lifecycle.QueryInstalledChaincodesResult.InstalledChaincode installedChaincode) {
-
             this.installedChaincode = installedChaincode;
         }
 
@@ -101,6 +93,5 @@ public class LifecycleQueryInstalledChaincodesProposalResponse extends ProposalR
         }
 
         private final Lifecycle.QueryInstalledChaincodesResult.InstalledChaincode installedChaincode;
-
     }
 }

@@ -19,20 +19,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common;
-import org.hyperledger.fabric.protos.common.Common.HeaderType;
 import org.hyperledger.fabric.protos.peer.Chaincode;
-import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInput;
-import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeInvocationSpec;
-import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeSpec;
-import org.hyperledger.fabric.protos.peer.FabricProposal;
-import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeHeaderExtension;
-import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeProposalPayload;
+import org.hyperledger.fabric.protos.peer.ProposalPackage;
 import org.hyperledger.fabric.sdk.TransactionRequest;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
@@ -44,7 +37,6 @@ import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createChannelHea
 import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.getSignatureHeaderAsByteString;
 
 public class ProposalBuilder {
-
     private static final Log logger = LogFactory.getLog(ProposalBuilder.class);
     private static final boolean IS_DEBUG_LEVEL = logger.isDebugEnabled();
 
@@ -52,7 +44,7 @@ public class ProposalBuilder {
     protected List<ByteString> argList;
     protected TransactionContext context;
     protected TransactionRequest request;
-    protected ChaincodeSpec.Type ccType = ChaincodeSpec.Type.GOLANG;
+    protected Chaincode.ChaincodeSpec.Type ccType = Chaincode.ChaincodeSpec.Type.GOLANG;
     protected Map<String, byte[]> transientMap = null;
 
     // The channel that is being targeted . note blank string means no specific channel
@@ -113,31 +105,30 @@ public class ProposalBuilder {
         return this;
     }
 
-    public FabricProposal.Proposal build() throws ProposalException, InvalidArgumentException {
+    public ProposalPackage.Proposal build() throws ProposalException, InvalidArgumentException {
         if (request != null && request.noChannelID()) {
             channelID = "";
         }
         return createFabricProposal(channelID, chaincodeID, isInit);
     }
 
-    private FabricProposal.Proposal createFabricProposal(String channelID, Chaincode.ChaincodeID chaincodeID, boolean isInit) {
+    private ProposalPackage.Proposal createFabricProposal(String channelID, Chaincode.ChaincodeID chaincodeID, boolean isInit) {
         if (null == transientMap) {
             transientMap = Collections.emptyMap();
         }
 
         if (IS_DEBUG_LEVEL) {
-            for (Entry<String, byte[]> tme : transientMap.entrySet()) {
+            for (Map.Entry<String, byte[]> tme : transientMap.entrySet()) {
                 logger.debug(format("transientMap('%s', '%s'))", logString(tme.getKey()),
                         logString(new String(tme.getValue(), UTF_8))));
             }
         }
-        ChaincodeHeaderExtension chaincodeHeaderExtension = ChaincodeHeaderExtension.newBuilder()
+
+        ProposalPackage.ChaincodeHeaderExtension chaincodeHeaderExtension = ProposalPackage.ChaincodeHeaderExtension.newBuilder()
                 .setChaincodeId(chaincodeID).build();
-
-        Common.ChannelHeader chainHeader = createChannelHeader(HeaderType.ENDORSER_TRANSACTION,
+        Common.ChannelHeader chainHeader = createChannelHeader(Common.HeaderType.ENDORSER_TRANSACTION,
                 context.getTxID(), channelID, context.getEpoch(), context.getFabricTimestamp(), chaincodeHeaderExtension, null);
-
-        ChaincodeInvocationSpec chaincodeInvocationSpec = createChaincodeInvocationSpec(
+        Chaincode.ChaincodeInvocationSpec chaincodeInvocationSpec = createChaincodeInvocationSpec(
                 chaincodeID,
                 ccType,
                 isInit);
@@ -145,16 +136,14 @@ public class ProposalBuilder {
         //Convert to bytestring map.
         Map<String, ByteString> bsm = Collections.EMPTY_MAP;
         if (transientMap != null) {
-
             bsm = new HashMap<>(transientMap.size());
 
-            for (Entry<String, byte[]> tme : transientMap.entrySet()) {
+            for (Map.Entry<String, byte[]> tme : transientMap.entrySet()) {
                 bsm.put(tme.getKey(), ByteString.copyFrom(tme.getValue()));
-
             }
         }
 
-        ChaincodeProposalPayload payload = ChaincodeProposalPayload.newBuilder()
+        ProposalPackage.ChaincodeProposalPayload payload = ProposalPackage.ChaincodeProposalPayload.newBuilder()
                 .setInput(chaincodeInvocationSpec.toByteString())
                 .putAllTransientMap(bsm)
                 .build();
@@ -164,15 +153,13 @@ public class ProposalBuilder {
                 .setChannelHeader(chainHeader.toByteString())
                 .build();
 
-        return FabricProposal.Proposal.newBuilder()
+        return ProposalPackage.Proposal.newBuilder()
                 .setHeader(header.toByteString())
                 .setPayload(payload.toByteString())
                 .build();
-
     }
 
-    private ChaincodeInvocationSpec createChaincodeInvocationSpec(Chaincode.ChaincodeID chaincodeID, ChaincodeSpec.Type langType, boolean isInit) {
-
+    private Chaincode.ChaincodeInvocationSpec createChaincodeInvocationSpec(Chaincode.ChaincodeID chaincodeID, Chaincode.ChaincodeSpec.Type langType, boolean isInit) {
         List<ByteString> allArgs = new ArrayList<>();
 
         if (argList != null && argList.size() > 0) {
@@ -198,10 +185,9 @@ public class ProposalBuilder {
                     allArgs.add(ByteString.copyFrom(arg));
                 }
             }
-
         }
-        if (IS_DEBUG_LEVEL) {
 
+        if (IS_DEBUG_LEVEL) {
             StringBuilder logout = new StringBuilder(1000);
 
             logout.append(format("ChaincodeInvocationSpec type: %s, chaincode name: %s, chaincode path: %s, chaincode version: %s, isInit: %b",
@@ -216,27 +202,21 @@ public class ProposalBuilder {
 
             }
             logout.append(")");
-
             logger.debug(logout.toString());
-
         }
 
-        ChaincodeInput chaincodeInput = ChaincodeInput.newBuilder().addAllArgs(allArgs).setIsInit(isInit).build();
-
-        ChaincodeSpec chaincodeSpec = ChaincodeSpec.newBuilder()
+        Chaincode.ChaincodeInput chaincodeInput = Chaincode.ChaincodeInput.newBuilder().addAllArgs(allArgs).setIsInit(isInit).build();
+        Chaincode.ChaincodeSpec chaincodeSpec = Chaincode.ChaincodeSpec.newBuilder()
                 .setType(langType)
                 .setChaincodeId(chaincodeID)
                 .setInput(chaincodeInput)
                 .build();
-
-        return ChaincodeInvocationSpec.newBuilder()
+        return Chaincode.ChaincodeInvocationSpec.newBuilder()
                 .setChaincodeSpec(chaincodeSpec).build();
-
     }
 
-    public ProposalBuilder ccType(ChaincodeSpec.Type ccType) {
+    public ProposalBuilder ccType(Chaincode.ChaincodeSpec.Type ccType) {
         this.ccType = ccType;
         return this;
     }
-
 }

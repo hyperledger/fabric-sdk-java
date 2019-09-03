@@ -22,92 +22,69 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.hyperledger.fabric.protos.ledger.rwset.Rwset.TxReadWriteSet;
 import org.hyperledger.fabric.protos.peer.Chaincode;
+import org.hyperledger.fabric.protos.peer.ProposalPackage;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
-
-import static org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeAction;
 
 class ChaincodeActionDeserializer {
     private final ByteString byteString;
-    private WeakReference<ChaincodeAction> chaincodeAction;
+    private WeakReference<ProposalPackage.ChaincodeAction> chaincodeAction;
 
     ChaincodeActionDeserializer(ByteString byteString) {
         this.byteString = byteString;
     }
 
-    ChaincodeAction getChaincodeAction() {
-        ChaincodeAction ret = null;
+    ProposalPackage.ChaincodeAction getChaincodeAction() {
+        ProposalPackage.ChaincodeAction ret = chaincodeAction != null ? chaincodeAction.get() : null;
 
-        if (chaincodeAction != null) {
-            ret = chaincodeAction.get();
-
-        }
-        if (ret == null) {
-
+        if (null == ret) {
             try {
-                ret = ChaincodeAction.parseFrom(byteString);
+                ret = ProposalPackage.ChaincodeAction.parseFrom(byteString);
             } catch (InvalidProtocolBufferException e) {
                 throw new InvalidProtocolBufferRuntimeException(e);
             }
 
             chaincodeAction = new WeakReference<>(ret);
-
         }
 
         return ret;
-
     }
 
     Chaincode.ChaincodeID getChaincodeID() {
-        Chaincode.ChaincodeID ret = null;
-
-        ChaincodeAction chaincodeAction = getChaincodeAction();
-        if (chaincodeAction.hasChaincodeId()) {
-            ret = chaincodeAction.getChaincodeId();
-        }
-        return ret;
-
+        ProposalPackage.ChaincodeAction chaincodeAction = getChaincodeAction();
+        return chaincodeAction.hasChaincodeId() ? chaincodeAction.getChaincodeId() : null;
     }
 
     ChaincodeEvent getEvent() {
-
-        ChaincodeAction ca = getChaincodeAction();
+        ProposalPackage.ChaincodeAction ca = getChaincodeAction();
         ByteString eventsBytes = ca.getEvents();
         if (eventsBytes == null || eventsBytes.isEmpty()) {
             return null;
         }
 
         return new ChaincodeEvent(eventsBytes);
-
     }
 
     TxReadWriteSet getResults() {
-
         try {
             return TxReadWriteSet.parseFrom(getChaincodeAction().getResults());
         } catch (InvalidProtocolBufferException e) {
             throw new InvalidProtocolBufferRuntimeException(e);
         }
-
     }
 
     String getResponseMessage() {
         return getChaincodeAction().getResponse().getMessage();
-
     }
 
     byte[] getResponseMessageBytes() {
         return getChaincodeAction().getResponse().getMessageBytes().toByteArray();
-
     }
 
     int getResponseStatus() {
         return getChaincodeAction().getResponse().getStatus();
-
     }
 
     ByteString getResponsePayload() {
         return getChaincodeAction().getResponse().getPayload();
-
     }
-
 }

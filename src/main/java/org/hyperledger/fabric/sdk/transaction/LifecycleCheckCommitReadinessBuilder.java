@@ -13,7 +13,7 @@ import java.util.List;
 
 import com.google.protobuf.ByteString;
 import org.hyperledger.fabric.protos.common.Collection;
-import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.protos.peer.ProposalPackage;
 import org.hyperledger.fabric.protos.peer.lifecycle.Lifecycle;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
@@ -88,7 +88,7 @@ public final class LifecycleCheckCommitReadinessBuilder extends LifecycleProposa
     }
 
     @Override
-    public FabricProposal.Proposal build() throws ProposalException, InvalidArgumentException {
+    public ProposalPackage.Proposal build() throws ProposalException, InvalidArgumentException {
         List<ByteString> argList = new ArrayList<>();
         argList.add(ByteString.copyFromUtf8("CheckCommitReadiness"));
         argList.add(builder.build().toByteString());

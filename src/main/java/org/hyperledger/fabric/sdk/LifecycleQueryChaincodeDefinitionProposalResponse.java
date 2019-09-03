@@ -10,7 +10,7 @@ package org.hyperledger.fabric.sdk;
 
 import com.google.protobuf.ByteString;
 import org.hyperledger.fabric.protos.common.Collection;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.protos.peer.ProposalResponsePackage;
 import org.hyperledger.fabric.protos.peer.lifecycle.Lifecycle;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
@@ -30,23 +30,17 @@ public class LifecycleQueryChaincodeDefinitionProposalResponse extends ProposalR
     }
 
     private Lifecycle.QueryChaincodeDefinitionResult parsePayload() throws ProposalException {
-
         if (null == queryChaincodeDefinitionResult) {
-
             if (getStatus() != Status.SUCCESS) {
                 throw new ProposalException(format("Fabric response failed on peer %s  %s", getPeer(), getMessage()));
             }
 
-            FabricProposalResponse.ProposalResponse fabricResponse = getProposalResponse();
-
-            //   getChaincodeActionResponsePayload()
-
+            ProposalResponsePackage.ProposalResponse fabricResponse = getProposalResponse();
             if (null == fabricResponse) {
                 throw new ProposalException("Proposal has no Fabric response.");
             }
 
             ByteString payload = fabricResponse.getPayload();
-
             if (payload == null) {
                 throw new ProposalException("Fabric response has no payload");
             }
@@ -60,7 +54,6 @@ public class LifecycleQueryChaincodeDefinitionProposalResponse extends ProposalR
             } catch (Exception e) {
                 throw new ProposalException(format("Failure on peer %s %s", getPeer(), e.getMessage()), e);
             }
-
         }
 
         return queryChaincodeDefinitionResult;
@@ -73,7 +66,6 @@ public class LifecycleQueryChaincodeDefinitionProposalResponse extends ProposalR
      * @throws ProposalException
      */
     public byte[] getValidationParameter() throws ProposalException {
-
         ByteString payloadBytes = parsePayload().getValidationParameter();
         if (null == payloadBytes) {
             return null;

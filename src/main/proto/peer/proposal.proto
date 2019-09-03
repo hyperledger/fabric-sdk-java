@@ -1,31 +1,17 @@
-/*
-Copyright IBM Corp. 2016 All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-		 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Copyright the Hyperledger Fabric contributors. All rights reserved.
+//
+// SPDX-License-Identifier: Apache-2.0
 
 syntax = "proto3";
 
-option go_package = "github.com/hyperledger/fabric/protos/peer";
+option go_package = "github.com/hyperledger/fabric-protos-go/peer";
 option java_package = "org.hyperledger.fabric.protos.peer";
-option java_outer_classname = "FabricProposal";
+option java_outer_classname = "ProposalPackage";
 
 package protos;
 
 import "peer/chaincode.proto";
 import "peer/proposal_response.proto";
-//REMOVED BY RICK put back once token support is/f done
-//import "token/operations.proto";
 
 /*
 The flow to get a generic transaction approved goes as follows:
@@ -105,13 +91,13 @@ SignedTransaction
 // 4. Detect replay attacks;
 message SignedProposal {
 
-	// The bytes of Proposal
-	bytes proposal_bytes = 1;
+    // The bytes of Proposal
+    bytes proposal_bytes = 1;
 
   // Signaure over proposalBytes; this signature is to be verified against
   // the creator identity contained in the header of the Proposal message
   // marshaled as proposalBytes
-	bytes signature = 2;
+    bytes signature = 2;
 }
 
 // A Proposal is sent to an endorser for endorsement.  The proposal contains:
@@ -135,17 +121,17 @@ message SignedProposal {
 //    submitting peer model.
 message Proposal {
 
-	// The header of the proposal. It is the bytes of the Header
-	bytes header = 1;
+    // The header of the proposal. It is the bytes of the Header
+    bytes header = 1;
 
-	// The payload of the proposal as defined by the type in the proposal
-	// header.
-	bytes payload = 2;
+    // The payload of the proposal as defined by the type in the proposal
+    // header.
+    bytes payload = 2;
 
-	// Optional extensions to the proposal. Its content depends on the Header's
-	// type field.  For the type CHAINCODE, it might be the bytes of a
-	// ChaincodeAction message.
-	bytes extension = 3;
+    // Optional extensions to the proposal. Its content depends on the Header's
+    // type field.  For the type CHAINCODE, it might be the bytes of a
+    // ChaincodeAction message.
+    bytes extension = 3;
 }
 
 //-------- the Chaincode Proposal -----------
@@ -218,21 +204,11 @@ SignedTransaction
 // chaincode to invoke and what should appear on the ledger.
 message ChaincodeHeaderExtension {
 
-	// The PayloadVisibility field controls to what extent the Proposal's payload
-	// (recall that for the type CHAINCODE, it is ChaincodeProposalPayload
-	// message) field will be visible in the final transaction and in the ledger.
-	// Ideally, it would be configurable, supporting at least 3 main visibility
-	// modes:
-	// 1. all bytes of the payload are visible;
-	// 2. only a hash of the payload is visible;
-	// 3. nothing is visible.
-	// Notice that the visibility function may be potentially part of the ESCC.
-	// In that case it overrides PayloadVisibility field.  Finally notice that
-	// this field impacts the content of ProposalResponsePayload.proposalHash.
-	bytes payload_visibility = 1;
+    reserved 1;
+    reserved "payload_visbility";
 
-	// The ID of the chaincode to target.
-	ChaincodeID chaincode_id = 2;
+    // The ID of the chaincode to target.
+    ChaincodeID chaincode_id = 2;
 }
 
 // ChaincodeProposalPayload is the Proposal's payload message to be used when
@@ -240,42 +216,39 @@ message ChaincodeHeaderExtension {
 // invocation.
 message ChaincodeProposalPayload {
 
-	// Input contains the arguments for this invocation. If this invocation
-	// deploys a new chaincode, ESCC/VSCC are part of this field.
-	// This is usually a marshaled ChaincodeInvocationSpec
-	bytes input  = 1;
+    // Input contains the arguments for this invocation. If this invocation
+    // deploys a new chaincode, ESCC/VSCC are part of this field.
+    // This is usually a marshaled ChaincodeInvocationSpec
+    bytes input  = 1;
 
-	// TransientMap contains data (e.g. cryptographic material) that might be used
-	// to implement some form of application-level confidentiality. The contents
-	// of this field are supposed to always be omitted from the transaction and
-	// excluded from the ledger.
-	map<string, bytes> TransientMap = 2;
+    // TransientMap contains data (e.g. cryptographic material) that might be used
+    // to implement some form of application-level confidentiality. The contents
+    // of this field are supposed to always be omitted from the transaction and
+    // excluded from the ledger.
+    map<string, bytes> TransientMap = 2;
 }
 
 // ChaincodeAction contains the actions the events generated by the execution
 // of the chaincode.
 message ChaincodeAction {
+    reserved 5;
+    reserved "token_operations";
 
-	// This field contains the read set and the write set produced by the
-	// chaincode executing this invocation.
-	bytes results = 1;
+    // This field contains the read set and the write set produced by the
+    // chaincode executing this invocation.
+    bytes results = 1;
 
-	// This field contains the events generated by the chaincode executing this
-	// invocation.
-	bytes events = 2;
+    // This field contains the events generated by the chaincode executing this
+    // invocation.
+    bytes events = 2;
 
-	// This field contains the result of executing this invocation.
-	Response response = 3;
+    // This field contains the result of executing this invocation.
+    Response response = 3;
 
-	// This field contains the ChaincodeID of executing this invocation. Endorser
-	// will set it with the ChaincodeID called by endorser while simulating proposal.
-	// Committer will validate the version matching with latest chaincode version.
-	// Adding ChaincodeID to keep version opens up the possibility of multiple
-	// ChaincodeAction per transaction.
-	ChaincodeID chaincode_id = 4;
-
-	// This field contains the token operations requests generated by the chaincode
-	// executing this invocation
-	//REMOVED BY RICK put back once token support is/f done
-	//repeated token.TokenOperation token_operations = 5;
+    // This field contains the ChaincodeID of executing this invocation. Endorser
+    // will set it with the ChaincodeID called by endorser while simulating proposal.
+    // Committer will validate the version matching with latest chaincode version.
+    // Adding ChaincodeID to keep version opens up the possibility of multiple
+    // ChaincodeAction per transaction.
+    ChaincodeID chaincode_id = 4;
 }

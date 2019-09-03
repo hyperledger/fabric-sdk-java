@@ -1,14 +1,12 @@
-/*
-Copyright IBM Corp. All Rights Reserved.
-
-SPDX-License-Identifier: Apache-2.0
-*/
+// Copyright the Hyperledger Fabric contributors. All rights reserved.
+//
+// SPDX-License-Identifier: Apache-2.0
 
 syntax = "proto3";
 
-option go_package = "github.com/hyperledger/fabric/protos/peer";
+option go_package = "github.com/hyperledger/fabric-protos-go/peer";
 option java_package = "org.hyperledger.fabric.protos.peer";
-option java_outer_classname = "FabricTransaction";
+option java_outer_classname = "TransactionPackage";
 
 package protos;
 
@@ -19,15 +17,14 @@ import "common/common.proto";
 // (in the signature field) over the bytes of the transaction (in the
 // transactionBytes field).
 message SignedTransaction {
+    // The bytes of the Transaction. NDD
+    bytes transaction_bytes = 1;
 
-	// The bytes of the Transaction. NDD
-	bytes transaction_bytes = 1;
-
-	// Signature of the transactionBytes The public key of the signature is in
-	// the header field of TransactionAction There might be multiple
-	// TransactionAction, so multiple headers, but there should be same
-	// transactor identity (cert) in all headers
-	bytes signature = 2;
+    // Signature of the transactionBytes The public key of the signature is in
+    // the header field of TransactionAction There might be multiple
+    // TransactionAction, so multiple headers, but there should be same
+    // transactor identity (cert) in all headers
+    bytes signature = 2;
 }
 
 // ProcessedTransaction wraps an Envelope that includes a transaction along with an indication
@@ -58,21 +55,21 @@ message ProcessedTransaction {
 // to ensure that they are treated atomically.
 message Transaction {
 
-	// The payload is an array of TransactionAction. An array is necessary to
-	// accommodate multiple actions per transaction
-	repeated TransactionAction actions = 1;
+    // The payload is an array of TransactionAction. An array is necessary to
+    // accommodate multiple actions per transaction
+    repeated TransactionAction actions = 1;
 }
 
 // TransactionAction binds a proposal to its action.  The type field in the
 // header dictates the type of action to be applied to the ledger.
 message TransactionAction {
 
-	// The header of the proposal action, which is the proposal header
-	bytes header = 1;
+    // The header of the proposal action, which is the proposal header
+    bytes header = 1;
 
-	// The payload of the action as defined by the type in the header For
-	// chaincode, it's the bytes of ChaincodeActionPayload
-	bytes payload = 2;
+    // The payload of the action as defined by the type in the header For
+    // chaincode, it's the bytes of ChaincodeActionPayload
+    bytes payload = 2;
 }
 
 //---------- Chaincode Transaction ------------
@@ -81,69 +78,67 @@ message TransactionAction {
 // payload when the Header's type is set to CHAINCODE.  It carries the
 // chaincodeProposalPayload and an endorsed action to apply to the ledger.
 message ChaincodeActionPayload {
+    // This field contains the bytes of the ChaincodeProposalPayload message from
+    // the original invocation (essentially the arguments) after the application
+    // of the visibility function. The main visibility modes are "full" (the
+    // entire ChaincodeProposalPayload message is included here), "hash" (only
+    // the hash of the ChaincodeProposalPayload message is included) or
+    // "nothing".  This field will be used to check the consistency of
+    // ProposalResponsePayload.proposalHash.  For the CHAINCODE type,
+    // ProposalResponsePayload.proposalHash is supposed to be H(ProposalHeader ||
+    // f(ChaincodeProposalPayload)) where f is the visibility function.
+    bytes chaincode_proposal_payload = 1;
 
-	// This field contains the bytes of the ChaincodeProposalPayload message from
-	// the original invocation (essentially the arguments) after the application
-	// of the visibility function. The main visibility modes are "full" (the
-	// entire ChaincodeProposalPayload message is included here), "hash" (only
-	// the hash of the ChaincodeProposalPayload message is included) or
-	// "nothing".  This field will be used to check the consistency of
-	// ProposalResponsePayload.proposalHash.  For the CHAINCODE type,
-	// ProposalResponsePayload.proposalHash is supposed to be H(ProposalHeader ||
-	// f(ChaincodeProposalPayload)) where f is the visibility function.
-	bytes chaincode_proposal_payload = 1;
-
-	// The list of actions to apply to the ledger
-	ChaincodeEndorsedAction action = 2;
+    // The list of actions to apply to the ledger
+    ChaincodeEndorsedAction action = 2;
 }
 
 // ChaincodeEndorsedAction carries information about the endorsement of a
 // specific proposal
 message ChaincodeEndorsedAction {
+    // This is the bytes of the ProposalResponsePayload message signed by the
+    // endorsers.  Recall that for the CHAINCODE type, the
+    // ProposalResponsePayload's extenstion field carries a ChaincodeAction
+    bytes proposal_response_payload = 1;
 
-	// This is the bytes of the ProposalResponsePayload message signed by the
-	// endorsers.  Recall that for the CHAINCODE type, the
-	// ProposalResponsePayload's extenstion field carries a ChaincodeAction
-	bytes proposal_response_payload = 1;
-
-	// The endorsement of the proposal, basically the endorser's signature over
-	// proposalResponsePayload
-	repeated Endorsement endorsements = 2;
+    // The endorsement of the proposal, basically the endorser's signature over
+    // proposalResponsePayload
+    repeated Endorsement endorsements = 2;
 }
 
 enum TxValidationCode {
-	VALID = 0;
-	NIL_ENVELOPE = 1;
-	BAD_PAYLOAD = 2;
-	BAD_COMMON_HEADER = 3;
-	BAD_CREATOR_SIGNATURE = 4;
-	INVALID_ENDORSER_TRANSACTION = 5;
-	INVALID_CONFIG_TRANSACTION = 6;
-	UNSUPPORTED_TX_PAYLOAD = 7;
-	BAD_PROPOSAL_TXID = 8;
-	DUPLICATE_TXID = 9;
-	ENDORSEMENT_POLICY_FAILURE = 10;
-	MVCC_READ_CONFLICT = 11;
-	PHANTOM_READ_CONFLICT = 12;
-	UNKNOWN_TX_TYPE = 13;
-	TARGET_CHAIN_NOT_FOUND = 14;
-	MARSHAL_TX_ERROR = 15;
-	NIL_TXACTION = 16;
-	EXPIRED_CHAINCODE = 17;
-	CHAINCODE_VERSION_CONFLICT = 18;
-	BAD_HEADER_EXTENSION = 19;
-	BAD_CHANNEL_HEADER = 20;
-	BAD_RESPONSE_PAYLOAD = 21;
-	BAD_RWSET = 22;
-	ILLEGAL_WRITESET = 23;
-	INVALID_WRITESET = 24;
-	INVALID_CHAINCODE = 25;
-	NOT_VALIDATED = 254;
-	INVALID_OTHER_REASON = 255;
+    VALID = 0;
+    NIL_ENVELOPE = 1;
+    BAD_PAYLOAD = 2;
+    BAD_COMMON_HEADER = 3;
+    BAD_CREATOR_SIGNATURE = 4;
+    INVALID_ENDORSER_TRANSACTION = 5;
+    INVALID_CONFIG_TRANSACTION = 6;
+    UNSUPPORTED_TX_PAYLOAD = 7;
+    BAD_PROPOSAL_TXID = 8;
+    DUPLICATE_TXID = 9;
+    ENDORSEMENT_POLICY_FAILURE = 10;
+    MVCC_READ_CONFLICT = 11;
+    PHANTOM_READ_CONFLICT = 12;
+    UNKNOWN_TX_TYPE = 13;
+    TARGET_CHAIN_NOT_FOUND = 14;
+    MARSHAL_TX_ERROR = 15;
+    NIL_TXACTION = 16;
+    EXPIRED_CHAINCODE = 17;
+    CHAINCODE_VERSION_CONFLICT = 18;
+    BAD_HEADER_EXTENSION = 19;
+    BAD_CHANNEL_HEADER = 20;
+    BAD_RESPONSE_PAYLOAD = 21;
+    BAD_RWSET = 22;
+    ILLEGAL_WRITESET = 23;
+    INVALID_WRITESET = 24;
+    INVALID_CHAINCODE = 25;
+    NOT_VALIDATED = 254;
+    INVALID_OTHER_REASON = 255;
 }
 
 // Reserved entries in the key-level metadata map
 enum MetaDataKeys {
-	VALIDATION_PARAMETER = 0;
-	VALIDATION_PARAMETER_V2 = 1;
+    VALIDATION_PARAMETER = 0;
+    VALIDATION_PARAMETER_V2 = 1;
 }

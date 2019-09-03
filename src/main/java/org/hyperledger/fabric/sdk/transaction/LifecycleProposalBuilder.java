@@ -16,7 +16,7 @@
 package org.hyperledger.fabric.sdk.transaction;
 
 import org.hyperledger.fabric.protos.peer.Chaincode;
-import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.protos.peer.ProposalPackage;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
 
@@ -32,11 +32,8 @@ public class LifecycleProposalBuilder extends ProposalBuilder {
     }
 
     @Override
-    public FabricProposal.Proposal build() throws ProposalException, InvalidArgumentException {
-
+    public ProposalPackage.Proposal build() throws ProposalException, InvalidArgumentException {
         chaincodeID(CHAINCODE_ID_LIFECYCLE);
-
         return super.build();
-
     }
 }

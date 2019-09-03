@@ -14,8 +14,8 @@ import java.util.List;
 import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.hyperledger.fabric.protos.common.Collection.CollectionConfigPackage;
-import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.protos.common.Collection;
+import org.hyperledger.fabric.protos.peer.ProposalPackage;
 import org.hyperledger.fabric.protos.peer.lifecycle.Lifecycle;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
@@ -42,35 +42,29 @@ public class LifecycleCommitChaincodeDefinitionProposalBuilder extends Lifecycle
     protected LifecycleCommitChaincodeDefinitionProposalBuilder() {
         super();
         if (!Utils.isNullOrEmpty(config.getDefaultChaincodeEndorsementPlugin())) {
-
             builder.setEndorsementPlugin(config.getDefaultChaincodeEndorsementPlugin());
         }
 
         if (!Utils.isNullOrEmpty(config.getDefaultChaincodeValidationPlugin())) {
-
             builder.setValidationPlugin(config.getDefaultChaincodeValidationPlugin());
         }
 
         if (lifecycleInitRequiredDefault != null) {
-
             builder.setInitRequired(lifecycleInitRequiredDefault);
         }
     }
 
     public static LifecycleCommitChaincodeDefinitionProposalBuilder newBuilder() {
         return new LifecycleCommitChaincodeDefinitionProposalBuilder();
-
     }
 
     @Override
-    public FabricProposal.Proposal build() throws ProposalException, InvalidArgumentException {
-
+    public ProposalPackage.Proposal build() throws ProposalException, InvalidArgumentException {
         constructProposal();
         return super.build();
     }
 
     public void chaincodeName(String name) {
-
         builder.setName(name);
     }
 
@@ -79,7 +73,6 @@ public class LifecycleCommitChaincodeDefinitionProposalBuilder extends Lifecycle
     }
 
     public void version(String version) {
-
         builder.setVersion(version);
     }
 
@@ -92,9 +85,8 @@ public class LifecycleCommitChaincodeDefinitionProposalBuilder extends Lifecycle
     }
 
     //Optional
-    public void collectionsConfig(CollectionConfigPackage collectionsConfig) {
+    public void collectionsConfig(Collection.CollectionConfigPackage collectionsConfig) {
         builder.setCollections(collectionsConfig);
-
     }
 
     void endorsementPolicy(byte[] endorsmentPolicyBytes) {
@@ -102,17 +94,14 @@ public class LifecycleCommitChaincodeDefinitionProposalBuilder extends Lifecycle
     }
 
     private void constructProposal() {
-
         // set args
         final List<ByteString> argList = new ArrayList<>();
         argList.add(ByteString.copyFromUtf8("CommitChaincodeDefinition"));
         argList.add(builder.build().toByteString());
         args(argList);
-
     }
 
-    public void chaincodeCollectionConfiguration(CollectionConfigPackage collectionConfigPackage) {
-
+    public void chaincodeCollectionConfiguration(Collection.CollectionConfigPackage collectionConfigPackage) {
         builder.setCollections(collectionConfigPackage);
     }
 

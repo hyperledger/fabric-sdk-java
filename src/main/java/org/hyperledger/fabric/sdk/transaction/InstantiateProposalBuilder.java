@@ -23,8 +23,7 @@ import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.peer.Chaincode;
-import org.hyperledger.fabric.protos.peer.Chaincode.ChaincodeDeploymentSpec;
-import org.hyperledger.fabric.protos.peer.FabricProposal;
+import org.hyperledger.fabric.protos.peer.ProposalPackage;
 import org.hyperledger.fabric.sdk.ChaincodeCollectionConfiguration;
 import org.hyperledger.fabric.sdk.ChaincodeEndorsementPolicy;
 import org.hyperledger.fabric.sdk.TransactionRequest;
@@ -104,7 +103,7 @@ public class InstantiateProposalBuilder extends LSCCProposalBuilder {
     }
 
     @Override
-    public FabricProposal.Proposal build() throws ProposalException, InvalidArgumentException {
+    public ProposalPackage.Proposal build() throws ProposalException, InvalidArgumentException {
 
         constructInstantiateProposal();
         return super.build();
@@ -149,7 +148,7 @@ public class InstantiateProposalBuilder extends LSCCProposalBuilder {
                 throw new InvalidArgumentException("Requested chaincode type is not supported: " + chaincodeType);
         }
 
-        ChaincodeDeploymentSpec depspec = createDeploymentSpec(ccType,
+        Chaincode.ChaincodeDeploymentSpec depspec = createDeploymentSpec(ccType,
                 chaincodeName, chaincodePath, chaincodeVersion, modlist, null);
 
         List<ByteString> argList = new ArrayList<>();

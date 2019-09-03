@@ -33,18 +33,15 @@ import org.hyperledger.fabric.protos.common.Common.Envelope;
 import org.hyperledger.fabric.protos.orderer.Ab;
 import org.hyperledger.fabric.protos.orderer.Ab.SeekInfo;
 import org.hyperledger.fabric.protos.peer.DeliverGrpc;
-import org.hyperledger.fabric.protos.peer.PeerEvents.DeliverResponse;
+import org.hyperledger.fabric.protos.peer.EventsPackage;
 import org.hyperledger.fabric.sdk.Channel.PeerOptions;
 import org.hyperledger.fabric.sdk.exception.PeerEventingServiceException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
 import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.transaction.ProtoUtils;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 
 import static java.lang.String.format;
-import static org.hyperledger.fabric.protos.peer.PeerEvents.DeliverResponse.TypeCase.BLOCK;
-import static org.hyperledger.fabric.protos.peer.PeerEvents.DeliverResponse.TypeCase.FILTERED_BLOCK;
-import static org.hyperledger.fabric.protos.peer.PeerEvents.DeliverResponse.TypeCase.STATUS;
-import static org.hyperledger.fabric.sdk.transaction.ProtoUtils.createSeekInfoEnvelope;
 
 /**
  * Sample client code that makes gRPC calls to the server.
@@ -64,7 +61,7 @@ class PeerEventServiceClient {
     private final boolean filterBlock;
     private byte[] clientTLSCertificateDigest;
     StreamObserver<Envelope> nso = null;
-    StreamObserver<DeliverResponse> so = null;
+    StreamObserver<EventsPackage.DeliverResponse> so = null;
     private Channel.ChannelEventQue channelEventQue;
     private volatile boolean shutdown = false;
     private ManagedChannel managedChannel = null;
@@ -75,7 +72,6 @@ class PeerEventServiceClient {
      * Construct client for accessing Peer eventing service using the existing managedChannel.
      */
     PeerEventServiceClient(Peer peer, Endpoint endpoint, Properties properties, PeerOptions peerOptions) {
-
         this.channelBuilder = endpoint.getChannelBuilder();
         this.filterBlock = peerOptions.isRegisterEventsForFilteredBlocks();
         this.peer = peer;
@@ -105,13 +101,9 @@ class PeerEventServiceClient {
         this.channelEventQue = channel.getChannelEventQue();
 
         if (null == properties) {
-
             peerEventRegistrationWaitTimeMilliSecs = PEER_EVENT_REGISTRATION_WAIT_TIME;
-
         } else {
-
             String peerEventRegistrationWaitTime = properties.getProperty("peerEventRegistrationWaitTime", Long.toString(PEER_EVENT_REGISTRATION_WAIT_TIME));
-
             long tempPeerWaitTimeMilliSecs = PEER_EVENT_REGISTRATION_WAIT_TIME;
 
             try {
@@ -122,7 +114,6 @@ class PeerEventServiceClient {
 
             peerEventRegistrationWaitTimeMilliSecs = tempPeerWaitTimeMilliSecs;
         }
-
     }
 
     PeerOptions getPeerOptions() {
@@ -135,14 +126,13 @@ class PeerEventServiceClient {
     }
 
     synchronized void shutdown(boolean force) {
-
         if (shutdown) {
             return;
         }
         final String me = toString();
         logger.debug(me + " is shutting down.");
         shutdown = true;
-        StreamObserver<DeliverResponse> lsno = so;
+        StreamObserver<EventsPackage.DeliverResponse> lsno = so;
         nso = null;
         so = null;
         if (null != lsno) {
@@ -156,7 +146,6 @@ class PeerEventServiceClient {
         ManagedChannel lchannel = managedChannel;
         managedChannel = null;
         if (lchannel != null) {
-
             if (force) {
                 lchannel.shutdownNow();
             } else {
@@ -175,7 +164,6 @@ class PeerEventServiceClient {
 
         channelEventQue = null;
         logger.debug(me + " is down.");
-
     }
 
     @Override
@@ -188,9 +176,7 @@ class PeerEventServiceClient {
      *
      * @return The last block received by this peer. May return null if no block has been received since first reactivated.
      */
-
     void connectEnvelope(Envelope envelope) throws TransactionException {
-
         if (shutdown) {
             logger.warn(format("%s not connecting is shutdown.", toString()));
             return;
@@ -201,14 +187,11 @@ class PeerEventServiceClient {
         ManagedChannel lmanagedChannel = managedChannel;
 
         if (lmanagedChannel == null || lmanagedChannel.isTerminated() || lmanagedChannel.isShutdown()) {
-
             lmanagedChannel = channelBuilder.build();
             managedChannel = lmanagedChannel;
-
         }
 
         try {
-
             DeliverGrpc.DeliverStub broadcast = DeliverGrpc.newStub(lmanagedChannel);
 
             // final DeliverResponse[] ret = new DeliverResponse[1];
@@ -216,19 +199,16 @@ class PeerEventServiceClient {
             final List<Throwable> throwableList = new ArrayList<>();
             final CountDownLatch finishLatch = new CountDownLatch(1);
 
-            so = new StreamObserver<DeliverResponse>() {
-
+            so = new StreamObserver<EventsPackage.DeliverResponse>() {
                 @Override
-                public void onNext(DeliverResponse resp) {
-
+                public void onNext(EventsPackage.DeliverResponse resp) {
                     // logger.info("Got Broadcast response: " + resp);
                     logger.trace(format("DeliverResponse %s resp status value:%d  status %s, typecase %s ",
                             PeerEventServiceClient.this.toString(), resp.getStatusValue(), resp.getStatus(), resp.getTypeCase()));
 
-                    final DeliverResponse.TypeCase typeCase = resp.getTypeCase();
+                    final EventsPackage.DeliverResponse.TypeCase typeCase = resp.getTypeCase();
 
-                    if (typeCase == STATUS) {
-
+                    if (typeCase == EventsPackage.DeliverResponse.TypeCase.STATUS) {
                         logger.debug(format("DeliverResponse  %s setting done.",
                                 PeerEventServiceClient.this.toString()));
 
@@ -236,7 +216,6 @@ class PeerEventServiceClient {
                             peer.setLastConnectTime(System.currentTimeMillis());
                             peer.resetReconnectCount();
                         } else {
-
                             final long rec = peer.getReconnectCount();
 
                             PeerEventingServiceException peerEventingServiceException = new PeerEventingServiceException(format("%s attempts %s Status returned failure code %d (%s) during peer service event registration",
@@ -248,9 +227,9 @@ class PeerEventServiceClient {
 
                             throwableList.add(peerEventingServiceException);
                         }
-
-                    } else if (typeCase == FILTERED_BLOCK || typeCase == BLOCK) {
-                        if (typeCase == BLOCK) {
+                    } else if (typeCase == EventsPackage.DeliverResponse.TypeCase.FILTERED_BLOCK ||
+                            typeCase == EventsPackage.DeliverResponse.TypeCase.BLOCK) {
+                        if (typeCase == EventsPackage.DeliverResponse.TypeCase.BLOCK) {
                             logger.trace(format("%s got event block hex hashcode: %016x, block number: %d",
                                     PeerEventServiceClient.this.toString(), resp.getBlock().hashCode(), resp.getBlock().getHeader().getNumber()));
                         } else {
@@ -279,10 +258,8 @@ class PeerEventServiceClient {
                         peerEventingServiceException.setResponse(resp);
 
                         throwableList.add(peerEventingServiceException);
-
                     }
                     finishLatch.countDown();
-
                 }
 
                 @Override
@@ -302,17 +279,14 @@ class PeerEventServiceClient {
                         if (PEER_EVENT_RECONNECTION_WARNING_RATE > 1 && reconnectCount % PEER_EVENT_RECONNECTION_WARNING_RATE == 1) {
                             logger.warn(format("Received error on  %s, attempts %d. %s",
                                     PeerEventServiceClient.this.toString(), reconnectCount, t.getMessage()));
-
                         } else {
                             logger.trace(format("Received error on %s, attempts %d. %s",
                                     PeerEventServiceClient.this.toString(), reconnectCount, t.getMessage()));
-
                         }
 
                         if (retry.getAndSet(false)) {
                             peer.reconnectPeerEventServiceClient(PeerEventServiceClient.this, t);
                         }
-
                     }
                     finishLatch.countDown();
                 }
@@ -338,7 +312,6 @@ class PeerEventServiceClient {
                 ex.setTimedOut(peerEventRegistrationWaitTimeMilliSecs);
                 logger.warn(toString() + " " + ex.getMessage());
                 throwableList.add(0, ex);
-
             }
             logger.trace(toString() + " done waiting for reply!");
 
@@ -352,9 +325,7 @@ class PeerEventServiceClient {
                 if (retry.getAndSet(false)) {
                     peer.reconnectPeerEventServiceClient(this, throwable);
                 }
-
             }
-
         } catch (InterruptedException e) {
             ManagedChannel llmanagedChannel = managedChannel;
             if (llmanagedChannel != null) {
@@ -366,17 +337,14 @@ class PeerEventServiceClient {
             if (retry.getAndSet(false)) {
                 peer.reconnectPeerEventServiceClient(this, e);
             }
-
         } finally {
             if (null != nso) {
-
                 try {
                     nso.onCompleted();
                 } catch (Exception e) {  //Best effort only report on debug
                     logger.debug(format("Exception completing connect with %s %s",
                             toString(), e.getMessage()), e);
                 }
-
             }
         }
     }
@@ -404,7 +372,6 @@ class PeerEventServiceClient {
 
         final Envelope envelope;
         try {
-
             Ab.SeekPosition.Builder start = Ab.SeekPosition.newBuilder();
             if (null != peerOptions.getNewest()) {
                 start.setNewest(Ab.SeekNewest.getDefaultInstance());
@@ -414,7 +381,7 @@ class PeerEventServiceClient {
                 start.setNewest(Ab.SeekNewest.getDefaultInstance());
             }
 
-            envelope = createSeekInfoEnvelope(transactionContext,
+            envelope = ProtoUtils.createSeekInfoEnvelope(transactionContext,
                     start.build(),
                     Ab.SeekPosition.newBuilder()
                             .setSpecified(Ab.SeekSpecified.newBuilder().setNumber(peerOptions.getStopEvents()).build())
@@ -426,11 +393,9 @@ class PeerEventServiceClient {
         } catch (Exception e) {
             throw new TransactionException(toString() + " error message: " + e.getMessage(), e);
         }
-
     }
 
     String getStatus() {
-
         ManagedChannel lmanagedChannel = managedChannel;
         if (lmanagedChannel == null) {
             return "No grpc managed channel active. peer eventing client service is shutdown: " + shutdown;
@@ -443,6 +408,5 @@ class PeerEventServiceClient {
                     .append(", grpc state: ").append("" + lmanagedChannel.getState(false));
             return sb.toString();
         }
-
     }
 }

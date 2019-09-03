@@ -29,8 +29,8 @@ import io.netty.util.internal.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.discovery.Protocol;
-import org.hyperledger.fabric.protos.peer.FabricProposal;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.protos.peer.ProposalPackage;
+import org.hyperledger.fabric.protos.peer.ProposalResponsePackage;
 import org.hyperledger.fabric.sdk.Channel.PeerOptions;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.PeerEventingServiceException;
@@ -49,7 +49,6 @@ import static org.hyperledger.fabric.sdk.helper.Utils.parseGrpcUrl;
  * The Peer class represents a peer to which SDK sends deploy, or query proposals requests.
  */
 public class Peer implements Serializable {
-
     public static final String PEER_ORGANIZATION_MSPID_PROPERTY = "org.hyperledger.fabric.sdk.peer.organization_mspid";
 
     private static final Config config = Config.getConfig();
@@ -103,11 +102,9 @@ public class Peer implements Serializable {
         this.properties = properties == null ? new Properties() : (Properties) properties.clone(); //keep our own copy.
 
         logger.debug("Created " + toString());
-
     }
 
     static Peer createNewInstance(String name, String grpcURL, Properties properties) throws InvalidArgumentException {
-
         return new Peer(name, grpcURL, properties);
     }
 
@@ -116,14 +113,11 @@ public class Peer implements Serializable {
      *
      * @return return the peer's name.
      */
-
     public String getName() {
-
         return name;
     }
 
     public Properties getProperties() {
-
         return properties == null ? null : (Properties) properties.clone();
     }
 
@@ -141,17 +135,12 @@ public class Peer implements Serializable {
     }
 
     void initiateEventing(TransactionContext transactionContext, PeerOptions peersOptions) throws TransactionException {
-
         this.transactionContext = transactionContext.retryTransactionSameContext();
 
         if (peerEventingClient == null && !shutdown) {
-
             peerEventingClient = new PeerEventServiceClient(this, Endpoint.createEndpoint(url, properties), properties, peersOptions);
-
             peerEventingClient.connect(transactionContext);
-
         }
-
     }
 
     /**
@@ -159,11 +148,8 @@ public class Peer implements Serializable {
      *
      * @return
      */
-
     Channel getChannel() {
-
         return channel;
-
     }
 
     boolean isShutdown() {
@@ -175,9 +161,7 @@ public class Peer implements Serializable {
      *
      * @param channel
      */
-
     void setChannel(Channel channel) throws InvalidArgumentException {
-
         if (null != this.channel) {
             throw new InvalidArgumentException(format("Can not add peer %s to channel %s because it already belongs to channel %s.",
                     name, channel.getName(), this.channel.getName()));
@@ -187,7 +171,6 @@ public class Peer implements Serializable {
         this.channel = channel;
         this.channelName = channel.getName();
         toString = null; //recalculated
-
     }
 
     /**
@@ -196,7 +179,6 @@ public class Peer implements Serializable {
      * @return {string} Get the URL associated with the peer.
      */
     public String getUrl() {
-
         return url;
     }
 
@@ -226,11 +208,11 @@ public class Peer implements Serializable {
         return Objects.hash(name, url);
     }
 
-    CompletableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal) {
+    CompletableFuture<ProposalResponsePackage.ProposalResponse> sendProposalAsync(ProposalPackage.SignedProposal proposal) {
         try {
             checkSendProposal(proposal);
         } catch (Exception e) {
-            CompletableFuture<FabricProposalResponse.ProposalResponse> future = new CompletableFuture<>();
+            CompletableFuture<ProposalResponsePackage.ProposalResponse> future = new CompletableFuture<>();
             future.completeExceptionally(e);
             return future;
         }
@@ -248,7 +230,6 @@ public class Peer implements Serializable {
             }
             throw new CompletionException(throwable);
         });
-
     }
 
     private synchronized EndorserClient getEndorserClient() {
@@ -302,7 +283,6 @@ public class Peer implements Serializable {
     }
 
     synchronized byte[] getClientTLSCertificateDigest() {
-
         byte[] lclientTLSCertificateDigest = clientTLSCertificateDigest;
         if (lclientTLSCertificateDigest == null) {
             if (!foundClientTLSCertificateDigest) {
@@ -313,12 +293,10 @@ public class Peer implements Serializable {
         }
 
         return lclientTLSCertificateDigest;
-
     }
 
-    private void checkSendProposal(FabricProposal.SignedProposal proposal) throws
+    private void checkSendProposal(ProposalPackage.SignedProposal proposal) throws
             PeerException, InvalidArgumentException {
-
         if (shutdown) {
             throw new PeerException(format("%s was shutdown.", toString()));
         }
@@ -441,12 +419,9 @@ public class Peer implements Serializable {
                         lpeerEventingClient.connect(fltransactionContext);
                         peerEventingClient = lpeerEventingClient;
                     }
-
                 }
             }));
-
         }
-
     }
 
     void setLastConnectTime(long lastConnectTime) {
@@ -486,24 +461,20 @@ public class Peer implements Serializable {
     }
 
     public interface PeerEventingServiceDisconnected {
-
         /**
          * Called when a disconnect is detected in peer eventing service.
          *
          * @param event
          */
         void disconnected(PeerEventingServiceDisconnectEvent event);
-
     }
 
     public interface PeerEventingServiceDisconnectEvent {
-
         /**
          * The latest BlockEvent received by peer eventing service.
          *
          * @return The latest BlockEvent.
          */
-
         BlockEvent getLatestBLockReceived();
 
         /**
@@ -518,7 +489,6 @@ public class Peer implements Serializable {
          *
          * @return reconnect attempts.
          */
-
         long getReconnectCount();
 
         /**
@@ -526,11 +496,9 @@ public class Peer implements Serializable {
          *
          * @return
          */
-
         Throwable getExceptionThrown();
 
         void reconnect(Long startEvent) throws TransactionException;
-
     }
 
     private transient PeerEventingServiceDisconnected disconnectedHandler = getDefaultDisconnectHandler();
@@ -539,7 +507,6 @@ public class Peer implements Serializable {
         return new PeerEventingServiceDisconnected() { //default.
             @Override
             public synchronized void disconnected(final PeerEventingServiceDisconnectEvent event) {
-
                 BlockEvent lastBlockEvent = event.getLatestBLockReceived();
                 Throwable thrown = event.getExceptionThrown();
 
@@ -570,9 +537,7 @@ public class Peer implements Serializable {
                 } catch (TransactionException e) {
                     logger.warn(toString() + " " + e.getMessage());
                 }
-
             }
-
         };
     }
 
@@ -581,7 +546,6 @@ public class Peer implements Serializable {
      *
      * @return The current disconnect handler service.
      */
-
     public PeerEventingServiceDisconnected getPeerEventingServiceDisconnected() {
         return disconnectedHandler;
     }
@@ -592,7 +556,6 @@ public class Peer implements Serializable {
      * @param newPeerEventingServiceDisconnectedHandler New handler to replace.  If set to null no retry will take place.
      * @return the old handler.
      */
-
     public PeerEventingServiceDisconnected setPeerEventingServiceDisconnected(PeerEventingServiceDisconnected newPeerEventingServiceDisconnectedHandler) {
         PeerEventingServiceDisconnected ret = disconnectedHandler;
         disconnectedHandler = newPeerEventingServiceDisconnectedHandler;
@@ -655,7 +618,6 @@ public class Peer implements Serializable {
         public String getPropertyName() {
             return propertyName;
         }
-
     }
 
     String getEndpoint() {

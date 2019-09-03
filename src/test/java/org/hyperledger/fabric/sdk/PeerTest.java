@@ -17,7 +17,7 @@ package org.hyperledger.fabric.sdk;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.protos.peer.ProposalResponsePackage;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.PeerException;
 import org.hyperledger.fabric.sdk.testutils.TestUtils;
@@ -56,7 +56,6 @@ public class PeerTest {
         } catch (InvalidArgumentException e) {
             Assert.fail("Unexpected Exeception " + e.getMessage());
         }
-
     }
 
     @Test (expected = InvalidArgumentException.class)
@@ -73,7 +72,7 @@ public class PeerTest {
 
     @Test (expected = Exception.class)
     public void testSendAsyncNullProposal() throws PeerException, InvalidArgumentException, ExecutionException, InterruptedException {
-        Future<FabricProposalResponse.ProposalResponse> future = peer.sendProposalAsync(null);
+        Future<ProposalResponsePackage.ProposalResponse> future = peer.sendProposalAsync(null);
         future.get();
     }
 
@@ -96,9 +95,7 @@ public class PeerTest {
     @Test
     public void getPeerEventingServiceDisconnectedTest() throws InvalidArgumentException {
         Peer somePeer = hfclient.newPeer("somePeer", "grpc://localhost:4");
-
         final Peer.PeerEventingServiceDisconnected disconnectedHandlerExpect = (Peer.PeerEventingServiceDisconnected) TestUtils.getField(somePeer, "disconnectedHandler");
-
         Peer.PeerEventingServiceDisconnected disconnectedHandler = somePeer.getPeerEventingServiceDisconnected();
 
         Assert.assertSame(disconnectedHandlerExpect, disconnectedHandler);
@@ -106,12 +103,8 @@ public class PeerTest {
         Peer.PeerEventingServiceDisconnected peerEventingServiceDisconnectedCurrent = somePeer.setPeerEventingServiceDisconnected(null);
 
         Assert.assertSame(disconnectedHandlerExpect, peerEventingServiceDisconnectedCurrent);
-
         Assert.assertNull(somePeer.getPeerEventingServiceDisconnected());
-
         Assert.assertNull(somePeer.setPeerEventingServiceDisconnected(disconnectedHandlerExpect));
-
         Assert.assertSame(disconnectedHandlerExpect, somePeer.getPeerEventingServiceDisconnected());
-
     }
 }
