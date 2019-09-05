@@ -537,22 +537,6 @@ public class BlockInfo {
             }
 
             /**
-             * get path of chaincode with this transaction action
-             *
-             * @return path of chaincode.  Maybe null if no chaincode or if block is filtered.
-             */
-            public String getChaincodeIDPath() {
-                if (isFiltered()) {
-                    return null;
-                }
-
-                Chaincode.ChaincodeID ccid = transactionAction.getPayload().getAction().getProposalResponsePayload().
-                        getExtension().getChaincodeID();
-
-                return ccid != null ? ccid.getPath() : null;
-            }
-
-            /**
              * get version of chaincode with this transaction action
              *
              * @return version of chaincode.  Maybe null if no chaincode or if block is filtered.
