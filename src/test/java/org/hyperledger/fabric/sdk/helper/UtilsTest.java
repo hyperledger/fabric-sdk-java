@@ -215,29 +215,43 @@ public class UtilsTest {
 
     @Test
     public void testGenerateTarGzMETAINF() throws Exception {
+        ArrayList<String> expect = new ArrayList<>();
+        expect.add("META-INF/statedb/couchdb/indexes/MockFakeIndex.json");
+        Files.walk(Paths.get(SAMPLE_GO_CC))
+                .filter(Files::isRegularFile)
+                .forEach((t) -> {
+                    String filePath = t.toString();
+                    expect.add(filePath.substring(filePath.lastIndexOf("src")));
+                });
 
-        ArrayList<String> expect = new ArrayList(Arrays.asList(new String[] {"META-INF/statedb/couchdb/indexes/MockFakeIndex.json", "src/github.com/example_cc/example_cc.go"
-        }));
-        Collections.sort(expect);
-
-        byte[] bytes = Utils.generateTarGz(new File(SAMPLE_GO_CC + "/src/github.com/example_cc"),
-                "src/github.com/example_cc", new File("src/test/fixture/meta-infs/test1/META-INF"));
+        byte[] bytes = Utils.generateTarGz(new File(
+                SAMPLE_GO_CC + "/src/github.com/example_cc"),
+                "src/github.com/example_cc",
+                new File("src/test/fixture/meta-infs/test1/META-INF")
+        );
         Assert.assertNotNull("generateTarGz() returned null bytes.", bytes);
 
         ArrayList tarBytesToEntryArrayList = TestUtils.tarBytesToEntryArrayList(bytes);
         assertArrayListEquals("Tar not what expected.", expect, tarBytesToEntryArrayList);
-
     }
 
     @Test
     public void testGenerateTarGzNOMETAINF() throws Exception {
+        ArrayList<String> expect = new ArrayList<>();
+        Files.walk(Paths.get(SAMPLE_GO_CC))
+                .filter(Files::isRegularFile)
+                .forEach((t) -> {
+                    String filePath = t.toString();
+                    expect.add(filePath.substring(filePath.lastIndexOf("src")));
+                });
 
-        byte[] bytes = Utils.generateTarGz(new File(SAMPLE_GO_CC + "/src/github.com/example_cc"),
-                "src/github.com/", null);
+        byte[] bytes = Utils.generateTarGz(
+                new File(SAMPLE_GO_CC + "/src/github.com/example_cc"),
+                "src/github.com/example_cc",
+                null
+        );
         Assert.assertNotNull("generateTarGz() returned null bytes.", bytes);
 
-        ArrayList<String> expect = new ArrayList(Arrays.asList(new String[] {"src/github.com/example_cc.go"
-        }));
 
         ArrayList tarBytesToEntryArrayList = TestUtils.tarBytesToEntryArrayList(bytes);
         assertArrayListEquals("Tar not what expected.", expect, tarBytesToEntryArrayList);

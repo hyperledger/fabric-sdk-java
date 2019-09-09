@@ -20,6 +20,8 @@ package org.hyperledger.fabric.sdk;
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -32,6 +34,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+
 
 import com.google.protobuf.ByteString;
 import io.grpc.Status;
@@ -218,7 +221,8 @@ public class ChannelTest {
             }
 
             @Override
-            protected void loadCACertificates(boolean force) { }
+            protected void loadCACertificates(boolean force) {
+            }
         }
 
         final Channel testChannel = new MockChannel(CHANNEL_NAME, hfclient);
@@ -313,7 +317,7 @@ public class ChannelTest {
         thrown.expectMessage("Channel shutdown has been shutdown.");
 
         Assert.assertTrue(shutdownChannel.isShutdown());
-        shutdownChannel.queryBlockByHash(new byte[] {});
+        shutdownChannel.queryBlockByHash(new byte[]{});
     }
 
     @Test
@@ -341,7 +345,7 @@ public class ChannelTest {
 
         final Channel channel = createRunningChannel(null);
 
-        Collection<Peer> peers = Arrays.asList((Peer[]) new Peer[] {hfclient.newPeer("peer2", "grpc://localhost:22")});
+        Collection<Peer> peers = Arrays.asList((Peer[]) new Peer[]{hfclient.newPeer("peer2", "grpc://localhost:22")});
 
         createRunningChannel("testChannelBadPeerDoesNotBelong", peers);
 
@@ -372,7 +376,7 @@ public class ChannelTest {
         final Channel channel = createRunningChannel(null);
 
         channel.queryByChaincode(hfclient.newQueryProposalRequest(),
-                Arrays.asList((Peer[]) new Peer[] {null}));
+                Arrays.asList((Peer[]) new Peer[]{null}));
     }
 
     @Test
@@ -383,7 +387,7 @@ public class ChannelTest {
         final Channel channel = createRunningChannel(null);
 
         channel.sendUpgradeProposal(hfclient.newUpgradeProposalRequest(),
-                Arrays.asList((Peer[]) new Peer[] {})
+                Arrays.asList((Peer[]) new Peer[]{})
         );
     }
 
@@ -590,11 +594,11 @@ public class ChannelTest {
         }
         Constructor declaredConstructor = n.getDeclaredConstructor(Properties.class);
         Properties properties1 = new Properties();
-        properties1.put("org.hyperledger.fabric.sdk.discovery.default.clientKeyBytes", new byte[] {1, 2, 3});
-        properties1.put("org.hyperledger.fabric.sdk.discovery.default.clientCertBytes", new byte[] {1, 2, 4});
-        properties1.put("org.hyperledger.fabric.sdk.discovery.endpoint.clientKeyBytes.2.1.3.4", new byte[] {9, 2, 4});
-        properties1.put("org.hyperledger.fabric.sdk.discovery.endpoint.clientKeyBytes.2.1.3.4:88", new byte[] {88, 2, 4});
-        properties1.put("org.hyperledger.fabric.sdk.discovery.mspid.clientCertBytes.SPECIAL", new byte[] {1, 2, 9});
+        properties1.put("org.hyperledger.fabric.sdk.discovery.default.clientKeyBytes", new byte[]{1, 2, 3});
+        properties1.put("org.hyperledger.fabric.sdk.discovery.default.clientCertBytes", new byte[]{1, 2, 4});
+        properties1.put("org.hyperledger.fabric.sdk.discovery.endpoint.clientKeyBytes.2.1.3.4", new byte[]{9, 2, 4});
+        properties1.put("org.hyperledger.fabric.sdk.discovery.endpoint.clientKeyBytes.2.1.3.4:88", new byte[]{88, 2, 4});
+        properties1.put("org.hyperledger.fabric.sdk.discovery.mspid.clientCertBytes.SPECIAL", new byte[]{1, 2, 9});
         Object o1 = declaredConstructor.newInstance(properties1);
 
         setField(sd, "sdPeerAddition", o1);
@@ -602,8 +606,8 @@ public class ChannelTest {
 
         //   invokeMethod(Channel.class, "init", null);
         //   new Channel.SDOPeerDefaultAddition(null);
-        final String[] discoveredEndpoint = new String[] {"1.1.1.1:10"};
-        final String[] discoveredMSPID = new String[] {"MSPID"};
+        final String[] discoveredEndpoint = new String[]{"1.1.1.1:10"};
+        final String[] discoveredMSPID = new String[]{"MSPID"};
 
         final Channel.SDPeerAdditionInfo sdPeerAdditionInfo = new Channel.SDPeerAdditionInfo() {
             @Override
@@ -645,24 +649,24 @@ public class ChannelTest {
         Peer peer = sd.sdPeerAddition.addPeer(sdPeerAdditionInfo);
         Properties properties = peer.getProperties();
 
-        assertArrayEquals(new byte[] {1, 2, 3}, (byte[]) properties.get("clientKeyBytes"));
-        assertArrayEquals(new byte[] {1, 2, 4}, (byte[]) properties.get("clientCertBytes"));
+        assertArrayEquals(new byte[]{1, 2, 3}, (byte[]) properties.get("clientKeyBytes"));
+        assertArrayEquals(new byte[]{1, 2, 4}, (byte[]) properties.get("clientCertBytes"));
         discoveredEndpoint[0] = "1.1.1.3:33";
 
         discoveredMSPID[0] = "SPECIAL";
         peer = sd.sdPeerAddition.addPeer(sdPeerAdditionInfo);
         properties = peer.getProperties();
-        assertArrayEquals(new byte[] {1, 2, 9}, (byte[]) properties.get("clientCertBytes"));
+        assertArrayEquals(new byte[]{1, 2, 9}, (byte[]) properties.get("clientCertBytes"));
 
         discoveredEndpoint[0] = "2.1.3.4:99";
         peer = sd.sdPeerAddition.addPeer(sdPeerAdditionInfo);
         properties = peer.getProperties();
-        assertArrayEquals(new byte[] {9, 2, 4}, (byte[]) properties.get("clientKeyBytes"));
+        assertArrayEquals(new byte[]{9, 2, 4}, (byte[]) properties.get("clientKeyBytes"));
 
         discoveredEndpoint[0] = "2.1.3.4:88";
         peer = sd.sdPeerAddition.addPeer(sdPeerAdditionInfo);
         properties = peer.getProperties();
-        assertArrayEquals(new byte[] {88, 2, 4}, (byte[]) properties.get("clientKeyBytes"));
+        assertArrayEquals(new byte[]{88, 2, 4}, (byte[]) properties.get("clientKeyBytes"));
     }
 
     static final String CHANNEL_NAME2 = "channel";
@@ -699,7 +703,7 @@ public class ChannelTest {
 
         final Channel channel = createRunningChannel("testChannelBadPeerDoesNotBelongJoin", null);
 
-        Collection<Peer> peers = Arrays.asList((Peer[]) new Peer[] {hfclient.newPeer("peer2", "grpc://localhost:22")});
+        Collection<Peer> peers = Arrays.asList((Peer[]) new Peer[]{hfclient.newPeer("peer2", "grpc://localhost:22")});
 
         createRunningChannel("testChannelBadPeerDoesNotBelongJoin2", peers);
 
@@ -919,10 +923,14 @@ public class ChannelTest {
         ByteString codePackage = chaincodeDeploymentSpec.getCodePackage();
         ArrayList tarBytesToEntryArrayList = tarBytesToEntryArrayList(codePackage.toByteArray());
 
-        ArrayList<String> expect = new ArrayList(Arrays.asList(new String[] {
-                "META-INF/statedb/couchdb/indexes/MockFakeIndex.json",
-                "src/github.com/example_cc/example_cc.go"
-        }));
+        ArrayList<String> expect = new ArrayList<>();
+        expect.add("META-INF/statedb/couchdb/indexes/MockFakeIndex.json");
+        Files.walk(Paths.get(SAMPLE_GO_CC))
+                .filter(Files::isRegularFile)
+                .forEach((t) -> {
+                    String filePath = t.toString();
+                    expect.add(filePath.substring(filePath.lastIndexOf("src")));
+                });
 
         assertArrayListEquals("Tar in Install Proposal's codePackage does not have expected entries. ", expect, tarBytesToEntryArrayList);
     }
@@ -952,8 +960,13 @@ public class ChannelTest {
         ByteString codePackage = chaincodeDeploymentSpec.getCodePackage();
         ArrayList tarBytesToEntryArrayList = tarBytesToEntryArrayList(codePackage.toByteArray());
 
-        ArrayList<String> expect = new ArrayList(Arrays.asList(new String[] {"src/github.com/example_cc/example_cc.go"
-        }));
+        ArrayList<String> expect = new ArrayList<>();
+        Files.walk(Paths.get(SAMPLE_GO_CC))
+                .filter(Files::isRegularFile)
+                .forEach((t) -> {
+                    String filePath = t.toString();
+                    expect.add(filePath.substring(filePath.lastIndexOf("src")));
+                });
 
         assertArrayListEquals("Tar in Install Proposal's codePackage does not have expected entries. ", expect, tarBytesToEntryArrayList);
     }
