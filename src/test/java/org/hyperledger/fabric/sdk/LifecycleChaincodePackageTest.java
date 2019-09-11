@@ -45,8 +45,8 @@ public class LifecycleChaincodePackageTest {
         assertTrue(lifecycleChaincodePackage.getAsBytes().length > 1);
 
         JsonObject metaInfJson = lifecycleChaincodePackage.getMetaInfJson();
-        Assert.assertEquals(metaInfJson.getString("Path"), "github.com/example_cc");
-        Assert.assertEquals(metaInfJson.getString("Type"), "golang");
+        Assert.assertEquals(metaInfJson.getString("path"), "github.com/example_cc");
+        Assert.assertEquals(metaInfJson.getString("type"), "golang");
         Assert.assertEquals(lifecycleChaincodePackage.getType(), TransactionRequest.Type.GO_LANG);
         Assert.assertEquals(lifecycleChaincodePackage.getPath(), "github.com/example_cc");
         Assert.assertEquals(lifecycleChaincodePackage.getLabel(), "mylabel");

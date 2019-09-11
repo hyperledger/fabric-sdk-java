@@ -327,7 +327,7 @@ public class LifecycleChaincodePackage {
         if (path == null) {
             path = "";
         }
-        return format("{\"Path\":%s,\"Type\":\"%s\",\"Label\":%s}", new Gson().toJson(path), type.toPackageName(), new Gson().toJson(label)).getBytes(UTF_8);
+        return format("{\"path\":%s,\"type\":\"%s\",\"label\":%s}", new Gson().toJson(path), type.toPackageName(), new Gson().toJson(label)).getBytes(UTF_8);
     }
 
     public JsonObject getMetaInfJson() throws IOException {
@@ -380,7 +380,7 @@ public class LifecycleChaincodePackage {
         JsonObject metaInfJson = getMetaInfJson();
         if (null != metaInfJson) {
 
-            String type = metaInfJson.containsKey("Type") ? metaInfJson.getString("Type") : null;
+            String type = metaInfJson.containsKey("type") ? metaInfJson.getString("type") : null;
             if (null != type) {
 
                 return TransactionRequest.Type.fromPackageName(type);
@@ -393,7 +393,7 @@ public class LifecycleChaincodePackage {
         JsonObject metaInfJson = getMetaInfJson();
         if (null != metaInfJson) {
 
-            String label = metaInfJson.containsKey("Label") ? metaInfJson.getString("Label") : null;
+            String label = metaInfJson.containsKey("label") ? metaInfJson.getString("label") : null;
             if (null != label) {
 
                 return label;
@@ -406,7 +406,7 @@ public class LifecycleChaincodePackage {
         JsonObject metaInfJson = getMetaInfJson();
         if (null != metaInfJson) {
 
-            return metaInfJson.containsKey("Path") ? metaInfJson.getString("Path") : null;
+            return metaInfJson.containsKey("path") ? metaInfJson.getString("path") : null;
         }
         return null;
     }
