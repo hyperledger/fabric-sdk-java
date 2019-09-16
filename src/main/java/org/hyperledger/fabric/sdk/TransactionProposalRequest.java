@@ -46,4 +46,9 @@ public class TransactionProposalRequest extends TransactionRequest {
         }
         this.transientMap = transientMap;
     }
+
+    public void setChaincodeName(String chaincodeName) {
+        this.chaincodeName = chaincodeName;
+    }
+
 }

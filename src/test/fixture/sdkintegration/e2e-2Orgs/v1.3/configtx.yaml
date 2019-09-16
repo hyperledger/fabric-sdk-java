@@ -278,6 +278,31 @@ Capabilities:
         # the network may cause a fork.
         # V1_1_RESOURCETREE_EXPERIMENTAL: true
 
+
+    Application2_0: &ApplicationCapabilities2_0
+        # V1.1 for Application is a catchall flag for behavior which has been
+        # determined to be desired for all peers running v1.0.x, but the
+        # modification of which would cause incompatibilities.  Users should
+        # leave this flag set to true.
+        V2_0: true
+        # V1_1_PVTDATA_EXPERIMENTAL is an Application capability to enable the
+        # private data capability.  It is only supported when using peers built
+        # with experimental build tag.  When set to true, private data
+        # collections can be configured upon chaincode instantiation and
+        # utilized within chaincode Invokes.
+        # NOTE: Use of this feature with non "experimental" binaries on the
+        # network may cause a fork.
+        # V1_1_PVTDATA_EXPERIMENTAL: true
+        # V1_1_RESOURCETREE_EXPERIMENTAL is an Application capability to enable
+        # the resources capability. Currently this is needed for defining
+        # resource-based access control (RBAC). RBAC helps set fine-grained
+        # access control on system resources such as the endorser and various
+        # system chaincodes. Default is v1.0-based access control based on
+        # CHANNEL_READERS and CHANNEL_WRITERS.
+        # NOTE: Use of this feature with non "experimental" binaries on
+        # the network may cause a fork.
+        # V1_1_RESOURCETREE_EXPERIMENTAL: true
+
 ################################################################################
 #
 #   Profile
@@ -425,4 +450,14 @@ Profiles:
                 - *Org2Idemix
             Capabilities:
                 <<: *ApplicationCapabilities1_3
+
+    TwoOrgsChannel_v20:
+        Consortium: SampleConsortium
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *Org1
+                - *Org2
+            Capabilities:
+                <<: *ApplicationCapabilities2_0
 

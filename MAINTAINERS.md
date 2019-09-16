@@ -1,10 +1,12 @@
 ## Maintainers
 
 ### Active Maintainers
-| Name          | GitHub       | Gerrit       | email |
+| Name          | GitHub         | Gerrit         | email |
 |---|---|---|---|
-| Rick Rineholt | cr22rc        | rickr         | cr22rc@gmail.com       |
-| Gari Singh    | mastersingh24 | mastersingh24 | gari.r.singh@gmail.com |
+| Rick Rineholt | cr22rc         | rickr          | cr22rc@gmail.com          |
+| Gari Singh    | mastersingh24  | mastersingh24  | gari.r.singh@gmail.com    |
+| Andrew Coleman| andrew-coleman | andrew-coleman | andrew_coleman@uk.ibm.com |
+| Mark Lewis    | bestbeforetoday| bestbeforetoday| Mark.S.Lewis@outlook.com  |
 
 
 ### Retired Maintainers

@@ -20,62 +20,47 @@ import java.lang.ref.WeakReference;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
-import org.hyperledger.fabric.protos.peer.FabricTransaction.TransactionAction;
+import org.hyperledger.fabric.protos.peer.TransactionPackage;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
 
 class TransactionActionDeserializer {
     private final ByteString byteString;
-    private WeakReference<TransactionAction> transactionAction;
+    private WeakReference<TransactionPackage.TransactionAction> transactionAction;
     private WeakReference<ChaincodeActionPayloadDeserializer> chaincodeActionPayloadDeserializer;
 
     TransactionActionDeserializer(ByteString byteString) {
         this.byteString = byteString;
     }
 
-    TransactionActionDeserializer(TransactionAction transactionAction) {
+    TransactionActionDeserializer(TransactionPackage.TransactionAction transactionAction) {
         byteString = transactionAction.toByteString();
-        this.transactionAction = new WeakReference<TransactionAction>(transactionAction);
+        this.transactionAction = new WeakReference<TransactionPackage.TransactionAction>(transactionAction);
     }
 
-    TransactionAction getTransactionAction() {
-        TransactionAction ret = null;
+    TransactionPackage.TransactionAction getTransactionAction() {
+        TransactionPackage.TransactionAction ret = transactionAction != null ? transactionAction.get() : null;
 
-        if (transactionAction != null) {
-            ret = transactionAction.get();
-
-        }
-        if (ret == null) {
-
+        if (null == ret) {
             try {
-                ret = TransactionAction.parseFrom(byteString);
+                ret = TransactionPackage.TransactionAction.parseFrom(byteString);
             } catch (InvalidProtocolBufferException e) {
                 throw new InvalidProtocolBufferRuntimeException(e);
             }
 
-            transactionAction = new WeakReference<TransactionAction>(ret);
+            transactionAction = new WeakReference<>(ret);
         }
 
         return ret;
-
     }
 
     ChaincodeActionPayloadDeserializer getPayload() {
+        ChaincodeActionPayloadDeserializer ret = chaincodeActionPayloadDeserializer != null ? chaincodeActionPayloadDeserializer.get() : null;
 
-        ChaincodeActionPayloadDeserializer ret = null;
-
-        if (chaincodeActionPayloadDeserializer != null) {
-            ret = chaincodeActionPayloadDeserializer.get();
-
-        }
-        if (ret == null) {
-
+        if (null == ret) {
             ret = new ChaincodeActionPayloadDeserializer(getTransactionAction().getPayload());
-
-            chaincodeActionPayloadDeserializer = new WeakReference<ChaincodeActionPayloadDeserializer>(ret);
-
+            chaincodeActionPayloadDeserializer = new WeakReference<>(ret);
         }
 
         return ret;
-
     }
 }

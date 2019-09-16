@@ -20,10 +20,8 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.nio.file.Paths;
-import java.security.PrivateKey;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,7 +41,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.codec.binary.Hex;
-import org.bouncycastle.openssl.PEMWriter;
 import org.hyperledger.fabric.protos.ledger.rwset.kvrwset.KvRwset;
 import org.hyperledger.fabric.sdk.BlockEvent;
 import org.hyperledger.fabric.sdk.BlockInfo;
@@ -54,7 +51,6 @@ import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.ChannelConfiguration;
 import org.hyperledger.fabric.sdk.Enrollment;
-import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.InstallProposalRequest;
 import org.hyperledger.fabric.sdk.InstantiateProposalRequest;
@@ -88,6 +84,7 @@ import static org.hyperledger.fabric.sdk.BlockInfo.EnvelopeType.TRANSACTION_ENVE
 import static org.hyperledger.fabric.sdk.Channel.NOfEvents.createNofEvents;
 import static org.hyperledger.fabric.sdk.Channel.PeerOptions.createPeerOptions;
 import static org.hyperledger.fabric.sdk.Channel.TransactionOptions.createTransactionOptions;
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.getPEMStringFromPrivateKey;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -458,17 +455,6 @@ public class End2endMTIT {
 
     }
 
-    static String getPEMStringFromPrivateKey(PrivateKey privateKey) throws IOException {
-        StringWriter pemStrWriter = new StringWriter();
-        PEMWriter pemWriter = new PEMWriter(pemStrWriter);
-
-        pemWriter.writeObject(privateKey);
-
-        pemWriter.close();
-
-        return pemStrWriter.toString();
-    }
-
     //CHECKSTYLE.OFF: Method length is 320 lines (max allowed is 150).
     void runChannel(HFClient client, Channel channel, final int workerId, final int runId, SampleOrg sampleOrg, final int delta, final int start) {
         int ret = -1;
@@ -506,7 +492,7 @@ public class End2endMTIT {
 //
 //                        chaincodeEvents.add(new ChaincodeEventCapture(handle, blockEvent, chaincodeEvent));
 //
-//                        String es = blockEvent.getPeer() != null ? blockEvent.getPeer().getName() : blockEvent.getEventHub().getName();
+//                        String es = blockEvent.getPeer() != null ? blockEvent.getPeer().getLabel() : blockEvent.getEventHub().getName();
 //                        out("RECEIVED Chaincode event with handle: %s, chaincode Id: %s, chaincode event name: %s, "
 //                                        + "transaction id: %s, event payload: \"%s\", from eventhub: %s",
 //                                handle, chaincodeEvent.getChaincodeId(),
@@ -683,7 +669,7 @@ public class End2endMTIT {
             // Get the peers from the current org being used and pick one randomly to send the queries to.
             //  Set<Peer> peerSet = sampleOrg.getPeers();
             //  Peer queryPeer = peerSet.iterator().next();
-            //   out("Using peer %s for channel queries", queryPeer.getName());
+            //   out("Using peer %s for channel queries", queryPeer.getLabel());
 
             final AtomicLong atomicHeight = new AtomicLong(Long.MAX_VALUE);
             final BlockchainInfo[] bcInfoA = new BlockchainInfo[1];
@@ -859,18 +845,6 @@ public class End2endMTIT {
             newChannel.addOrderer(orderer);
         }
 
-        for (String eventHubName : sampleOrg.getEventHubNames()) {
-
-            final Properties eventHubProperties = testConfig.getEventHubProperties(eventHubName);
-
-            eventHubProperties.put("grpc.NettyChannelBuilderOption.keepAliveTime", new Object[] {5L, TimeUnit.MINUTES});
-            eventHubProperties.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {8L, TimeUnit.SECONDS});
-
-            EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
-                    eventHubProperties);
-            newChannel.addEventHub(eventHub);
-        }
-
         newChannel.initialize();
 
         out("Finished initialization channel %s", name);
@@ -958,9 +932,8 @@ public class End2endMTIT {
 
                             String chaincodeIDName = transactionActionInfo.getChaincodeIDName();
                             String chaincodeIDVersion = transactionActionInfo.getChaincodeIDVersion();
-                            String chaincodeIDPath = transactionActionInfo.getChaincodeIDPath();
-                            out("   Transaction action %d proposal chaincodeIDName: %s, chaincodeIDVersion: %s,  chaincodeIDPath: %s ", j,
-                                    chaincodeIDName, chaincodeIDVersion, chaincodeIDPath);
+                            out("   Transaction action %d proposal chaincodeIDName: %s, chaincodeIDVersion: %s", j,
+                                    chaincodeIDName, chaincodeIDVersion);
 
                             // Check to see if we have our expected event.
                             if (blockNumber == 2) {
@@ -972,7 +945,6 @@ public class End2endMTIT {
                                 assertEquals(CHAIN_CODE_NAME, chaincodeEvent.getChaincodeId());
                                 assertEquals(EXPECTED_EVENT_NAME, chaincodeEvent.getEventName());
                                 assertEquals(CHAIN_CODE_NAME, chaincodeIDName);
-                                assertEquals("github.com/example_cc", chaincodeIDPath);
                                 assertEquals("1", chaincodeIDVersion);
 
                             }
@@ -1168,9 +1140,6 @@ public class End2endMTIT {
         Channel.NOfEvents nOfEvents = createNofEvents();
         if (!channel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).isEmpty()) {
             nOfEvents.addPeers(channel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)));
-        }
-        if (!channel.getEventHubs().isEmpty()) {
-            nOfEvents.addEventHubs(channel.getEventHubs());
         }
 
         return channel.sendTransaction(successful, createTransactionOptions() //Basically the default options but shows it's usage.

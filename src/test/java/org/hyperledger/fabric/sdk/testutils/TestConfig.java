@@ -18,16 +18,20 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -63,8 +67,10 @@ public class TestConfig {
     private static final String DEPLOYWAITTIME = PROPBASE + "DeployWaitTime";
     private static final String PROPOSALWAITTIME = PROPBASE + "ProposalWaitTime";
     private static final String RUNIDEMIXMTTEST = PROPBASE + "RunIdemixMTTest";  // org.hyperledger.fabric.sdktest.RunIdemixMTTest ORG_HYPERLEDGER_FABRIC_SDKTEST_RUNIDEMIXMTTEST
+    private static final String RUNSERVICEDISCOVERYIT = PROPBASE + "runServiceDiscoveryIT";  // org.hyperledger.fabric.sdktest.RunIdemixMTTest ORG_HYPERLEDGER_FABRIC_SDKTEST_RUNIDEMIXMTTEST
 
     private static final String INTEGRATIONTESTS_ORG = PROPBASE + "integrationTests.org.";
+
     private static final Pattern orgPat = Pattern.compile("^" + Pattern.quote(INTEGRATIONTESTS_ORG) + "([^\\.]+)\\.mspid$");
 
     private static final String INTEGRATIONTESTSTLS = PROPBASE + "integrationtests.tls";
@@ -103,7 +109,7 @@ public class TestConfig {
         }
 
         FAB_CONFIG_GEN_VERS = "v" + fabricVersion[0] + "." + fabricVersion[1];
-        if (FAB_CONFIG_GEN_VERS.equalsIgnoreCase("v1.4") || FAB_CONFIG_GEN_VERS.equalsIgnoreCase("v2.0")) { //TODO REMOVE WHEN WE GET A V2.0 GEN
+        if (FAB_CONFIG_GEN_VERS.equalsIgnoreCase("v1.4")) {
             FAB_CONFIG_GEN_VERS = "v1.3";
         }
 
@@ -129,6 +135,7 @@ public class TestConfig {
             defaultProperty(DEPLOYWAITTIME, "120000");
             defaultProperty(PROPOSALWAITTIME, "120000");
             defaultProperty(RUNIDEMIXMTTEST, "false");
+            defaultProperty(RUNSERVICEDISCOVERYIT, "false");
 
             //////
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.mspid", "Org1MSP");
@@ -137,13 +144,11 @@ public class TestConfig {
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.caName", "ca0");
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.peer_locations", "peer0.org1.example.com@grpc://" + LOCALHOST + ":7051, peer1.org1.example.com@grpc://" + LOCALHOST + ":7056");
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.orderer_locations", "orderer.example.com@grpc://" + LOCALHOST + ":7050");
-            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg1.eventhub_locations", "peer0.org1.example.com@grpc://" + LOCALHOST + ":7053,peer1.org1.example.com@grpc://" + LOCALHOST + ":7058");
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.mspid", "Org2MSP");
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.domname", "org2.example.com");
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.ca_location", "http://" + LOCALHOST + ":8054");
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.peer_locations", "peer0.org2.example.com@grpc://" + LOCALHOST + ":8051,peer1.org2.example.com@grpc://" + LOCALHOST + ":8056");
             defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.orderer_locations", "orderer.example.com@grpc://" + LOCALHOST + ":7050");
-            defaultProperty(INTEGRATIONTESTS_ORG + "peerOrg2.eventhub_locations", "peer0.org2.example.com@grpc://" + LOCALHOST + ":8053, peer1.org2.example.com@grpc://" + LOCALHOST + ":8058");
 
             defaultProperty(INTEGRATIONTESTSTLS, null);
             runningTLS = null != sdkProperties.getProperty(INTEGRATIONTESTSTLS, null);
@@ -188,16 +193,6 @@ public class TestConfig {
                     sampleOrg.addOrdererLocation(nl[0], grpcTLSify(nl[1]));
                 }
 
-                if (isFabricVersionBefore("1.3")) { // Eventhubs supported.
-
-                    String eventHubNames = sdkProperties.getProperty(INTEGRATIONTESTS_ORG + orgName + ".eventhub_locations");
-                    ps = eventHubNames.split("[ \t]*,[ \t]*");
-                    for (String peer : ps) {
-                        String[] nl = peer.split("[ \t]*@[ \t]*");
-                        sampleOrg.addEventHubLocation(nl[0], grpcTLSify(nl[1]));
-                    }
-                }
-
                 sampleOrg.setCALocation(httpTLSify(sdkProperties.getProperty((INTEGRATIONTESTS_ORG + org.getKey() + ".ca_location"))));
 
                 sampleOrg.setCAName(sdkProperties.getProperty((INTEGRATIONTESTS_ORG + org.getKey() + ".caName")));
@@ -216,6 +211,29 @@ public class TestConfig {
 
                     sampleOrg.setCAProperties(properties);
                 }
+
+                //FIX Node chaincode to reference chaincode shim package according to fabric version.
+
+                String ncCv = 2 == fabricVersion[0] ? "\"unstable\"" : String.format("\"~%d.%d.0\"", fabricVersion[0], fabricVersion[1]);
+
+                try {
+                    List<Path> collect = null;
+                    try (Stream<Path> filess = Files.walk(Paths.get("src/test/fixture/sdkintegration/nodecc"))) {
+                        collect = filess.filter(f -> f.getFileName().toString().equals("package.json.TEMPLATE"))
+                                .collect(Collectors.toList());
+                    }
+
+                    for (Path jspf : collect) {
+                        String jpff = new String(Files.readAllBytes(jspf)).replaceAll(Pattern.quote("${1}"), ncCv).replaceAll("(?m)^#.*$\n", "");
+                        Path pkgjson = Paths.get(jspf.getParent().toFile().getAbsolutePath(), "package.json");
+                        pkgjson.toFile().deleteOnExit();
+                        Files.write(pkgjson, jpff.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+                    }
+
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
             }
 
         }
@@ -243,6 +261,17 @@ public class TestConfig {
     public boolean isFabricVersionBefore(String version) {
 
         return !isFabricVersionAtOrAfter(version);
+    }
+
+    /**
+     * Service discovery needs enteries in et/hosts to resolve names to run successfully.
+     * By default turn off.
+     *
+     * @return true to run service discovery integration test.
+     */
+
+    public boolean runServiceDiscoveryIT() {
+        return Objects.equals("true", sdkProperties.get(RUNSERVICEDISCOVERYIT));
     }
 
     private static int[] parseVersion(String version) {
@@ -421,12 +450,6 @@ public class TestConfig {
         return ret;
     }
 
-    public Properties getEventHubProperties(String name) {
-
-        return getEndPointProperties("peer", name); //uses same as named peer
-
-    }
-
     public String getTestChannelPath() {
 
         return "src/test/fixture/sdkintegration/e2e-2Orgs/" + FAB_CONFIG_GEN_VERS;
@@ -478,11 +501,6 @@ public class TestConfig {
                 sourceText = sourceText.replaceAll("http://localhost", "http://" + LOCALHOST);
                 sourceText = sourceText.replaceAll("grpcs://localhost", "grpcs://" + LOCALHOST);
                 sourceText = sourceText.replaceAll("grpc://localhost", "grpc://" + LOCALHOST);
-
-                if (isFabricVersionAtOrAfter("1.3")) {
-                    //eventUrl: grpc://localhost:8053
-                    sourceText = sourceText.replaceAll("(?m)^[ \\t]*eventUrl:", "# eventUrl:");
-                }
 
                 Files.write(Paths.get(temp.getAbsolutePath()), sourceText.getBytes(StandardCharsets.UTF_8),
                         StandardOpenOption.CREATE_NEW, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);

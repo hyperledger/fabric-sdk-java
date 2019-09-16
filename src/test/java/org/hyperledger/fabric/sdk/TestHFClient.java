@@ -43,7 +43,6 @@ public class TestHFClient {
     }
 
     public static void setupClient(HFClient hfclient) throws Exception {
-        CryptoSuite cryptoSuite = CryptoSuite.Factory.getCryptoSuite();
 
         File tempFile = File.createTempFile("teststore", "properties");
         tempFile.deleteOnExit();

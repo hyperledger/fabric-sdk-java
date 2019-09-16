@@ -111,16 +111,6 @@ message NonRevocationProof {
 	bytes non_revocation_proof = 2;
 }
 
-// PlainSigNonRevokedProof is a non-revoked proof for the plain signature-based revocation algorithm.
-// It proves that the revocation authority placed a weak Boneh-Boyen signature (ia.cr/2009/221) on its revocation handle,
-// using the zero knowledge proof from Camenisch, Drijvers, Hajny: "Scalable Revocation Scheme for Anonymous Credentials
-// Based on n-times Unlinkable Proofs"
-message PlainSigNonRevokedProof {
-	ECP sigma_prime = 1;
-	ECP sigma_bar = 2;
-	bytes proof_s_r = 3;
-}
-
 // NymSignature specifies a signature object that signs a message
 // with respect to a pseudonym. It differs from the standard idemix.signature in the fact that
 // the  standard signature object also proves that the pseudonym is based on a secret certified by
@@ -152,18 +142,4 @@ message CredentialRevocationInformation {
 
 	// revocation_data contains data specific to the revocation algorithm used
 	bytes revocation_data = 5;
-}
-
-// PlainSigRevocationData holds the algorithm-specific data for the plain signature-based revocation algorithm
-message PlainSigRevocationData {
-	// sigantures contains a list of signed revocation handles
-	repeated MessageSignature signatures = 1;
-}
-
-message MessageSignature {
-	// revocation_handle is the revocation handle signed
-	bytes revocation_handle = 1;
-
-	// rh_signature is the signature on the revocation handle
-	ECP rh_signature = 2;
 }

@@ -21,77 +21,56 @@ import java.util.List;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.protos.peer.ProposalResponsePackage;
+import org.hyperledger.fabric.protos.peer.TransactionPackage;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
-
-import static org.hyperledger.fabric.protos.peer.FabricTransaction.ChaincodeEndorsedAction;
 
 class ChaincodeEndorsedActionDeserializer {
     private final ByteString byteString;
-    private WeakReference<ChaincodeEndorsedAction> chaincodeEndorsedAction;
+    private WeakReference<TransactionPackage.ChaincodeEndorsedAction> chaincodeEndorsedAction;
     private WeakReference<ProposalResponsePayloadDeserializer> proposalResponsePayload;
 
-    ChaincodeEndorsedActionDeserializer(ChaincodeEndorsedAction action) {
+    ChaincodeEndorsedActionDeserializer(TransactionPackage.ChaincodeEndorsedAction action) {
         byteString = action.toByteString();
         chaincodeEndorsedAction = new WeakReference<>(action);
 
     }
 
-    ChaincodeEndorsedAction getChaincodeEndorsedAction() {
-        ChaincodeEndorsedAction ret = null;
+    TransactionPackage.ChaincodeEndorsedAction getChaincodeEndorsedAction() {
+        TransactionPackage.ChaincodeEndorsedAction ret = chaincodeEndorsedAction != null ? chaincodeEndorsedAction.get() : null;
 
-        if (chaincodeEndorsedAction != null) {
-            ret = chaincodeEndorsedAction.get();
-
-        }
-        if (ret == null) {
-
+        if (null == ret) {
             try {
-                ret = ChaincodeEndorsedAction.parseFrom(byteString);
+                ret = TransactionPackage.ChaincodeEndorsedAction.parseFrom(byteString);
             } catch (InvalidProtocolBufferException e) {
                 throw new InvalidProtocolBufferRuntimeException(e);
             }
-
             chaincodeEndorsedAction = new WeakReference<>(ret);
         }
 
         return ret;
-
     }
 
     int getEndorsementsCount() {
-
         return getChaincodeEndorsedAction().getEndorsementsCount();
-
     }
 
-    List<FabricProposalResponse.Endorsement> getEndorsements() {
-
+    List<ProposalResponsePackage.Endorsement> getEndorsements() {
         return getChaincodeEndorsedAction().getEndorsementsList();
     }
 
     byte[] getEndorsementSignature(int index) {
-
         return getChaincodeEndorsedAction().getEndorsements(index).getSignature().toByteArray();
     }
 
     ProposalResponsePayloadDeserializer getProposalResponsePayload() {
+        ProposalResponsePayloadDeserializer ret = proposalResponsePayload != null ? proposalResponsePayload.get() : null;
 
-        ProposalResponsePayloadDeserializer ret = null;
-
-        if (proposalResponsePayload != null) {
-            ret = proposalResponsePayload.get();
-
-        }
-        if (ret == null) {
-
+        if (null == ret) {
             ret = new ProposalResponsePayloadDeserializer(getChaincodeEndorsedAction().getProposalResponsePayload());
             proposalResponsePayload = new WeakReference<>(ret);
-
         }
 
         return ret;
-
     }
-
 }

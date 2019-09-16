@@ -15,11 +15,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.common.Common.Header;
-import org.hyperledger.fabric.protos.ledger.rwset.Rwset.TxReadWriteSet;
+import org.hyperledger.fabric.protos.ledger.rwset.Rwset;
 import org.hyperledger.fabric.protos.msp.Identities;
-import org.hyperledger.fabric.protos.peer.FabricProposal;
-import org.hyperledger.fabric.protos.peer.FabricProposal.ChaincodeHeaderExtension;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.protos.peer.ProposalPackage;
+import org.hyperledger.fabric.protos.peer.ProposalResponsePackage;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
@@ -44,8 +43,8 @@ public class ProposalResponse extends ChaincodeResponse {
     private boolean hasBeenVerified = false;
 
     private WeakReference<ProposalResponsePayloadDeserializer> proposalResponsePayload;
-    private FabricProposal.Proposal proposal;
-    private FabricProposalResponse.ProposalResponse proposalResponse;
+    private ProposalPackage.Proposal proposal;
+    private ProposalResponsePackage.ProposalResponse proposalResponse;
     private Peer peer = null;
     private ChaincodeID chaincodeID = null;
     private final TransactionContext transactionContext;
@@ -71,23 +70,19 @@ public class ProposalResponse extends ChaincodeResponse {
 
         }
         if (ret == null) {
-
             try {
                 ret = new ProposalResponsePayloadDeserializer(proposalResponse.getPayload());
             } catch (Exception e) {
                 throw new InvalidArgumentException(e);
             }
-
             proposalResponsePayload = new WeakReference<>(ret);
         }
 
         return ret;
-
     }
 
     ByteString getPayloadBytes() {
         return proposalResponse.getPayload();
-
     }
 
     public boolean isVerified() {
@@ -120,7 +115,7 @@ public class ProposalResponse extends ChaincodeResponse {
                 return false;
             }
 
-            FabricProposalResponse.Endorsement endorsement = this.proposalResponse.getEndorsement();
+            ProposalResponsePackage.Endorsement endorsement = this.proposalResponse.getEndorsement();
             ByteString sig = endorsement.getSignature();
             byte[] endorserCertifcate = null;
             byte[] signature = null;
@@ -132,7 +127,6 @@ public class ProposalResponse extends ChaincodeResponse {
                 ByteString plainText = proposalResponse.getPayload().concat(endorsement.getEndorser());
 
                 if (config.extraLogLevel(10)) {
-
                     if (null != diagnosticFileDumper) {
                         StringBuilder sb = new StringBuilder(10000);
                         sb.append("payload TransactionBuilderbytes in hex: " + DatatypeConverter.printHexBinary(proposalResponse.getPayload().toByteArray()));
@@ -145,14 +139,12 @@ public class ProposalResponse extends ChaincodeResponse {
                         logger.trace("payload TransactionBuilderbytes:  " +
                                 diagnosticFileDumper.createDiagnosticFile(sb.toString()));
                     }
-
                 }
 
                 if (sig == null || sig.isEmpty()) { // we shouldn't get here ...
                     logger.warn(format("%s %s returned signature is empty verify set to false.", peer, getTransactionID()));
                     this.isVerified = false;
                 } else {
-
                     endorserCertifcate = endorser.getIdBytes().toByteArray();
                     signature = sig.toByteArray();
                     data = plainText.toByteArray();
@@ -187,17 +179,15 @@ public class ProposalResponse extends ChaincodeResponse {
         }
     } // verify
 
-    public FabricProposal.Proposal getProposal() {
+    public ProposalPackage.Proposal getProposal() {
         return proposal;
     }
 
-    public void setProposal(FabricProposal.SignedProposal signedProposal) throws ProposalException {
-
+    public void setProposal(ProposalPackage.SignedProposal signedProposal) throws ProposalException {
         try {
-            this.proposal = FabricProposal.Proposal.parseFrom(signedProposal.getProposalBytes());
+            this.proposal = ProposalPackage.Proposal.parseFrom(signedProposal.getProposalBytes());
         } catch (InvalidProtocolBufferException e) {
             throw new ProposalException(format("%s transaction: %s Proposal exception", peer, getTransactionID()), e);
-
         }
     }
 
@@ -206,12 +196,11 @@ public class ProposalResponse extends ChaincodeResponse {
      *
      * @return peer response.
      */
-
-    public FabricProposalResponse.ProposalResponse getProposalResponse() {
+    public ProposalResponsePackage.ProposalResponse getProposalResponse() {
         return proposalResponse;
     }
 
-    public void setProposalResponse(FabricProposalResponse.ProposalResponse proposalResponse) {
+    public void setProposalResponse(ProposalResponsePackage.ProposalResponse proposalResponse) {
         this.proposalResponse = proposalResponse;
     }
 
@@ -220,7 +209,6 @@ public class ProposalResponse extends ChaincodeResponse {
      *
      * @return See {@link Peer}
      */
-
     public Peer getPeer() {
         return this.peer;
     }
@@ -239,24 +227,18 @@ public class ProposalResponse extends ChaincodeResponse {
      * @return See {@link ChaincodeID}
      * @throws InvalidArgumentException
      */
-
     public ChaincodeID getChaincodeID() throws InvalidArgumentException {
-
         try {
-
             if (chaincodeID == null) {
-
                 Header header = Header.parseFrom(proposal.getHeader());
                 Common.ChannelHeader channelHeader = Common.ChannelHeader.parseFrom(header.getChannelHeader());
-                ChaincodeHeaderExtension chaincodeHeaderExtension = ChaincodeHeaderExtension.parseFrom(channelHeader.getExtension());
+                ProposalPackage.ChaincodeHeaderExtension chaincodeHeaderExtension = ProposalPackage.ChaincodeHeaderExtension.parseFrom(channelHeader.getExtension());
                 chaincodeID = new ChaincodeID(chaincodeHeaderExtension.getChaincodeId());
             }
             return chaincodeID;
-
         } catch (Exception e) {
             throw new InvalidArgumentException(e);
         }
-
     }
 
     /**
@@ -265,21 +247,15 @@ public class ProposalResponse extends ChaincodeResponse {
      * @return the result of the executing chaincode.
      * @throws InvalidArgumentException
      */
-
     public byte[] getChaincodeActionResponsePayload() throws InvalidArgumentException {
-
         if (isInvalid()) {
             throw new InvalidArgumentException("Proposal response is invalid.");
         }
 
         try {
-
             final ProposalResponsePayloadDeserializer proposalResponsePayloadDeserializer = getProposalResponsePayloadDeserializer();
             ByteString ret = proposalResponsePayloadDeserializer.getExtension().getChaincodeAction().getResponse().getPayload();
-            if (null == ret) {
-                return null;
-            }
-            return ret.toByteArray();
+            return ret != null ? ret.toByteArray() : null;
         } catch (InvalidArgumentException e) {
             throw e;
         } catch (Exception e) {
@@ -293,25 +269,20 @@ public class ProposalResponse extends ChaincodeResponse {
      * @return status code.
      * @throws InvalidArgumentException
      */
-
     public int getChaincodeActionResponseStatus() throws InvalidArgumentException {
-
         if (statusReturnCode != -1) {
             return statusReturnCode;
         }
 
         try {
-
             final ProposalResponsePayloadDeserializer proposalResponsePayloadDeserializer = getProposalResponsePayloadDeserializer();
             statusReturnCode = proposalResponsePayloadDeserializer.getExtension().getResponseStatus();
             return statusReturnCode;
-
         } catch (InvalidArgumentException e) {
             throw e;
         } catch (Exception e) {
             throw new InvalidArgumentException(e);
         }
-
     }
 
     /**
@@ -320,29 +291,17 @@ public class ProposalResponse extends ChaincodeResponse {
      * @return The read write set. See {@link TxReadWriteSetInfo}
      * @throws InvalidArgumentException
      */
-
     public TxReadWriteSetInfo getChaincodeActionResponseReadWriteSetInfo() throws InvalidArgumentException {
-
         if (isInvalid()) {
             throw new InvalidArgumentException("Proposal response is invalid.");
         }
 
         try {
-
             final ProposalResponsePayloadDeserializer proposalResponsePayloadDeserializer = getProposalResponsePayloadDeserializer();
-
-            TxReadWriteSet txReadWriteSet = proposalResponsePayloadDeserializer.getExtension().getResults();
-
-            if (txReadWriteSet == null) {
-                return null;
-            }
-
-            return new TxReadWriteSetInfo(txReadWriteSet);
-
+            Rwset.TxReadWriteSet txReadWriteSet = proposalResponsePayloadDeserializer.getExtension().getResults();
+            return txReadWriteSet != null ? new TxReadWriteSetInfo(txReadWriteSet) : null;
         } catch (Exception e) {
             throw new InvalidArgumentException(e);
         }
-
     }
-
 }

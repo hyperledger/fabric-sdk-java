@@ -1,26 +1,13 @@
-/*
-Copyright IBM Corp. 2016 All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Copyright the Hyperledger Fabric contributors. All rights reserved.
+//
+// SPDX-License-Identifier: Apache-2.0
 
 syntax = "proto3";
 
-option go_package = "github.com/hyperledger/fabric/protos/orderer";
+option go_package = "github.com/hyperledger/fabric-protos-go/orderer";
 option java_package = "org.hyperledger.fabric.protos.orderer";
 
 package orderer;
-
 
 // The orderer config is specified by the following convention:
 //   For a configuration item with key "Key"
@@ -29,7 +16,20 @@ package orderer;
 //   the encoded value is the proto message "ConsensusType"
 
 message ConsensusType {
+    // The consensus type: "solo", "kafka" or "etcdraft".
     string type = 1;
+    // Opaque metadata, dependent on the consensus type.
+    bytes metadata = 2;
+
+    // State defines the orderer mode of operation, typically for consensus-type migration.
+    // NORMAL is during normal operation, when consensus-type migration is not, and can not, take place.
+    // MAINTENANCE is when the consensus-type can be changed.
+    enum State {
+        STATE_NORMAL = 0;
+        STATE_MAINTENANCE = 1;
+    }
+    // The state signals the ordering service to go into maintenance mode, typically for consensus-type migration.
+    State state = 3;
 }
 
 message BatchSize {

@@ -14,9 +14,11 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import com.spotify.futures.CompletableFuturesExtra;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.apache.commons.logging.Log;
@@ -24,8 +26,8 @@ import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.discovery.DiscoveryGrpc;
 import org.hyperledger.fabric.protos.discovery.Protocol;
 import org.hyperledger.fabric.protos.peer.EndorserGrpc;
-import org.hyperledger.fabric.protos.peer.FabricProposal;
-import org.hyperledger.fabric.protos.peer.FabricProposalResponse;
+import org.hyperledger.fabric.protos.peer.ProposalPackage;
+import org.hyperledger.fabric.protos.peer.ProposalResponsePackage;
 import org.hyperledger.fabric.sdk.exception.PeerException;
 import org.hyperledger.fabric.sdk.helper.Config;
 
@@ -110,18 +112,35 @@ class EndorserClient {
         }
     }
 
-    public ListenableFuture<FabricProposalResponse.ProposalResponse> sendProposalAsync(FabricProposal.SignedProposal proposal) throws PeerException {
+    public CompletableFuture<ProposalResponsePackage.ProposalResponse> sendProposalAsync(ProposalPackage.SignedProposal proposal) {
         if (shutdown) {
-            throw new PeerException("Shutdown " + toString());
+            CompletableFuture<ProposalResponsePackage.ProposalResponse> ret = new CompletableFuture<>();
+            ret.completeExceptionally(new PeerException("Shutdown " + toString()));
+            return ret;
         }
-        return futureStub.processProposal(proposal);
+
+        CompletableFuture<ProposalResponsePackage.ProposalResponse> future = CompletableFuturesExtra.toCompletableFuture(futureStub.processProposal(proposal));
+
+        return future.exceptionally(throwable -> {
+            throw new CompletionException(format("%s %s", toString, throwable.getMessage()), throwable);
+        });
+
+        //  return CompletableFuturesExtra.toCompletableFuture(futureStub.processProposal(proposal));
+        //  return futureStub.processProposal(proposal);
     }
 
-    public ListenableFuture<Protocol.Response> sendDiscoveryRequestAsync(Protocol.SignedRequest signedRequest) throws PeerException {
+    public CompletableFuture<Protocol.Response> sendDiscoveryRequestAsync(Protocol.SignedRequest signedRequest) {
         if (shutdown) {
-            throw new PeerException("Shutdown " + toString());
+            CompletableFuture<Protocol.Response> ret = new CompletableFuture<>();
+            ret.completeExceptionally(new PeerException("Shutdown " + toString()));
+            return ret;
         }
-        return discoveryFutureStub.discover(signedRequest);
+
+        CompletableFuture<Protocol.Response> future = CompletableFuturesExtra.toCompletableFuture(discoveryFutureStub.discover(signedRequest));
+        return future.exceptionally(throwable -> {
+            throw new CompletionException(format("%s %s", toString, throwable.getMessage()), throwable);
+        });
+
     }
 
     boolean isChannelActive() {

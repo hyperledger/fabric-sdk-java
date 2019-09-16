@@ -20,7 +20,7 @@ import java.lang.ref.WeakReference;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
-import org.hyperledger.fabric.protos.peer.ChaincodeEventOuterClass;
+import org.hyperledger.fabric.protos.peer.ChaincodeEventPackage;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
 
 /**
@@ -28,34 +28,25 @@ import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeExceptio
  */
 public class ChaincodeEvent {
     private final ByteString byteString;
-    private WeakReference<ChaincodeEventOuterClass.ChaincodeEvent> chaincodeEvent;
+    private WeakReference<ChaincodeEventPackage.ChaincodeEvent> chaincodeEvent;
 
     ChaincodeEvent(ByteString byteString) {
         this.byteString = byteString;
     }
 
-    ChaincodeEventOuterClass.ChaincodeEvent getChaincodeEvent() {
-        ChaincodeEventOuterClass.ChaincodeEvent ret = null;
+    ChaincodeEventPackage.ChaincodeEvent getChaincodeEvent() {
+        ChaincodeEventPackage.ChaincodeEvent ret = chaincodeEvent != null ? chaincodeEvent.get() : null;
 
-        if (chaincodeEvent != null) {
-            ret = chaincodeEvent.get();
-
-        }
-        if (ret == null) {
-
+        if (null == ret) {
             try {
-                ret = ChaincodeEventOuterClass.ChaincodeEvent.parseFrom(byteString);
-
+                ret = ChaincodeEventPackage.ChaincodeEvent.parseFrom(byteString);
             } catch (InvalidProtocolBufferException e) {
                 throw new InvalidProtocolBufferRuntimeException(e);
             }
-
             chaincodeEvent = new WeakReference<>(ret);
-
         }
 
         return ret;
-
     }
 
     /**
@@ -64,9 +55,7 @@ public class ChaincodeEvent {
      * @return Return name;
      */
     public String getEventName() {
-
         return getChaincodeEvent().getEventName();
-
     }
 
     /**
@@ -75,9 +64,7 @@ public class ChaincodeEvent {
      * @return The identifier
      */
     public String getChaincodeId() {
-
         return getChaincodeEvent().getChaincodeId();
-
     }
 
     /**
@@ -86,9 +73,7 @@ public class ChaincodeEvent {
      * @return The transactions id.
      */
     public String getTxId() {
-
         return getChaincodeEvent().getTxId();
-
     }
 
     /**
@@ -97,14 +82,11 @@ public class ChaincodeEvent {
      * @return binary data set by the chaincode for this event. This may return null.
      */
     public byte[] getPayload() {
-
         ByteString ret = getChaincodeEvent().getPayload();
         if (null == ret) {
             return null;
         }
 
         return ret.toByteArray();
-
     }
-
 }

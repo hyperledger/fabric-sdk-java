@@ -1,18 +1,16 @@
-/*
-Copyright IBM Corp. 2017 All Rights Reserved.
-
-SPDX-License-Identifier: Apache-2.0
-*/
+// Copyright the Hyperledger Fabric contributors. All rights reserved.
+//
+// SPDX-License-Identifier: Apache-2.0
 
 syntax = "proto3";
 
-import "common/common.proto";
-import "common/policies.proto";
-
-option go_package = "github.com/hyperledger/fabric/protos/common";
+option go_package = "github.com/hyperledger/fabric-protos-go/common";
 option java_package = "org.hyperledger.fabric.protos.common";
 
 package common;
+
+import "common/common.proto";
+import "common/policies.proto";
 
 // ConfigEnvelope is designed to contain _all_ configuration for a chain with no dependency
 // on previous configuration transactions.
@@ -80,9 +78,9 @@ message ConfigUpdate {
     reserved 4;
     reserved "type";
 
-    string channel_id = 1; // Which channel this config update is for
-    ConfigGroup read_set = 2; // ReadSet explicitly lists the portion of the config which was read, this should be sparse with only Version set
-    ConfigGroup write_set = 3; // WriteSet lists the portion of the config which was written, this should included updated Versions
+    string channel_id = 1;                // Which channel this config update is for
+    ConfigGroup read_set = 2;             // ReadSet explicitly lists the portion of the config which was read, this should be sparse with only Version set
+    ConfigGroup write_set = 3;            // WriteSet lists the portion of the config which was written, this should included updated Versions
     map<string, bytes> isolated_data = 5; // Data which is not to be reflected in the resulting Config, but is still needed for some other purpose.  For instance, rscc_seed_data
 }
 

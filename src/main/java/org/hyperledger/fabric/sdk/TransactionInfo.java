@@ -14,47 +14,46 @@
 package org.hyperledger.fabric.sdk;
 
 import org.hyperledger.fabric.protos.common.Common.Envelope;
-import org.hyperledger.fabric.protos.peer.FabricTransaction.ProcessedTransaction;
-import org.hyperledger.fabric.protos.peer.FabricTransaction.TxValidationCode;
+import org.hyperledger.fabric.protos.peer.TransactionPackage;
 
 /**
- * TransactionInfo contains the data from a {@link ProcessedTransaction} message
+ * TransactionInfo contains the data from a {@link TransactionPackage.ProcessedTransaction} message
  */
 public class TransactionInfo {
     private final String txID;
-    private final ProcessedTransaction processedTransaction;
+    private final TransactionPackage.ProcessedTransaction processedTransaction;
 
-    TransactionInfo(String txID, ProcessedTransaction processedTransaction) {
+    TransactionInfo(String txID, TransactionPackage.ProcessedTransaction processedTransaction) {
         this.txID = txID;
         this.processedTransaction = processedTransaction;
     }
 
     /**
-     * @return the transaction ID of this {@link ProcessedTransaction}
+     * @return the transaction ID of this {@link TransactionPackage.ProcessedTransaction}
      */
     public String getTransactionID() {
         return txID;
     }
 
     /**
-     * @return the {@link Envelope} of this {@link ProcessedTransaction}
+     * @return the {@link Envelope} of this {@link TransactionPackage.ProcessedTransaction}
      */
     public Envelope getEnvelope() {
         return processedTransaction.getTransactionEnvelope();
     }
 
     /**
-     * @return the raw {@link ProcessedTransaction}
+     * @return the raw {@link TransactionPackage.ProcessedTransaction}
      */
-    public ProcessedTransaction getProcessedTransaction() {
+    public TransactionPackage.ProcessedTransaction getProcessedTransaction() {
         return processedTransaction;
     }
 
     /**
-     * @return the {@link TxValidationCode} of this {@link ProcessedTransaction}
+     * @return the {@link TransactionPackage.TxValidationCode} of this {@link TransactionPackage.ProcessedTransaction}
      */
-    public TxValidationCode getValidationCode() {
-        return TxValidationCode.forNumber(processedTransaction.getValidationCode());
+    public TransactionPackage.TxValidationCode getValidationCode() {
+        return TransactionPackage.TxValidationCode.forNumber(processedTransaction.getValidationCode());
     }
 
 }

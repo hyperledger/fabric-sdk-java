@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,6 +42,9 @@ import static java.lang.String.format;
  */
 public class ChaincodeEndorsementPolicy {
     private static final Pattern noofPattern = Pattern.compile("^(\\d+)-of$");
+    /**
+     * Serialized Policies.SignaturePolicyEnvelope protobuf
+     */
     private byte[] policyBytes = null;
 
     /**
@@ -229,6 +233,7 @@ public class ChaincodeEndorsementPolicy {
      * @param yamlPolicyFile File location for the chaincode endorsement policy specification.
      * @throws IOException
      * @throws ChaincodeEndorsementPolicyParseException
+     * @deprecated use {@link #fromYamlFile(Path)}
      */
 
     public void fromYamlFile(File yamlPolicyFile) throws IOException, ChaincodeEndorsementPolicyParseException {
@@ -252,6 +257,31 @@ public class ChaincodeEndorsementPolicy {
                 .build().toByteArray();
     }
 
+    public static ChaincodeEndorsementPolicy fromYamlFile(Path yamlPolicyFile) throws IOException, ChaincodeEndorsementPolicyParseException {
+        final Yaml yaml = new Yaml();
+        final Map<?, ?> load = (Map<?, ?>) yaml.load(new FileInputStream(yamlPolicyFile.toFile()));
+
+        Map<?, ?> mp = (Map<?, ?>) load.get("policy");
+
+        if (null == mp) {
+            throw new ChaincodeEndorsementPolicyParseException("The policy file has no policy section");
+        }
+
+        IndexedHashMap<String, MSPPrincipal> identities = parseIdentities((Map<?, ?>) load.get("identities"));
+
+        SignaturePolicy sp = parsePolicy(identities, mp);
+
+        ChaincodeEndorsementPolicy chaincodeEndorsementPolicy = new ChaincodeEndorsementPolicy();
+
+        chaincodeEndorsementPolicy.policyBytes = Policies.SignaturePolicyEnvelope.newBuilder()
+                .setVersion(0)
+                .addAllIdentities(identities.values())
+                .setRule(sp)
+                .build().toByteArray();
+
+        return chaincodeEndorsementPolicy;
+    }
+
     /**
      * Construct a chaincode endorsement policy from a stream.
      *
@@ -268,8 +298,20 @@ public class ChaincodeEndorsementPolicy {
      *
      * @param policyAsBytes the byte array containing the serialized policy
      */
-    public void fromBytes(byte[] policyAsBytes) {
-        this.policyBytes = policyAsBytes;
+    public static ChaincodeEndorsementPolicy fromBytes(byte[] policyAsBytes) {
+
+        ChaincodeEndorsementPolicy ret = new ChaincodeEndorsementPolicy();
+
+        ret.policyBytes = new byte[policyAsBytes.length];
+        System.arraycopy(policyAsBytes, 0, ret.policyBytes, 0, policyAsBytes.length);
+        return ret;
+    }
+
+    public byte[] getPolicyBytes() {
+
+        byte[] ret = new byte[policyBytes.length];
+        System.arraycopy(policyBytes, 0, ret, 0, policyBytes.length); // provide a copy.
+        return ret;
     }
 
     /**

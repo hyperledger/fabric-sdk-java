@@ -1,4 +1,4 @@
-# Java SDK for Hyperledger Fabric 2.0
+# Java SDK for Hyperledger Fabric 2.0 pre-release.
 Welcome to Java SDK for Hyperledger project. The SDK helps facilitate Java applications to manage the lifecycle of
  Hyperledger channels  and user chaincode. The SDK also provides a means to execute
   user chaincode, query blocks
@@ -26,6 +26,7 @@ SDK's `Enrollment` interface.
 
 |Release | Notes |Summary|
 |--------|:------|:------|
+|2.0     | [v2.0 release notes](./docs/release_v2.0.0_notes.md) | <ul><li>New lifecycle chaincode management</li><li>Connection config handlers</li><li>Application setting executor service</li><li>Queued block listener</li></ul>   |
 |1.4     | None | Minor updates no Fabric changes|
 |1.3     | [v1.3 release notes](./docs/release_v1.3.0_notes.md)|<ul><li>Java chaincode support</li><li>Query chaincode collection configuration</li><li>Identity Mixer transaction unlinkabilty support</li></ul> |
 |1.2     | [v1.2 release notes](./docs/release_v1.2.0_notes.md)|<ul><li>Private data collection support</li><li>Service discovery</li><li>Fabric CA certificate API </ul>|
@@ -37,20 +38,55 @@ SDK's `Enrollment` interface.
 ```
 git clone https://github.com/hyperledger/fabric-sdk-java.git
 cd fabric-sdk-java/
-git checkout -b release-1.4
 ```
 
-## Java applications
-For Java applications use the latest published v1.4.x releases:
+## Production Java applications
+For Java applications use the latest <b>released</b> version of the SDK v1.4.x releases:
 ```
      <!-- https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java -->
      <dependency>
          <groupId>org.hyperledger.fabric-sdk-java</groupId>
          <artifactId>fabric-sdk-java</artifactId>
-         <version>1.4.0</version>
+         <version>1.4.1</version>
      </dependency>
 
 ```
+
+## For v2.0 work in progress use 2.0.0-SNAPSHOT builds
+Work in progress 2.0.0 SNAPSHOT builds can be used by adding the following to your application's
+pom.xml
+```
+    <repositories>
+        <repository>
+            <id>snapshots-repo</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+<dependencies>
+
+        <!-- https://mvnrepository.com/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java -->
+        <dependency>
+            <groupId>org.hyperledger.fabric-sdk-java</groupId>
+            <artifactId>fabric-sdk-java</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+        </dependency>
+
+</dependencies>
+```
+
+### Java and Node Chaincode environment
+You may also need to on your <span style="color:red"><b>v2.0</b> </span>  Fabric network docker deployment explicitly pull the Java and Node chaincode environments for now.
+
+`docker pull nexus3.hyperledger.org:10001/hyperledger/fabric-nodeenv:amd64-2.0.0-stable&&docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv:amd64-latest&&docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv`
+
+`docker pull nexus3.hyperledger.org:10001/hyperledger/fabric-javaenv:amd64-2.0.0-stable&&docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-javaenv:amd64-2.0.0-stable hyperledger/fabric-javaenv:amd64-latest&&docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-javaenv:amd64-2.0.0-stable hyperledger/fabric-javaenv`
 
 ## Known limitations and restrictions
 
@@ -68,9 +104,9 @@ For Java applications use the latest published v1.4.x releases:
 Latest Fabric builds are seldom needed except for those working on the very latest Fabric features.
 Some information to help with that can been found in [Developer Instructions](./docs/DeveloperInstructions.md)
 
-## Latest builds of Fabric and Fabric-ca v1.4.0
+## v2.0 builds of Fabric and Fabric-ca needed for the integration test
 
-To get a functioning Fabric v1.4.0 network needed by the SDK Integration tests once it's built.
+To get a functioning Fabric v2.0 network needed by the SDK Integration tests.
 In the directory `src/test/fixture/sdkintegration` issue :
 
 `./fabric.sh restart`
@@ -131,14 +167,15 @@ Use this `maven` command to run the integration tests:
 
  |Integration Test | Summary and notes|
  |--------|:------|
- |[End2endIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java)|<ul><li>Register and enroll users with Fabric certificate authority.</li><li>Constructing channel first time.</li><li>Installing chaincode.</li><li>Instantiating chaincode.</li><li>Executing chaincode.</li><li>Querying channel for block information.</li><li>Chaincode event listener</li><li>Traversing block for information.</li><li>Prerequisite for all other testcases.</li></ul> |
- |[End2endAndBackAgainIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java)| <ul><li>Recreate channel.</li><li>Update chaincode.</li><li>Checking installed and instantiated chaincode.</li></ul> |
+ |[End2endLifecycleIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/df422e10fa38bf8a627dd81e7ad038404d625576/src/test/java/org/hyperledger/fabric/sdkintegration/End2endLifecycleIT.java)|<ul><li>New lifecycle chaincode management APIs <b>(v2.0)</b> :fire: </p> [Fabric read the docs: Chaincode for Operators](https://hyperledger-fabric.readthedocs.io/en/latest/chaincode4noah.html)</li></ul> |
+ |[End2endIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java)|<ul><li>Register and enroll users with Fabric certificate authority.</li><li>Constructing channel first time.</li><li>Installing chaincode. <b>DEPRECATED see v2.0 release notes!</b></li><li>Instantiating chaincode. <b>DEPRECATED see v2.0 release notes!</b> </li><li>Executing chaincode.</li><li>Querying channel for block information.</li><li>Chaincode event listener</li><li>Traversing block for information.</li><li>Prerequisite for all other testcases.</li></ul> |
+ |[End2endAndBackAgainIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endAndBackAgainIT.java)| <ul><li>Recreate channel.</li><li>Update chaincode.</li><li>Checking installed and instantiated chaincode. <b>DEPRECATED see v2.0 release notes!</b></li></ul> |
  |[End2endNodeIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endNodeIT.java)| <ul><li>Shows running End2endIT.java but with Node chaincode.</li><li>Note subclasses En2endIT class.</li></ul> |
  |[End2endJavaIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endJavaIT.java)| <ul><li>Shows running End2endIT.java but with Java chaincode.</li><li>Note subclasses En2endIT class.</li></ul> |
  |[End2endIdemixIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIdemixIT.java)| <ul><li>Shows running End2endIT.java but with Idemix credentials.</li><li>Note subclasses En2endIT class.</li></ul> |
- |[NetworkConfigIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/NetworkConfigIT.java)| <ul><li>Shows recreating channel with [common connection profile](https://jira.hyperledger.org/browse/FABN-808).</li></ul> |
+ |[NetworkConfigIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/df422e10fa38bf8a627dd81e7ad038404d625576/src/test/java/org/hyperledger/fabric/sdkintegration/NetworkConfigIT.java)| <ul><li>Shows recreating channel with [common connection profile](https://jira.hyperledger.org/browse/FABN-808).</li><li>User defined handlers for creating Peers and Orderers<b> (v2.0) :fire: </b>. </li></ul> |
  |[PrivateDataIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/PrivateDataIT.java)| <ul><li>Shows instantiating and installing chaincode that defines private data.</li><li>Information on Fabric private data can be found [read the docs.](https://hyperledger-fabric.readthedocs.io/en/release-1.2/private-data/private-data.html)</li></ul> |
- |[UpdateChannelIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/UpdateChannelIT.java)| <ul><li>Shows updating channel configuration.</li><li>Details on channel configurations can be found on read the docs [Channel Configuration](https://hyperledger-fabric.readthedocs.io/en/release-1.2/configtx.html#)</li></ul> |
+ |[UpdateChannelIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/df422e10fa38bf8a627dd81e7ad038404d625576/src/test/java/org/hyperledger/fabric/sdkintegration/UpdateChannelIT.java)| <ul><li>Shows updating channel configuration.</li><li>Details on channel configurations can be found on read the docs [Channel Configuration](https://hyperledger-fabric.readthedocs.io/en/release-1.2/configtx.html#)</li><li>Queued block listener <b>(v2.0)</b> :fire: </li></ul> |
  |[ServiceDiscoveryIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/8044bac1bfe9baf9d6360b067e0d6b5445cc953d/src/test/java/org/hyperledger/fabric/sdkintegration/ServiceDiscoveryIT.java)| <ul><li>Shows service discovery.</li><li>Details on service discovery can be found on read the docs [Service Discovery](https://hyperledger-fabric.readthedocs.io/en/release-1.3/discovery-overview.html)</li><li>Note: requires adding entries in host file to remap docker fabric Peer and Orderers address to localhost</li></ul> |
 
 ### End to end test environment
@@ -239,6 +276,11 @@ and execute the following commands:
  * configtxgen --configPath . -outputCreateChannelTx foo.tx -profile TwoOrgsChannel_v13 -channelID foo
  * configtxgen --configPath . -outputCreateChannelTx bar.tx -profile TwoOrgsChannel_v13 -channelID bar
 
+For v2.0 integration, cd to the `src/test/fixture/sdkintegration/e2e-2Orgs/v2.0` directory
+ * configtxgen --configPath . -outputCreateChannelTx v2channel.tx -profile TwoOrgsChannel_v20 -channelID v2channel
+ * configtxgen --configPath . -outputBlock orderer.block -profile TwoOrgsOrdererGenesis_v20 -channelID systemordererchannel
+
+
  This should produce the following files in the same directory: orderer.block, foo.tx, and bar.tx
 
  **Note:** The above describes how this was done. If you redo this there are private key files
@@ -255,7 +297,9 @@ Go lang chaincode dependencies must be contained in vendor folder.
 
 ### Where can I find the Javadoc?
 
-Look in the [Maven repository](http://central.maven.org/maven2/org/hyperledger/fabric-sdk-java/fabric-sdk-java/)
+Published on [https://sdkjavadocs.github.io/](https://sdkjavadocs.github.io/)
+
+Also look in the [Maven repository](http://central.maven.org/maven2/org/hyperledger/fabric-sdk-java/fabric-sdk-java/)
 for the release in question there should be a file fabric-sdk-java-_&lt;release&gt;_-javadoc.jar
 
 For SNAPSHOT builds look in [Sonatype repository](https://oss.sonatype.org/content/repositories/snapshots/org/hyperledger/fabric-sdk-java/fabric-sdk-java/)
@@ -268,18 +312,49 @@ No.
 ### Is there an API to query for all channels that exist?
 No.
 
+### Should an application create more than one HFClient?
+There should be no need to do that in a single application. All the SDK requests are threadsafe. The user context set on the client
+can be on all requests overridden by setting the user context on that specific request.
+
+
+### Idemix users or Idemix test cases (IdemixIdentitiesTest) just seems to hang or take forever.
+
+Most likely this is running on a virtual machine that does not have sufficient entropy.
+Google for adding entropy on virtual machines or look at [virtual machines entropy](http://giovannitorres.me/increasing-entropy-on-virtual-machines.html)
+If linux try installing rng-tools package as this suggests.
+
 ### Firewalls, load balancers, network proxies
 
 These can sometimes silently kill a network connections and prevent them from auto reconnecting. To fix this look at
-adding to Peers, EventHub's and Orderer's connection properties:
+adding to Peers and Orderer's connection properties:
 `grpc.NettyChannelBuilderOption.keepAliveTime`, `grpc.NettyChannelBuilderOption.keepAliveTimeout`,
 `grpc.NettyChannelBuilderOption.keepAliveWithoutCalls`. Examples of this are in End2endIT.java
+
+### Missing protobuf classes.
+
+Please re-read this file doing <span style="color:red"><em>exactly</em> </span> the steps to run all the tests. They can't be missing if the tests pass. :smiley:
 
 ### grpc message frame size exceeds maximum
 
 The message being returned from the fabric server is too large for the default grpc frame size.
-On the Peer, Orderer, orEventHub add the property `grpc.NettyChannelBuilderOption.maxInboundMessageSize`
+On the Peer or Orderer add the property `grpc.NettyChannelBuilderOption.maxInboundMessageSize`
 See [End2endIT's constructChannel](https://github.com/hyperledger/fabric-sdk-java/blob/b649868113e969d851720c972f660114b64247bc/src/test/java/org/hyperledger/fabric/sdkintegration/End2endIT.java#L846)
+
+
+### Configuration and setting default values - timeouts etc
+
+The SDK's defaults are all in the file [Config.java](https://github.com/hyperledger/fabric-sdk-java/blob/a2140f9bba57a63c58d9ee8579fea7164bf3beb2/src/main/java/org/hyperledger/fabric/sdk/helper/Config.java#L33-L40)
+The [config.properties](https://github.com/hyperledger/fabric-sdk-java/blob/a2140f9bba57a63c58d9ee8579fea7164bf3beb2/config.properties)
+also has some descriptions on what they do.  Most server timeout request can be overridden with the specific request too.
+
+### What's difference between joining and adding a peer to a channel?
+You only ever *join* a peer belonging to _your own organization_ to a channel once at the beginning. You would only *add* peers
+from other organizations or peers of your own organization you've already *joined* like when recreating the channel SDK object.
+
+
+### Transaction sent to orderer results in future with exception *validation code: xxx* Where can I find what that means?
+
+See Fabric protobuf protos/peer/transaction.proto's [TxValidationCode](https://github.com/hyperledger/fabric/blob/dce0e5d8e7bbce5315d0895e5d1460640700285b/protos/peer/transaction.proto#L115-L143)
 
 
 ### java.security.InvalidKeyException: Illegal key size

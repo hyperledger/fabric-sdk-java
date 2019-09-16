@@ -23,7 +23,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import org.hyperledger.fabric.protos.common.Common.ChannelHeader;
 import org.hyperledger.fabric.protos.common.Common.Envelope;
 import org.hyperledger.fabric.protos.common.Common.Payload;
-import org.hyperledger.fabric.protos.peer.FabricTransaction;
+import org.hyperledger.fabric.protos.peer.TransactionPackage;
 import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
 
 class EnvelopeDeserializer {
@@ -34,52 +34,37 @@ class EnvelopeDeserializer {
 
     EnvelopeDeserializer(ByteString byteString, byte validcode) {
         this.byteString = byteString;
-
         this.validcode = validcode;
     }
 
     Envelope getEnvelope() {
-        Envelope ret = null;
+        Envelope ret = envelope != null ? envelope.get() : null;
 
-        if (envelope != null) {
-            ret = envelope.get();
-
-        }
         if (ret == null) {
-
             try {
                 ret = Envelope.parseFrom(byteString);
             } catch (InvalidProtocolBufferException e) {
                 throw new InvalidProtocolBufferRuntimeException(e);
             }
-
             envelope = new WeakReference<>(ret);
-
         }
 
         return ret;
-
     }
 
     byte[] getSignature() {
-
         return getEnvelope().getSignature().toByteArray();
-
     }
 
     PayloadDeserializer getPayload() {
-
         PayloadDeserializer ret = null;
 
         if (payload != null) {
             ret = payload.get();
-
         }
         if (ret == null) {
-
             ret = new PayloadDeserializer(getEnvelope().getPayload());
             payload = new WeakReference<>(ret);
-
         }
 
         return ret;
@@ -89,9 +74,7 @@ class EnvelopeDeserializer {
 
     int getType() {
         if (type == null) {
-
             type = getPayload().getHeader().getChannelHeader().getType();
-
         }
         return type;
     }
@@ -100,27 +83,21 @@ class EnvelopeDeserializer {
      * @return whether this Transaction is marked as TxValidationCode.VALID
      */
     public boolean isValid() {
-
-        return validcode == FabricTransaction.TxValidationCode.VALID_VALUE;
+        return validcode == TransactionPackage.TxValidationCode.VALID_VALUE;
     }
 
     /**
      * @return the validation code of this Transaction (enumeration TxValidationCode in Transaction.proto)
      */
     public byte validationCode() {
-
         return validcode;
     }
 
     static EnvelopeDeserializer newInstance(ByteString byteString, byte b) throws InvalidProtocolBufferException {
-
         EnvelopeDeserializer ret;
-
         final int type = ChannelHeader.parseFrom(Payload.parseFrom(Envelope.parseFrom(byteString).getPayload())
                 .getHeader().getChannelHeader()).getType();
-
        /*
-
     MESSAGE = 0;                   // Used for messages which are signed but opaque
     CONFIG = 1;                    // Used for messages which express the channel config
     CONFIG_UPDATE = 2;             // Used for transactions which update the channel config
@@ -128,7 +105,6 @@ class EnvelopeDeserializer {
     ORDERER_TRANSACTION = 4;       // Used internally by the orderer for management
     DELIVER_SEEK_INFO = 5;         // Used as the type for Envelope messages submitted to instruct the Deliver API to seek
     CHAINCODE_PACKAGE = 6;         // Used for packaging chaincode artifacts for install
-
      */
 
         switch (type) {
@@ -140,7 +116,5 @@ class EnvelopeDeserializer {
                 break;
         }
         return ret;
-
     }
-
 }

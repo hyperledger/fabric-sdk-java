@@ -17,6 +17,7 @@
 package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -36,19 +37,22 @@ import org.hyperledger.fabric.sdk.ProposalResponse;
 import org.hyperledger.fabric.sdk.ServiceDiscovery;
 import org.hyperledger.fabric.sdk.TransactionProposalRequest;
 import org.hyperledger.fabric.sdk.TransactionRequest;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.exception.ServiceDiscoveryException;
 import org.hyperledger.fabric.sdk.exception.TransactionEventException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static java.lang.String.format;
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertTrue;
 import static junit.framework.TestCase.fail;
 import static org.hyperledger.fabric.sdk.Channel.DiscoveryOptions.createDiscoveryOptions;
 import static org.hyperledger.fabric.sdk.Channel.PeerOptions.createPeerOptions;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 
 public class ServiceDiscoveryIT {
     private static final TestConfig testConfig = TestConfig.getConfig();
@@ -58,11 +62,14 @@ public class ServiceDiscoveryIT {
     String CHAIN_CODE_NAME = "example_cc_go";
     TransactionRequest.Type CHAIN_CODE_LANG = TransactionRequest.Type.GO_LANG;
 
-    @Ignore  //Hostnames reported by service discovery won't work unless you edit hostfile
     @Test
     public void setup() throws Exception {
         //Persistence is not part of SDK. Sample file store is for demonstration purposes only!
         //   MUST be replaced with more robust application implementation  (Database, LDAP)
+        if (!testConfig.runServiceDiscoveryIT()) {
+            out("\n\n\nNOT RUNNING: \"ServiceDiscoveryIT\"  runServiceDiscoveryIT=%b.\n", testConfig.runServiceDiscoveryIT());
+            return;
+        }
         out("\n\n\nRUNNING: %s.\n", "ServiceDiscoveryIT");
 
         SampleStore sampleStore = new SampleStore(sampleStoreFile);
@@ -82,7 +89,7 @@ public class ServiceDiscoveryIT {
 
         //Create initial discovery peer.
 
-        Peer discoveryPeer = client.newPeer("peer0.org1.example.com", protocol + "//localhost:7051", properties);
+        Peer discoveryPeer = client.newPeer("peer0.org1.example.com", protocol + "//peer0.org1.example.com:7051", properties);
         Channel foo = client.newChannel("foo"); //create channel that will be discovered.
 
         foo.addPeer(discoveryPeer, createPeerOptions().setPeerRoles(EnumSet.of(PeerRole.SERVICE_DISCOVERY, PeerRole.LEDGER_QUERY, PeerRole.EVENT_SOURCE, PeerRole.CHAINCODE_QUERY)));
@@ -105,13 +112,60 @@ public class ServiceDiscoveryIT {
         foo.shutdown(false);
         foo = client.deSerializeChannel(bytes);
 
+        //You can override the default implementation but these just reuse the default.
+        Channel.SDPeerAddition sdPeerAddition = foo.getSDPeerAddition();
+        assertNotNull(sdPeerAddition);
+        foo.setSDPeerAddition(sdPeerAddition);
+        assertSame(sdPeerAddition, foo.getSDPeerAddition());
+
+        // Just see if we can override and collect the orderers.
+        final ArrayList<Orderer> testCollectOrderers = new ArrayList();
+
+        Channel.SDOrdererAddition sdOrdererAddition = foo.setSDOrdererAddition(new Channel.SDOrdererDefaultAddition(sdprops) {
+            @Override
+            public Orderer addOrderer(Channel.SDOrdererAdditionInfo sdOrdererAdditionInfo) throws InvalidArgumentException, ServiceDiscoveryException {
+                Orderer ret = super.addOrderer(sdOrdererAdditionInfo);
+                testCollectOrderers.add(ret); // just see if our extended works.
+                return ret;
+            }
+        });
+        assertNotNull(sdOrdererAddition);
+
         foo.initialize(); // initialize the channel.
+
+        //Test if we pick up MSPIDs for Peers
+        Collection<String> peersOrganizationMSPIDs = foo.getPeersOrganizationMSPIDs();
+        assertNotNull(peersOrganizationMSPIDs);
+        assertEquals(1, peersOrganizationMSPIDs.size());
+        assertEquals("Org1MSP", peersOrganizationMSPIDs.iterator().next());
+        final Collection<Peer> org1MSPPeers = foo.getPeersForOrganization("Org1MSP");
+        assertNotNull(org1MSPPeers);
+        assertEquals(2, org1MSPPeers.size());
+        Set<String> expectpeerURL = new HashSet<>(Arrays.asList(protocol + "//peer0.org1.example.com:7051",
+                protocol + "//peer1.org1.example.com:7056")); //discovered orderer
+        org1MSPPeers.forEach(peer -> {
+            assertTrue(format("Missing peer %s", peer), expectpeerURL.contains(peer.getUrl()));
+        });
+
+        //Test if we pick up MSPIDs for Orderers
+        Collection<String> orderersOrganizationMSPIDs = foo.getOrderersOrganizationMSPIDs();
+        assertNotNull(orderersOrganizationMSPIDs);
+        assertEquals(1, orderersOrganizationMSPIDs.size());
+        assertEquals("OrdererMSP", orderersOrganizationMSPIDs.iterator().next());
+        final Collection<Orderer> org1MSPOrderers = foo.getOrderersForOrganization("OrdererMSP");
+        assertNotNull(org1MSPOrderers);
+        assertEquals(1, org1MSPOrderers.size());
+        Set<String> expectordererURL = new HashSet<>(Arrays.asList(protocol + "//orderer.example.com:7050")); //discovered orderer
+        org1MSPOrderers.forEach(orderer -> {
+            assertTrue(format("Missing orderer %s", orderer), expectordererURL.contains(orderer.getUrl()));
+        });
 
         Set<String> expect = new HashSet<>(Arrays.asList(protocol + "//orderer.example.com:7050")); //discovered orderer
         for (Orderer orderer : foo.getOrderers()) {
             expect.remove(orderer.getUrl());
         }
         assertTrue(expect.isEmpty());
+        assertEquals(foo.getOrderers().size(), testCollectOrderers.size());
 
         final Collection<String> discoveredChaincodeNames = foo.getDiscoveredChaincodeNames();
 

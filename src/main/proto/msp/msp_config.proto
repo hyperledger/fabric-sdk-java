@@ -1,14 +1,12 @@
-/*
-Copyright IBM Corp. All Rights Reserved.
-
-SPDX-License-Identifier: Apache-2.0
-*/
+// Copyright the Hyperledger Fabric contributors. All rights reserved.
+//
+// SPDX-License-Identifier: Apache-2.0
 
 syntax = "proto3";
 
-option go_package = "github.com/hyperledger/fabric/protos/msp";
+option go_package = "github.com/hyperledger/fabric-protos-go/msp";
 option java_package = "org.hyperledger.fabric.protos.msp";
-option java_outer_classname = "MspConfig";
+option java_outer_classname = "MspConfigPackage";
 
 package msp;
 
@@ -205,4 +203,9 @@ message FabricNodeOUs {
     // OU Identifier of the peers
     FabricOUIdentifier peer_ou_identifier = 3;
 
+    // OU Identifier of the admins
+    FabricOUIdentifier admin_ou_identifier = 4;
+
+    // OU Identifier of the orderers
+    FabricOUIdentifier orderer_ou_identifier = 5;
 }

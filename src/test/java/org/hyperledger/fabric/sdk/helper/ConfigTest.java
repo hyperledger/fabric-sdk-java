@@ -22,6 +22,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertNull;
+
 public class ConfigTest {
 
     private final TestConfigHelper configHelper = new TestConfigHelper();
@@ -128,6 +130,16 @@ public class ConfigTest {
     @Test
     public void testLogLevelError() {
         testLogLevelAny("ERROR", org.apache.log4j.Level.ERROR);
+    }
+
+    @Test
+    public void defaultChaincodeEndorsementPluginTest() {
+        assertNull(Config.getConfig().getDefaultChaincodeEndorsementPlugin());
+    }
+
+    @Test
+    public void defaultChaincodeValidationPluginTest() {
+        assertNull(Config.getConfig().getDefaultChaincodeValidationPlugin());
     }
 
     // ==========================================================================================

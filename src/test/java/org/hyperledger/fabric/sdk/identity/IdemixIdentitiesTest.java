@@ -35,7 +35,7 @@ import org.bouncycastle.util.io.pem.PemReader;
 import org.hyperledger.fabric.protos.common.MspPrincipal;
 import org.hyperledger.fabric.protos.idemix.Idemix;
 import org.hyperledger.fabric.protos.msp.Identities;
-import org.hyperledger.fabric.protos.msp.MspConfig.IdemixMSPSignerConfig;
+import org.hyperledger.fabric.protos.msp.MspConfigPackage;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.idemix.IdemixCredential;
@@ -90,7 +90,7 @@ public class IdemixIdentitiesTest {
     public static void setup() {
 
         // Parse crypto material from files
-        IdemixMSPSignerConfig signerConfig = null;
+        MspConfigPackage.IdemixMSPSignerConfig signerConfig = null;
         try {
             signerConfig = readIdemixMSPConfig(TEST_PATH + MSP1OU1 + USER_PATH, SIGNER_CONFIG);
         } catch (Exception e) {
@@ -175,7 +175,7 @@ public class IdemixIdentitiesTest {
     // Test creating a signer config
     @Test
     public void testIdemixMSPSignerConfigSuccess() {
-        IdemixMSPSignerConfig signerConfig = null;
+        MspConfigPackage.IdemixMSPSignerConfig signerConfig = null;
         try {
             signerConfig = readIdemixMSPConfig(TEST_PATH + MSP1OU1 + USER_PATH, SIGNER_CONFIG);
         } catch (InvalidProtocolBufferException e) {
@@ -402,7 +402,7 @@ public class IdemixIdentitiesTest {
      * @throws InvalidProtocolBufferException
      */
     private IdemixSigningIdentity createIdemixSigningIdentity(String mspId) throws CryptoException, InvalidArgumentException, IOException, InvalidKeySpecException, NoSuchAlgorithmException {
-        IdemixMSPSignerConfig signerConfig = null;
+        MspConfigPackage.IdemixMSPSignerConfig signerConfig = null;
         signerConfig = readIdemixMSPConfig(TEST_PATH + mspId + USER_PATH, SIGNER_CONFIG);
         assertNotNull(signerConfig);
 
@@ -432,11 +432,11 @@ public class IdemixIdentitiesTest {
      * @param id
      * @return IdemixMSPSignerConfig proto
      */
-    public static IdemixMSPSignerConfig readIdemixMSPConfig(String configPath, String id) throws IOException {
+    public static MspConfigPackage.IdemixMSPSignerConfig readIdemixMSPConfig(String configPath, String id) throws IOException {
 
         Path path = Paths.get(configPath + id);
         byte[] data = Files.readAllBytes(path);
-        IdemixMSPSignerConfig signerConfig = IdemixMSPSignerConfig.parseFrom(data);
+        MspConfigPackage.IdemixMSPSignerConfig signerConfig = MspConfigPackage.IdemixMSPSignerConfig.parseFrom(data);
         return signerConfig;
     }
 

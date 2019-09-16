@@ -6,6 +6,8 @@
 #
 # simple batch script making it easier to cleanup and start a relatively fresh fabric env.
 
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
 if [ ! -e "docker-compose.yaml" ];then
   echo "docker-compose.yaml not found."
   exit 8

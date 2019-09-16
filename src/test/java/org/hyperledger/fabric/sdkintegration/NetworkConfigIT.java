@@ -64,6 +64,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.getMockUser;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -134,19 +135,6 @@ public class NetworkConfigIT {
                 peerProperties.setProperty("clientCertFile", testProp.getProperty("clientCertFile"));
                 peerProperties.setProperty("clientKeyFile", testProp.getProperty("clientKeyFile"));
                 networkConfig.setPeerProperties(peerName, peerProperties);
-
-            } catch (InvalidArgumentException e) {
-                throw new RuntimeException(e);
-            }
-        });
-
-        networkConfig.getEventHubNames().forEach(eventhubName -> {
-            try {
-                Properties eventHubsProperties = networkConfig.getEventHubsProperties(eventhubName);
-                Properties testProp = testConfig.getEndPointProperties("peer", eventhubName);
-                eventHubsProperties.setProperty("clientCertFile", testProp.getProperty("clientCertFile"));
-                eventHubsProperties.setProperty("clientKeyFile", testProp.getProperty("clientKeyFile"));
-                networkConfig.setEventHubProperties(eventhubName, eventHubsProperties);
 
             } catch (InvalidArgumentException e) {
                 throw new RuntimeException(e);
@@ -243,6 +231,11 @@ public class NetworkConfigIT {
         final String channelName = channel.getName();
 
         out("Running testUpdate1 - Channel %s", channelName);
+
+        final Collection<String> peersOrganizationMSPIDs = channel.getPeersOrganizationMSPIDs();
+        assertNotNull(peersOrganizationMSPIDs);
+        assertEquals(1, peersOrganizationMSPIDs.size());
+        assertEquals("Org1MSP", peersOrganizationMSPIDs.iterator().next());
 
         int moveAmount = 5;
         String originalVal = queryChaincodeForCurrentValue(client, channel, chaincodeID);

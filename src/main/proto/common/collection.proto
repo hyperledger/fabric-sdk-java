@@ -1,17 +1,15 @@
-/*
-Copyright IBM Corp. All Rights Reserved.
-
-SPDX-License-Identifier: Apache-2.0
-*/
+// Copyright the Hyperledger Fabric contributors. All rights reserved.
+//
+// SPDX-License-Identifier: Apache-2.0
 
 syntax = "proto3";
 
-import "common/policies.proto";
-
-option go_package = "github.com/hyperledger/fabric/protos/common";
+option go_package = "github.com/hyperledger/fabric-protos-go/common";
 option java_package = "org.hyperledger.fabric.protos.common";
 
 package common;
+
+import "common/policies.proto";
 
 // CollectionConfigPackage represents an array of CollectionConfig
 // messages; the extra struct is required because repeated oneof is
@@ -28,6 +26,7 @@ message CollectionConfig {
         StaticCollectionConfig static_collection_config = 1;
     }
 }
+
 
 // StaticCollectionConfig constitutes the configuration parameters of a
 // static collection object. Static collections are collections that are
@@ -50,7 +49,18 @@ message StaticCollectionConfig {
     // For instance if the value is set to 10, a key last modified by block number 100
     // will be purged at block number 111. A zero value is treated same as MaxUint64
     uint64 block_to_live = 5;
+    // The member only read access denotes whether only collection member clients
+    // can read the private data (if set to true), or even non members can
+    // read the data (if set to false, for example if you want to implement more granular
+    // access logic in the chaincode)
+    bool member_only_read = 6;
+    // The member only write access denotes whether only collection member clients
+    // can write the private data (if set to true), or even non members can
+    // write the data (if set to false, for example if you want to implement more granular
+    // access logic in the chaincode)
+    bool member_only_write = 7;
 }
+
 
 // Collection policy configuration. Initially, the configuration can only
 // contain a SignaturePolicy. In the future, the SignaturePolicy may be a
@@ -63,9 +73,10 @@ message CollectionPolicyConfig {
         // Later, the SignaturePolicy will be replaced by a Policy.
         //        Policy policy = 1;
         // A reference to a Policy is planned to be added later.
-        //        string reference = 2;
+//        string reference = 2;
     }
 }
+
 
 // CollectionCriteria defines an element of a private data that corresponds
 // to a certain transaction and collection

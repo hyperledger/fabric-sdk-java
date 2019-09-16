@@ -19,6 +19,7 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -41,6 +42,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.getField;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -162,6 +164,11 @@ public class NetworkConfigTest {
 
         Channel channel = client.loadChannelFromConfig("mychannel", config);
         assertNotNull(channel);
+        final Collection<String> peersOrganizationMSPIDs = channel.getPeersOrganizationMSPIDs();
+        assertEquals(2, peersOrganizationMSPIDs.size());
+        assertTrue(peersOrganizationMSPIDs.contains("Org2MSP"));
+        assertTrue(peersOrganizationMSPIDs.contains("Org1MSP"));
+
     }
 
     @Test
@@ -292,10 +299,17 @@ public class NetworkConfigTest {
             Properties properties = peer.getProperties();
 
             assertNotNull(properties);
-            assertNull(properties.get("grpc.NettyChannelBuilderOption.keepAliveTime"));
-            assertNull(properties.get("grpc.NettyChannelBuilderOption.keepAliveTimeout"));
-            assertNull(properties.get("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls"));
+            // check for default properties
+            Object[] o = (Object[]) properties.get("grpc.NettyChannelBuilderOption.keepAliveTime");
+            assertEquals(o[0], 2L);
+            assertEquals(o[1], TimeUnit.MINUTES);
 
+            o = (Object[]) properties.get("grpc.NettyChannelBuilderOption.keepAliveTimeout");
+            assertEquals(o[0], 20L);
+            assertEquals(o[1], TimeUnit.SECONDS);
+
+            o = (Object[]) properties.get("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls");
+            assertEquals(o[0], true);
         }
 
     }
@@ -403,6 +417,67 @@ public class NetworkConfigTest {
 
     }
 
+    @Test
+    public void testPeerOrdererOverrideHandlers() throws Exception {
+
+        // Should be able to instantiate a new instance of "Client" with a valid path to the YAML configuration
+        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.yaml");
+        NetworkConfig config = NetworkConfig.fromYamlFile(f);
+        //HFClient client = HFClient.loadFromConfig(f);
+        assertNotNull(config);
+
+        HFClient client = HFClient.createNewInstance();
+        client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+        client.setUserContext(TestUtils.getMockUser(USER_NAME, USER_MSP_ID));
+        final Long expectedStartEvents = 10L;
+        final Long expectedStopEvents = 100L;
+        final Long expectmaxMessageSizePeer = 99999999L;
+        final Long expectmaxMessageSizeOrderer = 888888L;
+
+        Channel channel = client.loadChannelFromConfig("foo", config, (networkConfig, client1, channel1, peerName, peerURL, peerProperties, peerOptions, jsonPeer) -> {
+            try {
+                Map<String, NetworkConfig.OrgInfo> peerOrgInfos = networkConfig.getPeerOrgInfos(peerName);
+                assertNotNull(peerOrgInfos);
+                assertTrue(peerOrgInfos.containsKey("Org1"));
+                assertEquals("Org1MSP", peerOrgInfos.get("Org1").getMspId());
+                peerProperties.put("grpc.NettyChannelBuilderOption.maxInboundMessageSize", expectmaxMessageSizePeer);
+                Peer peer = client1.newPeer(peerName, peerURL, peerProperties);
+                peerOptions.registerEventsForFilteredBlocks();
+                peerOptions.startEvents(expectedStartEvents);
+                peerOptions.stopEvents(expectedStopEvents);
+                channel1.addPeer(peer, peerOptions);
+            } catch (Exception e) {
+                throw new NetworkConfigurationException(format("Error on creating channel %s peer %s", channel1.getName(), peerName), e);
+            }
+
+        }, (networkConfig, client12, channel12, ordererName, ordererURL, ordererProperties, jsonOrderer) -> {
+
+            try {
+                ordererProperties.put("grpc.NettyChannelBuilderOption.maxInboundMessageSize", expectmaxMessageSizeOrderer);
+                Orderer orderer = client12.newOrderer(ordererName, ordererURL, ordererProperties);
+                channel12.addOrderer(orderer);
+            } catch (Exception e) {
+                throw new NetworkConfigurationException(format("Error on creating channel %s orderer %s", channel12.getName(), ordererName), e);
+            }
+
+        });
+
+        assertNotNull(channel);
+        for (Peer peer : channel.getPeers()) {
+            Channel.PeerOptions peersOptions = channel.getPeersOptions(peer);
+            assertNotNull(peersOptions);
+            assertTrue(peersOptions.isRegisterEventsForFilteredBlocks());
+            assertEquals(expectedStartEvents, peersOptions.startEvents);
+            assertEquals(expectedStopEvents, peersOptions.stopEvents);
+            assertEquals(expectmaxMessageSizePeer, peer.getProperties().get("grpc.NettyChannelBuilderOption.maxInboundMessageSize"));
+        }
+
+        for (Orderer orderer : channel.getOrderers()) {
+            assertEquals(expectmaxMessageSizeOrderer, orderer.getProperties().get("grpc.NettyChannelBuilderOption.maxInboundMessageSize"));
+        }
+
+    }
+
     // TODO: ca-org1 not defined
     @Ignore
     @Test
@@ -497,7 +572,8 @@ public class NetworkConfigTest {
                 String orgName = "Org" + i;
                 JsonObject org = createJsonOrg(
                         orgName + "MSP",
-                        createJsonArray("peer0.org" + i + ".example.com"),
+                        i <= nPeers ?
+                                createJsonArray("peer0.org" + i + ".example.com") : createJsonArray(),
                         createJsonArray("ca-org" + i),
                         createJsonArray(createJsonUser("admin" + i, "adminpw" + i)),
                         "-----BEGIN PRIVATE KEY----- <etc>",
@@ -538,14 +614,13 @@ public class NetworkConfigTest {
                 String peerName = "peer0.org" + i + ".example.com";
 
                 int port1 = (6 + i) * 1000 + 51;         // 7051, 8051, etc
-                int port2 = (6 + i) * 1000 + 53;         // 7053, 8053, etc
 
                 int orgNo = i;
                 int peerNo = 0;
 
                 JsonObject peer = createJsonPeer(
                         "grpcs://localhost:" + port1,
-                        "grpcs://localhost:" + port2,
+                        //     "grpcs://localhost:" + port2,
                         Json.createObjectBuilder()
                                 .add("ssl-target-name-override", "peer" + peerNo + ".org" + orgNo + ".example.com")
                                 .build(),
@@ -633,15 +708,21 @@ public class NetworkConfigTest {
                 .build();
     }
 
-    private static JsonObject createJsonPeer(String url, String eventUrl, JsonObject grpcOptions, JsonObject tlsCaCerts, JsonArray channels) {
+    private static JsonObject createJsonPeer(String url, JsonObject grpcOptions, JsonObject tlsCaCerts, JsonArray channels) {
 
         return Json.createObjectBuilder()
                 .add("url", url)
-                .add("eventUrl", eventUrl)
+
                 .add("grpcOptions", grpcOptions)
                 .add("tlsCaCerts", tlsCaCerts)
                 .add("channels", channels)
                 .build();
+    }
+
+    private static JsonArray createJsonArray() {
+
+        JsonArrayBuilder builder = Json.createArrayBuilder();
+        return builder.build();
     }
 
     private static JsonArray createJsonArray(String... elements) {

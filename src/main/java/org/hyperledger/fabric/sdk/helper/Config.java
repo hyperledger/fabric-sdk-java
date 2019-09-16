@@ -45,6 +45,8 @@ public class Config {
 
     private static final String DEFAULT_CONFIG = "config.properties";
     public static final String ORG_HYPERLEDGER_FABRIC_SDK_CONFIGURATION = "org.hyperledger.fabric.sdk.configuration";
+
+    private static final String DEFAULT_NULL = "\0DEFAULT_NULL\0".intern(); // Used to set value to NULL since null won't work.
     /**
      * Timeout settings
      **/
@@ -55,8 +57,7 @@ public class Config {
     public static final String ORDERER_WAIT_TIME = "org.hyperledger.fabric.sdk.orderer.ordererWaitTimeMilliSecs";
     public static final String PEER_EVENT_REGISTRATION_WAIT_TIME = "org.hyperledger.fabric.sdk.peer.eventRegistration.wait_time";
     public static final String PEER_EVENT_RETRY_WAIT_TIME = "org.hyperledger.fabric.sdk.peer.retry_wait_time";
-    public static final String EVENTHUB_CONNECTION_WAIT_TIME = "org.hyperledger.fabric.sdk.eventhub_connection.wait_time";
-    public static final String EVENTHUB_RECONNECTION_WARNING_RATE = "org.hyperledger.fabric.sdk.eventhub.reconnection_warning_rate";
+
     public static final String PEER_EVENT_RECONNECTION_WARNING_RATE = "org.hyperledger.fabric.sdk.peer.reconnection_warning_rate";
     public static final String GENESISBLOCK_WAIT_TIME = "org.hyperledger.fabric.sdk.channel.genesisblock_wait_time";
     /**
@@ -102,6 +103,11 @@ public class Config {
     public static final String SERVICE_DISCOVER_FREQ_SECONDS = "org.hyperledger.fabric.sdk.service_discovery.frequency_sec";
     public static final String SERVICE_DISCOVER_WAIT_TIME = "org.hyperledger.fabric.sdk.service_discovery.discovery_wait_time";
 
+    public static final String LIFECYCLE_CHAINCODE_ENDORSEMENT_PLUGIN = "org.hyperledger.fabric.sdk.lifecycle.chaincode_endorsement_plugin"; //ORG_HYPERLEDGER_FABRIC_SDK_LIFECYCLE_CHAINCODE_ENDORSEMENT_PLUGIN
+
+    public static final String LIFECYCLE_CHAINCODE_VALIDATION_PLUGIN = "org.hyperledger.fabric.sdk.lifecycle.chaincode_validation_plugin";   //ORG_HYPERLEDGER_FABRIC_SDK_LIFECYCLE_CHAINCODE_VALIDATION_PLUGIN
+    public static final String LIFECYCLE_INITREQUIREDDEFAULT = "org.hyperledger.fabric.sdk.lifecycle.initRequiredDefault";   //ORG_HYPERLEDGER_FABRIC_SDK_LIFECYCLE_INITREQUIREDDEFAULT
+
     private static Config config;
     private static final Properties sdkProperties = new Properties();
     private static final AtomicLong count = new AtomicLong(0);
@@ -138,7 +144,7 @@ public class Config {
             defaultProperty(ORDERER_WAIT_TIME, "10000");
             defaultProperty(PEER_EVENT_REGISTRATION_WAIT_TIME, "5000");
             defaultProperty(PEER_EVENT_RETRY_WAIT_TIME, "500");
-            defaultProperty(EVENTHUB_CONNECTION_WAIT_TIME, "5000");
+
             defaultProperty(GENESISBLOCK_WAIT_TIME, "5000");
             /**
              * This will NOT complete any transaction futures time out and must be kept WELL above any expected future timeout
@@ -187,11 +193,14 @@ public class Config {
              * Miscellaneous settings
              */
             defaultProperty(PROPOSAL_CONSISTENCY_VALIDATION, "true");
-            defaultProperty(EVENTHUB_RECONNECTION_WARNING_RATE, "50");
+
             defaultProperty(PEER_EVENT_RECONNECTION_WARNING_RATE, "50");
 
             defaultProperty(SERVICE_DISCOVER_FREQ_SECONDS, "120");
             defaultProperty(SERVICE_DISCOVER_WAIT_TIME, "5000");
+            defaultProperty(LIFECYCLE_CHAINCODE_ENDORSEMENT_PLUGIN, DEFAULT_NULL);
+            defaultProperty(LIFECYCLE_CHAINCODE_VALIDATION_PLUGIN, DEFAULT_NULL);
+            defaultProperty(LIFECYCLE_INITREQUIREDDEFAULT, DEFAULT_NULL);
 
             final String inLogLevel = sdkProperties.getProperty(LOGGERLEVEL);
 
@@ -258,10 +267,12 @@ public class Config {
      */
     private String getProperty(String property) {
 
-        String ret = sdkProperties.getProperty(property);
-
-        if (null == ret) {
+        if (!sdkProperties.containsKey(property)) {
             logger.warn(format("No configuration value found for '%s'", property));
+        }
+        String ret = sdkProperties.getProperty(property);
+        if (ret == DEFAULT_NULL) {
+            ret = null;
         }
         return ret;
     }
@@ -441,15 +452,6 @@ public class Config {
         return Long.parseLong(getProperty(PEER_EVENT_RETRY_WAIT_TIME));
     }
 
-    /**
-     * The number of failed  attempts to reissue a warning. Or -1 for none.
-     *
-     * @return The number of failed  attempts to reissue a warning.
-     */
-    public long getEventHubReconnectionWarningRate() {
-        return Long.parseLong(getProperty(EVENTHUB_RECONNECTION_WARNING_RATE));
-    }
-
     public long getPeerEventReconnectionWarningRate() {
         return Long.parseLong(getProperty(PEER_EVENT_RECONNECTION_WARNING_RATE));
     }
@@ -470,10 +472,6 @@ public class Config {
      */
     public int getServiceDiscoveryWaitTime() {
         return Integer.parseInt(getProperty(SERVICE_DISCOVER_WAIT_TIME));
-    }
-
-    public long getEventHubConnectionWaitTime() {
-        return Long.parseLong(getProperty(EVENTHUB_CONNECTION_WAIT_TIME));
     }
 
     public String getAsymmetricKeyType() {
@@ -596,4 +594,44 @@ public class Config {
         return TimeUnit.valueOf(getProperty(CLIENT_THREAD_EXECUTOR_KEEPALIVETIMEUNIT));
     }
 
+    /**
+     * The default chaincode Endorsement policy plugin
+     * <p>
+     * This should never need setting
+     *
+     * @return The default chaincode Endorsement policy plugin
+     */
+
+    public String getDefaultChaincodeEndorsementPlugin() {
+        return getProperty(LIFECYCLE_CHAINCODE_ENDORSEMENT_PLUGIN);
+    }
+
+    /**
+     * The default chaincode validation plugin
+     * This should never need setting.
+     *
+     * @return The default chaincode validation plugin
+     */
+    public String getDefaultChaincodeValidationPlugin() {
+        return getProperty(LIFECYCLE_CHAINCODE_VALIDATION_PLUGIN);
+    }
+
+    /**
+     * Whether require init method in chaincode to be run.
+     * The default will return null which will not set the Fabric protobuf value which then sets false. False is the Fabric
+     * default.
+     *
+     * @return The default setting for initRequired in chaincode approve for my org and commit chaincode definition.
+     */
+    public Boolean getLifecycleInitRequiredDefault() {
+
+        String property = getProperty(LIFECYCLE_INITREQUIREDDEFAULT);
+        if (property != null) {
+
+            return Boolean.parseBoolean(property);
+
+        }
+
+        return null;
+    }
 }

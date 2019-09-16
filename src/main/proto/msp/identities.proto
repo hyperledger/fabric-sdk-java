@@ -1,13 +1,10 @@
-/*
-Copyright IBM Corp. All Rights Reserved.
-
-SPDX-License-Identifier: Apache-2.0
-*/
-
+// Copyright the Hyperledger Fabric contributors. All rights reserved.
+//
+// SPDX-License-Identifier: Apache-2.0
 
 syntax = "proto3";
 
-option go_package = "github.com/hyperledger/fabric/protos/msp";
+option go_package = "github.com/hyperledger/fabric-protos-go/msp";
 option java_package = "org.hyperledger.fabric.protos.msp";
 
 package msp;
@@ -16,7 +13,7 @@ package msp;
 // (with its MSP identifier) to be used
 // to serialize it and deserialize it
 message SerializedIdentity {
-	// The identifier of the associated membership service provider
+    // The identifier of the associated membership service provider
     string mspid = 1;
 
     // the Identity, serialized according to the rules of its MPS

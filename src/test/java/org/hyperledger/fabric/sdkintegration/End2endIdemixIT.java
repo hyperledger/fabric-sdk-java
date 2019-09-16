@@ -19,6 +19,7 @@ import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
 import org.junit.Test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.hyperledger.fabric.sdk.testutils.TestUtils.getPEMStringFromPrivateKey;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 

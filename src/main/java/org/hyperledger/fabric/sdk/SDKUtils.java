@@ -107,7 +107,7 @@ public class SDKUtils {
      * @throws InvalidArgumentException
      */
 
-    public static Collection<Set<ProposalResponse>> getProposalConsistencySets(Collection<ProposalResponse> proposalResponses,
+    public static Collection<Set<ProposalResponse>> getProposalConsistencySets(Collection<? extends ProposalResponse> proposalResponses,
                                                                                Set<ProposalResponse> invalid) throws InvalidArgumentException {
 
         if (proposalResponses == null) {

@@ -43,7 +43,6 @@ import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.ChaincodeResponse.Status;
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.Channel.PeerOptions;
-import org.hyperledger.fabric.sdk.EventHub;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.InstallProposalRequest;
 import org.hyperledger.fabric.sdk.Peer;
@@ -106,9 +105,11 @@ public class End2endAndBackAgainIT {
     String CHAIN_CODE_VERSION = "1";
     TransactionRequest.Type CHAIN_CODE_LANG = TransactionRequest.Type.GO_LANG;
 
+    //Deprecated use v2.0 Lifecycle chaincode management.
     ChaincodeID chaincodeID = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
             .setVersion(CHAIN_CODE_VERSION)
             .setPath(CHAIN_CODE_PATH).build();
+    //Deprecated use v2.0 Lifecycle chaincode management.
     ChaincodeID chaincodeID_11 = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
             .setVersion(CHAIN_CODE_VERSION_11)
             .setPath(CHAIN_CODE_PATH).build();
@@ -201,14 +202,6 @@ public class End2endAndBackAgainIT {
 
         try {
 
-            // client.setMemberServices(peerOrg1FabricCA);
-
-            //Persistence is not part of SDK. Sample file store is for demonstration purposes only!
-            //   MUST be replaced with more robust application implementation  (Database, LDAP)
-
-//            if (sampleStoreFile.exists()) { //For testing start fresh
-//                sampleStoreFile.delete();
-//            }
             sampleStore = new SampleStore(sampleStoreFile);
 
             setupUsers(sampleStore);
@@ -335,6 +328,26 @@ public class End2endAndBackAgainIT {
             moveAmount(client, channel, chaincodeID, "25", changeContext ? sampleOrg.getPeerAdmin() : null).thenApply((BlockEvent.TransactionEvent transactionEvent) -> {
                 try {
 
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /**
+                     *                                  PLEASE READ !!
+                     *
+                     * The following is using Fabric v1.0 APIs for testing and demoing backward compatibility.
+                     * After v2.0 Fabric release unless there is a need for this in your application it is highly
+                     * encouraged to move to Fabric v2.0 capabilities and use the new v2.0 Lifecycle APIs for managing chaincode.
+                     * @see <a href="https://github.com/hyperledger/fabric-sdk-java/blob/master/docs/release_v2.0.0_notes.md#fabj-288-lifecycle-chaincode-management"</a>
+                     *
+                     **/
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+                    /////////////////////////////////////////////////////////////////////////////////////////////////
+
                     waitOnFabric();
                     client.setUserContext(sampleOrg.getUser(TESTUSER_1_NAME));
 
@@ -346,6 +359,8 @@ public class End2endAndBackAgainIT {
                     client.setUserContext(sampleOrg.getPeerAdmin());
                     ///////////////
                     ////
+
+                    //Deprecated use v2.0 Lifecycle chaincode management.
                     InstallProposalRequest installProposalRequest = client.newInstallProposalRequest();
                     installProposalRequest.setChaincodeID(chaincodeID);
                     ////For GO language and serving just a single user, chaincodeSource is mostly likely the users GOPATH
@@ -370,6 +385,7 @@ public class End2endAndBackAgainIT {
                     Collection<Peer> peersFromOrg = channel.getPeers();
                     numInstallProposal = numInstallProposal + peersFromOrg.size();
 
+                    //Deprecated use v2.0 Lifecycle chaincode management.
                     responses = client.sendInstallProposal(installProposalRequest, peersFromOrg);
 
                     for (ProposalResponse response : responses) {
@@ -395,6 +411,7 @@ public class End2endAndBackAgainIT {
                         installProposalRequest.setUserContext(sampleOrg.getPeerAdmin());
                     }
 
+                    //Deprecated use v2.0 Lifecycle chaincode management.
                     UpgradeProposalRequest upgradeProposalRequest = client.newUpgradeProposalRequest();
                     upgradeProposalRequest.setChaincodeID(chaincodeID_11);
                     upgradeProposalRequest.setProposalWaitTime(DEPLOYWAITTIME);
@@ -611,7 +628,7 @@ public class End2endAndBackAgainIT {
                 assertFalse(newChannel.getPeers(PeerRole.NO_EVENT_SOURCE).isEmpty());
 
             }
-            assertEquals(testConfig.isFabricVersionAtOrAfter("1.3") ? 0 : 2, newChannel.getEventHubs().size());
+
             out("Retrieved channel %s from sample store.", name);
 
         } else {
@@ -640,28 +657,14 @@ public class End2endAndBackAgainIT {
                 everyOther = !everyOther;
             }
 
-            //For testing mix it up. For v1.1 use just peer eventing service for foo channel.
-            if (IS_FABRIC_V10) {
-                //Should have no peers with event sources.
-                assertTrue(newChannel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).isEmpty());
-                //Should have two peers with all roles but event source.
-                assertEquals(2, newChannel.getPeers(PeerRole.NO_EVENT_SOURCE).size());
-                for (String eventHubName : sampleOrg.getEventHubNames()) {
-                    EventHub eventHub = client.newEventHub(eventHubName, sampleOrg.getEventHubLocation(eventHubName),
-                            testConfig.getEventHubProperties(eventHubName));
-                    newChannel.addEventHub(eventHub);
-                }
-            } else {
-                //Peers should have all roles. Do some sanity checks that they do.
+            //Peers should have all roles. Do some sanity checks that they do.
 
-                //Should have two peers with event sources.
-                assertEquals(2, newChannel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).size());
-                //Check some other roles too..
-                assertEquals(2, newChannel.getPeers(EnumSet.of(PeerRole.CHAINCODE_QUERY, PeerRole.LEDGER_QUERY)).size());
-                assertEquals(2, newChannel.getPeers(PeerRole.ALL).size());  //really same as newChannel.getPeers()
-            }
+            //Should have two peers with event sources.
+            assertEquals(2, newChannel.getPeers(EnumSet.of(PeerRole.EVENT_SOURCE)).size());
+            //Check some other roles too..
+            assertEquals(2, newChannel.getPeers(EnumSet.of(PeerRole.CHAINCODE_QUERY, PeerRole.LEDGER_QUERY)).size());
+            assertEquals(2, newChannel.getPeers(PeerRole.ALL).size());  //really same as newChannel.getPeers()
 
-            assertEquals(IS_FABRIC_V10 ? sampleOrg.getEventHubNames().size() : 0, newChannel.getEventHubs().size());
         }
 
         //Just some sanity check tests
@@ -828,7 +831,7 @@ public class End2endAndBackAgainIT {
                         useFilteredBlocks ? blockEvent.isFiltered() : !blockEvent.isFiltered());
                 final long count = bcount.getAndIncrement(); //count starts with 0 not 1 !
 
-                //out("Block count: %d, block number: %d  received from peer: %s", count, blockNumber, blockEvent.getPeer().getName());
+                //out("Block count: %d, block number: %d  received from peer: %s", count, blockNumber, blockEvent.getPeer().getLabel());
 
                 if (count == 0 && stop == -1L) {
                     final BlockchainInfo blockchainInfo = finalChannel.queryBlockchainInfo();

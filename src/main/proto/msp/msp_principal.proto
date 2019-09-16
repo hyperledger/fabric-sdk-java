@@ -1,27 +1,13 @@
-/*
-Copyright IBM Corp. 2016 All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
+// Copyright the Hyperledger Fabric contributors. All rights reserved.
+//
+// SPDX-License-Identifier: Apache-2.0
 
 syntax = "proto3";
 
-option go_package = "github.com/hyperledger/fabric/protos/msp";
+option go_package = "github.com/hyperledger/fabric-protos-go/msp";
 option java_package = "org.hyperledger.fabric.protos.common";
 
 package common;
-
 
 // msp_principal.proto contains proto messages defining the generalized
 // MSP notion of identity called an MSPPrincipal.  It is used as part of
@@ -48,16 +34,15 @@ package common;
 //          identity/certificate; this would mean that the Principal bytes
 //          message
 message MSPPrincipal {
-
     enum Classification {
-        ROLE = 0; // Represents the one of the dedicated MSP roles, the
+        ROLE = 0;  // Represents the one of the dedicated MSP roles, the
         // one of a member of MSP network, and the one of an
         // administrator of an MSP network
         ORGANIZATION_UNIT = 1; // Denotes a finer grained (affiliation-based)
         // groupping of entities, per MSP affiliation
         // E.g., this can well be represented by an MSP's
         // Organization unit
-        IDENTITY = 2; // Denotes a principal that consists of a single
+        IDENTITY  = 2;    // Denotes a principal that consists of a single
         // identity
         ANONYMITY = 3; // Denotes a principal that can be used to enforce
         // an identity to be anonymous or nominal.
@@ -106,7 +91,6 @@ message OrganizationUnit {
 // field of an MSPPrincipal when it aims to define one of the
 // two dedicated roles within an MSP: Admin and Members.
 message MSPRole {
-
     // MSPIdentifier represents the identifier of the MSP this principal
     // refers to
     string msp_identifier = 1;
@@ -116,31 +100,28 @@ message MSPRole {
         ADMIN  = 1; // Represents an MSP Admin
         CLIENT = 2; // Represents an MSP Client
         PEER = 3; // Represents an MSP Peer
+        ORDERER = 4; // Represents an MSP Orderer
     }
 
     // MSPRoleType defines which of the available, pre-defined MSP-roles
     // an identiy should posess inside the MSP with identifier MSPidentifier
     MSPRoleType role = 2;
-
 }
 
 // MSPIdentityAnonymity can be used to enforce an identity to be anonymous or nominal.
 message MSPIdentityAnonymity {
-
     enum MSPIdentityAnonymityType {
         NOMINAL = 0; // Represents a nominal MSP Identity
         ANONYMOUS = 1; // Represents an anonymous MSP Identity
     }
 
     MSPIdentityAnonymityType anonymity_type = 1;
-
 }
 
 // CombinedPrincipal governs the organization of the Principal
 // field of a policy principal when principal_classification has
 // indicated that a combined form of principals is required
 message CombinedPrincipal {
-
     // Principals refer to combined principals
     repeated MSPPrincipal principals = 1;
 }

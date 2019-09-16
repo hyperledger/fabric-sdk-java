@@ -41,6 +41,7 @@ import org.bouncycastle.asn1.x509.TBSCertList;
 import org.bouncycastle.cert.X509CRLHolder;
 import org.bouncycastle.openssl.PEMParser;
 import org.hyperledger.fabric.sdk.Enrollment;
+import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.identity.IdemixEnrollment;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
@@ -95,6 +96,7 @@ public class HFCAClientIT {
     private static final String TEST_USER1_ORG = "Org2";
     private static final String TEST_USER1_AFFILIATION = "org1.department1";
     private static final String TEST_WITH_INTEGRATION_ORG = "peerOrg1";
+    private static final String TEST_WITH_INTEGRATION_ORG_CA = "ca0";
     private static final String TEST_WITH_INTEGRATION_ORG2 = "peerOrg2";
 
     private SampleStore sampleStore;
@@ -133,6 +135,7 @@ public class HFCAClientIT {
         sampleStoreFile.deleteOnExit();
 
         client = HFCAClient.createNewInstance(
+                TEST_WITH_INTEGRATION_ORG_CA,
                 testConfig.getIntegrationTestsSampleOrg(TEST_WITH_INTEGRATION_ORG).getCALocation(),
                 testConfig.getIntegrationTestsSampleOrg(TEST_WITH_INTEGRATION_ORG).getCAProperties());
         client.setCryptoSuite(crypto);
@@ -596,7 +599,7 @@ public class HFCAClientIT {
         }
 
         HFCAIdentity ident = getIdentityReq("testuser1", HFCAClient.HFCA_TYPE_PEER);
-        ident.create(admin);
+        createSuccessfulHCAIdentity(ident, admin);
 
         HFCAIdentity identGet = client.newHFCAIdentity(ident.getEnrollmentId());
         identGet.read(admin);
@@ -643,7 +646,7 @@ public class HFCAClientIT {
         }
 
         HFCAIdentity ident = getIdentityReq("testuser2", HFCAClient.HFCA_TYPE_CLIENT);
-        ident.create(admin);
+        createSuccessfulHCAIdentity(ident, admin);
 
         Collection<HFCAIdentity> foundIdentities = client.getHFCAIdentities(admin);
         String[] expectedIdenities = new String[] {"testuser2", "admin"};
@@ -672,7 +675,7 @@ public class HFCAClientIT {
         }
 
         HFCAIdentity ident = getIdentityReq("testuser3", HFCAClient.HFCA_TYPE_ORDERER);
-        ident.create(admin);
+        createSuccessfulHCAIdentity(ident, admin);
         assertEquals("Incorrect response for type", "orderer", ident.getType());
         assertNotEquals("Incorrect value for max enrollments", ident.getMaxEnrollments(), new Integer(5));
 
@@ -700,7 +703,7 @@ public class HFCAClientIT {
 
         HFCAIdentity ident = client.newHFCAIdentity(user.getName());
 
-        ident.create(admin);
+        createSuccessfulHCAIdentity(ident, admin);
         ident.delete(admin);
 
         ident.read(admin);
@@ -738,7 +741,7 @@ public class HFCAClientIT {
 
         HFCAIdentity ident = client.newHFCAIdentity("deletedUser2");
 
-        ident.create(admin);
+        createSuccessfulHCAIdentity(ident, admin);
         ident.delete(admin);
 
         ident.delete(admin);
@@ -768,7 +771,7 @@ public class HFCAClientIT {
 
         HFCAIdentity ident = client2.newHFCAIdentity(user.getName());
 
-        ident.create(admin2);
+        createSuccessfulHCAIdentity(ident, admin2);
         ident.delete(admin2);
     }
 
@@ -802,7 +805,7 @@ public class HFCAClientIT {
         int found = 0;
         for (HFCAAffiliation aff : resp.getChildren()) {
             for (Iterator<String> iter = expectedFirstLevelAffiliations.iterator(); iter.hasNext();
-                    ) {
+            ) {
                 String element = iter.next();
                 if (aff.getName().equals(element)) {
                     iter.remove();
@@ -858,21 +861,21 @@ public class HFCAClientIT {
 
         HFCAIdentity ident = client.newHFCAIdentity("testuser_org4");
         ident.setAffiliation(aff.getName());
-        ident.create(admin);
+        createSuccessfulHCAIdentity(ident, admin);
 
         HFCAAffiliation aff2 = client.newHFCAAffiliation("org4.dept1");
         aff2.create(admin);
 
         HFCAIdentity ident2 = client.newHFCAIdentity("testuser_org4.dept1");
         ident2.setAffiliation("org4.dept1");
-        ident2.create(admin);
+        createSuccessfulHCAIdentity(ident2, admin);
 
         HFCAAffiliation aff3 = client.newHFCAAffiliation("org4.dept1.team1");
         aff3.create(admin);
 
         HFCAIdentity ident3 = client.newHFCAIdentity("testuser_org4.dept1.team1");
         ident3.setAffiliation("org4.dept1.team1");
-        ident3.create(admin);
+        createSuccessfulHCAIdentity(ident3, admin);
 
         aff.setUpdateName("org5");
         // Set force option to true, since their identities associated with affiliations
@@ -949,11 +952,25 @@ public class HFCAClientIT {
 
         HFCAIdentity ident = getIdentityReq("testorg1dept1", "client");
         ident.setAffiliation(aff.getName());
-        ident.create(admin);
+        createSuccessfulHCAIdentity(ident, admin);
 
         aff.setUpdateName("org1.dept2");
         HFCAAffiliationResp resp = aff.update(admin);
         assertEquals("Incorrect status code", new Integer(400), new Integer(resp.getStatusCode()));
+    }
+
+    private static int createSuccessfulHCAIdentity(HFCAIdentity ident, User user) throws InvalidArgumentException, IdentityException {
+
+        int rc = ident.create(user);
+        assertTrue(rc < 400);
+        assertNotNull(ident.getSecret());
+        assertFalse(ident.getSecret().isEmpty());
+        assertNotNull(ident.getEnrollmentId());
+        assertFalse(ident.getEnrollmentId().isEmpty());
+        assertNotNull(ident.getType());
+        assertFalse(ident.getType().isEmpty());
+
+        return rc;
     }
 
     // Tests deleting an affiliation
@@ -971,14 +988,14 @@ public class HFCAClientIT {
 
         HFCAIdentity ident = client.newHFCAIdentity("testuser_org6");
         ident.setAffiliation("org6");
-        ident.create(admin);
+        createSuccessfulHCAIdentity(ident, admin);
 
         HFCAAffiliation aff2 = client.newHFCAAffiliation("org6.dept1");
         aff2.create(admin);
 
         HFCAIdentity ident2 = client.newHFCAIdentity("testuser_org6.dept1");
         ident2.setAffiliation("org6.dept1");
-        ident2.create(admin);
+        createSuccessfulHCAIdentity(ident2, admin);
 
         HFCAAffiliationResp resp = aff.delete(admin, true);
         int idCount = 0;
@@ -1049,7 +1066,7 @@ public class HFCAClientIT {
 
         HFCAIdentity ident = getIdentityReq("testorg1dept3", "client");
         ident.setAffiliation("org1.dept3");
-        ident.create(admin);
+        createSuccessfulHCAIdentity(ident, admin);
 
         HFCAAffiliationResp resp = aff.delete(admin);
         assertEquals("Incorrect status code", new Integer(401), new Integer(resp.getStatusCode()));
@@ -1331,7 +1348,7 @@ public class HFCAClientIT {
         user.setEnrollmentSecret(client.register(rr, admin));
         user.setEnrollment(client.enroll(user.getName(), user.getEnrollmentSecret()));
 
-        Enrollment enrollment = client.idemixEnroll(user.getEnrollment(),  "idemixMsp");
+        Enrollment enrollment = client.idemixEnroll(user.getEnrollment(), "idemixMsp");
         assertNotNull(enrollment);
         assertTrue(enrollment instanceof IdemixEnrollment);
     }
