@@ -166,7 +166,6 @@ public class Channel implements Serializable {
     private static final String CHAINCODE_EVENTS_TAG = "CHAINCODE_EVENTS_HANDLE";
     final Collection<Orderer> orderers = Collections.synchronizedCollection(new LinkedList<>());
     private transient Map<String, Orderer> ordererEndpointMap = Collections.synchronizedMap(new HashMap<>());
-
     // Name of the channel is only meaningful to the client
     private final String name;
     private transient String toString;
@@ -384,7 +383,6 @@ public class Channel implements Serializable {
         for (Orderer orderer : orderers) {
             ordererEndpointMap.put(orderer.getEndpoint(), orderer);
         }
-
     }
 
     /**
@@ -4386,6 +4384,9 @@ public class Channel implements Serializable {
         }
         if (transactionProposalRequest.getChaincodeID() == null) {
             throw new InvalidArgumentException("The proposalRequest's chaincode ID is null");
+        }
+        if (null == serviceDiscovery) {
+            throw new ServiceDiscoveryException("The channel is not configured with any peers with the 'discover' role");
         }
         logger.debug(format("Channel %s sendTransactionProposalToEndorsers chaincode name: %s", name, chaincodeName));
 
