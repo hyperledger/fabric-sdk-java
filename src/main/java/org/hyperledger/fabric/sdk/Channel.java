@@ -3951,6 +3951,9 @@ public class Channel implements Serializable {
         if (transactionProposalRequest.getChaincodeID() == null) {
             throw new InvalidArgumentException("The proposalRequest's chaincode ID is null");
         }
+        if(null == serviceDiscovery) {
+            throw new ServiceDiscoveryException("The channel is not configured with any peers with the 'discover' role");
+        }
         logger.debug(format("Channel %s sendTransactionProposalToEndorsers chaincode name: %s", name, chaincodeName));
 
         TransactionContext transactionContext = getTransactionContext(transactionProposalRequest.getUserContext());
