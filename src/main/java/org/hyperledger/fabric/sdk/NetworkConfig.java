@@ -526,7 +526,7 @@ public class NetworkConfig {
 
         // Sanity check
         if (orderers != null) {
-            throw new NetworkConfigurationException("INTERNAL ERROR: orderers has already been initialized!");
+            throw new NetworkConfigurationException("INTERNAL ERROR: orderers have already been initialized!");
         }
 
         orderers = new HashMap<>();
@@ -559,7 +559,7 @@ public class NetworkConfig {
 
         // Sanity checks
         if (peers != null) {
-            throw new NetworkConfigurationException("INTERNAL ERROR: peers has already been initialized!");
+            throw new NetworkConfigurationException("INTERNAL ERROR: peers have already been initialized!");
         }
 
         peers = new HashMap<>();
@@ -616,7 +616,7 @@ public class NetworkConfig {
 
         // Sanity check
         if (organizations != null) {
-            throw new NetworkConfigurationException("INTERNAL ERROR: organizations has already been initialized!");
+            throw new NetworkConfigurationException("INTERNAL ERROR: organizations have already been initialized!");
         }
 
         organizations = new HashMap<>();
