@@ -192,6 +192,7 @@ orderers:
       grpc-max-send-message-length: 15
       grpc.keepalive_time_ms: 360000
       grpc.keepalive_timeout_ms: 180000
+      grpc.keepalive_without_calls: true
 
     # src/test/fixture/sdkintegration/e2e-2Orgs/v1.3/crypto-config/ordererOrganizations/example.com/tlsca
 #    tlsCACerts:

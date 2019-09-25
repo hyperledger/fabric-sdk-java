@@ -850,6 +850,12 @@ public class NetworkConfig {
                 props.remove("grpc.keepalive_timeout_ms");
                 props.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {new Long(value), TimeUnit.MILLISECONDS});
             }
+
+            value = props.getProperty("grpc.keepalive_without_calls");
+            if (null != value) {
+                props.remove("grpc.keepalive_without_calls");
+                props.put("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls", new Object[] { new Boolean(value) });
+            }
         }
 
         // Extract the pem details
