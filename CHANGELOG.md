@@ -1,3 +1,16 @@
+## v1.4.5
+Wed 25 Sep 2019 16:29:24 BST
+
+* [1995634](https://github.com/hyperledger/fabric-sdk-java/commit/1995634) FGJ-46 prepare 1.4.5 release
+* [5ce4d64](https://github.com/hyperledger/fabric-sdk-java/commit/5ce4d64) FGJ-38 Fix lint error
+* [c76a9b2](https://github.com/hyperledger/fabric-sdk-java/commit/c76a9b2) FGJ-38 Throw exception if no discovery peers
+* [6987dff](https://github.com/hyperledger/fabric-sdk-java/commit/6987dff) FABJ-464: Compatibility with Java 11
+* [3a2ae0d](https://github.com/hyperledger/fabric-sdk-java/commit/3a2ae0d) FABJ-454: Typo fix for SDChaincode Exception Msg
+* [5ba8ae5](https://github.com/hyperledger/fabric-sdk-java/commit/5ba8ae5) FABJ-451: Allow proposals to be sent more than once
+* [a7ff0e3](https://github.com/hyperledger/fabric-sdk-java/commit/a7ff0e3) FABJ-453 Start 1.4.5-SNAPSHOT
+* [5fe1975](https://github.com/hyperledger/fabric-sdk-java/commit/5fe1975) FABJ-452 shutdown spurious NPE
+* [a21a832](https://github.com/hyperledger/fabric-sdk-java/commit/a21a832) FABJ-450 Access to Peer URL from NetworkConfig
+
 ## v1.4.4
 Tue Jun 11 08:56:25 EDT 2019
 
