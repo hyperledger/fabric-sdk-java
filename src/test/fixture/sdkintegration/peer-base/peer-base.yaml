@@ -16,6 +16,7 @@ services:
       - CORE_PEER_GOSSIP_ORGLEADER=false
       - CORE_PEER_CHANNELSERVICE_ENABLED=true
       - CORE_CHAINCODE_STARTUPTIMEOUT=10m  # only cause our vms are so slow!
+      - CORE_CHAINCODE_EXECUTETIMEOUT=300s # Allow more time for chaincode container to build on install
       # The following setting skips the gossip handshake since we are
       # are not doing mutual TLS
       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/peer/msp
