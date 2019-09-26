@@ -27,10 +27,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import org.hyperledger.fabric.protos.peer.lifecycle.Lifecycle;
 import org.hyperledger.fabric.sdk.BlockEvent.TransactionEvent;
 import org.hyperledger.fabric.sdk.ChaincodeCollectionConfiguration;
 import org.hyperledger.fabric.sdk.ChaincodeResponse;
@@ -346,8 +344,8 @@ public class End2endLifecycleIT {
             final String chaincodeLabel = lifecycleChaincodePackage.getLabel();
             final Type chaincodeType = lifecycleChaincodePackage.getType();
 
-            //Org1 installs the chaincode on it's peers.
-            out("Org1 installs the chaincode on it's peers.");
+            //Org1 installs the chaincode on its peers.
+            out("Org1 installs the chaincode on its peers.");
             String org1ChaincodePackageID = lifecycleInstallChaincode(org1Client, org1MyPeers, lifecycleChaincodePackage);
             assertTrue(org1ChaincodePackageID.contains(chaincodeLabel)); // the packageId should have the label in it so you have some idea what it is.
 
@@ -411,8 +409,8 @@ public class End2endLifecycleIT {
 
             org2Client.setUserContext(org2.getPeerAdmin());
 
-            //Org2 installs the chaincode on it's peers
-            out("Org2 installs the chaincode on it's peers.");
+            //Org2 installs the chaincode on its peers
+            out("Org2 installs the chaincode on its peers.");
             String org2ChaincodePackageID = lifecycleInstallChaincode(org2Client, org2MyPeers, org2LifecycleChaincodePackage);
 
             //Sanity check to see if chaincode really is on it's peers and has the hash as expected.
@@ -515,6 +513,7 @@ public class End2endLifecycleIT {
 
         LifecycleInstallChaincodeRequest installProposalRequest = client.newLifecycleInstallChaincodeRequest();
         installProposalRequest.setLifecycleChaincodePackage(lifecycleChaincodePackage);
+        installProposalRequest.setProposalWaitTime(DEPLOYWAITTIME);
 
         Collection<LifecycleInstallChaincodeProposalResponse> responses = client.sendLifecycleInstallChaincodeRequest(installProposalRequest, peers);
         assertNotNull(responses);
