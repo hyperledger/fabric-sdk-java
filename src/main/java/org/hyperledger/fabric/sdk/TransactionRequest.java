@@ -202,10 +202,7 @@ public class TransactionRequest {
 
         ArrayList<byte[]> argBytes = new ArrayList<>(args.length);
 
-        for (byte[] b : args) {
-            argBytes.add(b);
-
-        }
+        argBytes.addAll(Arrays.asList(args));
 
         this.argBytes = argBytes;
         return this;

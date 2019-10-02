@@ -791,8 +791,6 @@ public class HFClient {
             Channel systemChannel = Channel.newSystemChannel(this);
 
             return systemChannel.queryChannels(peer);
-        } catch (InvalidArgumentException e) {
-            throw e; //dont log
         } catch (ProposalException e) {
             logger.error(format("queryChannels for peer %s failed." + e.getMessage(), peer.getName()), e);
             throw e;

@@ -134,7 +134,7 @@ public class ProposalBuilder {
                 isInit);
 
         //Convert to bytestring map.
-        Map<String, ByteString> bsm = Collections.EMPTY_MAP;
+        Map<String, ByteString> bsm = Collections.emptyMap();
         if (transientMap != null) {
             bsm = new HashMap<>(transientMap.size());
 

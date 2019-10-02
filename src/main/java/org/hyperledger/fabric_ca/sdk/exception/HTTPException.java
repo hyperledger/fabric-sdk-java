@@ -14,8 +14,6 @@
 
 package org.hyperledger.fabric_ca.sdk.exception;
 
-import static java.lang.String.format;
-
 public class HTTPException extends BaseException {
 
     private static final long serialVersionUID = 1L;

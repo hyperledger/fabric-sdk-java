@@ -175,8 +175,8 @@ public class Channel implements Serializable {
     private final Collection<Peer> peers = Collections.synchronizedSet(new HashSet<>());
     private final Map<Peer, PeerOptions> peerOptionsMap = Collections.synchronizedMap(new HashMap<>());
     private transient Map<String, Peer> peerEndpointMap = Collections.synchronizedMap(new HashMap<>());
-    private Map<String, Collection<Peer>> peerMSPIDMap = new HashMap<>();
-    private Map<String, Collection<Orderer>> ordererMSPIDMap = new HashMap<>();
+    private final Map<String, Collection<Peer>> peerMSPIDMap = new HashMap<>();
+    private final Map<String, Collection<Orderer>> ordererMSPIDMap = new HashMap<>();
     private final Map<PeerRole, Set<Peer>> peerRoleSetMap = Collections.synchronizedMap(new HashMap<>());
     private transient String chaincodeEventUpgradeListenerHandle;
     private transient String transactionListenerProcessorHandle;
@@ -2478,7 +2478,7 @@ public class Channel implements Serializable {
     public byte[] getChannelConfigurationBytes(User userContext, Peer peer) throws InvalidArgumentException, TransactionException {
 
         try {
-            Block configBlock = getConfigBlock(getTransactionContext(userContext), Arrays.asList(peer));
+            Block configBlock = getConfigBlock(getTransactionContext(userContext), Collections.singletonList(peer));
 
             Envelope envelopeRet = Envelope.parseFrom(configBlock.getData().getData(0));
 
@@ -4658,7 +4658,7 @@ public class Channel implements Serializable {
 
     public Collection<String> getDiscoveredChaincodeNames() {
         if (serviceDiscovery == null) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
 
         return serviceDiscovery.getDiscoveredChaincodeNames();
@@ -5364,7 +5364,7 @@ public class Channel implements Serializable {
         }
 
         List<String> getCollections() {
-            return collections == null ? Collections.EMPTY_LIST : collections;
+            return collections == null ? Collections.emptyList() : collections;
         }
     }
 

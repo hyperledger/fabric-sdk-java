@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -84,7 +85,7 @@ public class NetworkConfig {
      */
     public Collection<String> getPeerNames() {
         if (peers == null) {
-            return Collections.EMPTY_SET;
+            return Collections.emptySet();
         } else {
             return new HashSet<>(peers.keySet());
         }
@@ -97,7 +98,7 @@ public class NetworkConfig {
      */
     public Collection<String> getOrdererNames() {
         if (orderers == null) {
-            return Collections.EMPTY_SET;
+            return Collections.emptySet();
         } else {
             return new HashSet<>(orderers.keySet());
         }
@@ -297,7 +298,6 @@ public class NetworkConfig {
 
         Yaml yaml = new Yaml();
 
-        @SuppressWarnings ("unchecked")
         Map<String, Object> map = yaml.load(configStream);
 
         JsonObjectBuilder builder = Json.createObjectBuilder(map);
@@ -854,7 +854,7 @@ public class NetworkConfig {
             value = props.getProperty("grpc.keepalive_without_calls");
             if (null != value) {
                 props.remove("grpc.keepalive_without_calls");
-                props.put("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls", new Object[] { new Boolean(value) });
+                props.put("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls", new Object[] {Boolean.valueOf(value)});
             }
         }
 
@@ -993,7 +993,7 @@ public class NetworkConfig {
                 throw new NetworkConfigurationException(format("%s: %s file %s does not exist", msgPrefix, fieldName, fullPathname));
             }
             try (FileInputStream stream = new FileInputStream(pemFile)) {
-                pemString = IOUtils.toString(stream, "UTF-8");
+                pemString = IOUtils.toString(stream, StandardCharsets.UTF_8);
             } catch (IOException ioe) {
                 throw new NetworkConfigurationException(format("Failed to read file: %s", fullPathname), ioe);
             }
@@ -1158,7 +1158,7 @@ public class NetworkConfig {
      */
 
     public Set<String> getChannelNames() {
-        Set<String> ret = Collections.EMPTY_SET;
+        Set<String> ret = Collections.emptySet();
 
         JsonObject channels = getJsonObject(jsonConfig, "channels");
         if (channels != null) {

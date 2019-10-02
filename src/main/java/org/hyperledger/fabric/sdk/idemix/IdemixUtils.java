@@ -19,8 +19,6 @@ package org.hyperledger.fabric.sdk.idemix;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.google.protobuf.ByteString;
 import org.apache.milagro.amcl.FP256BN.BIG;

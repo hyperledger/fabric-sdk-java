@@ -3,8 +3,6 @@ package org.hyperledger.fabric.sdk.identity;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
-import javax.security.auth.DestroyFailedException;
-
 import org.apache.milagro.amcl.FP256BN.BIG;
 import org.hyperledger.fabric.protos.idemix.Idemix.CredentialRevocationInformation;
 import org.hyperledger.fabric.sdk.Enrollment;

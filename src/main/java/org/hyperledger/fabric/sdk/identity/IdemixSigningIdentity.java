@@ -16,7 +16,6 @@
 
 package org.hyperledger.fabric.sdk.identity;
 
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.PublicKey;
 import java.util.Arrays;
@@ -25,7 +24,6 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.milagro.amcl.FP256BN.BIG;
-import org.hyperledger.fabric.protos.common.MspPrincipal;
 import org.hyperledger.fabric.protos.idemix.Idemix;
 import org.hyperledger.fabric.protos.msp.Identities.SerializedIdentity;
 import org.hyperledger.fabric.sdk.exception.CryptoException;

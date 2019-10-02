@@ -119,7 +119,6 @@ public class ChaincodeCollectionConfiguration {
 
         Yaml yaml = new Yaml();
 
-        @SuppressWarnings ("unchecked")
         List<Object> map = yaml.load(configStream);
 
         JsonArrayBuilder builder = Json.createArrayBuilder(map);

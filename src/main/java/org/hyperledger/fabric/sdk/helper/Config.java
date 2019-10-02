@@ -271,7 +271,7 @@ public class Config {
             logger.warn(format("No configuration value found for '%s'", property));
         }
         String ret = sdkProperties.getProperty(property);
-        if (ret == DEFAULT_NULL) {
+        if (DEFAULT_NULL.equals(ret)) {
             ret = null;
         }
         return ret;

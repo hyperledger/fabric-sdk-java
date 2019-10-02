@@ -12,8 +12,6 @@
 
 package org.hyperledger.fabric_ca.sdk.exception;
 
-import static java.lang.String.format;
-
 public class IdentityException extends HTTPException {
 
     private static final long serialVersionUID = 1L;
