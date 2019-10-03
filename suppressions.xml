@@ -4,6 +4,4 @@
     "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
 
 <suppressions>
-    <suppress checks="."
-              files="src/test/fixture/sdkintegration/javacc/sample1/src/main/java/org/hyperledger/fabric/example/SimpleChaincode.java"/>
 </suppressions>

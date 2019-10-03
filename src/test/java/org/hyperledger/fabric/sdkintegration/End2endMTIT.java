@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -113,7 +114,7 @@ public class End2endMTIT {
 
     String testName = "End2endMTIT";
 
-    String CHAIN_CODE_FILEPATH = "sdkintegration/gocc/sample_mv";
+    Path CHAIN_CODE_FILEPATH = IntegrationSuite.getGoChaincodePath("sample_mv");
     String CHAIN_CODE_NAME = "example_cc_mv_go";
     String CHAIN_CODE_PATH = "github.com/example_cc";
     String CHAIN_CODE_VERSION = "1";
@@ -1041,7 +1042,7 @@ public class End2endMTIT {
         installProposalRequest.setChaincodeID(chaincodeID);
 
         ////For GO language and serving just a single user, chaincodeSource is mostly likely the users GOPATH
-        installProposalRequest.setChaincodeSourceLocation(Paths.get(TEST_FIXTURES_PATH, CHAIN_CODE_FILEPATH).toFile());
+        installProposalRequest.setChaincodeSourceLocation(CHAIN_CODE_FILEPATH.toFile());
 
         installProposalRequest.setChaincodeVersion(CHAIN_CODE_VERSION);
         installProposalRequest.setChaincodeLanguage(CHAIN_CODE_LANG);

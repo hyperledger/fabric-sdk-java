@@ -418,7 +418,7 @@ public class NetworkConfigIT {
             installProposalRequest.setChaincodeID(chaincodeID);
 
             ////For GO language and serving just a single user, chaincodeSource is mostly likely the users GOPATH
-            installProposalRequest.setChaincodeSourceLocation(new File(TEST_FIXTURES_PATH + "/sdkintegration/gocc/sample1"));
+            installProposalRequest.setChaincodeSourceLocation(IntegrationSuite.getGoChaincodePath("sample1").toFile());
 
             installProposalRequest.setChaincodeVersion(ccVersion);
 

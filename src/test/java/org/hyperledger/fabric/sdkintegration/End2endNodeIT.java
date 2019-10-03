@@ -1,19 +1,13 @@
 package org.hyperledger.fabric.sdkintegration;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 
 import org.hyperledger.fabric.sdk.Channel;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.TransactionRequest.Type;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
-import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
-import org.hyperledger.fabric.sdk.security.CryptoSuite;
-import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
 import org.junit.Test;
-
-import static java.lang.String.format;
 
 
 /*
@@ -31,7 +25,7 @@ public class End2endNodeIT extends End2endIT {
         // This is what changes are needed to deploy and run Node code.
 
         // this is relative to src/test/fixture and is where the Node chaincode source is.
-        CHAIN_CODE_FILEPATH = "sdkintegration/nodecc/sample1"; //override path to Node code
+        CHAIN_CODE_FILEPATH = IntegrationSuite.getNodeChaincodePath("sample1"); //override path to Node code
         CHAIN_CODE_PATH = null; //This is used only for GO.
         CHAIN_CODE_NAME = "example_cc_node"; // chaincode name.
         CHAIN_CODE_LANG = Type.NODE; //language is Node.

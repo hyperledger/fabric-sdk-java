@@ -229,9 +229,12 @@ public class End2endLifecycleIT {
         //////////////
         ////  DO Go with our own endorsement policy
         out("---   Running GO Chaincode with own endorsement   ---");
-        LifecycleChaincodePackage lifecycleChaincodePackage = createLifecycleChaincodePackage("lc_example_cc_go_1", // some label
+        LifecycleChaincodePackage lifecycleChaincodePackage = createLifecycleChaincodePackage(
+                "lc_example_cc_go_1", // some label
                 Type.GO_LANG,
-                "src/test/fixture/sdkintegration/gocc/sample1", CHAIN_CODE_PATH, "src/test/fixture/meta-infs/end2endit");
+                IntegrationSuite.getGoChaincodePath("sample1").toString(),
+                CHAIN_CODE_PATH,
+                "src/test/fixture/meta-infs/end2endit");
 
         //Org1 also creates the endorsement policy for the chaincode. // also known as validationParameter !
         LifecycleChaincodeEndorsementPolicy chaincodeEndorsementPolicy = LifecycleChaincodeEndorsementPolicy.fromSignaturePolicyYamlFile(Paths.get(TEST_FIXTURES_PATH +
@@ -250,9 +253,11 @@ public class End2endLifecycleIT {
         //// Do Go update. Use same chaincode name, new version and chaincode package. This chaincode doubles move result so we know it changed.
         out("---   Running GO Chaincode with update new version.   ---");
 
-        LifecycleChaincodePackage lifecycleChaincodePackageUpdate = createLifecycleChaincodePackage("lc_example_cc_go_11", // some label
+        LifecycleChaincodePackage lifecycleChaincodePackageUpdate = createLifecycleChaincodePackage(
+                "lc_example_cc_go_11", // some label
                 Type.GO_LANG,
-                "src/test/fixture/sdkintegration/gocc/sample_11", CHAIN_CODE_PATH,
+                IntegrationSuite.getGoChaincodePath("sample_11").toString(),
+                CHAIN_CODE_PATH,
                 null); // no metadata this time.
 
         runChannel(org1Client, org1Channel, org1, org1MyPeers, org1OtherPeers,
@@ -270,8 +275,9 @@ public class End2endLifecycleIT {
         //////////////
         ////  DO Java
         out("---  Running Java Chaincode.---  \n\n");
-        LifecycleChaincodePackage lifecycleChaincodePackageJava = createLifecycleChaincodePackage("JavaLABEL", // some label
-                Type.JAVA, "src/test/fixture/sdkintegration/javacc/sample1",
+        LifecycleChaincodePackage lifecycleChaincodePackageJava = createLifecycleChaincodePackage(
+                "JavaLABEL", // some label
+                Type.JAVA, IntegrationSuite.getJavaChaincodePath("sample1").toString(),
                 "", // no path in Java.
                 null); // no metaInf data
 
@@ -287,8 +293,10 @@ public class End2endLifecycleIT {
         //////////////
         ////  DO Node
         out("---   Running Node Chaincode.   ---");
-        LifecycleChaincodePackage lifecycleChaincodePackageNode = createLifecycleChaincodePackage("ImNodeSeeMeRun", // some label
-                Type.NODE, "src/test/fixture/sdkintegration/nodecc/sample1",
+        LifecycleChaincodePackage lifecycleChaincodePackageNode = createLifecycleChaincodePackage(
+                "ImNodeSeeMeRun", // some label
+                Type.NODE,
+                IntegrationSuite.getNodeChaincodePath("sample1").toString(),
                 "", // no path in node.
                 null); // no metaInf data
 
@@ -304,9 +312,12 @@ public class End2endLifecycleIT {
         //////////////
         ////  DO Go without any standard init required.
         out("---   Running GO Chaincode with no init.   ---");
-        LifecycleChaincodePackage lifecycleChaincodePackageNoInit = createLifecycleChaincodePackage("lc_example_cc_go_1", // some label
+        LifecycleChaincodePackage lifecycleChaincodePackageNoInit = createLifecycleChaincodePackage(
+                "lc_example_cc_go_1", // some label
                 Type.GO_LANG,
-                "src/test/fixture/sdkintegration/gocc/sample1NoInit", CHAIN_CODE_PATH, null);
+                IntegrationSuite.getGoChaincodePath("sample1NoInit").toString(),
+                CHAIN_CODE_PATH,
+                null);
 
         runChannel(org1Client, org1Channel, org1, org1MyPeers, org1OtherPeers,
                 org2Client, org2Channel, org2, org2MyPeers, org2OtherPeers,

@@ -39,8 +39,8 @@ public class End2endJavaIT extends End2endIT {
 
         // This is what changes are needed to deploy and run Node code.
 
-        // this is relative to src/test/fixture and is where the Node chaincode source is.
-        CHAIN_CODE_FILEPATH = "sdkintegration/javacc/sample1"; //override path to Node code
+        // Override path to chaincode to point to Java chaincode. Path is relative to src/test/fixture.
+        CHAIN_CODE_FILEPATH = IntegrationSuite.getJavaChaincodePath("sample1");
         CHAIN_CODE_PATH = null; //This is used only for GO.
         CHAIN_CODE_NAME = "example_cc_java"; // chaincode name.
         CHAIN_CODE_LANG = Type.JAVA; //language is Java.

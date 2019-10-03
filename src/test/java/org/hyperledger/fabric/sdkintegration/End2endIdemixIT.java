@@ -32,7 +32,7 @@ import static org.junit.Assert.assertNotNull;
 public class End2endIdemixIT extends End2endIT {
 
     {
-        CHAIN_CODE_FILEPATH = "sdkintegration/gocc/sampleIdemix";
+        CHAIN_CODE_FILEPATH = IntegrationSuite.getGoChaincodePath("sampleIdemix");
         testName = "End2endIdemixIT";  //Just print out what test is really running.
         CHAIN_CODE_NAME = "idemix_example_go";
         CHAIN_CODE_LANG = TransactionRequest.Type.GO_LANG;

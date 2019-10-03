@@ -16,6 +16,7 @@ package org.hyperledger.fabric.sdkintegration;
 
 import java.io.File;
 import java.net.MalformedURLException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -74,6 +75,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -87,18 +89,16 @@ public class End2endAndBackAgainIT {
     private static final boolean IS_FABRIC_V10 = testConfig.isRunningAgainstFabric10();
     private static final String TEST_ADMIN_NAME = "admin";
     private static final String TESTUSER_1_NAME = "user1";
-    private static final String TEST_FIXTURES_PATH = "src/test/fixture";
 
     private static final String FOO_CHANNEL_NAME = "foo";
     private static final String BAR_CHANNEL_NAME = "bar";
     private final TestConfigHelper configHelper = new TestConfigHelper();
-    String testTxID = null;  // save the CC invoke TxID and use in queries
     SampleStore sampleStore;
     private Collection<SampleOrg> testSampleOrgs;
 
     String testName = "End2endAndBackAgainIT";
 
-    String CHAIN_CODE_FILEPATH = "sdkintegration/gocc/sample_11";
+    Path CHAIN_CODE_FILEPATH = IntegrationSuite.getGoChaincodePath("sample_11");
     String CHAIN_CODE_NAME = "example_cc_go";
     String CHAIN_CODE_PATH = "github.com/example_cc";
     String CHAIN_CODE_VERSION_11 = "11";
@@ -364,7 +364,7 @@ public class End2endAndBackAgainIT {
                     InstallProposalRequest installProposalRequest = client.newInstallProposalRequest();
                     installProposalRequest.setChaincodeID(chaincodeID);
                     ////For GO language and serving just a single user, chaincodeSource is mostly likely the users GOPATH
-                    installProposalRequest.setChaincodeSourceLocation(Paths.get(TEST_FIXTURES_PATH, CHAIN_CODE_FILEPATH).toFile());
+                    installProposalRequest.setChaincodeSourceLocation(CHAIN_CODE_FILEPATH.toFile());
                     installProposalRequest.setChaincodeVersion(CHAIN_CODE_VERSION_11);
                     installProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
                     installProposalRequest.setChaincodeLanguage(CHAIN_CODE_LANG);
@@ -421,7 +421,9 @@ public class End2endAndBackAgainIT {
                     ChaincodeEndorsementPolicy chaincodeEndorsementPolicy;
 
                     chaincodeEndorsementPolicy = new ChaincodeEndorsementPolicy();
-                    chaincodeEndorsementPolicy.fromYamlFile(new File(TEST_FIXTURES_PATH + "/sdkintegration/chaincodeendorsementpolicy.yaml"));
+                    Path endorsementPolicyPath = Paths.get("sdkintegration", "chaincodeendorsementpolicy.yaml");
+                    File endorsementPolicyFile = IntegrationSuite.TEST_FIXTURE_PATH.resolve(endorsementPolicyPath).toFile();
+                    chaincodeEndorsementPolicy.fromYamlFile(endorsementPolicyFile);
 
                     upgradeProposalRequest.setChaincodeEndorsementPolicy(chaincodeEndorsementPolicy);
                     Map<String, byte[]> tmap = new HashMap<>();
@@ -668,8 +670,8 @@ public class End2endAndBackAgainIT {
         }
 
         //Just some sanity check tests
-        assertTrue(newChannel == client.getChannel(name));
-        assertTrue(client == TestUtils.getField(newChannel, "client"));
+        assertSame(newChannel, client.getChannel(name));
+        assertSame(client, TestUtils.getField(newChannel, "client"));
         assertEquals(name, newChannel.getName());
         assertEquals(2, newChannel.getPeers().size());
         assertEquals(1, newChannel.getOrderers().size());

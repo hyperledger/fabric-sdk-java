@@ -17,6 +17,7 @@ package org.hyperledger.fabric.sdkintegration;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
@@ -93,7 +94,6 @@ public class End2endIT {
 
     private static final TestConfig testConfig = TestConfig.getConfig();
     static final String TEST_ADMIN_NAME = "admin";
-    private static final String TEST_FIXTURES_PATH = "src/test/fixture";
 
     private static Random random = new Random();
 
@@ -108,7 +108,7 @@ public class End2endIT {
 
     String testName = "End2endIT";
 
-    String CHAIN_CODE_FILEPATH = "sdkintegration/gocc/sample1";
+    Path CHAIN_CODE_FILEPATH = IntegrationSuite.getGoChaincodePath("sample1");
     String CHAIN_CODE_NAME = "example_cc_go";
     String CHAIN_CODE_PATH = "github.com/example_cc";
     String CHAIN_CODE_VERSION = "1";
@@ -419,7 +419,7 @@ public class End2endIT {
                     // on foo chain install from directory.
 
                     ////For GO language and serving just a single user, chaincodeSource is mostly likely the users GOPATH
-                    installProposalRequest.setChaincodeSourceLocation(Paths.get(TEST_FIXTURES_PATH, CHAIN_CODE_FILEPATH).toFile());
+                    installProposalRequest.setChaincodeSourceLocation(CHAIN_CODE_FILEPATH.toFile());
 
                     if (testConfig.isFabricVersionAtOrAfter("1.1")) { // Fabric 1.1 added support for  META-INF in the chaincode image.
 
@@ -434,13 +434,13 @@ public class End2endIT {
                     // The SDK does not change anything in the stream.
 
                     if (CHAIN_CODE_LANG.equals(Type.GO_LANG)) {
-
+                        Path chaincodeSrcPath = Paths.get("src", CHAIN_CODE_PATH);
                         installProposalRequest.setChaincodeInputStream(Util.generateTarGzInputStream(
-                                (Paths.get(TEST_FIXTURES_PATH, CHAIN_CODE_FILEPATH, "src", CHAIN_CODE_PATH).toFile()),
-                                Paths.get("src", CHAIN_CODE_PATH).toString()));
+                                CHAIN_CODE_FILEPATH.resolve(chaincodeSrcPath).toFile(),
+                                chaincodeSrcPath.toString()));
                     } else {
                         installProposalRequest.setChaincodeInputStream(Util.generateTarGzInputStream(
-                                (Paths.get(TEST_FIXTURES_PATH, CHAIN_CODE_FILEPATH).toFile()),
+                                CHAIN_CODE_FILEPATH.toFile(),
                                 "src"));
                     }
                 }
@@ -504,7 +504,9 @@ public class End2endIT {
               See README.md Chaincode endorsement policies section for more details.
             */
             ChaincodeEndorsementPolicy chaincodeEndorsementPolicy = new ChaincodeEndorsementPolicy();
-            chaincodeEndorsementPolicy.fromYamlFile(new File(TEST_FIXTURES_PATH + "/sdkintegration/chaincodeendorsementpolicy.yaml"));
+            Path endorsementPolicyPath = Paths.get("sdkintegration", "chaincodeendorsementpolicy.yaml");
+            File endorsementPolicyFile = IntegrationSuite.TEST_FIXTURE_PATH.resolve(endorsementPolicyPath).toFile();
+            chaincodeEndorsementPolicy.fromYamlFile(endorsementPolicyFile);
             instantiateProposalRequest.setChaincodeEndorsementPolicy(chaincodeEndorsementPolicy);
 
             out("Sending instantiateProposalRequest to all peers with arguments: a and b set to 100 and %s respectively", String.valueOf(200 + delta));
@@ -840,8 +842,9 @@ public class End2endIT {
         Orderer anOrderer = orderers.iterator().next();
         orderers.remove(anOrderer);
 
-        String path = TEST_FIXTURES_PATH + "/sdkintegration/e2e-2Orgs/" + testConfig.getFabricConfigGenVers() + "/" + name + ".tx";
-        ChannelConfiguration channelConfiguration = new ChannelConfiguration(new File(path));
+        Path configTxPath = Paths.get("sdkintegration", "e2e-2Orgs", testConfig.getFabricConfigGenVers(), name + ".tx");
+        File configTxFile = IntegrationSuite.TEST_FIXTURE_PATH.resolve(configTxPath).toFile();
+        ChannelConfiguration channelConfiguration = new ChannelConfiguration(configTxFile);
 
         //Create channel that has only one signer that is this orgs peer admin. If channel creation policy needed more signature they would need to be added too.
         Channel newChannel = client.newChannel(name, anOrderer, channelConfiguration, client.getChannelConfigurationSignature(channelConfiguration, peerAdmin));
