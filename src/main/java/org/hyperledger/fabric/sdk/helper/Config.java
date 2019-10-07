@@ -101,6 +101,7 @@ public class Config {
 
     public static final String SERVICE_DISCOVER_FREQ_SECONDS = "org.hyperledger.fabric.sdk.service_discovery.frequency_sec";
     public static final String SERVICE_DISCOVER_WAIT_TIME = "org.hyperledger.fabric.sdk.service_discovery.discovery_wait_time";
+    public static final String SERVICE_DISCOVER_AS_LOCALHOST = "org.hyperledger.fabric.sdk.service_discovery.as_localhost";
 
     private static Config config;
     private static final Properties sdkProperties = new Properties();
@@ -192,6 +193,7 @@ public class Config {
 
             defaultProperty(SERVICE_DISCOVER_FREQ_SECONDS, "120");
             defaultProperty(SERVICE_DISCOVER_WAIT_TIME, "5000");
+            defaultProperty(SERVICE_DISCOVER_AS_LOCALHOST, "false");
 
             final String inLogLevel = sdkProperties.getProperty(LOGGERLEVEL);
 
@@ -470,6 +472,10 @@ public class Config {
      */
     public int getServiceDiscoveryWaitTime() {
         return Integer.parseInt(getProperty(SERVICE_DISCOVER_WAIT_TIME));
+    }
+
+    public boolean discoverAsLocalhost() {
+        return Boolean.parseBoolean(getProperty(SERVICE_DISCOVER_AS_LOCALHOST));
     }
 
     public long getEventHubConnectionWaitTime() {
