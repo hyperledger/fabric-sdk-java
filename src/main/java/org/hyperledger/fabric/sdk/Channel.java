@@ -204,6 +204,7 @@ public class Channel implements Serializable {
     private transient ScheduledExecutorService sweeperExecutorService;
     private transient String blh = null;
     private transient ServiceDiscovery serviceDiscovery;
+    private static final boolean asLocalhost = config.discoverAsLocalhost();
 
     {
         for (Peer.PeerRole peerRole : EnumSet.allOf(PeerRole.class)) {
@@ -1340,6 +1341,11 @@ public class Channel implements Serializable {
                     public Map<String, Orderer> getEndpointMap() {
                         return Collections.unmodifiableMap(Channel.this.ordererEndpointMap);
                     }
+
+                    @Override
+                    public Properties getProperties() {
+                        return sdOrderer.getProperties();
+                    }
                 });
             }
 
@@ -1418,6 +1424,20 @@ public class Channel implements Serializable {
                         return Collections.unmodifiableMap(Channel.this.peerEndpointMap);
                     }
 
+                    @Override
+                    public String getName() {
+                        return sdEndorser.getName();
+                    }
+
+                    @Override
+                    public Properties getProperties() {
+                        Properties properties = new Properties();
+                        if (asLocalhost) {
+                            properties.put("hostnameOverride",
+                                    sdEndorser.getName().substring(0, sdEndorser.getName().lastIndexOf(':')));
+                        }
+                        return properties;
+                    }
                 });
             } else if (discoveryEndpoints.contains(sdEndorser.getEndpoint())) {
 
@@ -1450,6 +1470,7 @@ public class Channel implements Serializable {
     }
 
     public interface SDPeerAdditionInfo {
+        String getName();
 
         String getMspId();
 
@@ -1489,6 +1510,7 @@ public class Channel implements Serializable {
 
         Map<String, Peer> getEndpointMap();
 
+        Properties getProperties();
     }
 
     public interface SDPeerAddition {
@@ -1555,6 +1577,8 @@ public class Channel implements Serializable {
 
         String getEndpoint();
 
+        Properties getProperties();
+
         String getMspId();
 
         Channel getChannel();
@@ -1613,7 +1637,7 @@ public class Channel implements Serializable {
         @Override
         public Orderer addOrderer(SDOrdererAdditionInfo sdOrdererAdditionInfo) throws InvalidArgumentException, ServiceDiscoveryException {
 
-            Properties properties = new Properties();
+            Properties properties = sdOrdererAdditionInfo.getProperties();
             final String endpoint = sdOrdererAdditionInfo.getEndpoint();
             final String mspid = sdOrdererAdditionInfo.getMspId();
 
@@ -1672,7 +1696,8 @@ public class Channel implements Serializable {
         @Override
         public Peer addPeer(SDPeerAdditionInfo sdPeerAddition) throws InvalidArgumentException, ServiceDiscoveryException {
 
-            Properties properties = new Properties();
+            Properties properties = sdPeerAddition.getProperties();
+            final String name = sdPeerAddition.getName();
             final String endpoint = sdPeerAddition.getEndpoint();
             final String mspid = sdPeerAddition.getMspId();
 
@@ -1713,12 +1738,12 @@ public class Channel implements Serializable {
                 properties.put("pemBytes", pemBytes);
             }
 
-            peer = sdPeerAddition.getClient().newPeer(endpoint,
+            peer = sdPeerAddition.getClient().newPeer(name,
                     protocol + "//" + endpoint,
                     properties);
 
             sdPeerAddition.getChannel().addPeer(peer, createPeerOptions().setPeerRoles(
-                    EnumSet.of(PeerRole.ENDORSING_PEER, PeerRole.EVENT_SOURCE, PeerRole.LEDGER_QUERY, PeerRole.CHAINCODE_QUERY))); //application can decide on roles.
+                    EnumSet.of(PeerRole.ENDORSING_PEER, PeerRole.EVENT_SOURCE, PeerRole.LEDGER_QUERY, PeerRole.CHAINCODE_QUERY, PeerRole.SERVICE_DISCOVERY))); //application can decide on roles.
 
             return peer;
         }
@@ -4578,6 +4603,21 @@ public class Channel implements Serializable {
                             @Override
                             public Map<String, Peer> getEndpointMap() {
                                 return Collections.unmodifiableMap(Channel.this.peerEndpointMap);
+                            }
+
+                            @Override
+                            public String getName() {
+                                return sdEndorser.getName();
+                            }
+
+                            @Override
+                            public Properties getProperties() {
+                                Properties properties = new Properties();
+                                if (asLocalhost) {
+                                    properties.put("hostnameOverride",
+                                            sdEndorser.getName().substring(0, sdEndorser.getName().lastIndexOf(':')));
+                                }
+                                return properties;
                             }
                         });
                     }

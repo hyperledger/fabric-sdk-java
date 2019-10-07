@@ -644,6 +644,16 @@ public class ChannelTest {
             public Map<String, Peer> getEndpointMap() {
                 return new HashMap<>();
             }
+
+            @Override
+            public String getName() {
+                return discoveredEndpoint[0];
+            }
+
+            @Override
+            public Properties getProperties() {
+                return properties1;
+            }
         };
 
         Peer peer = sd.sdPeerAddition.addPeer(sdPeerAdditionInfo);
