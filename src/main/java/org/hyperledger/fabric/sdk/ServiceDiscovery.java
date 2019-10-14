@@ -16,6 +16,7 @@
 
 package org.hyperledger.fabric.sdk;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -234,6 +235,10 @@ public class ServiceDiscovery {
 
             try {
 
+                URI serviceDiscoveryPeerURI = URI.create(serviceDiscoveryPeer.getUrl());
+                boolean isTLS = serviceDiscoveryPeerURI.getScheme().equals("grpcs");
+                logger.trace(format("Service discovery peer %s using TLS: %b", serviceDiscoveryPeerURI.toString(), isTLS));
+
                 SDNetwork lsdNetwork = new SDNetwork();
 
                 final byte[] clientTLSCertificateDigest = serviceDiscoveryPeer.getClientTLSCertificateDigest();
@@ -344,7 +349,7 @@ public class ServiceDiscovery {
                             properties.put("hostnameOverride", l.getHost());
                         }
 
-                        final SDOrderer sdOrderer = new SDOrderer(mspid, endpoint, lsdNetwork.getTlsCerts(mspid), lsdNetwork.getTlsIntermediateCerts(mspid), properties);
+                        final SDOrderer sdOrderer = new SDOrderer(mspid, endpoint, lsdNetwork.getTlsCerts(mspid), lsdNetwork.getTlsIntermediateCerts(mspid), properties, isTLS);
 
                         ordererEndpoints.put(sdOrderer.getEndPoint(), sdOrderer);
                     }
@@ -361,7 +366,7 @@ public class ServiceDiscovery {
 
                     for (Protocol.Peer pp : peer.getPeersList()) {
 
-                        SDEndorser ppp = new SDEndorser(pp, lsdNetwork.getTlsCerts(mspId), lsdNetwork.getTlsIntermediateCerts(mspId), asLocalhost);
+                        SDEndorser ppp = new SDEndorser(pp, lsdNetwork.getTlsCerts(mspId), lsdNetwork.getTlsIntermediateCerts(mspId), asLocalhost, isTLS);
 
                         SDEndorser discoveredAlready = lsdNetwork.endorsers.get(ppp.getEndpoint());
                         if (null != discoveredAlready) {
@@ -403,13 +408,15 @@ public class ServiceDiscovery {
         private final Collection<byte[]> tlsIntermediateCerts;
         private final String endPoint;
         private final Properties properties;
+        private final boolean tls;
 
-        SDOrderer(String mspid, String endPoint, Collection<byte[]> tlsCerts, Collection<byte[]> tlsIntermediateCerts, Properties properties) {
+        SDOrderer(String mspid, String endPoint, Collection<byte[]> tlsCerts, Collection<byte[]> tlsIntermediateCerts, Properties properties, boolean tls) {
             this.mspid = mspid;
             this.endPoint = endPoint;
             this.tlsCerts = tlsCerts;
             this.tlsIntermediateCerts = tlsIntermediateCerts;
             this.properties = properties;
+            this.tls = tls;
         }
 
         public Collection<byte[]> getTlsIntermediateCerts() {
@@ -430,6 +437,10 @@ public class ServiceDiscovery {
 
         public Properties getProperties() {
             return properties;
+        }
+
+        public boolean isTLS() {
+            return tls;
         }
     }
 
@@ -466,6 +477,10 @@ public class ServiceDiscovery {
         for (Peer serviceDiscoveryPeer : speers) {
             serviceDiscoveryException = null;
             try {
+                URI serviceDiscoveryPeerURI = URI.create(serviceDiscoveryPeer.getUrl());
+                boolean isTLS = serviceDiscoveryPeerURI.getScheme().equals("grpcs");
+                logger.trace(format("Service discovery peer %s using TLS: %b", serviceDiscoveryPeerURI.toString(), isTLS));
+
                 logger.debug(format("Channel %s doing discovery for chaincodes on peer: %s", channelName, serviceDiscoveryPeer.toString()));
 
                 TransactionContext ltransactionContext = transactionContext.retryTransactionSameContext();
@@ -566,7 +581,7 @@ public class ServiceDiscovery {
 
                                 for (Protocol.Peer pp : peers.getPeersList()) {
 
-                                    SDEndorser ppp = new SDEndorser(pp, null, null, asLocalhost);
+                                    SDEndorser ppp = new SDEndorser(pp, null, null, asLocalhost, isTLS);
                                     final String endPoint = ppp.getEndpoint();
                                     SDEndorser nppp = sdNetwork.getEndorserByEndpoint(endPoint);
                                     if (null == nppp) {
@@ -1184,17 +1199,20 @@ public class ServiceDiscovery {
         private final Collection<byte[]> tlsCerts;
         private final Collection<byte[]> tlsIntermediateCerts;
         private final boolean asLocalhost;
+        private final boolean tls;
 
         SDEndorser() { // for testing only
             tlsCerts = null;
             tlsIntermediateCerts = null;
             asLocalhost = false;
+            tls = false;
         }
 
-        SDEndorser(Protocol.Peer peerRet, Collection<byte[]> tlsCerts, Collection<byte[]> tlsIntermediateCerts, boolean asLocalhost) {
+        SDEndorser(Protocol.Peer peerRet, Collection<byte[]> tlsCerts, Collection<byte[]> tlsIntermediateCerts, boolean asLocalhost, boolean tls) {
             this.tlsCerts = tlsCerts;
             this.tlsIntermediateCerts = tlsIntermediateCerts;
             this.asLocalhost = asLocalhost;
+            this.tls = tls;
 
             parseEndpoint(peerRet);
             parseLedgerHeight(peerRet);
@@ -1315,6 +1333,10 @@ public class ServiceDiscovery {
 
         public String getMspid() {
             return mspid;
+        }
+
+        public boolean isTLS() {
+            return this.tls;
         }
 
         @Override
