@@ -1346,6 +1346,11 @@ public class Channel implements Serializable {
                     public Properties getProperties() {
                         return sdOrderer.getProperties();
                     }
+
+                    @Override
+                    public boolean isTLS() {
+                        return sdOrderer.isTLS();
+                    }
                 });
             }
 
@@ -1438,6 +1443,11 @@ public class Channel implements Serializable {
                         }
                         return properties;
                     }
+
+                    @Override
+                    public boolean isTLS() {
+                        return sdEndorser.isTLS();
+                    }
                 });
             } else if (discoveryEndpoints.contains(sdEndorser.getEndpoint())) {
 
@@ -1511,6 +1521,8 @@ public class Channel implements Serializable {
         Map<String, Peer> getEndpointMap();
 
         Properties getProperties();
+
+        boolean isTLS();
     }
 
     public interface SDPeerAddition {
@@ -1614,6 +1626,8 @@ public class Channel implements Serializable {
         }
 
         Map<String, Orderer> getEndpointMap();
+
+        boolean isTLS();
     }
 
     public interface SDOrdererAddition {
@@ -1641,7 +1655,7 @@ public class Channel implements Serializable {
             final String endpoint = sdOrdererAdditionInfo.getEndpoint();
             final String mspid = sdOrdererAdditionInfo.getMspId();
 
-            String protocol = (String) findClientProp(config, "protocol", mspid, endpoint, "grpcs:");
+            String protocol = (String) findClientProp(config, "protocol", mspid, endpoint, sdOrdererAdditionInfo.isTLS() ? "grpcs:" : "grpc:");
 
             String clientCertFile = (String) findClientProp(config, "clientCertFile", mspid, endpoint, null);
 
@@ -1701,7 +1715,7 @@ public class Channel implements Serializable {
             final String endpoint = sdPeerAddition.getEndpoint();
             final String mspid = sdPeerAddition.getMspId();
 
-            String protocol = (String) findClientProp(config, "protocol", mspid, endpoint, "grpcs:");
+            String protocol = (String) findClientProp(config, "protocol", mspid, endpoint, sdPeerAddition.isTLS() ? "grpcs:" : "grpc:");
 
             Peer peer = sdPeerAddition.getEndpointMap().get(endpoint); // maybe there already.
             if (null != peer) {
@@ -4618,6 +4632,11 @@ public class Channel implements Serializable {
                                             sdEndorser.getName().substring(0, sdEndorser.getName().lastIndexOf(':')));
                                 }
                                 return properties;
+                            }
+
+                            @Override
+                            public boolean isTLS() {
+                                return sdEndorser.isTLS();
                             }
                         });
                     }

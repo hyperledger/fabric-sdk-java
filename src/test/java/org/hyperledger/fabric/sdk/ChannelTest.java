@@ -654,6 +654,11 @@ public class ChannelTest {
             public Properties getProperties() {
                 return properties1;
             }
+
+            @Override
+            public boolean isTLS() {
+                return true;
+            }
         };
 
         Peer peer = sd.sdPeerAddition.addPeer(sdPeerAdditionInfo);
