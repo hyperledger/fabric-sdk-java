@@ -209,6 +209,13 @@
             <version>2.3.1</version>
         </dependency>
 
+        <dependency>
+            <!-- Required if using Java 11+ as no longer bundled in the core libraries -->
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>1.3.2</version>
+        </dependency>
+
     </dependencies>
 
 
