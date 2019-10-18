@@ -32,6 +32,7 @@
         <protobuf.version>3.10.0</protobuf.version>
         <bouncycastle.version>1.63</bouncycastle.version>
         <httpclient.version>4.5.10</httpclient.version>
+        <javadoc.version>3.1.1</javadoc.version>
         <skipITs>true</skipITs>
         <alpn-boot-version>8.1.7.v20160121</alpn-boot-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -326,7 +327,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.10.4</version>
+                <version>${javadoc.version}</version>
                 <configuration>
                     <excludePackageNames>
                         org.hyperledger.fabric_ca.sdk.helper:org.hyperledger.fabric.protos.*:org.hyperledger.fabric.sdk.helper:org.hyperledger.fabric.sdk.transaction:org.hyperledger.fabric.sdk.security:org.hyperledger.fabric.sdk.idemix
@@ -335,6 +336,10 @@
                     <doctitle>Hyperledger Fabric Java SDK</doctitle>
                     <nohelp>true</nohelp>
                     <failOnError>true</failOnError>
+                    <source>8</source>
+                    <links>
+                        <link>http://docs.oracle.com/javase/8/docs/api/</link>
+                    </links>
                 </configuration>
             </plugin>
             <plugin>
@@ -637,7 +642,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>2.10.4</version>
+                        <version>${javadoc.version}</version>
                         <configuration>
                             <excludePackageNames>
                                 org.hyperledger.fabric_ca.sdk.helper:org.hyperledger.fabric.protos.*:org.hyperledger.fabric.sdk.helper:org.hyperledger.fabric.sdk.transaction:org.hyperledger.fabric.sdk.security
@@ -646,6 +651,10 @@
                             <doctitle>Hyperledger Fabric Java SDK</doctitle>
                             <nohelp>true</nohelp>
                             <failOnError>true</failOnError>
+                            <source>8</source>
+                            <links>
+                                <link>http://docs.oracle.com/javase/8/docs/api/</link>
+                            </links>
                         </configuration>
                         <executions>
                             <execution>
