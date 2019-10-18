@@ -1,0 +1,34 @@
+# Maven
+# Build your Java project and run tests with Apache Maven.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/java
+
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+jobs:
+- job: test
+  steps:
+    - script: |
+        set -eo pipefail
+        export ORG_HYPERLEDGER_FABRIC_SDKTEST_FIXVERSION=2.0
+        export ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION=2.0.0
+        export IMAGE_TAG_FABRIC=2.0
+        export IMAGE_TAG_FABRIC_CA=2.0
+        ########################
+        # Pull nodenev image from nexus and re-tag to hyperledger/fabric-nodeenv
+        #######################
+        docker pull nexus3.hyperledger.org:10001/hyperledger/fabric-nodeenv:amd64-2.0.0-stable
+        docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv:amd64-latest
+        docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv
+        docker pull nexus3.hyperledger.org:10001/hyperledger/fabric-javaenv:amd64-2.0.0-stable
+        docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-javaenv:amd64-2.0.0-stable hyperledger/fabric-javaenv:amd64-latest
+        docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-javaenv:amd64-2.0.0-stable hyperledger/fabric-javaenv
+        ##########
+        docker images | grep hyperledger/fabric-nodeenv || true
+        source ./src/test/fabric_test_commitlevel.sh
+        ./src/test/pull_images.sh
+        WD=$PWD GOPATH=$PWD/src/test/fixture ./src/test/cirun.sh
