@@ -1,3 +1,20 @@
+## v1.4.6
+Fri  8 Nov 2019 14:26:57 GMT
+
+* [c040b33](https://github.com/hyperledger/fabric-sdk-java/commit/c040b33) FABJ-497 update version to 1.4.6
+* [3324e71](https://github.com/hyperledger/fabric-sdk-java/commit/3324e71) FABJ-497 Update dependencies prior to release
+* [19c3566](https://github.com/hyperledger/fabric-sdk-java/commit/19c3566) FABJ-486 enable Azure pipelines build
+* [aa69ec4](https://github.com/hyperledger/fabric-sdk-java/commit/aa69ec4) FABJ-494: Fix javadoc build when using Java 11
+* [49af45c](https://github.com/hyperledger/fabric-sdk-java/commit/49af45c) FGJ-51: Increase default proposal timeout
+* [49fe989](https://github.com/hyperledger/fabric-sdk-java/commit/49fe989) [FABJ-491] Default grpc/grpcs based on discovery peer
+* [2446616](https://github.com/hyperledger/fabric-sdk-java/commit/2446616) [FABJ-491] Add javax.annotation for Java 11+
+* [fddd4cc](https://github.com/hyperledger/fabric-sdk-java/commit/fddd4cc) Correctly report status on build failures
+* [487fee8](https://github.com/hyperledger/fabric-sdk-java/commit/487fee8) FGJ-33 ‘As Localhost’ option for discovery
+
+## 1.4.6
+Fri  8 Nov 2019 14:26:47 GMT
+
+
 ## v1.4.5
 Wed 25 Sep 2019 16:29:24 BST
 
