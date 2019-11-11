@@ -1,3 +1,8 @@
+## v1.4.7
+Mon 11 Nov 2019 15:04:20 GMT
+
+* [c7469f8](https://github.com/hyperledger/fabric-sdk-java/commit/c7469f8) FABJ-497 update version of bouncycastle
+
 ## v1.4.6
 Fri  8 Nov 2019 14:26:57 GMT
 
