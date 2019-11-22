@@ -177,3 +177,9 @@ message StateMetadataResult {
 service ChaincodeSupport {
     rpc Register(stream ChaincodeMessage) returns (stream ChaincodeMessage);
 }
+
+// Chaincode as a server - peer establishes a connection to the chaincode as a client
+// Currently only supports a stream connection.
+service Chaincode {
+    rpc Connect(stream ChaincodeMessage) returns (stream ChaincodeMessage);
+}

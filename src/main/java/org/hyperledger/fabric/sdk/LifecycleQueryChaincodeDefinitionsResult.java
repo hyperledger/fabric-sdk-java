@@ -7,7 +7,7 @@
 package org.hyperledger.fabric.sdk;
 
 import com.google.protobuf.ByteString;
-import org.hyperledger.fabric.protos.common.Collection;
+import org.hyperledger.fabric.protos.peer.Collection;
 import org.hyperledger.fabric.protos.peer.lifecycle.Lifecycle;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;

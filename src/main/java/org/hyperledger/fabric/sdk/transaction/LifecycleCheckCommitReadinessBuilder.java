@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.protobuf.ByteString;
-import org.hyperledger.fabric.protos.common.Collection;
+import org.hyperledger.fabric.protos.peer.Collection;
 import org.hyperledger.fabric.protos.peer.ProposalPackage;
 import org.hyperledger.fabric.protos.peer.lifecycle.Lifecycle;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;

@@ -9,7 +9,7 @@ option java_package = "org.hyperledger.fabric.protos.gossip";
 
 package gossip;
 
-import "common/collection.proto";
+import "peer/collection.proto";
 
 // Gossip
 service Gossip {
@@ -257,7 +257,7 @@ message PrivatePayload {
     string tx_id                = 3;
     bytes private_rwset         = 4;
     uint64 private_sim_height  = 5;
-    common.CollectionConfigPackage collection_configs = 6;
+    protos.CollectionConfigPackage collection_configs = 6;
 }
 
 // Membership messages

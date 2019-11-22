@@ -4107,7 +4107,7 @@ public class Channel implements Serializable {
 
                 String collectionData = "null";
 
-                final org.hyperledger.fabric.protos.common.Collection.CollectionConfigPackage chaincodeCollectionConfiguration = lifecycleCheckCommitReadinessRequest.getCollectionConfigPackage();
+                final org.hyperledger.fabric.protos.peer.Collection.CollectionConfigPackage chaincodeCollectionConfiguration = lifecycleCheckCommitReadinessRequest.getCollectionConfigPackage();
                 if (null != chaincodeCollectionConfiguration) {
                     final byte[] asBytes = chaincodeCollectionConfiguration.toByteArray();
                     if (null != asBytes) {
@@ -4152,7 +4152,7 @@ public class Channel implements Serializable {
                 lifecycleCheckCommitReadinessBuilder.setValidationParameter(validationParameter);
             }
 
-            org.hyperledger.fabric.protos.common.Collection.CollectionConfigPackage collectionConfigPackage = lifecycleCheckCommitReadinessRequest.getCollectionConfigPackage();
+            org.hyperledger.fabric.protos.peer.Collection.CollectionConfigPackage collectionConfigPackage = lifecycleCheckCommitReadinessRequest.getCollectionConfigPackage();
 
             if (null != collectionConfigPackage) {
                 lifecycleCheckCommitReadinessBuilder.setCollections(collectionConfigPackage);
