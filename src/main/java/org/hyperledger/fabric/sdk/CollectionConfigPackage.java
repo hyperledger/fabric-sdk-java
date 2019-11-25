@@ -29,7 +29,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class CollectionConfigPackage {
 
     private final ByteString collectionConfigBytes;
-    private org.hyperledger.fabric.protos.common.Collection.CollectionConfigPackage cp;
+    private org.hyperledger.fabric.protos.peer.Collection.CollectionConfigPackage cp;
 
     CollectionConfigPackage(ByteString collectionConfig) {
         this.collectionConfigBytes = collectionConfig;
@@ -43,9 +43,9 @@ public class CollectionConfigPackage {
      * @throws InvalidProtocolBufferException
      */
 
-    public org.hyperledger.fabric.protos.common.Collection.CollectionConfigPackage getCollectionConfigPackage() throws InvalidProtocolBufferException {
+    public org.hyperledger.fabric.protos.peer.Collection.CollectionConfigPackage getCollectionConfigPackage() throws InvalidProtocolBufferException {
         if (null == cp) {
-            cp = org.hyperledger.fabric.protos.common.Collection.CollectionConfigPackage.parseFrom(collectionConfigBytes);
+            cp = org.hyperledger.fabric.protos.peer.Collection.CollectionConfigPackage.parseFrom(collectionConfigBytes);
         }
 
         return cp;
@@ -60,7 +60,7 @@ public class CollectionConfigPackage {
      */
     public Collection<CollectionConfig> getCollectionConfigs() throws InvalidProtocolBufferException {
         List<CollectionConfig> ret = new LinkedList<>();
-        for (org.hyperledger.fabric.protos.common.Collection.CollectionConfig collectionConfig : getCollectionConfigPackage().getConfigList()) {
+        for (org.hyperledger.fabric.protos.peer.Collection.CollectionConfig collectionConfig : getCollectionConfigPackage().getConfigList()) {
             ret.add(new CollectionConfig(collectionConfig));
 
         }
@@ -73,7 +73,7 @@ public class CollectionConfigPackage {
      */
 
     public static class CollectionConfig {
-        final org.hyperledger.fabric.protos.common.Collection.CollectionConfig collectionConfig;
+        final org.hyperledger.fabric.protos.peer.Collection.CollectionConfig collectionConfig;
 
         /**
          * Name of the collection.
@@ -112,9 +112,9 @@ public class CollectionConfigPackage {
             return getStaticCollectionConfig.getBlockToLive();
         }
 
-        final org.hyperledger.fabric.protos.common.Collection.StaticCollectionConfig getStaticCollectionConfig;
+        final org.hyperledger.fabric.protos.peer.Collection.StaticCollectionConfig getStaticCollectionConfig;
 
-        CollectionConfig(org.hyperledger.fabric.protos.common.Collection.CollectionConfig collectionConfig) {
+        CollectionConfig(org.hyperledger.fabric.protos.peer.Collection.CollectionConfig collectionConfig) {
             this.collectionConfig = collectionConfig;
             this.getStaticCollectionConfig = collectionConfig.getStaticCollectionConfig();
 
@@ -125,8 +125,8 @@ public class CollectionConfigPackage {
          *
          * @return The collection information returned directly from the peer.
          */
-        public org.hyperledger.fabric.protos.common.Collection.CollectionConfig getCollectionConfig() {
-            org.hyperledger.fabric.protos.common.Collection.StaticCollectionConfig staticCollectionConfig = collectionConfig.getStaticCollectionConfig();
+        public org.hyperledger.fabric.protos.peer.Collection.CollectionConfig getCollectionConfig() {
+            org.hyperledger.fabric.protos.peer.Collection.StaticCollectionConfig staticCollectionConfig = collectionConfig.getStaticCollectionConfig();
 
             return this.collectionConfig;
         }

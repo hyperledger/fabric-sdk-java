@@ -65,3 +65,20 @@ message ImplicitMetaPolicy {
     string sub_policy = 1;
     Rule rule = 2;
 }
+
+// ApplicationPolicy captures the diffenrent policy types that
+// are set and evaluted at the application level.
+message ApplicationPolicy {
+    option deprecated = true;
+    oneof Type {
+        // SignaturePolicy type is used if the policy is specified as
+        // a combination (using threshold gates) of signatures from MSP
+        // principals
+        SignaturePolicyEnvelope signature_policy = 1;
+
+        // ChannelConfigPolicyReference is used when the policy is
+        // specified as a string that references a policy defined in
+        // the configuration of the channel
+        string channel_config_policy_reference = 2;
+    }
+}

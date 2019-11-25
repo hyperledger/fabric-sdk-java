@@ -23,12 +23,12 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 
-import org.hyperledger.fabric.protos.common.Collection.CollectionConfig;
-import org.hyperledger.fabric.protos.common.Collection.CollectionConfigPackage;
-import org.hyperledger.fabric.protos.common.Collection.CollectionPolicyConfig;
-import org.hyperledger.fabric.protos.common.Collection.StaticCollectionConfig;
 import org.hyperledger.fabric.protos.common.MspPrincipal;
 import org.hyperledger.fabric.protos.common.Policies;
+import org.hyperledger.fabric.protos.peer.Collection.CollectionConfig;
+import org.hyperledger.fabric.protos.peer.Collection.CollectionConfigPackage;
+import org.hyperledger.fabric.protos.peer.Collection.CollectionPolicyConfig;
+import org.hyperledger.fabric.protos.peer.Collection.StaticCollectionConfig;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.junit.Rule;
 import org.junit.Test;

@@ -13,20 +13,6 @@ package protos;
 import "peer/proposal_response.proto";
 import "common/common.proto";
 
-// This message is necessary to facilitate the verification of the signature
-// (in the signature field) over the bytes of the transaction (in the
-// transactionBytes field).
-message SignedTransaction {
-    // The bytes of the Transaction. NDD
-    bytes transaction_bytes = 1;
-
-    // Signature of the transactionBytes The public key of the signature is in
-    // the header field of TransactionAction There might be multiple
-    // TransactionAction, so multiple headers, but there should be same
-    // transactor identity (cert) in all headers
-    bytes signature = 2;
-}
-
 // ProcessedTransaction wraps an Envelope that includes a transaction along with an indication
 // of whether the transaction was validated or invalidated by committing peer.
 // The use case is that GetTransactionByID API needs to retrieve the transaction Envelope

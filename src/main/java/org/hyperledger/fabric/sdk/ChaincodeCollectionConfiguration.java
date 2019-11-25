@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -36,11 +35,11 @@ import javax.json.JsonValue;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.hyperledger.fabric.protos.common.Collection;
 import org.hyperledger.fabric.protos.common.MspPrincipal.MSPPrincipal;
 import org.hyperledger.fabric.protos.common.MspPrincipal.MSPRole;
 import org.hyperledger.fabric.protos.common.Policies;
 import org.hyperledger.fabric.protos.common.Policies.SignaturePolicy;
+import org.hyperledger.fabric.protos.peer.Collection;
 import org.hyperledger.fabric.sdk.exception.ChaincodeCollectionConfigurationException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.yaml.snakeyaml.Yaml;

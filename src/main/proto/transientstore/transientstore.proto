@@ -10,7 +10,7 @@ option go_package = "github.com/hyperledger/fabric-protos-go/transientstore";
 option java_package = "org.hyperledger.fabric.protos.transientstore";
 
 import "ledger/rwset/rwset.proto";
-import "common/collection.proto";
+import "peer/collection.proto";
 
 // TxPvtReadWriteSetWithConfigInfo encapsulates the transaction's private
 // read-write set and additional information about the configurations such as
@@ -18,5 +18,5 @@ import "common/collection.proto";
 message TxPvtReadWriteSetWithConfigInfo {
     uint64 endorsed_at = 1;
     rwset.TxPvtReadWriteSet pvt_rwset = 2;
-    map<string, common.CollectionConfigPackage> collection_configs = 3;
+    map<string, protos.CollectionConfigPackage> collection_configs = 3;
 }
