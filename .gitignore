@@ -8,3 +8,4 @@ target
 .settings
 .project
 .classpath
+.vscode
