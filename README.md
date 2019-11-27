@@ -55,7 +55,6 @@ For Java applications use the latest published v1.4.x releases:
 ## Known limitations and restrictions
 
 * TCerts are not supported: JIRA FAB-1401
-* HSM not supported. JIRA FAB-3137
 
 <p &nbsp; />
 <p &nbsp; />
@@ -188,7 +187,6 @@ Then run the Integration tests with:
 ORG_HYPERLEDGER_FABRIC_SDKTEST_INTEGRATIONTESTS_TLS=true mvn clean install -DskipITs=false -Dmaven.test.failure.ignore=false javadoc:javadoc
 
 ### Chaincode endorsement policies
-Policies are described in the [Fabric Endorsement Policies document](https://gerrit.hyperledger.org/r/gitweb?p=fabric.git;a=blob;f=docs/endorsement-policies.md;h=1eecf359c12c3f7c1ddc63759a0b5f3141b07f13;hb=HEAD).
 You create a policy using a Fabric tool ( an example is shown in [JIRA issue FAB-2376](https://jira.hyperledger.org/browse/FAB-2376?focusedCommentId=21121&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-21121))
 and give it to the SDK either as a file or a byte array. The SDK, in turn, will use the policy when it creates chaincode instantiation requests.
 
