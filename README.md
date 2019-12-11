@@ -97,9 +97,9 @@ pom.xml
 ### Java and Node Chaincode environment
 You may also need to on your <span style="color:red"><b>v2.0</b> </span>  Fabric network docker deployment explicitly pull the Java and Node chaincode environments for now.
 
-`docker pull nexus3.hyperledger.org:10001/hyperledger/fabric-nodeenv:amd64-2.0.0-stable&&docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv:amd64-latest&&docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv`
+`docker pull hyperledger-fabric.jfrog.io/fabric-nodeenv:amd64-2.0.0-stable&&docker tag hyperledger-fabric.jfrog.io/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv:amd64-latest&&docker tag hyperledger-fabric.jfrog.io/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv`
 
-`docker pull nexus3.hyperledger.org:10001/hyperledger/fabric-javaenv:amd64-2.0.0-stable&&docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-javaenv:amd64-2.0.0-stable hyperledger/fabric-javaenv:amd64-latest&&docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-javaenv:amd64-2.0.0-stable hyperledger/fabric-javaenv`
+`docker pull hyperledger-fabric.jfrog.io/fabric-javaenv:amd64-2.0.0-stable&&docker tag hyperledger-fabric.jfrog.io/fabric-javaenv:amd64-2.0.0-stable hyperledger/fabric-javaenv:amd64-latest&&docker tag hyperledger-fabric.jfrog.io/fabric-javaenv:amd64-2.0.0-stable hyperledger/fabric-javaenv`
 
 ## Known limitations and restrictions
 
