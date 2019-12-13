@@ -5712,11 +5712,13 @@ public class Channel implements Serializable {
 
                 CompletableFuture<TransactionEvent> ret = new CompletableFuture<>();
                 ret.completeExceptionally(lException != null ? new Exception(emsg, lException) : new Exception(emsg));
+                logger.error(emsg);
                 return ret;
             }
         } catch (Exception e) {
             CompletableFuture<TransactionEvent> future = new CompletableFuture<>();
             future.completeExceptionally(e);
+            logger.error(e);
             return future;
         }
     }
