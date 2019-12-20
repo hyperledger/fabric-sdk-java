@@ -5537,6 +5537,21 @@ public class Channel implements Serializable {
      */
     public CompletableFuture<TransactionEvent> sendTransaction(Collection<? extends ProposalResponse> proposalResponses,
                                                                TransactionOptions transactionOptions) {
+        return doSendTransaction(proposalResponses, transactionOptions)
+                .whenComplete((result, exception) -> logCompletion("sendTransaction", result, exception));
+    }
+
+    private <T> T logCompletion(final String message, final T result, final Throwable exception) {
+
+        if (exception != null) {
+            logger.error("Future completed exceptionally: " + message, exception);
+        }
+        return result;
+    }
+
+    private CompletableFuture<TransactionEvent> doSendTransaction(Collection<? extends ProposalResponse> proposalResponses,
+                                                               TransactionOptions transactionOptions) {
+
         try {
             if (null == transactionOptions) {
                 throw new InvalidArgumentException("Parameter transactionOptions can't be null");
@@ -5712,13 +5727,11 @@ public class Channel implements Serializable {
 
                 CompletableFuture<TransactionEvent> ret = new CompletableFuture<>();
                 ret.completeExceptionally(lException != null ? new Exception(emsg, lException) : new Exception(emsg));
-                logger.error(emsg);
                 return ret;
             }
         } catch (Exception e) {
             CompletableFuture<TransactionEvent> future = new CompletableFuture<>();
             future.completeExceptionally(e);
-            logger.error(e);
             return future;
         }
     }
