@@ -192,7 +192,7 @@ public class ServiceDiscoveryIT {
         assertFalse(transactionPropResp.isEmpty());
 
         transactionProposalRequest = client.newTransactionProposalRequest();
-        transactionProposalRequest.setChaincodeID(chaincodeID);
+        transactionProposalRequest.setChaincodeName(CHAIN_CODE_NAME);
         transactionProposalRequest.setChaincodeLanguage(CHAIN_CODE_LANG);
         transactionProposalRequest.setFcn("move");
         transactionProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
