@@ -4421,9 +4421,6 @@ public class Channel implements Serializable {
         if (isNullOrEmpty(transactionProposalRequest.getFcn())) {
             throw new InvalidArgumentException("The proposalRequest's fcn is null or empty.");
         }
-        if (transactionProposalRequest.getChaincodeID() == null) {
-            throw new InvalidArgumentException("The proposalRequest's chaincode ID is null");
-        }
         if (null == serviceDiscovery) {
             throw new ServiceDiscoveryException("The channel is not configured with any peers with the 'discover' role");
         }
@@ -4832,10 +4829,6 @@ public class Channel implements Serializable {
         if (isNullOrEmpty(proposalRequest.getFcn())) {
             throw new InvalidArgumentException("The proposalRequest's fcn is null or empty.");
         }
-
-//        if (proposalRequest.getChaincodeID() == null) {
-//            throw new InvalidArgumentException("The proposalRequest's chaincode ID is null");
-//        }
 
         try {
             TransactionContext transactionContext = getTransactionContext(proposalRequest.getUserContext());
