@@ -19,14 +19,14 @@ jobs:
         export IMAGE_TAG_FABRIC=2.0
         export IMAGE_TAG_FABRIC_CA=2.0
         ########################
-        # Pull nodenev image from nexus and re-tag to hyperledger/fabric-nodeenv
+        # Pull nodenev image from Artifactory and re-tag to hyperledger/fabric-nodeenv
         #######################
-        docker pull nexus3.hyperledger.org:10001/hyperledger/fabric-nodeenv:amd64-2.0.0-stable
-        docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv:amd64-latest
-        docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv
-        docker pull nexus3.hyperledger.org:10001/hyperledger/fabric-javaenv:amd64-2.0.0-stable
-        docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-javaenv:amd64-2.0.0-stable hyperledger/fabric-javaenv:amd64-latest
-        docker tag nexus3.hyperledger.org:10001/hyperledger/fabric-javaenv:amd64-2.0.0-stable hyperledger/fabric-javaenv
+        docker pull hyperledger-fabric.jfrog.io/fabric-nodeenv:amd64-2.0.0-stable
+        docker tag hyperledger-fabric.jfrog.io/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv:amd64-latest
+        docker tag hyperledger-fabric.jfrog.io/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv
+        docker pull hyperledger-fabric.jfrog.io/fabric-javaenv:amd64-2.0.0-stable
+        docker tag hyperledger-fabric.jfrog.io/fabric-javaenv:amd64-2.0.0-stable hyperledger/fabric-javaenv:amd64-latest
+        docker tag hyperledger-fabric.jfrog.io/fabric-javaenv:amd64-2.0.0-stable hyperledger/fabric-javaenv
         ##########
         docker images | grep hyperledger/fabric-nodeenv || true
         source ./src/test/fabric_test_commitlevel.sh
