@@ -1,3 +1,82 @@
+## v2.0.0
+Wed 22 Jan 2020 15:27:37 GMT
+
+* [ed2dd26](https://github.com/hyperledger/fabric-sdk-java/commit/ed2dd26) [FABCI-482] Update Nexus URL's to Artifactory (#36)
+* [4a8b56e](https://github.com/hyperledger/fabric-sdk-java/commit/4a8b56e) FABJ-509: Allow transactions to be submitted without ChaincodeID (#39)
+* [4998053](https://github.com/hyperledger/fabric-sdk-java/commit/4998053) FABJ-503: Update README.md (#38)
+* [876169c](https://github.com/hyperledger/fabric-sdk-java/commit/876169c) [FAJ-502]-Add exception log (#34)
+* [e94ff5e](https://github.com/hyperledger/fabric-sdk-java/commit/e94ff5e) Add exception log [FABJ-502] (#32)
+* [199a600](https://github.com/hyperledger/fabric-sdk-java/commit/199a600) Bump commons-compress from 1.18 to 1.19 (#28)
+* [53fab6a](https://github.com/hyperledger/fabric-sdk-java/commit/53fab6a) (Master) Remove references to gerrit (#29)
+* [3db1a01](https://github.com/hyperledger/fabric-sdk-java/commit/3db1a01) FABJ-500: Update to latest protobufs (#26)
+* [887d900](https://github.com/hyperledger/fabric-sdk-java/commit/887d900) Defang stalebot (#27)
+* [d0a66e5](https://github.com/hyperledger/fabric-sdk-java/commit/d0a66e5) FABJ-486
+* [923cc16](https://github.com/hyperledger/fabric-sdk-java/commit/923cc16) FABJ-494: Fix javadoc build when using Java 11
+* [10bf41a](https://github.com/hyperledger/fabric-sdk-java/commit/10bf41a) [FABJ-491] Default grpc/grpcs based on discovery peer
+* [96f5327](https://github.com/hyperledger/fabric-sdk-java/commit/96f5327) FGJ-33 ‘As Localhost’ option for discovery
+* [84681e1](https://github.com/hyperledger/fabric-sdk-java/commit/84681e1) FGJ-38 Throw exception if no discovery peers
+* [c643cbc](https://github.com/hyperledger/fabric-sdk-java/commit/c643cbc) FGJ-51: Increase default proposal timeout
+* [38297cc](https://github.com/hyperledger/fabric-sdk-java/commit/38297cc) [FABJ-491] Add javax.annotation for Java 11+
+* [a839010](https://github.com/hyperledger/fabric-sdk-java/commit/a839010) FABJ-475 Removed commented code to improve readability
+* [9e12cec](https://github.com/hyperledger/fabric-sdk-java/commit/9e12cec) [FABJ-474] Typo in NetworkConfig Exception Message
+* [a4ce2c4](https://github.com/hyperledger/fabric-sdk-java/commit/a4ce2c4) FABJ-487: 1.4 and 2.0 compatible test Java chaincode
+* [8f236ad](https://github.com/hyperledger/fabric-sdk-java/commit/8f236ad) FABJ-484: Fix checkstyle failure
+* [2c44d72](https://github.com/hyperledger/fabric-sdk-java/commit/2c44d72) [IN-68] Add default GitHub SECURITY policy
+* [d665653](https://github.com/hyperledger/fabric-sdk-java/commit/d665653) Increase timeout for chaincode install
+* [ef56f74](https://github.com/hyperledger/fabric-sdk-java/commit/ef56f74) [FABJ-484] grpc.keepalive_without_calls option added
+* [bc7a73d](https://github.com/hyperledger/fabric-sdk-java/commit/bc7a73d) Correctly exit on build errors from cirun.sh
+* [8af3374](https://github.com/hyperledger/fabric-sdk-java/commit/8af3374) FABJ-483: Update dependency in test chaincode
+* [6b1b255](https://github.com/hyperledger/fabric-sdk-java/commit/6b1b255) [FABJ-479] Add Go Modules to Go Chaincode
+* [e46737b](https://github.com/hyperledger/fabric-sdk-java/commit/e46737b) [FABJ-479] Modify shim and protos import
+* [37b2bd5](https://github.com/hyperledger/fabric-sdk-java/commit/37b2bd5) [FABJ-479] Dynamically populate chaincode file
+* [494eabe](https://github.com/hyperledger/fabric-sdk-java/commit/494eabe) FABJ-469: Remove getChaincodeIDPath from BlockInfo
+* [10d2358](https://github.com/hyperledger/fabric-sdk-java/commit/10d2358) Update to latest protobufs from fabric-protos
+* [33e43ee](https://github.com/hyperledger/fabric-sdk-java/commit/33e43ee) FAB-16290 Make metadata fields lower case
+* [4f19d22](https://github.com/hyperledger/fabric-sdk-java/commit/4f19d22) FAB-16494 Deleted and ignored eclipse config files
+* [2e7eb12](https://github.com/hyperledger/fabric-sdk-java/commit/2e7eb12) [FAB-16489](https://jira.hyperledger.org/browse/FAB-16489) Add CODEOWNERS
+* [31727ee](https://github.com/hyperledger/fabric-sdk-java/commit/31727ee) FGJ-36 set sensible defaults for grpc - part2
+* [eef82e2](https://github.com/hyperledger/fabric-sdk-java/commit/eef82e2) FGJ-36 set sensible defaults for grpc
+* [f15f58e](https://github.com/hyperledger/fabric-sdk-java/commit/f15f58e) Revert "[FABJ-394] Signature-based whitelisting"
+* [5f3a0c4](https://github.com/hyperledger/fabric-sdk-java/commit/5f3a0c4) [FABJ-394] Signature-based whitelisting
+* [a4a074c](https://github.com/hyperledger/fabric-sdk-java/commit/a4a074c) FAB-16166 Switch to metadata.json for packaging
+* [a3d6fbf](https://github.com/hyperledger/fabric-sdk-java/commit/a3d6fbf) FABJ-464: Compatibility with Java 11
+* [082ba50](https://github.com/hyperledger/fabric-sdk-java/commit/082ba50) FAB-16166 Standardize _lifecycle code package name
+* [376837e](https://github.com/hyperledger/fabric-sdk-java/commit/376837e) FABJ-462: Updated lifecycle protobufs
+* [f054cce](https://github.com/hyperledger/fabric-sdk-java/commit/f054cce) FABJ-454: Typo fix for SDChaincode Exception Msg
+* [83801ea](https://github.com/hyperledger/fabric-sdk-java/commit/83801ea) FABJ-455 - update maintainers list
+* [d0f27c8](https://github.com/hyperledger/fabric-sdk-java/commit/d0f27c8) FAB-15820 Handle query enhancements
+* [e0af668](https://github.com/hyperledger/fabric-sdk-java/commit/e0af668) FABJ-450 Access to Peer URL from NetworkConfig
+* [d119aad](https://github.com/hyperledger/fabric-sdk-java/commit/d119aad) FABJ-451: Allow proposals to be sent more than once
+* [5e25c68](https://github.com/hyperledger/fabric-sdk-java/commit/5e25c68) FABJ-452 shutdown spurious NPE
+* [db22412](https://github.com/hyperledger/fabric-sdk-java/commit/db22412) FABJ-448 Provide access to system channel configuration
+* [0f77959](https://github.com/hyperledger/fabric-sdk-java/commit/0f77959) FABJ-447 Update chaincode to not use Shim logger
+* [519cc0a](https://github.com/hyperledger/fabric-sdk-java/commit/519cc0a) FABJ-434 Expose org info for peers
+* [a8ef7ce](https://github.com/hyperledger/fabric-sdk-java/commit/a8ef7ce) FABJ-442 Servicediscovery logging enhancements.
+* [0dd377e](https://github.com/hyperledger/fabric-sdk-java/commit/0dd377e) FABJ-441 Proto updates
+* [433432f](https://github.com/hyperledger/fabric-sdk-java/commit/433432f) FABJ-437 Fix ca URL parameter
+* [dfc9af9](https://github.com/hyperledger/fabric-sdk-java/commit/dfc9af9) FABJ-435 Needed dependency missing
+* [6c07d06](https://github.com/hyperledger/fabric-sdk-java/commit/6c07d06) FABJ-433 Fix return SD overrides.
+* [4a2d7b3](https://github.com/hyperledger/fabric-sdk-java/commit/4a2d7b3) FJ432-Update README.MD for v2.0
+* [7442c87](https://github.com/hyperledger/fabric-sdk-java/commit/7442c87) FABJ-432 Update README.MD for v2.0
+* [df422e1](https://github.com/hyperledger/fabric-sdk-java/commit/df422e1) FABJ-288 lifecycle
+* [9054e3c](https://github.com/hyperledger/fabric-sdk-java/commit/9054e3c) FABJ-431 Update dependencies
+* [996bef7](https://github.com/hyperledger/fabric-sdk-java/commit/996bef7) FABJ-430 Networkconfig handlers
+* [e1ca125](https://github.com/hyperledger/fabric-sdk-java/commit/e1ca125) FABJ-428 Provide queued block event listener.
+* [1865ed8](https://github.com/hyperledger/fabric-sdk-java/commit/1865ed8) FABJ-404 Application set Executor Service
+* [d9608f2](https://github.com/hyperledger/fabric-sdk-java/commit/d9608f2) FABJ-429 Provide current disconnect handler on peer
+* [3de9ff8](https://github.com/hyperledger/fabric-sdk-java/commit/3de9ff8) FABJ-427 Remove not used Idmemix classes.
+* [aaee816](https://github.com/hyperledger/fabric-sdk-java/commit/aaee816) FABJ-423 Expired test certs.
+* [768e22a](https://github.com/hyperledger/fabric-sdk-java/commit/768e22a) FABJ-420 Switch to CompletableFutures
+* [8bdcbe9](https://github.com/hyperledger/fabric-sdk-java/commit/8bdcbe9) FABJ-421 HCAIdentity create not setting data
+* [5122f10](https://github.com/hyperledger/fabric-sdk-java/commit/5122f10) FABJ-419 Docker cleanup
+* [c799c52](https://github.com/hyperledger/fabric-sdk-java/commit/c799c52) FABJ-422 Allow test to change node cc version used.
+* [dbc41c1](https://github.com/hyperledger/fabric-sdk-java/commit/dbc41c1) FABJ-406 Service Discovery TLS Error Using Cert Bytes
+* [d69047f](https://github.com/hyperledger/fabric-sdk-java/commit/d69047f) FABJ-411 Enable service disc IT build verify
+* [d2bc6d5](https://github.com/hyperledger/fabric-sdk-java/commit/d2bc6d5) FABJ-399 Remove eventhub code
+* [2080902](https://github.com/hyperledger/fabric-sdk-java/commit/2080902) FABJ-401 Update dependencies
+* [a2140f9](https://github.com/hyperledger/fabric-sdk-java/commit/a2140f9) FABJ-403
+* [8d4b489](https://github.com/hyperledger/fabric-sdk-java/commit/8d4b489) FABJ-398  Version 2.0.0 start
+
 ## v1.4.0
 Thu Dec 13 10:19:04 EST 2018
 
