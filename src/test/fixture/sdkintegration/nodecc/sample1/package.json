@@ -1,0 +1,18 @@
+{
+    "name": "example_cc",
+    "version": "1.0.0",
+    "description": "",
+    "main": "chaincode.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "node chaincode.js"
+    },
+    "author": {
+        "name": "hyperledger/fabric",
+        "email": "fabric@lists.hyperledger.org"
+    },
+    "license": "Apache-2.0",
+    "dependencies": {
+        "fabric-shim": "2.0.0"
+    }
+}

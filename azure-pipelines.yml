@@ -4,31 +4,22 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/java
 
 trigger:
-- master
+  - master
+
+pr:
+  - master
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: 'ubuntu-18.04'
 
 jobs:
-- job: test
-  steps:
-    - script: |
-        set -eo pipefail
-        export ORG_HYPERLEDGER_FABRIC_SDKTEST_FIXVERSION=2.0
-        export ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION=2.0.0
-        export IMAGE_TAG_FABRIC=2.0
-        export IMAGE_TAG_FABRIC_CA=2.0
-        ########################
-        # Pull nodenev image from Artifactory and re-tag to hyperledger/fabric-nodeenv
-        #######################
-        docker pull hyperledger-fabric.jfrog.io/fabric-nodeenv:amd64-2.0.0-stable
-        docker tag hyperledger-fabric.jfrog.io/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv:amd64-latest
-        docker tag hyperledger-fabric.jfrog.io/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv
-        docker pull hyperledger-fabric.jfrog.io/fabric-javaenv:amd64-2.0.0-stable
-        docker tag hyperledger-fabric.jfrog.io/fabric-javaenv:amd64-2.0.0-stable hyperledger/fabric-javaenv:amd64-latest
-        docker tag hyperledger-fabric.jfrog.io/fabric-javaenv:amd64-2.0.0-stable hyperledger/fabric-javaenv
-        ##########
-        docker images | grep hyperledger/fabric-nodeenv || true
-        source ./src/test/fabric_test_commitlevel.sh
-        ./src/test/pull_images.sh
-        WD=$PWD GOPATH=$PWD/src/test/fixture ./src/test/cirun.sh
+  - job: test
+    steps:
+      - script: |
+          set -eo pipefail
+          export ORG_HYPERLEDGER_FABRIC_SDKTEST_FIXVERSION=2.0
+          export ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION=2.0.0
+          export IMAGE_TAG_FABRIC=2.0
+          export IMAGE_TAG_FABRIC_CA=2.0
+          source ./src/test/fabric_test_commitlevel.sh
+          WD=$PWD GOPATH=$PWD/src/test/fixture ./src/test/cirun.sh
