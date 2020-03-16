@@ -57,6 +57,7 @@ import org.hyperledger.fabric.sdk.exception.NetworkConfigurationException;
 import org.hyperledger.fabric.sdk.identity.X509Enrollment;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.helper.Utils.isNullOrEmpty;
@@ -334,7 +335,7 @@ public class NetworkConfig {
             throw new InvalidArgumentException("configStream must be specified");
         }
 
-        Yaml yaml = new Yaml();
+        Yaml yaml = new Yaml(new SafeConstructor());
 
         @SuppressWarnings ("unchecked")
         Map<String, Object> map = yaml.load(configStream);
