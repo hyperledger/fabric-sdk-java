@@ -29,6 +29,7 @@ import org.hyperledger.fabric.protos.common.Policies.SignaturePolicy;
 import org.hyperledger.fabric.protos.peer.Policy;
 import org.hyperledger.fabric.sdk.exception.ChaincodeEndorsementPolicyParseException;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import static java.lang.String.format;
 
@@ -224,7 +225,7 @@ public class LifecycleChaincodeEndorsementPolicy {
 //    }
 
     public static LifecycleChaincodeEndorsementPolicy fromSignaturePolicyYamlFile(Path yamlPolicyFile) throws IOException, ChaincodeEndorsementPolicyParseException {
-        final Yaml yaml = new Yaml();
+        final Yaml yaml = new Yaml(new SafeConstructor());
         final Map<?, ?> load = (Map<?, ?>) yaml.load(new FileInputStream(yamlPolicyFile.toFile()));
 
         Map<?, ?> mp = (Map<?, ?>) load.get("policy");
