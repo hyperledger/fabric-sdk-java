@@ -211,33 +211,8 @@ public class TestConfig {
 
                     sampleOrg.setCAProperties(properties);
                 }
-
-                //FIX Node chaincode to reference chaincode shim package according to fabric version.
-
-                String ncCv = 2 == fabricVersion[0] ? "\"unstable\"" : String.format("\"~%d.%d.0\"", fabricVersion[0], fabricVersion[1]);
-
-                try {
-                    List<Path> collect = null;
-                    try (Stream<Path> filess = Files.walk(Paths.get("src/test/fixture/sdkintegration/nodecc"))) {
-                        collect = filess.filter(f -> f.getFileName().toString().equals("package.json.TEMPLATE"))
-                                .collect(Collectors.toList());
-                    }
-
-                    for (Path jspf : collect) {
-                        String jpff = new String(Files.readAllBytes(jspf)).replaceAll(Pattern.quote("${1}"), ncCv).replaceAll("(?m)^#.*$\n", "");
-                        Path pkgjson = Paths.get(jspf.getParent().toFile().getAbsolutePath(), "package.json");
-                        pkgjson.toFile().deleteOnExit();
-                        Files.write(pkgjson, jpff.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-                    }
-
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-
             }
-
         }
-
     }
 
     public String getFabricConfigGenVers() {
