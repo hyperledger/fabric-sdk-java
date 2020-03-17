@@ -318,7 +318,7 @@ public final class Utils {
         }
 
         Properties props = new Properties();
-        Pattern p = Pattern.compile("([^:]+)[:]//([^:]+)[:]([0-9]+)", Pattern.CASE_INSENSITIVE);
+        Pattern p = Pattern.compile("([^:]+)://([^:]+):([0-9]+)", Pattern.CASE_INSENSITIVE);
         Matcher m = p.matcher(url);
         if (m.matches()) {
             props.setProperty("protocol", m.group(1));

@@ -33,9 +33,9 @@ import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.netty.GrpcSslContexts;
-import io.grpc.netty.NegotiationType;
-import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.netty.NettyServerBuilder;
+import io.grpc.okhttp.OkHttpChannelBuilder;
+import io.grpc.okhttp.OkHttpChannelProvider;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
@@ -89,10 +89,11 @@ public class TLSCertGenTest {
             return;
         }
 
-        NettyChannelBuilder channelBuilder = NettyChannelBuilder
+        OkHttpChannelBuilder channelBuilder = OkHttpChannelBuilder
                 .forAddress("localhost", server.getPort())
-                .sslContext(getSslContextBuilder(clientCertFile, clientKeyFile, serverCertFile).protocols(TLS_PROTOCOL).build())
-                .negotiationType(NegotiationType.TLS);
+//                .sslContext(getSslContextBuilder(clientCertFile, clientKeyFile, serverCertFile).protocols(TLS_PROTOCOL).build())
+//                .negotiationType(NegotiationType.TLS);
+                .useTransportSecurity();
         ManagedChannel chan = channelBuilder.build();
         ProposalPackage.SignedProposal prop = ProposalPackage.SignedProposal.getDefaultInstance();
         EndorserGrpc.newBlockingStub(chan).processProposal(prop);
@@ -102,13 +103,13 @@ public class TLSCertGenTest {
         server.shutdown();
     }
 
-    private SslContextBuilder getSslContextBuilder(File clientCertFile, File clientKeyFile, File serverCertFile) {
-        SslProvider sslprovider = SslProvider.OPENSSL;
-        SslContextBuilder ctxBuilder = SslContextBuilder.forClient().protocols(TLS_PROTOCOL).trustManager(serverCertFile);
-        SslContextBuilder clientContextBuilder = GrpcSslContexts.configure(ctxBuilder, sslprovider);
-        clientContextBuilder = clientContextBuilder.keyManager(clientCertFile, clientKeyFile);
-        return clientContextBuilder;
-    }
+//    private SslContextBuilder getSslContextBuilder(File clientCertFile, File clientKeyFile, File serverCertFile) {
+//        SslProvider sslprovider = SslProvider.OPENSSL;
+//        SslContextBuilder ctxBuilder = SslContextBuilder.forClient().protocols(TLS_PROTOCOL).trustManager(serverCertFile);
+//        SslContextBuilder clientContextBuilder = GrpcSslContexts.configure(ctxBuilder, sslprovider);
+//        clientContextBuilder = clientContextBuilder.keyManager(clientCertFile, clientKeyFile);
+//        return clientContextBuilder;
+//    }
 
     private ServerInterceptor mutualTLSInterceptor(byte[] expectedClientCert, AtomicBoolean toggleHandshakeOccured) {
         return new ServerInterceptor() {
