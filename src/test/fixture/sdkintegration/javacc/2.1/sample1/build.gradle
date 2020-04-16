@@ -14,7 +14,7 @@ repositories {
 }
 
 dependencies {
-    compile group: 'org.hyperledger.fabric-chaincode-java', name: 'fabric-chaincode-shim', version: '1.+'
+    compile group: 'org.hyperledger.fabric-chaincode-java', name: 'fabric-chaincode-shim', version: '2.+'
 }
 
 shadowJar {

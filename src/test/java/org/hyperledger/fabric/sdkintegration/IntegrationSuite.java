@@ -33,7 +33,7 @@ public class IntegrationSuite {
     static {
         String sdkTestVersion = System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION");
         if (null == sdkTestVersion) {
-            sdkTestVersion = "2.0";
+            sdkTestVersion = "2.1";
         }
         final String[] fvs = sdkTestVersion.split("\\.");
         if (fvs.length < 2) {
@@ -54,7 +54,7 @@ public class IntegrationSuite {
                 End2endIdemixIT.class, PrivateDataIT.class, ServiceDiscoveryIT.class, HFCAClientIT.class));
         runmap.put("1.4", runmap.get("1.3"));
 
-        runmap.put("2.0", Arrays.asList(End2endIT.class, End2endAndBackAgainIT.class, UpdateChannelIT.class,
+        runmap.put("2.1", Arrays.asList(End2endIT.class, End2endAndBackAgainIT.class, UpdateChannelIT.class,
                 NetworkConfigIT.class, End2endNodeIT.class, End2endJavaIT.class, End2endAndBackAgainNodeIT.class,
                 End2endIdemixIT.class, PrivateDataIT.class, End2endLifecycleIT.class, ServiceDiscoveryIT.class, HFCAClientIT.class));
     }
@@ -87,7 +87,7 @@ public class IntegrationSuite {
         if (fabricMajorVersion == 1 && fabricMinorVersion == 4) {
             chaincodeRootPath = JAVA_CHAINCODE_PATH.resolve("1.4");
         } else if (fabricMajorVersion == 2) {
-            chaincodeRootPath = JAVA_CHAINCODE_PATH.resolve("2.0");
+            chaincodeRootPath = JAVA_CHAINCODE_PATH.resolve("2.1");
         } else {
             throw new RuntimeException(String.format("Unexpected Fabric version for Java chaincode: %d.%d",
                     fabricMajorVersion, fabricMinorVersion));
