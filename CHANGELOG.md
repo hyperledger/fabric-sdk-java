@@ -1,3 +1,9 @@
+## v2.1.0
+Thu 16 Apr 2020 14:01:44 BST
+
+* [90c9f45](https://github.com/hyperledger/fabric-sdk-java/commit/90c9f45) Use SafeConstructor with YAML parser (#46)
+* [fd81d1e](https://github.com/hyperledger/fabric-sdk-java/commit/fd81d1e) Explicit trigger for PR builds (#43)
+
 ## v2.0.0
 Wed 22 Jan 2020 15:27:37 GMT
 
