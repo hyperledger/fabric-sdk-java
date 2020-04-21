@@ -1,0 +1,26 @@
+v2.1.0
+------
+
+Release Notes
+-------------
+Updated Java SDK to support Hyperledger Fabric v2.1.
+
+The v2.1.0 release supercedes v2.0.0 and there are minimal changes between them, please see the change log for a full list of updates.
+The release-1.4 branch is currently LTS, please see the proposed Fabric LTS strategy for more information:
+https://github.com/hyperledger/fabric-rfcs/pull/23
+
+Known Vulnerabilities
+---------------------
+none
+
+Resolved Vulnerabilities
+------------------------
+none
+
+Known Issues & Workarounds
+--------------------------
+none
+
+Change Log
+----------
+https://github.com/hyperledger/fabric-sdk-java/blob/master/CHANGELOG.md#v2.1.0

@@ -39,6 +39,7 @@ SDK's `Enrollment` interface.
 
 |Release | Notes |Summary|
 |--------|:------|:------|
+|2.1     | [v2.1 release notes](./release_notes/v2.1.0.txt)| Minor update |
 |2.0     | [v2.0 release notes](./docs/release_v2.0.0_notes.md) | <ul><li>New lifecycle chaincode management</li><li>Connection config handlers</li><li>Application setting executor service</li><li>Queued block listener</li></ul>   |
 |1.4     | None | Minor updates no Fabric changes|
 |1.3     | [v1.3 release notes](./docs/release_v1.3.0_notes.md)|<ul><li>Java chaincode support</li><li>Query chaincode collection configuration</li><li>Identity Mixer transaction unlinkabilty support</li></ul> |
@@ -95,11 +96,11 @@ pom.xml
 ```
 
 ### Java and Node Chaincode environment
-You may also need to on your <span style="color:red"><b>v2.0</b> </span>  Fabric network docker deployment explicitly pull the Java and Node chaincode environments for now.
+You may also need to on your <span style="color:red"><b>v2.1</b> </span>  Fabric network docker deployment explicitly pull the Java and Node chaincode environments for now.
 
-`docker pull hyperledger-fabric.jfrog.io/fabric-nodeenv:amd64-2.0.0-stable&&docker tag hyperledger-fabric.jfrog.io/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv:amd64-latest&&docker tag hyperledger-fabric.jfrog.io/fabric-nodeenv:amd64-2.0.0-stable hyperledger/fabric-nodeenv`
+`docker pull hyperledger-fabric.jfrog.io/fabric-nodeenv:amd64-2.1.0-stable&&docker tag hyperledger-fabric.jfrog.io/fabric-nodeenv:amd64-2.1.0-stable hyperledger/fabric-nodeenv:amd64-latest&&docker tag hyperledger-fabric.jfrog.io/fabric-nodeenv:amd64-2.1.0-stable hyperledger/fabric-nodeenv`
 
-`docker pull hyperledger-fabric.jfrog.io/fabric-javaenv:amd64-2.0.0-stable&&docker tag hyperledger-fabric.jfrog.io/fabric-javaenv:amd64-2.0.0-stable hyperledger/fabric-javaenv:amd64-latest&&docker tag hyperledger-fabric.jfrog.io/fabric-javaenv:amd64-2.0.0-stable hyperledger/fabric-javaenv`
+`docker pull hyperledger-fabric.jfrog.io/fabric-javaenv:amd64-2.1.0-stable&&docker tag hyperledger-fabric.jfrog.io/fabric-javaenv:amd64-2.1.0-stable hyperledger/fabric-javaenv:amd64-latest&&docker tag hyperledger-fabric.jfrog.io/fabric-javaenv:amd64-2.1.0-stable hyperledger/fabric-javaenv`
 
 ## Known limitations and restrictions
 
@@ -111,9 +112,9 @@ You may also need to on your <span style="color:red"><b>v2.0</b> </span>  Fabric
 Latest Fabric builds are seldom needed except for those working on the very latest Fabric features.
 Some information to help with that can been found in [Developer Instructions](./docs/DeveloperInstructions.md)
 
-## v2.0 builds of Fabric and Fabric-ca needed for the integration test
+## v2.1 builds of Fabric and Fabric-ca needed for the integration test
 
-To get a functioning Fabric v2.0 network needed by the SDK Integration tests.
+To get a functioning Fabric v2.1 network needed by the SDK Integration tests.
 In the directory `src/test/fixture/sdkintegration` issue :
 
 `./fabric.sh restart`
@@ -282,7 +283,7 @@ and execute the following commands:
  * configtxgen --configPath . -outputCreateChannelTx foo.tx -profile TwoOrgsChannel_v13 -channelID foo
  * configtxgen --configPath . -outputCreateChannelTx bar.tx -profile TwoOrgsChannel_v13 -channelID bar
 
-For v2.0 integration, cd to the `src/test/fixture/sdkintegration/e2e-2Orgs/v2.0` directory
+For v2.1 integration, cd to the `src/test/fixture/sdkintegration/e2e-2Orgs/v2.1` directory
  * configtxgen --configPath . -outputCreateChannelTx v2channel.tx -profile TwoOrgsChannel_v20 -channelID v2channel
  * configtxgen --configPath . -outputBlock orderer.block -profile TwoOrgsOrdererGenesis_v20 -channelID systemordererchannel
 

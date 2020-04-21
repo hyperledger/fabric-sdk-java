@@ -91,7 +91,7 @@ public class TestConfig {
     private final HashMap<String, SampleOrg> sampleOrgs = new HashMap<>();
 
     private static final String ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION
-            = System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION") == null ? "2.0.0" : System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION");
+            = System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION") == null ? "2.1.0" : System.getenv("ORG_HYPERLEDGER_FABRIC_SDKTEST_VERSION");
 
     int[] fabricVersion = new int[3];
 
