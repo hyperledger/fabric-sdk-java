@@ -1,3 +1,17 @@
+## v1.4.9
+Tue 12 May 2020 10:30:57 BST
+
+* [4445310](https://github.com/hyperledger/fabric-sdk-java/commit/4445310) FGJ-85 Update dependencies to latest versions
+* [7ca43b9](https://github.com/hyperledger/fabric-sdk-java/commit/7ca43b9) Use SafeConstructor with YAML parser (#45)
+* [12ed66e](https://github.com/hyperledger/fabric-sdk-java/commit/12ed66e) Explicit trigger for PR builds (release-1.4)
+
+## v1.4.8
+Wed Feb 12 2020 10:13:45 GMT
+
+* [2ef5153](https://github.com/hyperledger/fabric-sdk-java/commit/2ef5153) FGJ-78 Publish fabric-sdk-java 1.4.8 (#41)
+* [670c288](https://github.com/hyperledger/fabric-sdk-java/commit/670c288) [FABJ-502]-Add exception log (rel 1.4) (#33)
+* [677a07f](https://github.com/hyperledger/fabric-sdk-java/commit/677a07f) (Release-1.4) Remove jenkins references (#30)
+
 ## v1.4.7
 Mon 11 Nov 2019 15:04:20 GMT
 

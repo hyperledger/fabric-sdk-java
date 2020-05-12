@@ -4,7 +4,7 @@
     <groupId>org.hyperledger.fabric-sdk-java</groupId>
     <artifactId>fabric-sdk-java</artifactId>
     <packaging>jar</packaging>
-    <version>1.4.8</version>
+    <version>1.4.9</version>
     <name>fabric-java-sdk</name>
     <description>Java SDK for Hyperledger fabric project</description>
     <url>https://www.hyperledger.org/community/projects</url>
@@ -31,13 +31,13 @@
         <grpc.version>1.23.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
         <protobuf.version>3.10.0</protobuf.version>
         <bouncycastle.version>1.62</bouncycastle.version>
-        <httpclient.version>4.5.10</httpclient.version>
+        <httpclient.version>4.5.12</httpclient.version>
         <javadoc.version>3.1.1</javadoc.version>
         <skipITs>true</skipITs>
         <alpn-boot-version>8.1.7.v20160121</alpn-boot-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jacoco.version>0.7.9</jacoco.version>
-        <log4j.version>2.13.0</log4j.version>
+        <log4j.version>2.13.2</log4j.version>
         <org.hyperledger.fabric.sdktest.ITSuite>IntegrationSuite.java</org.hyperledger.fabric.sdktest.ITSuite>
         <gpg.executable>gpg2</gpg.executable>
     </properties>
@@ -73,7 +73,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
+            <version>4.13</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -102,12 +102,12 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-tcnative-boringssl-static</artifactId>
-            <version>2.0.26.Final</version>
+            <version>2.0.30.Final</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-codec-http2</artifactId>
-            <version>4.1.43.Final</version>
+            <version>4.1.49.Final</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java -->
         <dependency>
@@ -140,7 +140,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-compress</artifactId>
-            <version>1.19</version>
+            <version>1.20</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
@@ -209,7 +209,7 @@
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
-            <version>1.25</version>
+            <version>1.26</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.miracl.milagro.amcl/milagro-crypto-java -->
