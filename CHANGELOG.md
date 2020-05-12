@@ -1,3 +1,12 @@
+## v2.1.1
+Tue 12 May 2020 10:16:25 BST
+
+* [5cae715](https://github.com/hyperledger/fabric-sdk-java/commit/5cae715) FGJ-85 Update dependencies to latest versions
+* [e9a4d53](https://github.com/hyperledger/fabric-sdk-java/commit/e9a4d53) Update link to HLP security report wiki page (#53)
+* [07a348e](https://github.com/hyperledger/fabric-sdk-java/commit/07a348e) FAB-17777 Create basic settings.yaml (#51)
+* [0b0466a](https://github.com/hyperledger/fabric-sdk-java/commit/0b0466a) Update MAINTAINERS (#52)
+* [f032d34](https://github.com/hyperledger/fabric-sdk-java/commit/f032d34) FABJ-516 Version bump to 2.1.1-snapshots (#50)
+
 ## v2.1.0
 Thu 16 Apr 2020 14:01:44 BST
 
