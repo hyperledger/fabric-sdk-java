@@ -16,7 +16,6 @@ package org.hyperledger.fabric.sdk;
 
 import java.util.Set;
 
-import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.identity.X509Enrollment;
 
@@ -70,33 +69,31 @@ public interface User {
      */
     String getMspId();
 
-    static void userContextCheck(User userContext) throws InvalidArgumentException {
-
+    static void userContextCheck(User userContext) {
         if (userContext == null) {
-            throw new InvalidArgumentException("UserContext is null");
+            throw new NullPointerException("UserContext is null");
         }
+
         final String userName = userContext.getName();
         if (Utils.isNullOrEmpty(userName)) {
-            throw new InvalidArgumentException("UserContext user's name missing.");
+            throw new IllegalArgumentException("UserContext user's name missing.");
         }
 
         Enrollment enrollment = userContext.getEnrollment();
         if (enrollment == null) {
-            throw new InvalidArgumentException(format("UserContext for user %s has no enrollment set.", userName));
+            throw new IllegalArgumentException(format("UserContext for user %s has no enrollment set.", userName));
         }
         if (enrollment instanceof X509Enrollment) {
             if (Utils.isNullOrEmpty(enrollment.getCert())) {
-                throw new InvalidArgumentException(format("UserContext for user %s enrollment missing user certificate.", userName));
+                throw new IllegalArgumentException(format("UserContext for user %s enrollment missing user certificate.", userName));
             }
             if (null == enrollment.getKey()) {
-                throw new InvalidArgumentException(format("UserContext for user %s has Enrollment missing signing key", userName));
+                throw new IllegalArgumentException(format("UserContext for user %s has Enrollment missing signing key", userName));
             }
         }
 
         if (Utils.isNullOrEmpty(userContext.getMspId())) {
-            throw new InvalidArgumentException(format("UserContext for user %s  has user's MSPID missing.", userName));
+            throw new IllegalArgumentException(format("UserContext for user %s  has user's MSPID missing.", userName));
         }
-
     }
-
 }

@@ -121,16 +121,15 @@ public class ClientTest {
 
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test (expected = NullPointerException.class)
     public void testBadUserContextNull() throws Exception {
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
 
         client.setUserContext(null);
-
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test (expected = IllegalArgumentException.class)
     public void testBadUserNameNull() throws Exception {
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
@@ -138,10 +137,9 @@ public class ClientTest {
         MockUser mockUser = TestUtils.getMockUser(null, USER_MSP_ID);
 
         client.setUserContext(mockUser);
-
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test (expected = IllegalArgumentException.class)
     public void testBadUserNameEmpty() throws Exception {
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
@@ -149,10 +147,9 @@ public class ClientTest {
         MockUser mockUser = TestUtils.getMockUser("", USER_MSP_ID);
 
         client.setUserContext(mockUser);
-
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test (expected = IllegalArgumentException.class)
     public void testBadUserMSPIDNull() throws Exception {
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
@@ -160,10 +157,9 @@ public class ClientTest {
         MockUser mockUser = TestUtils.getMockUser(USER_NAME, null);
 
         client.setUserContext(mockUser);
-
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test (expected = IllegalArgumentException.class)
     public void testBadUserMSPIDEmpty() throws Exception {
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
@@ -171,10 +167,9 @@ public class ClientTest {
         MockUser mockUser = TestUtils.getMockUser(USER_NAME, "");
 
         client.setUserContext(mockUser);
-
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test (expected = IllegalArgumentException.class)
     public void testBadEnrollmentNull() throws Exception {
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
@@ -183,35 +178,30 @@ public class ClientTest {
         mockUser.setEnrollment(null);
 
         client.setUserContext(mockUser);
-
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test (expected = IllegalArgumentException.class)
     public void testBadEnrollmentBadCert() throws Exception {
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
 
         MockUser mockUser = TestUtils.getMockUser(USER_NAME, USER_MSP_ID);
-
         Enrollment mockEnrollment = TestUtils.getMockEnrollment(null);
         mockUser.setEnrollment(mockEnrollment);
 
         client.setUserContext(mockUser);
-
     }
 
-    @Test (expected = InvalidArgumentException.class)
+    @Test (expected = IllegalArgumentException.class)
     public void testBadEnrollmentBadKey() throws Exception {
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
 
         MockUser mockUser = TestUtils.getMockUser(USER_NAME, USER_MSP_ID);
-
         Enrollment mockEnrollment = TestUtils.getMockEnrollment(null, "mockCert");
         mockUser.setEnrollment(mockEnrollment);
 
         client.setUserContext(mockUser);
-
     }
 
     @Test

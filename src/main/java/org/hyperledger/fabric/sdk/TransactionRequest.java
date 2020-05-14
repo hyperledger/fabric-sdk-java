@@ -18,9 +18,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 
 /**
  * A base transaction request common for InstallProposalRequest,trRequest, and QueryRequest.
@@ -63,6 +65,8 @@ public class TransactionRequest {
     protected Map<String, byte[]> transientMap;
     protected ChaincodeCollectionConfiguration chaincodeCollectionConfiguration = null;
 
+    private TransactionContext transactionContext;
+
     /**
      * The user context to use on this request.
      *
@@ -79,7 +83,26 @@ public class TransactionRequest {
      * @param userContext The user context for this request used for signing.
      */
     public void setUserContext(User userContext) {
+        User.userContextCheck(userContext);
         this.userContext = userContext;
+        this.transactionContext = null;
+    }
+
+    /**
+     * Get the transaction context to be used when submitting this transaction request, if one has been set.
+     * @return A transaction context.
+     */
+    public Optional<TransactionContext> getTransactionContext() {
+        return Optional.ofNullable(transactionContext);
+    }
+
+    /**
+     * Get the transaction context to be used when submitting this transaction request.
+     * @param transactionContext A transaction ID.
+     */
+    public void setTransactionContext(final TransactionContext transactionContext) {
+        userContext = transactionContext.getUser();
+        this.transactionContext = transactionContext;
     }
 
     /**
@@ -345,6 +368,7 @@ public class TransactionRequest {
     }
 
     protected TransactionRequest(User userContext) {
+        User.userContextCheck(userContext);
         this.userContext = userContext;
     }
 

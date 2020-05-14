@@ -21,6 +21,8 @@ import java.io.File;
 import java.io.InputStream;
 
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.hyperledger.fabric.sdk.security.CryptoSuite;
+import org.hyperledger.fabric.sdk.testutils.TestUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,6 +42,8 @@ public class RequestTest {
     @Before
     public void setupClient() throws Exception {
         hfclient = HFClient.createNewInstance();
+        hfclient.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+        hfclient.setUserContext(TestUtils.getMockUser("user", "mspId"));
         mockstream = new ByteArrayInputStream(new byte[0]);
 
     }
