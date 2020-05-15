@@ -684,13 +684,15 @@ public class HFClient {
      *
      * @param userContext
      * @return the old user context. Maybe null if never set!
-     * @throws InvalidArgumentException
+     * @throws IllegalStateException if no crypto suite has been set.
+     * @throws NullPointerException if the user context is null.
+     * @throws IllegalArgumentException if the user context is not valid.
      */
 
-    public User setUserContext(User userContext) throws InvalidArgumentException {
+    public User setUserContext(User userContext) {
 
         if (null == cryptoSuite) {
-            throw new InvalidArgumentException("No cryptoSuite has been set.");
+            throw new IllegalStateException("No cryptoSuite has been set.");
         }
         userContextCheck(userContext);
 

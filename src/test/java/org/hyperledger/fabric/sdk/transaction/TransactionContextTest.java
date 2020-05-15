@@ -24,49 +24,34 @@ import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class TransactionContextTest {
-
-    public final TemporaryFolder tempFolder = new TemporaryFolder();
-    static HFClient hfclient = null;
+    private static final String transactionId = "transactionId";
+    private static HFClient hfclient;
+    private TransactionContext context;
 
     @BeforeClass
-    public static void setupClient() {
+    public static void setupClient() throws Exception {
+        hfclient = TestHFClient.newInstance();
+    }
 
-        try {
-            hfclient = TestHFClient.newInstance();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail("Unexpected Exception " + e.getMessage());
-
-        }
+    @Before
+    public void beforeEach() throws InvalidArgumentException {
+        context = createTestContext();
     }
 
     @Test
-    public void testGetters() throws Exception {
-
-        Channel channel = createTestChannel("channel1");
-
-        User user = hfclient.getUserContext();
-        CryptoSuite cryptoSuite = hfclient.getCryptoSuite();
-
-        TransactionContext context = new TransactionContext(channel, user, cryptoSuite);
-
-        // ensure getCryptoPrimitives returns what we passed in to the constructor
-        CryptoSuite cryptoPrimitives = context.getCryptoPrimitives();
-        Assert.assertEquals(cryptoSuite, cryptoPrimitives);
-
+    public void testGetters() {
+        // ensure getCryptoPrimitives returns what was passed in to the constructor
+        CryptoSuite expected = hfclient.getCryptoSuite();
+        Assert.assertEquals(expected, context.getCryptoPrimitives());
     }
 
     @Test
     public void testSignByteStrings() throws Exception {
-
-        TransactionContext context = createTestContext();
-
         Assert.assertNull(context.signByteStrings((ByteString) null));
         Assert.assertNull(context.signByteStrings((ByteString[]) null));
         Assert.assertNull(context.signByteStrings(new ByteString[0]));
@@ -75,30 +60,24 @@ public class TransactionContextTest {
         Assert.assertNull(context.signByteStrings(users, (ByteString) null));
         Assert.assertNull(context.signByteStrings(users, (ByteString[]) null));
         Assert.assertNull(context.signByteStrings(users, new ByteString[0]));
-
     }
 
     // ==========================================================================================
     // Helper methods
     // ==========================================================================================
 
-    private TransactionContext createTestContext() throws InvalidArgumentException {
+    private TransactionContext createTestContext() {
         Channel channel = createTestChannel("channel1");
-
         User user = hfclient.getUserContext();
         CryptoSuite cryptoSuite = hfclient.getCryptoSuite();
-
         return new TransactionContext(channel, user, cryptoSuite);
     }
 
     private Channel createTestChannel(String channelName) {
-
         Channel channel = null;
-
         try {
             Constructor<?> constructor = Channel.class.getDeclaredConstructor(String.class, HFClient.class);
             constructor.setAccessible(true);
-
             channel = (Channel) constructor.newInstance(channelName, hfclient);
         } catch (Exception e) {
             e.printStackTrace();

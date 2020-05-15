@@ -437,7 +437,7 @@ public class Channel implements Serializable {
         User.userContextCheck(userContext);
 
         try {
-            final long startLastConfigIndex = getLastConfigIndex(getTransactionContext(userContext), orderer);
+            final long startLastConfigIndex = getLastConfigIndex(newTransactionContext(userContext), orderer);
             logger.trace(format("startLastConfigIndex: %d. Channel config wait time is: %d",
                     startLastConfigIndex, CHANNEL_CONFIG_WAIT_TIME));
 
@@ -448,7 +448,7 @@ public class Channel implements Serializable {
 
             //Try to wait to see the channel got updated but don't fail if we don't see it.
             do {
-                currentLastConfigIndex = getLastConfigIndex(getTransactionContext(userContext), orderer);
+                currentLastConfigIndex = getLastConfigIndex(newTransactionContext(userContext), orderer);
                 if (currentLastConfigIndex == startLastConfigIndex) {
 
                     final long duration = TimeUnit.MILLISECONDS.convert(System.nanoTime() - nanoTimeStart, TimeUnit.NANOSECONDS);
@@ -500,7 +500,7 @@ public class Channel implements Serializable {
             do {
 
                 //Make sure we have fresh transaction context for each try just to be safe.
-                TransactionContext transactionContext = getTransactionContext(userContext);
+                TransactionContext transactionContext = newTransactionContext(userContext);
 
                 ConfigUpdateEnvelope.Builder configUpdateEnvBuilder = ConfigUpdateEnvelope.newBuilder();
 
@@ -680,7 +680,7 @@ public class Channel implements Serializable {
 
         if (isInitialized() && peerOptions.getPeerRoles().contains(PeerRole.EVENT_SOURCE)) {
             try {
-                peer.initiateEventing(getTransactionContext(), getPeersOptions(peer));
+                peer.initiateEventing(newTransactionContext(), getPeersOptions(peer));
             } catch (TransactionException e) {
                 logger.error(format("Error channel %s enabling eventing on peer %s", toString(), peer));
             }
@@ -861,7 +861,7 @@ public class Channel implements Serializable {
 
             final Channel systemChannel = newSystemChannel(client); //channel is not really created and this is targeted to system channel
 
-            TransactionContext transactionContext = systemChannel.getTransactionContext();
+            TransactionContext transactionContext = systemChannel.newTransactionContext();
 
             ProposalPackage.Proposal joinProposal = JoinPeerProposalBuilder.newBuilder()
                     .context(transactionContext)
@@ -904,7 +904,7 @@ public class Channel implements Serializable {
     }
 
     private Block getConfigBlock(List<Peer> peers) throws ProposalException, InvalidArgumentException {
-        return getConfigBlock(getTransactionContext(), peers);
+        return getConfigBlock(newTransactionContext(), peers);
     }
 
     private Block getConfigBlock(TransactionContext transactionContext, List<Peer> peers) throws ProposalException {
@@ -1229,7 +1229,7 @@ public class Channel implements Serializable {
 
             logger.trace("Starting service discovery.");
 
-            this.serviceDiscovery = new ServiceDiscovery(this, serviceDiscoveryPeers, getTransactionContext());
+            this.serviceDiscovery = new ServiceDiscovery(this, serviceDiscoveryPeers, newTransactionContext());
             serviceDiscovery.fullNetworkDiscovery(true);
             serviceDiscovery.run();
             logger.trace("Completed. service discovery.");
@@ -1240,7 +1240,7 @@ public class Channel implements Serializable {
             logger.debug(format("Eventque started %s", "" + eventQueueThread));
 
             for (Peer peer : getEventingPeers()) {
-                peer.initiateEventing(getTransactionContext(), getPeersOptions(peer));
+                peer.initiateEventing(newTransactionContext(), getPeersOptions(peer));
             }
 
             transactionListenerProcessorHandle = registerTransactionListenerProcessor(); //Manage transactions.
@@ -1882,7 +1882,7 @@ public class Channel implements Serializable {
 
                 ArrayList<DeliverResponse> deliverResponses = new ArrayList<>();
 
-                seekBlock(getTransactionContext(), seekInfo, deliverResponses, orderer);
+                seekBlock(newTransactionContext(), seekInfo, deliverResponses, orderer);
 
                 DeliverResponse blockresp = deliverResponses.get(1);
                 Block configBlock = blockresp.getBlock();
@@ -1951,7 +1951,7 @@ public class Channel implements Serializable {
 
         try {
 
-            TransactionContext transactionContext = getTransactionContext(signer);
+            TransactionContext transactionContext = newTransactionContext(signer);
 
             final ByteString configUpdate = ByteString.copyFrom(updateChannelConfiguration.getUpdateChannelConfigurationAsBytes());
 
@@ -2487,7 +2487,7 @@ public class Channel implements Serializable {
     public byte[] getChannelConfigurationBytes(User userContext, Orderer orderer) throws InvalidArgumentException, TransactionException {
 
         try {
-            Block configBlock = getConfigurationBlock(getTransactionContext(userContext), orderer);
+            Block configBlock = getConfigurationBlock(newTransactionContext(userContext), orderer);
 
             Envelope envelopeRet = Envelope.parseFrom(configBlock.getData().getData(0));
 
@@ -2515,7 +2515,7 @@ public class Channel implements Serializable {
     public byte[] getChannelConfigurationBytes(User userContext, Peer peer) throws InvalidArgumentException, TransactionException {
 
         try {
-            Block configBlock = getConfigBlock(getTransactionContext(userContext), Collections.singletonList(peer));
+            Block configBlock = getConfigBlock(newTransactionContext(userContext), Collections.singletonList(peer));
 
             Envelope envelopeRet = Envelope.parseFrom(configBlock.getData().getData(0));
 
@@ -2557,7 +2557,7 @@ public class Channel implements Serializable {
             Collection<Peer> peers = getShuffledPeers();
 
             if (!peers.isEmpty()) { // prefer peers.
-                configBlock = getConfigBlock(getTransactionContext(userContext), new ArrayList<>(peers));
+                configBlock = getConfigBlock(newTransactionContext(userContext), new ArrayList<>(peers));
 
             } else { // no peers so look to orderers.
 
@@ -2570,7 +2570,7 @@ public class Channel implements Serializable {
                 String sep = "";
                 for (Orderer orderer : shuffledOrderers) {
                     try {
-                        configBlock = getConfigurationBlock(getTransactionContext(userContext), orderer);
+                        configBlock = getConfigurationBlock(newTransactionContext(userContext), orderer);
                         fe = null; // looks good.
                         break;
                     } catch (Exception e) {
@@ -2811,7 +2811,7 @@ public class Channel implements Serializable {
         checkPeers(peers);
 
         try {
-            TransactionContext transactionContext = getTransactionContext(instantiateProposalRequest.getUserContext());
+            TransactionContext transactionContext = newTransactionContext(instantiateProposalRequest.getUserContext());
             transactionContext.setProposalWaitTime(instantiateProposalRequest.getProposalWaitTime());
             InstantiateProposalBuilder instantiateProposalbuilder = InstantiateProposalBuilder.newBuilder();
             instantiateProposalbuilder.context(transactionContext);
@@ -2833,21 +2833,30 @@ public class Channel implements Serializable {
         }
     }
 
-    private TransactionContext getTransactionContext() throws InvalidArgumentException {
-        return getTransactionContext(client.getUserContext());
+    private TransactionContext getTransactionContext(final TransactionRequest request) {
+        return request.getTransactionContext()
+                .orElse(newTransactionContext(request.getUserContext()));
     }
 
-    private TransactionContext getTransactionContext(User userContext) throws InvalidArgumentException {
-        userContext = userContext != null ? userContext : client.getUserContext();
+    /**
+     * Create a new transaction context based on the client user context. The transaction context can be set on a
+     * {@link TransactionRequest} prior to calling {@link Channel#sendTransactionProposal(TransactionProposalRequest)}
+     * so that the caller can know the transaction ID in advance.
+     * @return A transaction context.
+     */
+    public TransactionContext newTransactionContext() {
+        return newTransactionContext(client.getUserContext());
+    }
 
-        userContextCheck(userContext);
-
+    private TransactionContext newTransactionContext(final User userContext) {
         return new TransactionContext(this, userContext, client.getCryptoSuite());
     }
 
-    private TransactionContext getTransactionContext(LifecycleRequest lifecycleRequest) throws InvalidArgumentException {
+    private TransactionContext newTransactionContext(final LifecycleRequest lifecycleRequest) throws InvalidArgumentException {
         User userContext = lifecycleRequest.getUserContext();
-        userContext = userContext != null ? userContext : client.getUserContext();
+        if (null == userContext) {
+            userContext = client.getUserContext();
+        }
 
         userContextCheck(userContext);
 
@@ -2892,7 +2901,7 @@ public class Channel implements Serializable {
         }
 
         try {
-            TransactionContext transactionContext = getTransactionContext(installProposalRequest.getUserContext());
+            TransactionContext transactionContext = newTransactionContext(installProposalRequest.getUserContext());
             transactionContext.verify(false);  // Install will have no signing cause it's not really targeted to a channel.
             transactionContext.setProposalWaitTime(installProposalRequest.getProposalWaitTime());
             InstallProposalBuilder installProposalbuilder = InstallProposalBuilder.newBuilder();
@@ -2953,7 +2962,7 @@ public class Channel implements Serializable {
         }
 
         try {
-            TransactionContext transactionContext = getTransactionContext(upgradeProposalRequest.getUserContext());
+            TransactionContext transactionContext = newTransactionContext(upgradeProposalRequest.getUserContext());
             //transactionContext.verify(false);  // Install will have no signing cause it's not really targeted to a channel.
             transactionContext.setProposalWaitTime(upgradeProposalRequest.getProposalWaitTime());
             UpgradeProposalBuilder upgradeProposalBuilder = UpgradeProposalBuilder.newBuilder();
@@ -3626,7 +3635,7 @@ public class Channel implements Serializable {
 
         try {
 
-            TransactionContext context = getTransactionContext();
+            TransactionContext context = newTransactionContext();
 
             ProposalPackage.Proposal q = QueryPeerChannelsBuilder.newBuilder().context(context).build();
 
@@ -3695,7 +3704,7 @@ public class Channel implements Serializable {
 
         try {
 
-            TransactionContext context = getTransactionContext();
+            TransactionContext context = newTransactionContext();
 
             ProposalPackage.Proposal q = QueryInstalledChaincodesBuilder.newBuilder().context(context).build();
 
@@ -3767,7 +3776,7 @@ public class Channel implements Serializable {
         }
 
         try {
-            TransactionContext transactionContext = getTransactionContext(installProposalRequest);
+            TransactionContext transactionContext = newTransactionContext(installProposalRequest);
             transactionContext.verify(false);  // Install will have no signing cause it's not really targeted to a channel.
             LifecycleInstallProposalBuilder installProposalbuilder = LifecycleInstallProposalBuilder.newBuilder();
             installProposalbuilder.setChaincodeBytes(chaincodeBytes);
@@ -3826,7 +3835,7 @@ public class Channel implements Serializable {
         checkPeers(peers);
 
         try {
-            TransactionContext transactionContext = getTransactionContext(lifecycleApproveChaincodeDefinitionForMyOrgRequest);
+            TransactionContext transactionContext = newTransactionContext(lifecycleApproveChaincodeDefinitionForMyOrgRequest);
             // transactionContext.verify(true);
             LifecycleApproveChaincodeDefinitionForMyOrgProposalBuilder approveChaincodeDefinitionForMyOrgProposalBuilder = LifecycleApproveChaincodeDefinitionForMyOrgProposalBuilder.
                     newBuilder();
@@ -3941,7 +3950,7 @@ public class Channel implements Serializable {
                         collectionData));
 
             }
-            TransactionContext transactionContext = getTransactionContext(lifecycleCommitChaincodeDefinitionRequest);
+            TransactionContext transactionContext = newTransactionContext(lifecycleCommitChaincodeDefinitionRequest);
             LifecycleCommitChaincodeDefinitionProposalBuilder commitChaincodeDefinitionProposalBuilder = LifecycleCommitChaincodeDefinitionProposalBuilder.newBuilder();
             commitChaincodeDefinitionProposalBuilder.context(transactionContext);
             commitChaincodeDefinitionProposalBuilder.chaincodeName(lifecycleCommitChaincodeDefinitionRequest.getChaincodeName());
@@ -3999,7 +4008,7 @@ public class Channel implements Serializable {
 
         try {
 
-            TransactionContext context = getTransactionContext(lifecycleQueryInstalledChaincodesRequest);
+            TransactionContext context = newTransactionContext(lifecycleQueryInstalledChaincodesRequest);
 
             ProposalPackage.Proposal proposalBuilder = LifecycleQueryInstalledChaincodesBuilder.newBuilder().context(context).build();
 
@@ -4033,7 +4042,7 @@ public class Channel implements Serializable {
         try {
             logger.trace(format("LifecycleQueryInstalledChaincode packageID: %s", lifecycleQueryInstalledChaincodeRequest.getPackageId()));
 
-            TransactionContext context = getTransactionContext(lifecycleQueryInstalledChaincodeRequest);
+            TransactionContext context = newTransactionContext(lifecycleQueryInstalledChaincodeRequest);
 
             LifecycleQueryInstalledChaincodeBuilder lifecycleQueryInstalledChaincodeBuilder = LifecycleQueryInstalledChaincodeBuilder.newBuilder();
 
@@ -4072,7 +4081,7 @@ public class Channel implements Serializable {
         try {
             logger.trace(format("lifecycleQueryChaincodeDefinitions channel: %s", name));
 
-            TransactionContext context = getTransactionContext(proposalRequest);
+            TransactionContext context = newTransactionContext(proposalRequest);
             LifecycleQueryChaincodeDefinitionsBuilder proposalBuilder = LifecycleQueryChaincodeDefinitionsBuilder.newBuilder();
             proposalBuilder.context(context);
             ProposalPackage.SignedProposal proposal = getSignedProposal(context, proposalBuilder.build());
@@ -4131,7 +4140,7 @@ public class Channel implements Serializable {
 
             }
 
-            TransactionContext context = getTransactionContext(lifecycleCheckCommitReadinessRequest);
+            TransactionContext context = newTransactionContext(lifecycleCheckCommitReadinessRequest);
 
             LifecycleCheckCommitReadinessBuilder lifecycleCheckCommitReadinessBuilder = LifecycleCheckCommitReadinessBuilder.newBuilder();
             lifecycleCheckCommitReadinessBuilder.setSequence(lifecycleCheckCommitReadinessRequest.getSequence());
@@ -4197,7 +4206,7 @@ public class Channel implements Serializable {
         try {
 
             logger.trace(format("LifecycleQueryChaincodeDefinition channel: %s, chaincode name: %s", name, queryLifecycleQueryChaincodeDefinitionRequest.getChaincodeName()));
-            TransactionContext context = getTransactionContext(queryLifecycleQueryChaincodeDefinitionRequest);
+            TransactionContext context = newTransactionContext(queryLifecycleQueryChaincodeDefinitionRequest);
             LifecycleQueryChaincodeDefinitionBuilder lifecycleQueryChaincodeDefinitionBuilder = LifecycleQueryChaincodeDefinitionBuilder.newBuilder();
             lifecycleQueryChaincodeDefinitionBuilder.context(context).setChaincodeName(queryLifecycleQueryChaincodeDefinitionRequest.getChaincodeName());
 
@@ -4247,7 +4256,7 @@ public class Channel implements Serializable {
 
         try {
 
-            TransactionContext context = getTransactionContext(userContext);
+            TransactionContext context = newTransactionContext(userContext);
 
             ProposalPackage.Proposal q = QueryInstantiatedChaincodesBuilder.newBuilder().context(context).build();
 
@@ -4318,7 +4327,7 @@ public class Channel implements Serializable {
 
         try {
 
-            TransactionContext context = getTransactionContext(userContext);
+            TransactionContext context = newTransactionContext(userContext);
 
             QueryCollectionsConfigBuilder queryCollectionsConfigBuilder = QueryCollectionsConfigBuilder.newBuilder()
                     .context(context).chaincodeName(chaincodeName);
@@ -4426,7 +4435,7 @@ public class Channel implements Serializable {
         }
         logger.debug(format("Channel %s sendTransactionProposalToEndorsers chaincode name: %s", name, chaincodeName));
 
-        TransactionContext transactionContext = getTransactionContext(transactionProposalRequest.getUserContext());
+        TransactionContext transactionContext = getTransactionContext(transactionProposalRequest);
         transactionContext.verify(transactionProposalRequest.doVerify());
         transactionContext.setProposalWaitTime(transactionProposalRequest.getProposalWaitTime());
 
@@ -4831,7 +4840,7 @@ public class Channel implements Serializable {
         }
 
         try {
-            TransactionContext transactionContext = getTransactionContext(proposalRequest.getUserContext());
+            TransactionContext transactionContext = getTransactionContext(proposalRequest);
             transactionContext.verify(proposalRequest.doVerify());
             transactionContext.setProposalWaitTime(proposalRequest.getProposalWaitTime());
 
@@ -5776,7 +5785,7 @@ public class Channel implements Serializable {
         try {
             Envelope ccEnvelope = Envelope.parseFrom(channelConfiguration.getChannelConfigurationAsBytes());
             final Payload ccPayload = Payload.parseFrom(ccEnvelope.getPayload());
-            TransactionContext transactionContext = getTransactionContext(signer);
+            TransactionContext transactionContext = newTransactionContext(signer);
             final ConfigUpdateEnvelope configUpdateEnv = ConfigUpdateEnvelope.parseFrom(ccPayload.getData());
             final ByteString configUpdate = configUpdateEnv.getConfigUpdate();
 

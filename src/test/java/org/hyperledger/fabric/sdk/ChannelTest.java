@@ -35,7 +35,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-
 import com.google.protobuf.ByteString;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -961,7 +960,8 @@ public class ChannelTest {
         installProposalBuilder.chaincodeVersion("1");
 
         Channel channel = hfclient.newChannel("testProposalBuilderWithOutMetaInf");
-        TransactionContext transactionContext = new TransactionContext(channel, getMockUser("rick", "rickORG"), CryptoSuite.Factory.getCryptoSuite());
+        User user = getMockUser("rick", "rickORG");
+        TransactionContext transactionContext = new TransactionContext(channel, user, CryptoSuite.Factory.getCryptoSuite());
 
         installProposalBuilder.context(transactionContext);
 
@@ -1001,7 +1001,8 @@ public class ChannelTest {
         installProposalBuilder.setChaincodeMetaInfLocation(new File("src/test/fixture/meta-infs/test1/META-INF")); // points into which is not what's expected.
 
         Channel channel = hfclient.newChannel("testProposalBuilderWithNoMetaInfDir");
-        TransactionContext transactionContext = new TransactionContext(channel, getMockUser("rick", "rickORG"), CryptoSuite.Factory.getCryptoSuite());
+        User user = getMockUser("rick", "rickORG");
+        TransactionContext transactionContext = new TransactionContext(channel, user, CryptoSuite.Factory.getCryptoSuite());
 
         installProposalBuilder.context(transactionContext);
 
@@ -1023,7 +1024,8 @@ public class ChannelTest {
         installProposalBuilder.setChaincodeMetaInfLocation(new File("/tmp/fdsjfksfj/fjksfjskd/fjskfjdsk/should never exist")); // points into which is not what's expected.
 
         Channel channel = hfclient.newChannel("testProposalBuilderWithMetaInfExistsNOT");
-        TransactionContext transactionContext = new TransactionContext(channel, getMockUser("rick", "rickORG"), CryptoSuite.Factory.getCryptoSuite());
+        User user = getMockUser("rick", "rickORG");
+        TransactionContext transactionContext = new TransactionContext(channel, user, CryptoSuite.Factory.getCryptoSuite());
 
         installProposalBuilder.context(transactionContext);
 
@@ -1102,7 +1104,8 @@ public class ChannelTest {
         installProposalBuilder.setChaincodeMetaInfLocation(new File("src/test/fixture/meta-infs/emptyMetaInf")); // points into which is not what's expected.
 
         Channel channel = hfclient.newChannel("testProposalBuilderWithMetaInfEmpty");
-        TransactionContext transactionContext = new TransactionContext(channel, getMockUser("rick", "rickORG"), CryptoSuite.Factory.getCryptoSuite());
+        User user = getMockUser("rick", "rickORG");
+        TransactionContext transactionContext = new TransactionContext(channel, user, CryptoSuite.Factory.getCryptoSuite());
 
         installProposalBuilder.context(transactionContext);
 

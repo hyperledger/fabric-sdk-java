@@ -25,7 +25,6 @@ public class TransactionProposalRequest extends TransactionRequest {
 
     public static TransactionProposalRequest newInstance(User userContext) {
         return new TransactionProposalRequest(userContext);
-
     }
 
     public void setChaincodeLanguage(Type chaincodeLanguage) {
