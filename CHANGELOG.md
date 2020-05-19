@@ -1,3 +1,9 @@
+## v2.1.2
+Tue 19 May 2020 16:00:37 BST
+
+* [06d40e2](https://github.com/hyperledger/fabric-sdk-java/commit/06d40e2) Publish v2.1.2 release (#58)
+* [3b32367](https://github.com/hyperledger/fabric-sdk-java/commit/3b32367) FGJ-86: Allow client to specify transaction ID (#57)
+
 ## v2.1.1
 Tue 12 May 2020 10:16:25 BST
 
