@@ -47,7 +47,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>2.17</version>
+                <version>3.0.0</version>
                 <reportSets>
                     <reportSet>
                         <reports>
@@ -242,14 +242,14 @@
             <extension>
                 <groupId>kr.motd.maven</groupId>
                 <artifactId>os-maven-plugin</artifactId>
-                <version>1.6.1</version>
+                <version>1.6.2</version>
             </extension>
         </extensions>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.19.1</version>
+                <version>3.0.0-M4</version>
                 <configuration>
                     <argLine>${surefireArgLine}</argLine>
                     <includes>
@@ -261,7 +261,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.19.1</version>
+                <version>3.0.0-M4</version>
                 <configuration>
                     <argLine>${failsafeArgLine}</argLine>
                     <includes>
@@ -628,7 +628,7 @@
                     </plugin>
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
-                        <version>3.1.1</version>  <!-- was 2.3 -->
+                        <version>3.3.0</version>  <!-- was 2.3 -->
                         <configuration>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
@@ -663,7 +663,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
-                        <version>3.0.1</version>  <!-- was 2.2.1 -->
+                        <version>3.2.1</version>  <!-- was 2.2.1 -->
                         <executions>
                             <execution>
                                 <id>attach-sources</id>
