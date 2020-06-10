@@ -108,31 +108,6 @@ public class ConfigTest {
     }
 
     @Test
-    public void testLogLevelTrace() {
-        testLogLevelAny("TRACE", org.apache.log4j.Level.TRACE);
-    }
-
-    @Test
-    public void testLogLevelDebug() {
-        testLogLevelAny("DEBUG", org.apache.log4j.Level.DEBUG);
-    }
-
-    @Test
-    public void testLogLevelInfo() {
-        testLogLevelAny("INFO", org.apache.log4j.Level.INFO);
-    }
-
-    @Test
-    public void testLogLevelWarn() {
-        testLogLevelAny("WARN", org.apache.log4j.Level.WARN);
-    }
-
-    @Test
-    public void testLogLevelError() {
-        testLogLevelAny("ERROR", org.apache.log4j.Level.ERROR);
-    }
-
-    @Test
     public void defaultChaincodeEndorsementPluginTest() {
         assertNull(Config.getConfig().getDefaultChaincodeEndorsementPlugin());
     }
@@ -154,20 +129,6 @@ public class ConfigTest {
             System.setProperty(propName, propValue);
         }
         return propValue;
-    }
-
-    // Helper function to test one of the possible log levels
-    private void testLogLevelAny(String levelString, Level level) {
-        String originalValue = System.setProperty(Config.LOGGERLEVEL, levelString);
-        try {
-            // Dummy call to ensure that a config instance is created and the
-            // underlying logging level is set...
-            Config.getConfig();
-            Assert.assertEquals(level, org.apache.log4j.Logger.getLogger("org.hyperledger.fabric").getLevel());
-        } finally {
-            // Restore the original value so that other tests run consistently
-            setSystemProperty(Config.LOGGERLEVEL, originalValue);
-        }
     }
 
 }
