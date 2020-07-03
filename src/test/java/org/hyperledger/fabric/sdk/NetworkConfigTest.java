@@ -16,13 +16,13 @@ package org.hyperledger.fabric.sdk;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.InputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -43,11 +43,15 @@ import org.junit.rules.ExpectedException;
 
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.getField;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class NetworkConfigTest {
+    private static final Path NETWORK_CONFIG_DIR = Paths.get("src", "test", "fixture", "sdkintegration", "network_configs");
+    private static final Path NETWORK_CONFIG_JSON = NETWORK_CONFIG_DIR.resolve("network-config.json");
+    private static final Path NETWORK_CONFIG_YAML = NETWORK_CONFIG_DIR.resolve("network-config.yaml");
 
     private static final String CHANNEL_NAME = "myChannel";
     private static final String CLIENT_ORG_NAME = "Org1";
@@ -56,6 +60,7 @@ public class NetworkConfigTest {
     private static final String USER_MSP_ID = "MockMSPID";
 
     @Rule
+    @SuppressWarnings("deprecation")
     public ExpectedException thrown = ExpectedException.none();
 
     @Test
@@ -65,7 +70,7 @@ public class NetworkConfigTest {
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("configStream must be specified");
 
-        NetworkConfig.fromJsonStream((InputStream) null);
+        NetworkConfig.fromJsonStream(null);
     }
 
     @Test
@@ -74,7 +79,7 @@ public class NetworkConfigTest {
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("configFile must be specified");
 
-        NetworkConfig.fromYamlFile((File) null);
+        NetworkConfig.fromYamlFile(null);
     }
 
     @Test
@@ -83,7 +88,7 @@ public class NetworkConfigTest {
         thrown.expect(InvalidArgumentException.class);
         thrown.expectMessage("configFile must be specified");
 
-        NetworkConfig.fromJsonFile((File) null);
+        NetworkConfig.fromJsonFile(null);
     }
 
     @Test
@@ -113,7 +118,7 @@ public class NetworkConfigTest {
     @Test
     public void testLoadFromConfigFileYamlBasic() throws Exception {
 
-        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.yaml");
+        File f = NETWORK_CONFIG_YAML.toFile();
         NetworkConfig config = NetworkConfig.fromYamlFile(f);
         assertNotNull(config);
         Set<String> channelNames = config.getChannelNames();
@@ -123,7 +128,7 @@ public class NetworkConfigTest {
     @Test
     public void testLoadFromConfigFileJsonBasic() throws Exception {
 
-        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.json");
+        File f = NETWORK_CONFIG_JSON.toFile();
         NetworkConfig config = NetworkConfig.fromJsonFile(f);
         assertNotNull(config);
     }
@@ -132,7 +137,7 @@ public class NetworkConfigTest {
     public void testLoadFromConfigFileYaml() throws Exception {
 
         // Should be able to instantiate a new instance of "Client" with a valid path to the YAML configuration
-        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.yaml");
+        File f = NETWORK_CONFIG_YAML.toFile();
         NetworkConfig config = NetworkConfig.fromYamlFile(f);
         //HFClient client = HFClient.loadFromConfig(f);
         assertNotNull(config);
@@ -149,7 +154,7 @@ public class NetworkConfigTest {
     public void testLoadFromConfigFileJson() throws Exception {
 
         // Should be able to instantiate a new instance of "Client" with a valid path to the JSON configuration
-        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.json");
+        File f = NETWORK_CONFIG_JSON.toFile();
         NetworkConfig config = NetworkConfig.fromJsonFile(f);
         assertNotNull(config);
 
@@ -215,7 +220,7 @@ public class NetworkConfigTest {
         thrown.expectMessage("Channel MissingChannel not found in configuration file. Found channel names: foo");
 
         // Should be able to instantiate a new instance of "Client" with a valid path to the YAML configuration
-        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.yaml");
+        File f = NETWORK_CONFIG_YAML.toFile();
         NetworkConfig config = NetworkConfig.fromYamlFile(f);
         //HFClient client = HFClient.loadFromConfig(f);
         assertNotNull(config);
@@ -277,7 +282,7 @@ public class NetworkConfigTest {
     public void testLoadFromConfigFileYamlNOOverrides() throws Exception {
 
         // Should be able to instantiate a new instance of "Client" with a valid path to the YAML configuration
-        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.yaml");
+        File f = NETWORK_CONFIG_YAML.toFile();
         NetworkConfig config = NetworkConfig.fromYamlFile(f);
 
         //HFClient client = HFClient.loadFromConfig(f);
@@ -290,7 +295,7 @@ public class NetworkConfigTest {
         Channel channel = client.loadChannelFromConfig("foo", config);
         assertNotNull(channel);
 
-        assertTrue(!channel.getPeers().isEmpty());
+        assertFalse(channel.getPeers().isEmpty());
 
         for (Peer peer : channel.getPeers()) {
 
@@ -309,7 +314,7 @@ public class NetworkConfigTest {
     public void testLoadFromConfigFileYamlNOOverridesButSet() throws Exception {
 
         // Should be able to instantiate a new instance of "Client" with a valid path to the YAML configuration
-        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.yaml");
+        File f = NETWORK_CONFIG_YAML.toFile();
         NetworkConfig config = NetworkConfig.fromYamlFile(f);
 
         //HFClient client = HFClient.loadFromConfig(f);
@@ -322,7 +327,7 @@ public class NetworkConfigTest {
         Channel channel = client.loadChannelFromConfig("foo", config);
         assertNotNull(channel);
 
-        assertTrue(!channel.getOrderers().isEmpty());
+        assertFalse(channel.getOrderers().isEmpty());
 
         for (Orderer orderer : channel.getOrderers()) {
 
@@ -341,7 +346,7 @@ public class NetworkConfigTest {
     public void testLoadFromConfigFileYamlOverrides() throws Exception {
 
         // Should be able to instantiate a new instance of "Client" with a valid path to the YAML configuration
-        File f = new File("src/test/fixture/sdkintegration/network_configs/network-config.yaml");
+        File f = NETWORK_CONFIG_YAML.toFile();
         NetworkConfig config = NetworkConfig.fromYamlFile(f);
 
         for (String peerName : config.getPeerNames()) {
@@ -372,7 +377,7 @@ public class NetworkConfigTest {
         Channel channel = client.loadChannelFromConfig("foo", config);
         assertNotNull(channel);
 
-        assertTrue(!channel.getPeers().isEmpty());
+        assertFalse(channel.getPeers().isEmpty());
 
         for (Peer peer : channel.getPeers()) {
 
@@ -406,6 +411,34 @@ public class NetworkConfigTest {
             assertEquals(false, getField(channelBuilder, "keepAliveWithoutCalls"));
         }
 
+    }
+
+    @Test
+    public void testTlsCACertsPemString() throws Exception {
+        File f = NETWORK_CONFIG_JSON.toFile();
+        NetworkConfig config = NetworkConfig.fromJsonFile(f);
+
+        NetworkConfig.OrgInfo orgInfo = config.getOrganizationInfo("Org1");
+        NetworkConfig.CAInfo caInfo = orgInfo.getCertificateAuthorities().get(0);
+        Object pemBytes = caInfo.getProperties().get("pemBytes");
+
+        assertTrue("Expected byte[], got " + pemBytes.getClass().getTypeName(), pemBytes instanceof byte[]);
+        assertTrue("No PEM content", ((byte[]) pemBytes).length > 0);
+    }
+
+    @Test
+    public void testTlsCACertsPemArray() throws Exception {
+        File f = NETWORK_CONFIG_JSON.toFile();
+        NetworkConfig config = NetworkConfig.fromJsonFile(f);
+
+        NetworkConfig.OrgInfo orgInfo = config.getOrganizationInfo("Org2");
+        NetworkConfig.CAInfo caInfo = orgInfo.getCertificateAuthorities().get(0);
+        Object pemBytes = caInfo.getProperties().get("pemBytes");
+
+        assertTrue("Expected byte[], got " + pemBytes.getClass().getTypeName(), pemBytes instanceof byte[]);
+        String pem = new String((byte[]) pemBytes);
+        assertTrue("Missing certificate 1: " + pem, pem.contains("<1>"));
+        assertTrue("Missing certificate 2:" + pem, pem.contains("<2>"));
     }
 
     // TODO: ca-org1 not defined
@@ -540,13 +573,12 @@ public class NetworkConfigTest {
             // Add some peers to the config
             JsonObjectBuilder builder = Json.createObjectBuilder();
 
-            for (int i = 1; i <= nPeers; i++) {
-                String peerName = "peer0.org" + i + ".example.com";
+            for (int orgNo = 1; orgNo <= nPeers; orgNo++) {
+                String peerName = "peer0.org" + orgNo + ".example.com";
 
-                int port1 = (6 + i) * 1000 + 51;         // 7051, 8051, etc
-                int port2 = (6 + i) * 1000 + 53;         // 7053, 8053, etc
+                int port1 = (6 + orgNo) * 1000 + 51;         // 7051, 8051, etc
+                int port2 = (6 + orgNo) * 1000 + 53;         // 7053, 8053, etc
 
-                int orgNo = i;
                 int peerNo = 0;
 
                 JsonObject peer = createJsonPeer(

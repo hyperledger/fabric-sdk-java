@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,10 +32,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
@@ -70,10 +73,11 @@ import static org.hyperledger.fabric.sdk.helper.Utils.isNullOrEmpty;
  */
 
 public class NetworkConfig {
+    private static final String URL_PROP_NAME = "url";
 
     private final JsonObject jsonConfig;
 
-    private OrgInfo clientOrganization;
+    private final OrgInfo clientOrganization;
 
     private Map<String, Node> orderers;
     private Map<String, Node> peers;
@@ -86,7 +90,7 @@ public class NetworkConfig {
      */
     public Collection<String> getPeerNames() {
         if (peers == null) {
-            return Collections.EMPTY_SET;
+            return Collections.emptySet();
         } else {
             return new HashSet<>(peers.keySet());
         }
@@ -99,7 +103,7 @@ public class NetworkConfig {
      */
     public Collection<String> getOrdererNames() {
         if (orderers == null) {
-            return Collections.EMPTY_SET;
+            return Collections.emptySet();
         } else {
             return new HashSet<>(orderers.keySet());
         }
@@ -113,7 +117,7 @@ public class NetworkConfig {
 
     public Collection<String> getEventHubNames() {
         if (eventHubs == null) {
-            return Collections.EMPTY_SET;
+            return Collections.emptySet();
         } else {
             return new HashSet<>(eventHubs.keySet());
         }
@@ -404,14 +408,10 @@ public class NetworkConfig {
             logger.trace(format("NetworkConfig.fromFile: %s  isJson = %b", configFile.getAbsolutePath(), isJson));
         }
 
-        NetworkConfig config;
-
         // Json file
         try (InputStream stream = new FileInputStream(configFile)) {
-            config = isJson ? fromJsonStream(stream) : fromYamlStream(stream);
+            return isJson ? fromJsonStream(stream) : fromYamlStream(stream);
         }
-
-        return config;
     }
 
     /**
@@ -484,43 +484,26 @@ public class NetworkConfig {
             logger.trace(format("NetworkConfig.loadChannel: %s", channelName));
         }
 
-        Channel channel = null;
-
         JsonObject channels = getJsonObject(jsonConfig, "channels");
 
-        if (channels != null) {
-            JsonObject jsonChannel = getJsonObject(channels, channelName);
-            if (jsonChannel != null) {
-                channel = client.getChannel(channelName);
-                if (channel != null) {
-                    // The channel already exists in the client!
-                    // Note that by rights this should never happen as HFClient.loadChannelFromConfig should have already checked for this!
-                    throw new NetworkConfigurationException(format("Channel %s is already configured in the client!", channelName));
-                }
-                channel = reconstructChannel(client, channelName, jsonChannel);
-            } else {
-
-                final Set<String> channelNames = getChannelNames();
-                if (channelNames.isEmpty()) {
-                    throw new NetworkConfigurationException("Channel configuration has no channels defined.");
-                }
-                final StringBuilder sb = new StringBuilder(1000);
-
-                channelNames.forEach(s -> {
-                    if (sb.length() != 0) {
-                        sb.append(", ");
-                    }
-                    sb.append(s);
-                });
-                throw new NetworkConfigurationException(format("Channel %s not found in configuration file. Found channel names: %s ", channelName, sb.toString()));
-
+        JsonObject jsonChannel = getJsonObject(channels, channelName);
+        if (null == jsonChannel) {
+            final Set<String> channelNames = getChannelNames();
+            if (channelNames.isEmpty()) {
+                throw new NetworkConfigurationException("Channel configuration has no channels defined.");
             }
-
-        } else {
-            throw new NetworkConfigurationException("Channel configuration has no channels defined.");
+            throw new NetworkConfigurationException(format("Channel %s not found in configuration file. Found channel names: %s ",
+                    channelName, String.join(", ", channelNames)));
         }
 
-        return channel;
+        Channel channel = client.getChannel(channelName);
+        if (channel != null) {
+            // The channel already exists in the client!
+            // Note that by rights this should never happen as HFClient.loadChannelFromConfig should have already checked for this!
+            throw new NetworkConfigurationException(format("Channel %s is already configured in the client!", channelName));
+        }
+
+        return reconstructChannel(client, channelName, jsonChannel);
     }
 
     // Creates Node instances representing all the orderers defined in the config file
@@ -546,7 +529,7 @@ public class NetworkConfig {
                     throw new NetworkConfigurationException(format("Error loading config. Invalid orderer entry: %s", ordererName));
                 }
 
-                Node orderer = createNode(ordererName, jsonOrderer, "url");
+                Node orderer = createNode(ordererName, jsonOrderer, URL_PROP_NAME);
                 if (orderer == null) {
                     throw new NetworkConfigurationException(format("Error loading config. Invalid orderer entry: %s", ordererName));
                 }
@@ -585,7 +568,7 @@ public class NetworkConfig {
                     throw new NetworkConfigurationException(format("Error loading config. Invalid peer entry: %s", peerName));
                 }
 
-                Node peer = createNode(peerName, jsonPeer, "url");
+                Node peer = createNode(peerName, jsonPeer, URL_PROP_NAME);
                 if (peer == null) {
                     throw new NetworkConfigurationException(format("Error loading config. Invalid peer entry: %s", peerName));
                 }
@@ -753,11 +736,10 @@ public class NetworkConfig {
         }
     }
 
-    private static Map<PeerRole, String> roleNameRemapHash = new HashMap<PeerRole, String>() {
-        {
-            put(PeerRole.SERVICE_DISCOVERY, "discover");
-        }
-    };
+    private static final Map<PeerRole, String> roleNameRemapHash = new HashMap<>();
+    static {
+        roleNameRemapHash.put(PeerRole.SERVICE_DISCOVERY, "discover");
+    }
 
     private static String roleNameRemap(PeerRole peerRole) {
         String remap = roleNameRemapHash.get(peerRole);
@@ -776,12 +758,6 @@ public class NetworkConfig {
 
     // Creates a new Node instance from a JSON object
     private Node createNode(String nodeName, JsonObject jsonNode, String urlPropName) throws NetworkConfigurationException {
-
-//        jsonNode.
-//        if (jsonNode.isNull(urlPropName)) {
-//            return  null;
-//        }
-
         String url = jsonNode.getString(urlPropName, null);
         if (url == null) {
             return null;
@@ -813,16 +789,15 @@ public class NetworkConfig {
         JsonObject jsonTlsCaCerts = getJsonObject(jsonOrderer, "tlsCACerts");
         if (jsonTlsCaCerts != null) {
             String pemFilename = getJsonValueAsString(jsonTlsCaCerts.get("path"));
-            String pemBytes = getJsonValueAsString(jsonTlsCaCerts.get("pem"));
-
             if (pemFilename != null) {
                 // let the sdk handle non existing errors could be they don't exist during parsing but are there later.
                 props.put("pemFile", pemFilename);
             }
 
-            if (pemBytes != null) {
-                props.put("pemBytes", pemBytes.getBytes());
-            }
+            byte[] pemBytes = getJsonValueAsList(jsonTlsCaCerts.get("pem"), NetworkConfig::getJsonValueAsString).stream()
+                    .collect(Collectors.joining())
+                    .getBytes();
+            props.put("pemBytes", pemBytes);
         }
     }
 
@@ -878,24 +853,20 @@ public class NetworkConfig {
         String signedCert = extractPemString(jsonOrg, "signedCert", msgPrefix);
 
         if (!isNullOrEmpty(adminPrivateKeyString) && !isNullOrEmpty(signedCert)) {
-
-            PrivateKey privateKey = null;
-
+            final PrivateKey privateKey;
             try {
                 privateKey = getPrivateKeyFromString(adminPrivateKeyString);
             } catch (IOException ioe) {
                 throw new NetworkConfigurationException(format("%s: Invalid private key", msgPrefix), ioe);
             }
 
-            final PrivateKey privateKeyFinal = privateKey;
-
             try {
                 org.peerAdmin = new UserInfo(CryptoSuite.Factory.getCryptoSuite(), mspId, "PeerAdmin_" + mspId + "_" + orgName, null);
             } catch (Exception e) {
                 throw new NetworkConfigurationException(e.getMessage(), e);
             }
-            org.peerAdmin.setEnrollment(new X509Enrollment(privateKeyFinal, signedCert));
 
+            org.peerAdmin.setEnrollment(new X509Enrollment(privateKey, signedCert));
         }
 
         return org;
@@ -938,7 +909,7 @@ public class NetworkConfig {
                 throw new NetworkConfigurationException(format("%s: %s file %s does not exist", msgPrefix, fieldName, fullPathname));
             }
             try (FileInputStream stream = new FileInputStream(pemFile)) {
-                pemString = IOUtils.toString(stream, "UTF-8");
+                pemString = IOUtils.toString(stream, StandardCharsets.UTF_8);
             } catch (IOException ioe) {
                 throw new NetworkConfigurationException(format("Failed to read file: %s", fullPathname), ioe);
             }
@@ -954,21 +925,15 @@ public class NetworkConfig {
         String url = getJsonValueAsString(jsonCA.get("url"));
         Properties httpOptions = extractProperties(jsonCA, "httpOptions");
 
-        String enrollId = null;
-        String enrollSecret = null;
-
-        List<JsonObject> registrars = getJsonValueAsList(jsonCA.get("registrar"));
-        List<UserInfo> regUsers = new LinkedList<>();
-        if (registrars != null) {
-
-            for (JsonObject reg : registrars) {
-                enrollId = getJsonValueAsString(reg.get("enrollId"));
-                enrollSecret = getJsonValueAsString(reg.get("enrollSecret"));
-                try {
-                    regUsers.add(new UserInfo(CryptoSuite.Factory.getCryptoSuite(), org.mspId, enrollId, enrollSecret));
-                } catch (Exception e) {
-                    throw new NetworkConfigurationException(e.getMessage(), e);
-                }
+        List<UserInfo> regUsers = new ArrayList<>();
+        List<JsonObject> registrars = getJsonValueAsList(jsonCA.get("registrar"), NetworkConfig::getJsonValueAsObject);
+        for (JsonObject registrar : registrars) {
+            String enrollId = getJsonValueAsString(registrar.get("enrollId"));
+            String enrollSecret = getJsonValueAsString(registrar.get("enrollSecret"));
+            try {
+                regUsers.add(new UserInfo(CryptoSuite.Factory.getCryptoSuite(), org.mspId, enrollId, enrollSecret));
+            } catch (Exception e) {
+                throw new NetworkConfigurationException(e.getMessage(), e);
             }
         }
 
@@ -1058,20 +1023,22 @@ public class NetworkConfig {
         return (value != null && value.getValueType() == ValueType.ARRAY) ? value.asJsonArray() : null;
     }
 
+    private static <T> List<T> getJsonValueAsList(final JsonValue value, Function<JsonValue, T> map) {
+        return getJsonValueAsList(value).stream()
+                .map(map)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
     // Returns the specified JsonValue as a List. Allows single or array
-    private static List<JsonObject> getJsonValueAsList(JsonValue value) {
-        if (value != null) {
-            if (value.getValueType() == ValueType.ARRAY) {
-                return value.asJsonArray().getValuesAs(JsonObject.class);
-
-            } else if (value.getValueType() == ValueType.OBJECT) {
-                List<JsonObject> ret = new ArrayList<>();
-                ret.add(value.asJsonObject());
-
-                return ret;
-            }
+    private static List<JsonValue> getJsonValueAsList(final JsonValue value) {
+        if (value == null) {
+            return Collections.emptyList();
         }
-        return null;
+        if (value.getValueType() == ValueType.ARRAY) {
+            return value.asJsonArray();
+        }
+        return Collections.singletonList(value);
     }
 
     // Returns the specified JsonValue as a String, or null if it's not a string
@@ -1113,16 +1080,14 @@ public class NetworkConfig {
      */
 
     public Set<String> getChannelNames() {
-        Set<String> ret = Collections.EMPTY_SET;
+        Set<String> result = new HashSet<>();
 
         JsonObject channels = getJsonObject(jsonConfig, "channels");
         if (channels != null) {
-            final Set<String> channelNames = channels.keySet();
-            if (channelNames != null && !channelNames.isEmpty()) {
-                ret = new HashSet<>(channelNames);
-            }
+            result.addAll(channels.keySet());
         }
-        return ret;
+
+        return result;
     }
 
     // Holds a network "node" (eg. Peer, Orderer, EventHub)
