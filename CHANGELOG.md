@@ -1,3 +1,8 @@
+## 2.1.4
+Fri  3 Jul 2020 11:18:31 BST
+
+* [f9755b5](https://github.com/hyperledger/fabric-sdk-java/commit/f9755b5) [FABJ-521] Allow arrays of PEM content in connection profile (#62)
+
 ## v2.1.2
 Tue 19 May 2020 16:00:37 BST
 
