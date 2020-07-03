@@ -64,6 +64,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.getMockUser;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -103,7 +104,7 @@ public class NetworkConfigIT {
 
     private static NetworkConfig networkConfig;
 
-    private static Map<String, User> orgRegisteredUsers = new HashMap<>();
+    private static final Map<String, User> orgRegisteredUsers = new HashMap<>();
 
     @BeforeClass
     public static void doMainSetup() throws Exception {
@@ -116,29 +117,19 @@ public class NetworkConfigIT {
         networkConfig = NetworkConfig.fromYamlFile(testConfig.getTestNetworkConfigFileYAML());
 
         networkConfig.getOrdererNames().forEach(ordererName -> {
-            try {
-                Properties ordererProperties = networkConfig.getOrdererProperties(ordererName);
-                Properties testProp = testConfig.getEndPointProperties("orderer", ordererName);
-                ordererProperties.setProperty("clientCertFile", testProp.getProperty("clientCertFile"));
-                ordererProperties.setProperty("clientKeyFile", testProp.getProperty("clientKeyFile"));
-                networkConfig.setOrdererProperties(ordererName, ordererProperties);
-
-            } catch (InvalidArgumentException e) {
-                throw new RuntimeException(e);
-            }
+            Properties ordererProperties = networkConfig.getOrdererProperties(ordererName);
+            Properties testProp = testConfig.getEndPointProperties("orderer", ordererName);
+            ordererProperties.setProperty("clientCertFile", testProp.getProperty("clientCertFile"));
+            ordererProperties.setProperty("clientKeyFile", testProp.getProperty("clientKeyFile"));
+            networkConfig.setOrdererProperties(ordererName, ordererProperties);
         });
 
         networkConfig.getPeerNames().forEach(peerName -> {
-            try {
-                Properties peerProperties = networkConfig.getPeerProperties(peerName);
-                Properties testProp = testConfig.getEndPointProperties("peer", peerName);
-                peerProperties.setProperty("clientCertFile", testProp.getProperty("clientCertFile"));
-                peerProperties.setProperty("clientKeyFile", testProp.getProperty("clientKeyFile"));
-                networkConfig.setPeerProperties(peerName, peerProperties);
-
-            } catch (InvalidArgumentException e) {
-                throw new RuntimeException(e);
-            }
+            Properties peerProperties = networkConfig.getPeerProperties(peerName);
+            Properties testProp = testConfig.getEndPointProperties("peer", peerName);
+            peerProperties.setProperty("clientCertFile", testProp.getProperty("clientCertFile"));
+            peerProperties.setProperty("clientKeyFile", testProp.getProperty("clientKeyFile"));
+            networkConfig.setPeerProperties(peerName, peerProperties);
         });
 
         //Check if we get access to defined CAs!
@@ -151,7 +142,7 @@ public class NetworkConfigIT {
         assertEquals(caInfo.getCAName(), info.getCAName());
 
         Collection<UserInfo> registrars = caInfo.getRegistrars();
-        assertTrue(!registrars.isEmpty());
+        assertFalse(registrars.isEmpty());
         UserInfo registrar = registrars.iterator().next();
         registrar.setEnrollment(hfcaClient.enroll(registrar.getName(), registrar.getEnrollSecret()));
         MockUser mockuser = getMockUser(org.getName() + "_mock_" + System.nanoTime(), registrar.getMspId());
@@ -169,7 +160,7 @@ public class NetworkConfigIT {
         assertEquals(info.getCAName(), "");
 
         registrars = caInfo.getRegistrars();
-        assertTrue(!registrars.isEmpty());
+        assertFalse(registrars.isEmpty());
         registrar = registrars.iterator().next();
         registrar.setEnrollment(hfcaClient.enroll(registrar.getName(), registrar.getEnrollSecret()));
         mockuser = getMockUser(org.getName() + "_mock_" + System.nanoTime(), registrar.getMspId());

@@ -65,6 +65,9 @@
       "mspid": "Org2MSP",
       "peers": [
         "peer0.org2.example.com"
+      ],
+      "certificateAuthorities": [
+        "ca-org2"
       ]
     }
   },
@@ -118,7 +121,27 @@
         "verify": true
       },
       "tlsCACerts": {
-        "path": "peerOrganizations/org1.example.com/ca/org1.example.com-cert.pem"
+        "path": "peerOrganizations/org1.example.com/ca/org1.example.com-cert.pem",
+        "pem": "-----BEGIN CERTIFICATE----- <etc>"
+      },
+      "registrar": [
+        {
+          "enrollId": "admin",
+          "enrollSecret": "adminpw"
+        }
+      ],
+      "caName": "caNameHere"
+    },
+    "ca-org2": {
+      "url": "https://localhost:8054",
+      "httpOptions": {
+        "verify": true
+      },
+      "tlsCACerts": {
+        "pem": [
+          "-----BEGIN CERTIFICATE----- <1>",
+          "-----BEGIN CERTIFICATE----- <2>"
+        ]
       },
       "registrar": [
         {
