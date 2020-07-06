@@ -485,6 +485,9 @@ public class NetworkConfig {
         }
 
         JsonObject channels = getJsonObject(jsonConfig, "channels");
+        if (null == channels) {
+            throw new NetworkConfigurationException("Channel configuration has no channels defined.");
+        }
 
         JsonObject jsonChannel = getJsonObject(channels, channelName);
         if (null == jsonChannel) {
