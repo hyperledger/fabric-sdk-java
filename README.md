@@ -108,10 +108,6 @@ You may also need to on your <span style="color:red"><b>v2.1</b> </span>  Fabric
 
 ---
 
-## Latest Fabric Builds.
-Latest Fabric builds are seldom needed except for those working on the very latest Fabric features.
-Some information to help with that can been found in [Developer Instructions](./docs/DeveloperInstructions.md)
-
 ## v2.1 builds of Fabric and Fabric-ca needed for the integration test
 
 To get a functioning Fabric v2.1 network needed by the SDK Integration tests.
