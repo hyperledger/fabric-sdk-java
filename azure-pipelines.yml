@@ -11,7 +11,7 @@ pr:
 
 variables:
   GOPATH: $(Build.Repository.LocalPath)/src/test/fixture
-  FABRIC_VERSION: 2.1
+  FABRIC_VERSION: 2.2
 
 pool:
   vmImage: 'ubuntu-18.04'
