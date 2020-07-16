@@ -4,10 +4,10 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/java
 
 trigger:
-  - master
+  - release-2.2
 
 pr:
-  - master
+  - release-2.2
 
 variables:
   GOPATH: $(Build.Repository.LocalPath)/src/test/fixture
