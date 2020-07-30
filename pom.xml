@@ -28,16 +28,16 @@
         <tag>fabric-sdk-java-1.0</tag>
     </scm>
     <properties>
-        <grpc.version>1.23.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
-        <protobuf.version>3.10.0</protobuf.version>
+        <grpc.version>1.31.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
+        <protobuf.version>3.12.4</protobuf.version>
         <bouncycastle.version>1.62</bouncycastle.version>
         <httpclient.version>4.5.12</httpclient.version>
-        <javadoc.version>3.1.1</javadoc.version>
+        <javadoc.version>3.2.0</javadoc.version>
         <skipITs>true</skipITs>
         <alpn-boot-version>8.1.7.v20160121</alpn-boot-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jacoco.version>0.7.9</jacoco.version>
-        <log4j.version>2.13.2</log4j.version>
+        <jacoco.version>0.8.5</jacoco.version>
+        <log4j.version>2.13.3</log4j.version>
         <org.hyperledger.fabric.sdktest.ITSuite>IntegrationSuite.java</org.hyperledger.fabric.sdktest.ITSuite>
         <gpg.executable>gpg2</gpg.executable>
     </properties>
@@ -260,7 +260,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.19.1</version>
+                <version>3.0.0-M5</version>
                 <configuration>
                     <argLine>${surefireArgLine}</argLine>
                     <includes>
@@ -272,7 +272,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.19.1</version>
+                <version>3.0.0-M5</version>
                 <configuration>
                     <argLine>${failsafeArgLine}</argLine>
                     <includes>
@@ -304,7 +304,7 @@
                       protobuf-java directly, you will be transitively depending on the
                       protobuf-java version that grpc depends on.
                     -->
-                    <protocArtifact>com.google.protobuf:protoc:3.0.0:exe:${os.detected.classifier}</protocArtifact>
+                    <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
                     <pluginId>grpc-java</pluginId>
                     <pluginArtifact>io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}
                     </pluginArtifact>
@@ -538,6 +538,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
+                <version>3.2.0</version>
                 <configuration>
                     <archive>
                         <manifestEntries>
@@ -567,7 +568,7 @@
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>3.2.0</version>
+                        <version>5.3.2</version>
                         <executions>
                             <execution>
                                 <goals>
@@ -598,7 +599,7 @@
                     </plugin>
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
-                        <version>2.3</version>
+                        <version>3.3.0</version>  <!-- was 2.3 -->
                         <configuration>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
@@ -633,7 +634,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
-                        <version>2.2.1</version>
+                        <version>3.2.1</version>  <!-- was 2.2.1 -->
                         <executions>
                             <execution>
                                 <id>attach-sources</id>

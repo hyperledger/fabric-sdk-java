@@ -768,18 +768,16 @@ public class NetworkConfig {
 
         Properties props = extractProperties(jsonNode, "grpcOptions");
 
-        if (null != props) {
-            String value = props.getProperty("grpc.keepalive_time_ms");
-            if (null != value) {
-                props.remove("grpc.keepalive_time_ms");
-                props.put("grpc.NettyChannelBuilderOption.keepAliveTime", new Object[] {new Long(value), TimeUnit.MILLISECONDS});
-            }
+        String value = props.getProperty("grpc.keepalive_time_ms");
+        if (null != value) {
+            props.remove("grpc.keepalive_time_ms");
+            props.put("grpc.NettyChannelBuilderOption.keepAliveTime", new Object[] {Long.parseLong(value), TimeUnit.MILLISECONDS});
+        }
 
-            value = props.getProperty("grpc.keepalive_timeout_ms");
-            if (null != value) {
-                props.remove("grpc.keepalive_timeout_ms");
-                props.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {new Long(value), TimeUnit.MILLISECONDS});
-            }
+        value = props.getProperty("grpc.keepalive_timeout_ms");
+        if (null != value) {
+            props.remove("grpc.keepalive_timeout_ms");
+            props.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {Long.parseLong(value), TimeUnit.MILLISECONDS});
         }
 
         // Extract the pem details

@@ -25,19 +25,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.Properties;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.common.io.ByteStreams;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
 import io.netty.util.internal.StringUtil;
@@ -97,7 +93,7 @@ public final class Utils {
      */
     public static String generateDirectoryHash(String rootDir, String chaincodeDir, String hash) throws IOException {
         // Generate the project directory
-        Path projectPath = null;
+        final Path projectPath;
         if (rootDir == null) {
             projectPath = Paths.get(chaincodeDir);
         } else {
@@ -150,17 +146,15 @@ public final class Utils {
 
         String sourcePath = sourceDirectory.getAbsolutePath();
 
-        TarArchiveOutputStream archiveOutputStream = new TarArchiveOutputStream(new GzipCompressorOutputStream(bos));
-        archiveOutputStream.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
+        try (TarArchiveOutputStream archiveOutputStream = new TarArchiveOutputStream(new GzipCompressorOutputStream(bos))) {
+            archiveOutputStream.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
 
-        try {
             Collection<File> childrenFiles = org.apache.commons.io.FileUtils.listFiles(sourceDirectory, null, true);
 
             ArchiveEntry archiveEntry;
-            FileInputStream fileInputStream;
             for (File childFile : childrenFiles) {
                 String childPath = childFile.getAbsolutePath();
-                String relativePath = childPath.substring((sourcePath.length() + 1), childPath.length());
+                String relativePath = childPath.substring((sourcePath.length() + 1));
 
                 if (pathPrefix != null) {
                     relativePath = Utils.combinePaths(pathPrefix, relativePath);
@@ -173,13 +167,11 @@ public final class Utils {
                 }
 
                 archiveEntry = new TarArchiveEntry(childFile, relativePath);
-                fileInputStream = new FileInputStream(childFile);
                 archiveOutputStream.putArchiveEntry(archiveEntry);
 
-                try {
+                try (FileInputStream fileInputStream = new FileInputStream(childFile)) {
                     IOUtils.copy(fileInputStream, archiveOutputStream);
                 } finally {
-                    IOUtils.closeQuietly(fileInputStream);
                     archiveOutputStream.closeArchiveEntry();
                 }
 
@@ -199,21 +191,17 @@ public final class Utils {
                     }
 
                     archiveEntry = new TarArchiveEntry(childFile, relativePath);
-                    fileInputStream = new FileInputStream(childFile);
                     archiveOutputStream.putArchiveEntry(archiveEntry);
 
-                    try {
+                    try (FileInputStream fileInputStream = new FileInputStream(childFile)) {
                         IOUtils.copy(fileInputStream, archiveOutputStream);
                     } finally {
-                        IOUtils.closeQuietly(fileInputStream);
                         archiveOutputStream.closeArchiveEntry();
                     }
 
                 }
 
             }
-        } finally {
-            IOUtils.closeQuietly(archiveOutputStream);
         }
 
         return bos.toByteArray();
@@ -306,13 +294,9 @@ public final class Utils {
      * @throws IOException
      */
     public static byte[] readFileFromClasspath(String fileName) throws IOException {
-        InputStream is = Utils.class.getClassLoader().getResourceAsStream(fileName);
-        byte[] data = ByteStreams.toByteArray(is);
-        try {
-            is.close();
-        } catch (IOException ex) {
+        try (InputStream is = Utils.class.getClassLoader().getResourceAsStream(fileName)) {
+            return IOUtils.toByteArray(is);
         }
-        return data;
     }
 
     public static Properties parseGrpcUrl(String url) {
