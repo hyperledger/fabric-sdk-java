@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
-import com.spotify.futures.CompletableFuturesExtra;
+import com.spotify.futures.ListenableFuturesExtra;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.apache.commons.logging.Log;
@@ -119,7 +119,7 @@ class EndorserClient {
             return ret;
         }
 
-        CompletableFuture<ProposalResponsePackage.ProposalResponse> future = CompletableFuturesExtra.toCompletableFuture(futureStub.processProposal(proposal));
+        CompletableFuture<ProposalResponsePackage.ProposalResponse> future = ListenableFuturesExtra.toCompletableFuture(futureStub.processProposal(proposal));
 
         return future.exceptionally(throwable -> {
             throw new CompletionException(format("%s %s", toString, throwable.getMessage()), throwable);
@@ -136,7 +136,7 @@ class EndorserClient {
             return ret;
         }
 
-        CompletableFuture<Protocol.Response> future = CompletableFuturesExtra.toCompletableFuture(discoveryFutureStub.discover(signedRequest));
+        CompletableFuture<Protocol.Response> future = ListenableFuturesExtra.toCompletableFuture(discoveryFutureStub.discover(signedRequest));
         return future.exceptionally(throwable -> {
             throw new CompletionException(format("%s %s", toString, throwable.getMessage()), throwable);
         });
@@ -163,11 +163,15 @@ class EndorserClient {
     }
 
     @Override
-    public void finalize() {
-        if (!shutdown) {
-            logger.warn(toString() + " finalized not shutdown is Active" + isChannelActive());
-        }
+    public void finalize() throws Throwable {
+        try {
+            if (!shutdown) {
+                logger.warn(toString() + " finalized not shutdown is Active" + isChannelActive());
+            }
 
-        shutdown(true);
+            shutdown(true);
+        } finally {
+            super.finalize();
+        }
     }
 }

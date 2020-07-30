@@ -16,7 +16,6 @@ package org.hyperledger.fabric.sdk;
 
 /**
  * ChaincodeID identifies chaincode.
- * @deprecated See lifecycle install {@link LifecycleChaincodePackage}
  */
 public final class ChaincodeID {
 
@@ -32,7 +31,6 @@ public final class ChaincodeID {
 
     /**
      * @return
-     * @deprecated See lifecycle install {@link LifecycleChaincodePackage}
      */
     public String getName() {
         return fabricChaincodeID.getName();
@@ -104,10 +102,8 @@ public final class ChaincodeID {
     /**
      * Chaincode builder
      *
-     * @deprecated See lifecycle install {@link LifecycleChaincodePackage}
      * @return ChaincodeID builder.
      */
-
     public static Builder newBuilder() {
         return new Builder();
     }
