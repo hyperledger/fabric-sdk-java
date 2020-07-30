@@ -800,13 +800,13 @@ public class NetworkConfig {
         String value = props.getProperty("grpc.keepalive_time_ms");
         if (null != value) {
             props.remove("grpc.keepalive_time_ms");
-            props.put("grpc.NettyChannelBuilderOption.keepAliveTime", new Object[] {new Long(value), TimeUnit.MILLISECONDS});
+            props.put("grpc.NettyChannelBuilderOption.keepAliveTime", new Object[] {Long.parseLong(value), TimeUnit.MILLISECONDS});
         }
 
         value = props.getProperty("grpc.keepalive_timeout_ms");
         if (null != value) {
             props.remove("grpc.keepalive_timeout_ms");
-            props.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {new Long(value), TimeUnit.MILLISECONDS});
+            props.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {Long.parseLong(value), TimeUnit.MILLISECONDS});
         }
 
         value = props.getProperty("grpc.keepalive_without_calls");

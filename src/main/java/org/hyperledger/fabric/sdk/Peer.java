@@ -347,11 +347,14 @@ public class Peer implements Serializable {
 
     @Override
     protected void finalize() throws Throwable {
-        if (!shutdown) {
-            logger.debug(toString() + " finalized without previous shutdown.");
+        try {
+            if (!shutdown) {
+                logger.debug(toString() + " finalized without previous shutdown.");
+            }
+            shutdown(true);
+        } finally {
+            super.finalize();
         }
-        shutdown(true);
-        super.finalize();
     }
 
     void reconnectPeerEventServiceClient(final PeerEventServiceClient failedPeerEventServiceClient,

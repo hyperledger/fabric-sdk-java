@@ -167,16 +167,18 @@ class PeerEventServiceClient {
     }
 
     @Override
-    public void finalize() {
-        shutdown(true);
+    public void finalize() throws Throwable {
+        try {
+            shutdown(true);
+        } finally {
+            super.finalize();
+        }
     }
 
     /**
      * Get the last block received by this peer.
-     *
-     * @return The last block received by this peer. May return null if no block has been received since first reactivated.
      */
-    void connectEnvelope(Envelope envelope) throws TransactionException {
+    void connectEnvelope(Envelope envelope) {
         if (shutdown) {
             logger.warn(format("%s not connecting is shutdown.", toString()));
             return;
@@ -253,7 +255,7 @@ class PeerEventServiceClient {
                         logger.error(format("%s got event block with unknown type: %s, %d",
                                 PeerEventServiceClient.this.toString(), typeCase.name(), typeCase.getNumber()));
 
-                        PeerEventingServiceException peerEventingServiceException = new PeerEventingServiceException(format("% got event block with unknown type: %s, %d",
+                        PeerEventingServiceException peerEventingServiceException = new PeerEventingServiceException(format("%s got event block with unknown type: %s, %d",
                                 PeerEventServiceClient.this.toString(), typeCase.name(), typeCase.getNumber()));
                         peerEventingServiceException.setResponse(resp);
 
@@ -400,13 +402,10 @@ class PeerEventServiceClient {
         if (lmanagedChannel == null) {
             return "No grpc managed channel active. peer eventing client service is shutdown: " + shutdown;
         } else {
-            StringBuilder sb = new StringBuilder(1000);
-
-            sb.append("peer eventing client service is shutdown: ").append(shutdown)
-                    .append(", grpc isShutdown: ").append(lmanagedChannel.isShutdown())
-                    .append(", grpc isTerminated: ").append(lmanagedChannel.isTerminated())
-                    .append(", grpc state: ").append("" + lmanagedChannel.getState(false));
-            return sb.toString();
+            return "peer eventing client service is shutdown: " + shutdown +
+                    ", grpc isShutdown: " + lmanagedChannel.isShutdown() +
+                    ", grpc isTerminated: " + lmanagedChannel.isTerminated() +
+                    ", grpc state: " + lmanagedChannel.getState(false);
         }
     }
 }

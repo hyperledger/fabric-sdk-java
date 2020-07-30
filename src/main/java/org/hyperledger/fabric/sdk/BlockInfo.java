@@ -279,6 +279,7 @@ public class BlockInfo {
          * @return epoch and -1 if filtered block.
          * @deprecated
          */
+        @Deprecated
         public long getEpoch() {
             return BlockInfo.this.isFiltered() ? -1 : headerDeserializer.getChannelHeader().getEpoch();
         }
@@ -670,6 +671,7 @@ public class BlockInfo {
          * @return
          * @deprecated use getId and getMspid
          */
+        @Deprecated
         public byte[] getEndorser() {
             return endorsement.getEndorser().toByteArray();
         }
