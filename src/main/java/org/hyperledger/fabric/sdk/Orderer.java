@@ -246,9 +246,12 @@ public class Orderer implements Serializable {
 
     @Override
     protected void finalize() throws Throwable {
-        logger.trace("finalize " + toString());
-        shutdown(true);
-        super.finalize();
+        try {
+            logger.trace("finalize " + toString());
+            shutdown(true);
+        } finally {
+            super.finalize();
+        }
     }
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {

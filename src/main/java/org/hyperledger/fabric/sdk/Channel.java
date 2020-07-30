@@ -1573,6 +1573,7 @@ public class Channel implements Serializable {
 
     }
 
+    @SafeVarargs
     private static byte[] combineCerts(Collection<byte[]>... certCollections) throws IOException {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             for (Collection<byte[]> certCollection : certCollections) {
@@ -2313,7 +2314,7 @@ public class Channel implements Serializable {
 
             if (!peersToAddHS.contains(s)) {
                 String[] split = s.split(":");
-                anchorPeers.addAnchorPeers(Configuration.AnchorPeer.newBuilder().setHost(split[0]).setPort(new Integer(split[1])).build());
+                anchorPeers.addAnchorPeers(Configuration.AnchorPeer.newBuilder().setHost(split[0]).setPort(Integer.parseInt(split[1])).build());
                 peersFinalHS.add(s);
             }
         }
@@ -2322,7 +2323,7 @@ public class Channel implements Serializable {
             if (!currentAP.contains(s)) {
                 peersAdded.add(s);
                 String[] split = s.split(":");
-                anchorPeers.addAnchorPeers(Configuration.AnchorPeer.newBuilder().setHost(split[0]).setPort(new Integer(split[1])).build());
+                anchorPeers.addAnchorPeers(Configuration.AnchorPeer.newBuilder().setHost(split[0]).setPort(Integer.parseInt(split[1])).build());
                 peersFinalHS.add(s);
             }
         }
@@ -2785,7 +2786,7 @@ public class Channel implements Serializable {
      * @throws ProposalException
      * @deprecated See new lifecycle chaincode management. {@link LifecycleInstallChaincodeRequest}
      */
-
+    @Deprecated
     public Collection<ProposalResponse> sendInstantiationProposal(InstantiateProposalRequest instantiateProposalRequest) throws InvalidArgumentException, ProposalException {
 
         return sendInstantiationProposal(instantiateProposalRequest, getChaincodePeers());
@@ -2801,6 +2802,7 @@ public class Channel implements Serializable {
      * @throws ProposalException
      * @deprecated See new lifecycle chaincode management. {@link LifecycleInstallChaincodeRequest}
      */
+    @Deprecated
     public Collection<ProposalResponse> sendInstantiationProposal(InstantiateProposalRequest instantiateProposalRequest,
                                                                   Collection<Peer> peers) throws InvalidArgumentException, ProposalException {
         checkChannelState();
@@ -2874,7 +2876,7 @@ public class Channel implements Serializable {
      * @throws ProposalException
      * @throws InvalidArgumentException
      */
-
+    @Deprecated
     Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest)
             throws ProposalException, InvalidArgumentException {
         return sendInstallProposal(installProposalRequest, getChaincodePeers());
@@ -2890,7 +2892,7 @@ public class Channel implements Serializable {
      * @throws ProposalException
      * @throws InvalidArgumentException
      */
-
+    @Deprecated
     Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest, Collection<Peer> peers)
             throws ProposalException, InvalidArgumentException {
 
@@ -2933,7 +2935,7 @@ public class Channel implements Serializable {
      * @throws InvalidArgumentException
      * @deprecated See new Lifecycle chaincode management.  {@link Channel#sendLifecycleApproveChaincodeDefinitionForMyOrgProposal(LifecycleApproveChaincodeDefinitionForMyOrgRequest, Peer)}
      */
-
+    @Deprecated
     public Collection<ProposalResponse> sendUpgradeProposal(UpgradeProposalRequest upgradeProposalRequest) throws ProposalException, InvalidArgumentException {
 
         return sendUpgradeProposal(upgradeProposalRequest, getChaincodePeers());
@@ -2950,7 +2952,7 @@ public class Channel implements Serializable {
      * @throws InvalidArgumentException
      * @deprecated See new Lifecycle chaincode management.  {@link Channel#sendLifecycleApproveChaincodeDefinitionForMyOrgProposal(LifecycleApproveChaincodeDefinitionForMyOrgRequest, Peer)}
      */
-
+    @Deprecated
     public Collection<ProposalResponse> sendUpgradeProposal(UpgradeProposalRequest upgradeProposalRequest, Collection<Peer> peers)
             throws InvalidArgumentException, ProposalException {
 
@@ -6426,8 +6428,11 @@ public class Channel implements Serializable {
 
     @Override
     protected void finalize() throws Throwable {
-        shutdown(true);
-        super.finalize();
+        try {
+            shutdown(true);
+        } finally {
+            super.finalize();
+        }
     }
 
     /**
