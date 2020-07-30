@@ -446,6 +446,7 @@ public class HFClient {
      * @return InstallProposalRequest
      * @deprecated see {@link #newLifecycleQueryInstalledChaincodesRequest()}
      */
+    @Deprecated
     public InstallProposalRequest newInstallProposalRequest() {
         return new InstallProposalRequest(userContext);
     }
@@ -645,7 +646,7 @@ public class HFClient {
      * @deprecated See {@link LifecycleCommitChaincodeDefinitionRequest } for defining the chaincode and
      * and then {@link TransactionProposalRequest#setInit(boolean)} to do the initialization if it's required by the chaincode.
      */
-
+    @Deprecated
     public InstantiateProposalRequest newInstantiationProposalRequest() {
         return new InstantiateProposalRequest(userContext);
     }
@@ -654,7 +655,7 @@ public class HFClient {
      * @return {@link UpgradeProposalRequest}
      * @deprecated See {@link LifecycleCommitChaincodeDefinitionRequest } for defining the chaincode and
      * and then {@link TransactionProposalRequest#setInit(boolean)} to do the initialization if it's required by the chaincode.     */
-
+    @Deprecated
     public UpgradeProposalRequest newUpgradeProposalRequest() {
         return new UpgradeProposalRequest(userContext);
     }
@@ -809,7 +810,7 @@ public class HFClient {
      * @throws ProposalException
      * @deprecated See {@link LifecycleQueryInstalledChaincodesRequest}
      */
-
+    @Deprecated
     public List<ChaincodeInfo> queryInstalledChaincodes(Peer peer) throws InvalidArgumentException, ProposalException {
 
         clientCheck();
@@ -881,7 +882,7 @@ public class HFClient {
      * @throws ProposalException
      * @deprecated See {@link LifecycleInstallChaincodeRequest}
      */
-
+    @Deprecated
     public Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest,
                                                             Collection<Peer> peers) throws ProposalException, InvalidArgumentException {
 

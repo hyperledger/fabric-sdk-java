@@ -236,7 +236,7 @@ public class ChaincodeEndorsementPolicy {
      * @throws ChaincodeEndorsementPolicyParseException
      * @deprecated use {@link #fromYamlFile(Path)}
      */
-
+    @Deprecated
     public void fromYamlFile(File yamlPolicyFile) throws IOException, ChaincodeEndorsementPolicyParseException {
         final Yaml yaml = new Yaml(new SafeConstructor());
         final Map<?, ?> load = (Map<?, ?>) yaml.load(new FileInputStream(yamlPolicyFile));

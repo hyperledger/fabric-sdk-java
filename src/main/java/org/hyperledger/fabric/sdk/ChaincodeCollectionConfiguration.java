@@ -55,7 +55,7 @@ public class ChaincodeCollectionConfiguration {
         return collectionConfigPackage;
     }
 
-    private Collection.CollectionConfigPackage collectionConfigPackage = null;
+    private final Collection.CollectionConfigPackage collectionConfigPackage;
 
     ChaincodeCollectionConfiguration(JsonArray jsonConfig) throws ChaincodeCollectionConfigurationException {
 

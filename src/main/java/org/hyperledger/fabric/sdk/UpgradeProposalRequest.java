@@ -22,6 +22,7 @@ import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
  * @deprecated New lifecycle upgrade is like install with new version. see {@link LifecycleCommitChaincodeDefinitionRequest}
  * Upgrade chaincode proposal request.
  */
+@Deprecated
 public class UpgradeProposalRequest extends TransactionRequest {
 
     UpgradeProposalRequest(User userContext) {

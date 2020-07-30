@@ -15,6 +15,7 @@ import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
  * InstallProposalRequest.
  * @deprecated See {@link LifecycleInstallChaincodeRequest}
  */
+@Deprecated
 public class InstallProposalRequest extends TransactionRequest {
 
     private File chaincodeSourceLocation = null;
