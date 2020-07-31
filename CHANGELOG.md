@@ -1,10 +1,16 @@
+## v2.2.1
+Fri 31 Jul 2020 13:12:02 BST
+
+* [61dff3a](https://github.com/hyperledger/fabric-sdk-java/commit/61dff3a) FABJ-531: Remove deprecated use of NettyChannelBuilder.usePlaintext(boolean)
+* [78fe1b5](https://github.com/hyperledger/fabric-sdk-java/commit/78fe1b5) Prepare release-2.2 branch (#69)
+
 ## v2.2.0
 Wed 15 Jul 2020 14:36:07 BST
 
 * [e9152db](https://github.com/hyperledger/fabric-sdk-java/commit/e9152db) Prune missleading legacy document (#66)
 * [4e24e47](https://github.com/hyperledger/fabric-sdk-java/commit/4e24e47) Add baseos to vendored images and bump fab version (#67)
 
-## 2.1.4
+## v2.1.4
 Fri  3 Jul 2020 11:18:31 BST
 
 * [f9755b5](https://github.com/hyperledger/fabric-sdk-java/commit/f9755b5) [FABJ-521] Allow arrays of PEM content in connection profile (#62)
