@@ -111,9 +111,8 @@ You may also need to on your <span style="color:red"><b>v2.1</b> </span>  Fabric
 ## v2.1 builds of Fabric and Fabric-ca needed for the integration test
 
 To get a functioning Fabric v2.1 network needed by the SDK Integration tests.
-In the directory `src/test/fixture/sdkintegration` issue :
 
-`./fabric.sh restart`
+`./scripts/run-integration-tests.sh`
 
 This command needs to be rerun each time the Integration tests are run.
 
