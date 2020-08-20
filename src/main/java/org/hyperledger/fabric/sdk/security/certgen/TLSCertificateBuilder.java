@@ -156,7 +156,7 @@ public class TLSCertificateBuilder {
     }
 
     private KeyPair createKeyPair() throws NoSuchAlgorithmException {
-        KeyPairGenerator keypairGen = KeyPairGenerator.getInstance(keyType);
+        KeyPairGenerator keypairGen = KeyPairGenerator.getInstance(keyType, new BouncyCastleProvider());
         keypairGen.initialize(256, rand);
         return keypairGen.generateKeyPair();
     }
