@@ -19,12 +19,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.OutputStreamWriter;
 import java.security.KeyPair;
 import java.security.cert.X509Certificate;
 
-import org.apache.commons.codec.binary.Base64;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.bouncycastle.openssl.jcajce.JcaPKCS8Generator;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 
@@ -52,7 +52,7 @@ public class TLSCertificateKeyPair {
      */
     static TLSCertificateKeyPair fromX509CertKeyPair(X509Certificate x509Cert, KeyPair keyPair) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PrintWriter writer = new PrintWriter(baos);
+        OutputStreamWriter writer = new OutputStreamWriter(baos);
         JcaPEMWriter w = new JcaPEMWriter(writer);
         w.writeObject(x509Cert);
         w.flush();
@@ -65,12 +65,12 @@ public class TLSCertificateKeyPair {
         byte[] derBytes = pem.getContent();
 
         baos = new ByteArrayOutputStream();
-        PrintWriter wr = new PrintWriter(baos);
-        wr.println("-----BEGIN PRIVATE KEY-----");
-        wr.println(new String(Base64.encodeBase64(keyPair.getPrivate().getEncoded())));
-        wr.println("-----END PRIVATE KEY-----");
-        wr.flush();
-        wr.close();
+        writer = new OutputStreamWriter(baos);
+        w = new JcaPEMWriter(writer);
+        JcaPKCS8Generator keygen = new JcaPKCS8Generator(keyPair.getPrivate(), null);
+        w.writeObject(keygen.generate());
+        w.flush();
+        w.close();
         byte[] keyBytes = baos.toByteArray();
         return new TLSCertificateKeyPair(pemBytes, derBytes, keyBytes);
     }
