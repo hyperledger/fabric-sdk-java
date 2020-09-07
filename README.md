@@ -127,8 +127,6 @@ To get a functioning Fabric v2.1 network needed by the SDK Integration tests.
 
 This command needs to be rerun each time the Integration tests are run.
 
-### Setting Up Eclipse
-To get started using the Fabric Java SDK with Eclipse, refer to the instructions at: ./docs/EclipseSetup.md
 
 ## SDK dependencies
 SDK depends on few third party libraries that must be included in your classpath when using the JAR file. To get a list of dependencies, refer to pom.xml file or run
@@ -144,6 +142,10 @@ To run the integration tests Fabric and Fabric CA is needed which require
  * Docker compose 1.21.2
 
 ## Using the SDK
+
+### Setting Up Eclipse
+
+If you want to get started using the Fabric Java SDK with Eclipse, refer to the instructions at: ./docs/EclipseSetup.md
 
 ### Compiling
 
