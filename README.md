@@ -119,15 +119,6 @@ You may also need to on your <span style="color:red"><b>v2.1</b> </span>  Fabric
 
 ---
 
-## v2.1 builds of Fabric and Fabric-ca needed for the integration test
-
-To get a functioning Fabric v2.1 network needed by the SDK Integration tests.
-
-`./scripts/run-integration-tests.sh`
-
-This command needs to be rerun each time the Integration tests are run.
-
-
 ## SDK dependencies
 SDK depends on few third party libraries that must be included in your classpath when using the JAR file. To get a list of dependencies, refer to pom.xml file or run
 <code>mvn dependency:tree</code> or <code>mvn dependency:list</code>.
@@ -166,9 +157,12 @@ To run the unit tests, please use <code>mvn install</code> which will run the un
 **[INFO] BUILD SUCCESS**  **_At the end is usually a very reliable indication that all tests have passed successfully!_**
 
 ### Running the integration tests
-You must be running local instances of Fabric-ca, Fabric peers, and Fabric orderers to be able to run the integration tests. See above for for how to get a Fabric network running.
-Use this `maven` command to run the integration tests:
- * _mvn clean install -DskipITs=false -Dmaven.test.failure.ignore=false javadoc:javadoc_
+
+The script below both sets up the test environment and runs the tests.
+
+```sh
+./scripts/run-integration-tests.sh
+```
 
 ### End to end test scenario
 
