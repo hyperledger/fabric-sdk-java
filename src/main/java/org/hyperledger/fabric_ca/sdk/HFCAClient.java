@@ -36,6 +36,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -93,6 +94,7 @@ import org.apache.http.impl.client.BasicAuthCache;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
 import org.apache.milagro.amcl.FP256BN.BIG;
@@ -1614,10 +1616,35 @@ public class HFCAClient {
                         }
                     }
                 }
+                SSLContextBuilder sslContextBuilder = SSLContexts.custom()
+                        .loadTrustMaterial(cryptoPrimitives.getTrustStore(), null);
 
-                SSLContext sslContext = SSLContexts.custom()
-                        .loadTrustMaterial(cryptoPrimitives.getTrustStore(), null)
-                        .build();
+                String tlsClientKeyFile = properties.getProperty("tlsClientKeyFile");
+                String tlsClientCertFile = properties.getProperty("tlsClientCertFile");
+
+                byte[] tlsClientKeyAsBytes = (byte[]) properties.get("tlsClientKeyBytes");
+                byte[] tlsClientCertAsBytes = (byte[]) properties.get("tlsClientCertBytes");
+
+                if (tlsClientCertFile != null && tlsClientKeyFile != null) {
+                    tlsClientKeyAsBytes = Files.readAllBytes(Paths.get(tlsClientKeyFile));
+                    tlsClientCertAsBytes = Files.readAllBytes(Paths.get(tlsClientCertFile));
+                }
+
+                if (tlsClientKeyAsBytes != null && tlsClientCertAsBytes != null) {
+                    Certificate tlsClientCertificate = new CryptoPrimitives().bytesToCertificate(tlsClientCertAsBytes);
+                    String alias;
+                    if (tlsClientCertificate instanceof X509Certificate) {
+                        alias = ((X509Certificate) tlsClientCertificate).getSerialNumber().toString();
+                    } else { // not likely ...
+                        alias = Integer.toString(tlsClientCertificate.hashCode());
+                    }
+                    KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+                    keyStore.load(null, null);
+                    keyStore.setKeyEntry(alias, new CryptoPrimitives().bytesToPrivateKey(tlsClientKeyAsBytes), null, new Certificate[] {tlsClientCertificate});
+                    sslContextBuilder.loadKeyMaterial(keyStore, null);
+                }
+
+                SSLContext sslContext = sslContextBuilder.build();
 
                 ConnectionSocketFactory sf;
                 if (null != properties &&

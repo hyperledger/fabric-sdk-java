@@ -303,9 +303,9 @@ certificateAuthorities:
 
       # Client key and cert for TLS mutual auth with Fabric CA. If the target Fabric CA server
       # does not have TLS mutual auth turned on, then this section is not needed
-      client:
-        keyfile: path/to/tls/fabricca/certs/client/client_fabric_client-key.pem
-        certfile: path/to/tls/fabricca/certs/client/client_fabric_client.pem
+      # client:
+      #   keyfile: path/to/tls/fabricca/certs/client/client_fabric_client-key.pem
+      #   certfile: path/to/tls/fabricca/certs/client/client_fabric_client.pem
   ca-org2:
     url: https://localhost:8054
       # the properties specified under this object are passed to the 'http' client verbatim when
@@ -323,7 +323,7 @@ certificateAuthorities:
 
       # Client key and cert for TLS mutual auth with Fabric CA. If the target Fabric CA server
       # does not have TLS mutual auth turned on, then this section is not needed
-      client:
-        keyfile: path/to/tls/fabricca/certs/client/client_fabric_client-key.pem
-        certfile: path/to/tls/fabricca/certs/client/client_fabric_client.pem
+      # client:
+      #   keyfile: path/to/tls/fabricca/certs/client/client_fabric_client-key.pem
+      #   certfile: path/to/tls/fabricca/certs/client/client_fabric_client.pem
 
