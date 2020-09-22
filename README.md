@@ -115,7 +115,7 @@ You may also need to on your <span style="color:red"><b>v2.1</b> </span>  Fabric
 
 ## Known limitations and restrictions
 
-* TCerts are not supported: JIRA FAB-1401
+* TCerts are not supported: [JIRA FAB-1401](https://jira.hyperledger.org/browse/FAB-1401)
 
 ---
 
