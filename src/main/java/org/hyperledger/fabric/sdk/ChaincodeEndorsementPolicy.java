@@ -239,7 +239,9 @@ public class ChaincodeEndorsementPolicy {
     @Deprecated
     public void fromYamlFile(File yamlPolicyFile) throws IOException, ChaincodeEndorsementPolicyParseException {
         final Yaml yaml = new Yaml(new SafeConstructor());
-        final Map<?, ?> load = (Map<?, ?>) yaml.load(new FileInputStream(yamlPolicyFile));
+        FileInputStream policyFileStream = new FileInputStream(yamlPolicyFile);
+        final Map<?, ?> load = (Map<?, ?>) yaml.load(policyFileStream);
+        policyFileStream.close();
 
         Map<?, ?> mp = (Map<?, ?>) load.get("policy");
 
@@ -260,7 +262,9 @@ public class ChaincodeEndorsementPolicy {
 
     public static ChaincodeEndorsementPolicy fromYamlFile(Path yamlPolicyFile) throws IOException, ChaincodeEndorsementPolicyParseException {
         final Yaml yaml = new Yaml(new SafeConstructor());
-        final Map<?, ?> load = (Map<?, ?>) yaml.load(new FileInputStream(yamlPolicyFile.toFile()));
+        FileInputStream policyFileStream = new FileInputStream(yamlPolicyFile.toFile());
+        final Map<?, ?> load = (Map<?, ?>) yaml.load(policyFileStream);
+        policyFileStream.close();
 
         Map<?, ?> mp = (Map<?, ?>) load.get("policy");
 
