@@ -834,6 +834,33 @@ public class NetworkConfig {
                     .collect(Collectors.joining("\n"))
                     .getBytes();
             props.put("pemBytes", pemBytes);
+
+            JsonObject jsonTlsClientCerts = getJsonObject(jsonTlsCaCerts, "client");
+
+            if (jsonTlsClientCerts != null) {
+
+                String keyfile = getJsonValueAsString(jsonTlsClientCerts.get("keyfile"));
+                String certfile = getJsonValueAsString(jsonTlsClientCerts.get("certfile"));
+
+                if (keyfile != null) {
+                    props.put("tlsClientKeyFile", keyfile);
+                }
+
+                if (certfile != null) {
+                    props.put("tlsClientCertFile", certfile);
+                }
+
+                String keyBytes = getJsonValueAsString(jsonTlsClientCerts.get("keyPem"));
+                String certBytes = getJsonValueAsString(jsonTlsClientCerts.get("certPem"));
+
+                if (keyBytes != null) {
+                    props.put("tlsClientKeyBytes", keyBytes.getBytes());
+                }
+
+                if (certBytes != null) {
+                    props.put("tlsClientCertBytes", certBytes.getBytes());
+                }
+            }
         }
     }
 
@@ -877,7 +904,7 @@ public class NetworkConfig {
                 if (caName != null) {
                     JsonObject jsonObject = foundCertificateAuthorities.get(caName);
                     if (jsonObject != null) {
-                        org.addCertificateAuthority(createCA(jsonObject, org));
+                        org.addCertificateAuthority(createCA(caName, jsonObject, org));
                     } else {
                         throw new NetworkConfigurationException(format("%s: Certificate Authority %s is not defined", msgPrefix, caName));
                     }
@@ -956,7 +983,7 @@ public class NetworkConfig {
     }
 
     // Creates a new CAInfo instance from a JSON object
-    private CAInfo createCA(JsonObject jsonCA, OrgInfo org) throws NetworkConfigurationException {
+    private CAInfo createCA(String name, JsonObject jsonCA, OrgInfo org) throws NetworkConfigurationException {
 
         String url = getJsonValueAsString(jsonCA.get("url"));
         Properties httpOptions = extractProperties(jsonCA, "httpOptions");
@@ -973,7 +1000,7 @@ public class NetworkConfig {
             }
         }
 
-        CAInfo caInfo = new CAInfo(org.mspId, url, regUsers, httpOptions);
+        CAInfo caInfo = new CAInfo(name, url, regUsers, httpOptions);
 
         String caName = getJsonValueAsString(jsonCA.get("caName"));
         if (caName != null) {

@@ -524,6 +524,38 @@ public class CryptoPrimitives implements CryptoSuite {
     }
 
     /**
+     * Adds a CA certificate with a private key and password.
+     *
+     * @param clientKey the private key bytes input stream. Cannot be null.
+     * @param clientCert the client certificate bytes input stream. Cannot be null.
+     * @param clientKeyPassword the password as a String. Can be null.
+     */
+    public void addClientCACertificateToTrustStore(byte[] clientKey, byte[] clientCert, String clientKeyPassword) throws CryptoException, IllegalArgumentException {
+        if (clientKey == null) {
+            throw new IllegalArgumentException("Client key byte input stream is required.");
+        }
+        if (clientCert == null) {
+            throw new IllegalArgumentException("Client certificate byte input stream is required.");
+        }
+        try {
+            Certificate tlsClientCertificate = bytesToCertificate(clientCert);
+
+            String alias;
+            if (tlsClientCertificate instanceof X509Certificate) {
+                alias = ((X509Certificate) tlsClientCertificate).getSerialNumber().toString();
+            } else { // not likely ...
+                alias = Integer.toString(tlsClientCertificate.hashCode());
+            }
+            char[] password = clientKeyPassword == null ? new char[0] : clientKeyPassword.toCharArray();
+
+            getTrustStore().setKeyEntry(alias, bytesToPrivateKey(clientKey), password, new Certificate[] {tlsClientCertificate});
+        } catch (KeyStoreException e) {
+            throw new CryptoException("Unable to add client CA certificate to trust store.", e);
+        }
+    }
+
+
+    /**
      * validateCertificate checks whether the given certificate is trusted. It
      * checks if the certificate is signed by one of the trusted certs in the
      * trust store.
