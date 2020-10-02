@@ -198,7 +198,7 @@ public class NetworkConfigIT {
 
         if (tlsCa.isPresent()) {
             caInfo = tlsCa.get();
-
+            out("Checking connectivity to CA with mutual TLS");
             hfcaClient = HFCAClient.createNewInstance(caInfo);
             assertEquals(hfcaClient.getCAName(), caInfo.getCAName());
             info = hfcaClient.info(); //makes actual REST call.
@@ -213,6 +213,7 @@ public class NetworkConfigIT {
             hfcaClient = HFCAClient.createNewInstance(caInfo);
             assertEquals(hfcaClient.getCAName(), caInfo.getCAName());
             try {
+                out("Checking failure of connectivity to CA with mutual TLS");
                 info = hfcaClient.info(); //makes actual REST call.
                 assertFalse("Mutual TLS handshake should fail due to using unauthorized certs", true);
             } catch (InfoException e) {
