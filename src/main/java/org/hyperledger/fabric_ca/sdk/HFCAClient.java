@@ -57,7 +57,9 @@ import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.json.JsonValue;
 import javax.json.JsonWriter;
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import javax.xml.bind.DatatypeConverter;
@@ -1640,21 +1642,21 @@ public class HFCAClient {
                     }
                     KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
                     keyStore.load(null, null);
-                    keyStore.setKeyEntry(alias, new CryptoPrimitives().bytesToPrivateKey(tlsClientKeyAsBytes), null, new Certificate[] {tlsClientCertificate});
-                    sslContextBuilder.loadKeyMaterial(keyStore, null);
+                    keyStore.setKeyEntry(alias, new CryptoPrimitives().bytesToPrivateKey(tlsClientKeyAsBytes), new char[0], new Certificate[] {tlsClientCertificate});
+                    sslContextBuilder.loadKeyMaterial(keyStore, new char[0]);
                 }
 
                 SSLContext sslContext = sslContextBuilder.build();
 
                 ConnectionSocketFactory sf;
-                if (null != properties &&
-                        "true".equals(properties.getProperty("allowAllHostNames"))) {
-                    AllHostsSSLSocketFactory msf = new AllHostsSSLSocketFactory(cryptoPrimitives.getTrustStore());
-                    msf.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-                    sf = msf;
-                } else {
-                    sf = new SSLConnectionSocketFactory(sslContext);
-                }
+                sf = null != properties &&
+                      "true".equals(properties.getProperty("allowAllHostNames")) ?
+                        new SSLConnectionSocketFactory(sslContext, new HostnameVerifier() {
+                            @Override
+                            public boolean verify(String hostname, SSLSession session) {
+                                return true;
+                            }
+                        }) : new SSLConnectionSocketFactory(sslContext);
 
                 registry = RegistryBuilder.<ConnectionSocketFactory>create()
                         .register("https", sf)

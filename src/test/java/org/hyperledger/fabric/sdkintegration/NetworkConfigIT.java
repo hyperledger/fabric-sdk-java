@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -56,6 +57,7 @@ import org.hyperledger.fabric.sdk.testutils.TestUtils.MockUser;
 import org.hyperledger.fabric_ca.sdk.HFCAClient;
 import org.hyperledger.fabric_ca.sdk.HFCAInfo;
 import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
+import org.hyperledger.fabric_ca.sdk.exception.InfoException;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -64,6 +66,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.getMockUser;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.resetConfig;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -190,6 +193,33 @@ public class NetworkConfigIT {
         mockuser.setEnrollmentSecret(hfcaClient.register(rr, registrar));
         mockuser.setEnrollment(hfcaClient.enroll(mockuser.getName(), mockuser.getEnrollmentSecret()));
         orgRegisteredUsers.put(org.getName(), mockuser);
+
+        Optional<CAInfo> tlsCa = org.getCertificateAuthorities().stream().filter(ca -> ca.getName().equals("ca-tls-org2")).findFirst();
+
+        if (tlsCa.isPresent()) {
+            caInfo = tlsCa.get();
+
+            hfcaClient = HFCAClient.createNewInstance(caInfo);
+            assertEquals(hfcaClient.getCAName(), caInfo.getCAName());
+            info = hfcaClient.info(); //makes actual REST call.
+            assertEquals(info.getCAName(), "");
+        }
+
+        Optional<CAInfo> invalidTlsCa = org.getCertificateAuthorities().stream().filter(ca -> ca.getName().equals("ca-tls-invalid-certs-org2")).findFirst();
+
+        if (invalidTlsCa.isPresent()) {
+            caInfo = invalidTlsCa.get();
+
+            hfcaClient = HFCAClient.createNewInstance(caInfo);
+            assertEquals(hfcaClient.getCAName(), caInfo.getCAName());
+            try {
+                info = hfcaClient.info(); //makes actual REST call.
+                assertFalse("Mutual TLS handshake should fail due to using unauthorized certs", true);
+            } catch (InfoException e) {
+                e.printStackTrace();
+                assertTrue("Mutual TLS handshake fails as expected due to invalid certificates", true);
+            }
+        }
 
         deployChaincodeIfRequired();
     }
