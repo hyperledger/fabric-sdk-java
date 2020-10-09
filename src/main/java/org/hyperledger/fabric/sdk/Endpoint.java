@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
@@ -120,11 +121,12 @@ class Endpoint {
 
                         for (String pem : pems) {
                             if (null != pem && !pem.isEmpty()) {
+                                Path pemPath = Paths.get(pem);
                                 try {
-                                    bis.write(Files.readAllBytes(Paths.get(pem)));
+                                    bis.write(Files.readAllBytes(pemPath));
+                                    bis.write('\n');
                                 } catch (IOException e) {
-                                    throw new RuntimeException(format("Failed to read certificate file %s",
-                                            new File(pem).getAbsolutePath()), e);
+                                    throw new RuntimeException("Failed to read certificate file " + pemPath.toAbsolutePath(), e);
                                 }
                             }
                         }
