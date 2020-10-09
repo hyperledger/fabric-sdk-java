@@ -239,52 +239,58 @@ public class ChaincodeEndorsementPolicy {
     @Deprecated
     public void fromYamlFile(File yamlPolicyFile) throws IOException, ChaincodeEndorsementPolicyParseException {
         final Yaml yaml = new Yaml(new SafeConstructor());
-        FileInputStream policyFileStream = new FileInputStream(yamlPolicyFile);
-        final Map<?, ?> load = (Map<?, ?>) yaml.load(policyFileStream);
-        policyFileStream.close();
+        try (
+                FileInputStream policyFileStream = new FileInputStream(yamlPolicyFile)
+        ) {
+            final Map<?, ?> load = (Map<?, ?>) yaml.load(policyFileStream);
+            policyFileStream.close();
 
-        Map<?, ?> mp = (Map<?, ?>) load.get("policy");
+            Map<?, ?> mp = (Map<?, ?>) load.get("policy");
 
-        if (null == mp) {
-            throw new ChaincodeEndorsementPolicyParseException("The policy file has no policy section");
+            if (null == mp) {
+                throw new ChaincodeEndorsementPolicyParseException("The policy file has no policy section");
+            }
+
+            IndexedHashMap<String, MSPPrincipal> identities = parseIdentities((Map<?, ?>) load.get("identities"));
+
+            SignaturePolicy sp = parsePolicy(identities, mp);
+
+            policyBytes = Policies.SignaturePolicyEnvelope.newBuilder()
+                    .setVersion(0)
+                    .addAllIdentities(identities.values())
+                    .setRule(sp)
+                    .build().toByteArray();
         }
-
-        IndexedHashMap<String, MSPPrincipal> identities = parseIdentities((Map<?, ?>) load.get("identities"));
-
-        SignaturePolicy sp = parsePolicy(identities, mp);
-
-        policyBytes = Policies.SignaturePolicyEnvelope.newBuilder()
-                .setVersion(0)
-                .addAllIdentities(identities.values())
-                .setRule(sp)
-                .build().toByteArray();
     }
 
     public static ChaincodeEndorsementPolicy fromYamlFile(Path yamlPolicyFile) throws IOException, ChaincodeEndorsementPolicyParseException {
         final Yaml yaml = new Yaml(new SafeConstructor());
+        try (
         FileInputStream policyFileStream = new FileInputStream(yamlPolicyFile.toFile());
-        final Map<?, ?> load = (Map<?, ?>) yaml.load(policyFileStream);
-        policyFileStream.close();
+        ) {
+            final Map<?, ?> load = (Map<?, ?>) yaml.load(policyFileStream);
+            policyFileStream.close();
 
-        Map<?, ?> mp = (Map<?, ?>) load.get("policy");
+            Map<?, ?> mp = (Map<?, ?>) load.get("policy");
 
-        if (null == mp) {
-            throw new ChaincodeEndorsementPolicyParseException("The policy file has no policy section");
+            if (null == mp) {
+                throw new ChaincodeEndorsementPolicyParseException("The policy file has no policy section");
+            }
+
+            IndexedHashMap<String, MSPPrincipal> identities = parseIdentities((Map<?, ?>) load.get("identities"));
+
+            SignaturePolicy sp = parsePolicy(identities, mp);
+
+            ChaincodeEndorsementPolicy chaincodeEndorsementPolicy = new ChaincodeEndorsementPolicy();
+
+            chaincodeEndorsementPolicy.policyBytes = Policies.SignaturePolicyEnvelope.newBuilder()
+                    .setVersion(0)
+                    .addAllIdentities(identities.values())
+                    .setRule(sp)
+                    .build().toByteArray();
+
+            return chaincodeEndorsementPolicy;
         }
-
-        IndexedHashMap<String, MSPPrincipal> identities = parseIdentities((Map<?, ?>) load.get("identities"));
-
-        SignaturePolicy sp = parsePolicy(identities, mp);
-
-        ChaincodeEndorsementPolicy chaincodeEndorsementPolicy = new ChaincodeEndorsementPolicy();
-
-        chaincodeEndorsementPolicy.policyBytes = Policies.SignaturePolicyEnvelope.newBuilder()
-                .setVersion(0)
-                .addAllIdentities(identities.values())
-                .setRule(sp)
-                .build().toByteArray();
-
-        return chaincodeEndorsementPolicy;
     }
 
     /**
