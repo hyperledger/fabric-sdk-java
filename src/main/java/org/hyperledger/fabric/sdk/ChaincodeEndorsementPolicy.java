@@ -16,8 +16,11 @@ package org.hyperledger.fabric.sdk;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Reader;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -238,49 +241,35 @@ public class ChaincodeEndorsementPolicy {
      */
     @Deprecated
     public void fromYamlFile(File yamlPolicyFile) throws IOException, ChaincodeEndorsementPolicyParseException {
-        final Yaml yaml = new Yaml(new SafeConstructor());
-        final Map<?, ?> load = (Map<?, ?>) yaml.load(new FileInputStream(yamlPolicyFile));
-
-        Map<?, ?> mp = (Map<?, ?>) load.get("policy");
-
-        if (null == mp) {
-            throw new ChaincodeEndorsementPolicyParseException("The policy file has no policy section");
+        try (Reader yamlReader = new FileReader(yamlPolicyFile)) {
+            policyBytes = loadPolicyFromYaml(yamlReader).toByteArray();
         }
-
-        IndexedHashMap<String, MSPPrincipal> identities = parseIdentities((Map<?, ?>) load.get("identities"));
-
-        SignaturePolicy sp = parsePolicy(identities, mp);
-
-        policyBytes = Policies.SignaturePolicyEnvelope.newBuilder()
-                .setVersion(0)
-                .addAllIdentities(identities.values())
-                .setRule(sp)
-                .build().toByteArray();
     }
 
     public static ChaincodeEndorsementPolicy fromYamlFile(Path yamlPolicyFile) throws IOException, ChaincodeEndorsementPolicyParseException {
-        final Yaml yaml = new Yaml(new SafeConstructor());
-        final Map<?, ?> load = (Map<?, ?>) yaml.load(new FileInputStream(yamlPolicyFile.toFile()));
+        ChaincodeEndorsementPolicy policy = new ChaincodeEndorsementPolicy();
+        try (Reader yamlReader = Files.newBufferedReader(yamlPolicyFile)) {
+            policy.policyBytes = loadPolicyFromYaml(yamlReader).toByteArray();
+        }
+        return policy;
+    }
 
-        Map<?, ?> mp = (Map<?, ?>) load.get("policy");
+    private static Policies.SignaturePolicyEnvelope loadPolicyFromYaml(Reader yamlReader) throws ChaincodeEndorsementPolicyParseException {
+        Yaml yaml = new Yaml(new SafeConstructor());
+        Map<?, Map<?, ?>> load = yaml.load(yamlReader);
 
+        Map<?, ?> mp = load.get("policy");
         if (null == mp) {
             throw new ChaincodeEndorsementPolicyParseException("The policy file has no policy section");
         }
 
-        IndexedHashMap<String, MSPPrincipal> identities = parseIdentities((Map<?, ?>) load.get("identities"));
-
+        IndexedHashMap<String, MSPPrincipal> identities = parseIdentities(load.get("identities"));
         SignaturePolicy sp = parsePolicy(identities, mp);
-
-        ChaincodeEndorsementPolicy chaincodeEndorsementPolicy = new ChaincodeEndorsementPolicy();
-
-        chaincodeEndorsementPolicy.policyBytes = Policies.SignaturePolicyEnvelope.newBuilder()
+        return Policies.SignaturePolicyEnvelope.newBuilder()
                 .setVersion(0)
                 .addAllIdentities(identities.values())
                 .setRule(sp)
-                .build().toByteArray();
-
-        return chaincodeEndorsementPolicy;
+                .build();
     }
 
     /**
