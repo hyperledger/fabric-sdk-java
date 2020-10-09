@@ -1546,27 +1546,11 @@ public class Channel implements Serializable {
         byte[][] getTLSIntermediateCerts();
 
         default byte[] getAllTLSCerts() throws ServiceDiscoveryException {
-
-            byte[][] tlsCerts = getTLSCerts();
-            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-                for (byte[] tlsCert : tlsCerts) {
-
-                    outputStream.write(tlsCert);
-                }
-
-                tlsCerts = getTLSIntermediateCerts();
-
-                for (byte[] tlsCert : tlsCerts) {
-
-                    outputStream.write(tlsCert);
-
-                }
-
-                return outputStream.toByteArray();
+            try {
+                return Channel.combineCerts(Arrays.asList(getTLSCerts()), Arrays.asList(getTLSIntermediateCerts()));
             } catch (IOException e) {
                 throw new ServiceDiscoveryException(e);
             }
-
         }
 
         Map<String, Peer> getEndpointMap();
@@ -1627,11 +1611,12 @@ public class Channel implements Serializable {
     private static byte[] combineCerts(Collection<byte[]>... certCollections) throws IOException {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             for (Collection<byte[]> certCollection : certCollections) {
-
                 for (byte[] cert : certCollection) {
                     outputStream.write(cert);
+                    outputStream.write('\n');
                 }
             }
+
             return outputStream.toByteArray();
         }
     }
@@ -1653,27 +1638,11 @@ public class Channel implements Serializable {
         byte[][] getTLSIntermediateCerts();
 
         default byte[] getAllTLSCerts() throws ServiceDiscoveryException {
-
-            byte[][] tlsCerts = getTLSCerts();
-            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-                for (byte[] tlsCert : tlsCerts) {
-
-                    outputStream.write(tlsCert);
-                }
-
-                tlsCerts = getTLSIntermediateCerts();
-
-                for (byte[] tlsCert : tlsCerts) {
-
-                    outputStream.write(tlsCert);
-
-                }
-
-                return outputStream.toByteArray();
+            try {
+                return Channel.combineCerts(Arrays.asList(getTLSCerts()), Arrays.asList(getTLSIntermediateCerts()));
             } catch (IOException e) {
                 throw new ServiceDiscoveryException(e);
             }
-
         }
 
         Map<String, Orderer> getEndpointMap();

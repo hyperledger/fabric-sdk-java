@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Properties;
@@ -436,9 +437,13 @@ public class NetworkConfigTest {
         Object pemBytes = caInfo.getProperties().get("pemBytes");
 
         assertTrue("Expected byte[], got " + pemBytes.getClass().getTypeName(), pemBytes instanceof byte[]);
+
         String pem = new String((byte[]) pemBytes);
         assertTrue("Missing certificate 1: " + pem, pem.contains("<1>"));
         assertTrue("Missing certificate 2:" + pem, pem.contains("<2>"));
+
+        String[] pemLines = pem.split("\n");
+        assertTrue("Expected at least 2 lines, got:\n" + Arrays.toString(pemLines), pemLines.length >= 2);
     }
 
     // TODO: ca-org1 not defined
