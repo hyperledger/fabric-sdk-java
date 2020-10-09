@@ -4,11 +4,11 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.protobuf.ByteString;
-import io.netty.handler.ssl.OpenSsl;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.shim.ChaincodeBase;
 import org.hyperledger.fabric.shim.ChaincodeStub;
+import org.hyperledger.fabric.shim.ResponseUtils;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -23,11 +23,11 @@ public class SimpleChaincode extends ChaincodeBase {
             String func = stub.getFunction();
 
             if (!func.equals("init")) {
-                return newErrorResponse("function other than init is not supported");
+                return ResponseUtils.newErrorResponse("function other than init is not supported");
             }
             List<String> args = stub.getParameters();
             if (args.size() != 4) {
-                newErrorResponse("Incorrect number of arguments. Expecting 4");
+                return ResponseUtils.newErrorResponse("Incorrect number of arguments. Expecting 4");
             }
             // Initialize the chaincode
             String account1Key = args.get(0);
@@ -39,9 +39,9 @@ public class SimpleChaincode extends ChaincodeBase {
             stub.putStringState(account1Key, args.get(1));
             stub.putStringState(account2Key, args.get(3));
 
-            return newSuccessResponse();
+            return ResponseUtils.newSuccessResponse();
         } catch (Throwable e) {
-            return newErrorResponse(e);
+            return ResponseUtils.newErrorResponse(e);
         }
     }
 
@@ -60,35 +60,35 @@ public class SimpleChaincode extends ChaincodeBase {
             if (func.equals("query")) {
                 return query(stub, params);
             }
-            return newErrorResponse("Invalid invoke function name. Expecting one of: [\"move\", \"delete\", \"query\"]");
+            return ResponseUtils.newErrorResponse("Invalid invoke function name. Expecting one of: [\"move\", \"delete\", \"query\"]");
         } catch (Throwable e) {
-            return newErrorResponse(e);
+            return ResponseUtils.newErrorResponse(e);
         }
     }
 
     private Response move(ChaincodeStub stub, List<String> args) {
         if (args.size() != 3) {
-            return newErrorResponse("Incorrect number of arguments. Expecting 3");
+            return ResponseUtils.newErrorResponse("Incorrect number of arguments. Expecting 3");
         }
         String accountFromKey = args.get(0);
         String accountToKey = args.get(1);
 
         String accountFromValueStr = stub.getStringState(accountFromKey);
         if (accountFromValueStr == null) {
-            return newErrorResponse(String.format("Entity %s not found", accountFromKey));
+            return ResponseUtils.newErrorResponse(String.format("Entity %s not found", accountFromKey));
         }
         int accountFromValue = Integer.parseInt(accountFromValueStr);
 
         String accountToValueStr = stub.getStringState(accountToKey);
         if (accountToValueStr == null) {
-            return newErrorResponse(String.format("Entity %s not found", accountToKey));
+            return ResponseUtils.newErrorResponse(String.format("Entity %s not found", accountToKey));
         }
         int accountToValue = Integer.parseInt(accountToValueStr);
 
         int amount = Integer.parseInt(args.get(2));
 
         if (amount > accountFromValue) {
-            return newErrorResponse(String.format("not enough money in account %s", accountFromKey));
+            return ResponseUtils.newErrorResponse(String.format("not enough money in account %s", accountFromKey));
         }
 
         accountFromValue -= amount;
@@ -108,10 +108,10 @@ public class SimpleChaincode extends ChaincodeBase {
                 stub.setEvent("event", transientMap.get("event"));
             }
             if (transientMap.containsKey("result") && transientMap.get("result") != null) {
-                return newSuccessResponse(transientMap.get("result"));
+                return ResponseUtils.newSuccessResponse(transientMap.get("result"));
             }
         }
-        return newSuccessResponse();
+        return ResponseUtils.newSuccessResponse();
 //        return   newSuccessResponse("invoke finished successfully", ByteString.copyFrom(accountFromKey + ": " + accountFromValue + " " + accountToKey + ": " + accountToValue, UTF_8).
 //
 //                        toByteArray());
@@ -120,31 +120,30 @@ public class SimpleChaincode extends ChaincodeBase {
     // Deletes an entity from state
     private Response delete(ChaincodeStub stub, List<String> args) {
         if (args.size() != 1) {
-            return newErrorResponse("Incorrect number of arguments. Expecting 1");
+            return ResponseUtils.newErrorResponse("Incorrect number of arguments. Expecting 1");
         }
         String key = args.get(0);
         // Delete the key from the state in ledger
         stub.delState(key);
-        return newSuccessResponse();
+        return ResponseUtils.newSuccessResponse();
     }
 
     // query callback representing the query of a chaincode
     private Response query(ChaincodeStub stub, List<String> args) {
         if (args.size() != 1) {
-            return newErrorResponse("Incorrect number of arguments. Expecting name of the person to query");
+            return ResponseUtils.newErrorResponse("Incorrect number of arguments. Expecting name of the person to query");
         }
         String key = args.get(0);
         //byte[] stateBytes
         String val = stub.getStringState(key);
         if (val == null) {
-            return newErrorResponse(String.format("Error: state for %s is null", key));
+            return ResponseUtils.newErrorResponse(String.format("Error: state for %s is null", key));
         }
         _logger.info(String.format("Query Response:\nName: %s, Amount: %s\n", key, val));
-        return newSuccessResponse(val, ByteString.copyFrom(val, UTF_8).toByteArray());
+        return ResponseUtils.newSuccessResponse(val, ByteString.copyFrom(val, UTF_8).toByteArray());
     }
 
     public static void main(String[] args) {
-        System.out.println("OpenSSL avaliable: " + OpenSsl.isAvailable());
         new SimpleChaincode().start(args);
     }
 

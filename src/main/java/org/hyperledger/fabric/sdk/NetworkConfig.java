@@ -831,7 +831,7 @@ public class NetworkConfig {
             }
 
             byte[] pemBytes = getJsonValueAsList(jsonTlsCaCerts.get("pem"), NetworkConfig::getJsonValueAsString).stream()
-                    .collect(Collectors.joining())
+                    .collect(Collectors.joining("\n"))
                     .getBytes();
             props.put("pemBytes", pemBytes);
         }
