@@ -1,3 +1,11 @@
+## v2.2.2
+Tue 13 Oct 2020 14:22:40 BST
+
+* [542fee1](https://github.com/hyperledger/fabric-sdk-java/commit/542fee1) FABJ-539: Close streams used to load policy from YAML (#87)
+* [cbee158](https://github.com/hyperledger/fabric-sdk-java/commit/cbee158) FABJ-540: Use newline separators when concatenating certificate PEM (#86)
+* [e5c50c8](https://github.com/hyperledger/fabric-sdk-java/commit/e5c50c8) [FABJ-534] Use Bouncy Castle to generate private keys (#79)
+* [14116b2](https://github.com/hyperledger/fabric-sdk-java/commit/14116b2) FABJ-532: Scheduled builds (#74)
+
 ## v2.2.1
 Fri 31 Jul 2020 13:12:02 BST
 
