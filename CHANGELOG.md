@@ -1,3 +1,10 @@
+## v1.4.12
+Tue 13 Oct 2020 15:00:11 BST
+
+* [b1e42fa](https://github.com/hyperledger/fabric-sdk-java/commit/b1e42fa) FABJ-540: Use newline separators when concatenating certificate PEM (#88)
+* [10a38aa](https://github.com/hyperledger/fabric-sdk-java/commit/10a38aa) Bring 1.4 in line (#77)
+* [52d2ee8](https://github.com/hyperledger/fabric-sdk-java/commit/52d2ee8) FABJ-532: Scheduled builds (#75)
+
 ## 1.4.11
 Fri  3 Jul 2020 14:09:39 BST
 
