@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -51,7 +50,7 @@ import static java.lang.String.format;
 public class ChaincodeCollectionConfiguration {
     private static final Log logger = LogFactory.getLog(ChaincodeCollectionConfiguration.class);
     private static final Pattern noofPattern = Pattern.compile("^(\\d+)-of$");
-    private Collection.CollectionConfigPackage collectionConfigPackage = null;
+    private final Collection.CollectionConfigPackage collectionConfigPackage;
 
     ChaincodeCollectionConfiguration(JsonArray jsonConfig) throws ChaincodeCollectionConfigurationException {
 

@@ -53,12 +53,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import javax.security.auth.x500.X500Principal;
 import javax.xml.bind.DatatypeConverter;
 
-import io.netty.util.internal.ConcurrentSet;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -271,8 +271,7 @@ public class CryptoPrimitives implements CryptoSuite {
      * @return
      */
     public PrivateKey bytesToPrivateKey(byte[] pemKey) throws CryptoException {
-        PrivateKey pk = null;
-        CryptoException ce = null;
+        PrivateKey pk;
 
         try {
             PemReader pr = new PemReader(new StringReader(new String(pemKey)));
@@ -302,15 +301,11 @@ public class CryptoPrimitives implements CryptoSuite {
 
         if (config.extraLogLevel(10)) {
             if (null != diagnosticFileDumper) {
-                StringBuilder sb = new StringBuilder(10000);
-                sb.append("plaintext in hex: ")
-                        .append(DatatypeConverter.printHexBinary(plainText))
-                        .append("\n")
-                        .append("signature in hex: " + DatatypeConverter.printHexBinary(signature))
-                        .append("\n")
-                        .append("PEM cert in hex: " + DatatypeConverter.printHexBinary(pemCertificate));
+                String message = "plaintext in hex: " + DatatypeConverter.printHexBinary(plainText) + '\n' +
+                        "signature in hex: " + DatatypeConverter.printHexBinary(signature) + '\n' +
+                        "PEM cert in hex: " + DatatypeConverter.printHexBinary(pemCertificate);
                 logger.trace("verify :  " +
-                        diagnosticFileDumper.createDiagnosticFile(sb.toString()));
+                        diagnosticFileDumper.createDiagnosticFile(message));
             }
         }
 
@@ -441,7 +436,7 @@ public class CryptoPrimitives implements CryptoSuite {
         }
     }
 
-    ConcurrentSet<String> certificateSet = new ConcurrentSet<>();
+    final Set<String> certificateSet = ConcurrentHashMap.newKeySet();
 
     private void addCACertificateToTrustStore(Certificate certificate) throws InvalidArgumentException, CryptoException {
 
@@ -730,9 +725,7 @@ public class CryptoPrimitives implements CryptoSuite {
             sig.update(data);
             byte[] signature = sig.sign();
 
-            BigInteger[] sigs = decodeECDSASignature(signature);
-
-            sigs = preventMalleability(sigs, curveN);
+            BigInteger[] sigs = preventMalleability(decodeECDSASignature(signature), curveN);
 
             try (ByteArrayOutputStream s = new ByteArrayOutputStream()) {
 
@@ -762,7 +755,7 @@ public class CryptoPrimitives implements CryptoSuite {
 
         BigInteger sval = sigs[1];
 
-        if (sval.compareTo(cmpVal) == 1) {
+        if (sval.compareTo(cmpVal) > 0) {
 
             sigs[1] = curveN.subtract(sval);
         }

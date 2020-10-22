@@ -144,11 +144,15 @@ class EndorserClient {
     }
 
     @Override
-    public void finalize() {
-        if (!shutdown) {
-            logger.warn(toString() + " finalized not shutdown is Active" + isChannelActive());
-        }
+    public void finalize() throws Throwable {
+        try {
+            if (!shutdown) {
+                logger.warn(toString() + " finalized not shutdown is Active" + isChannelActive());
+            }
 
-        shutdown(true);
+            shutdown(true);
+        } finally {
+            super.finalize();
+        }
     }
 }

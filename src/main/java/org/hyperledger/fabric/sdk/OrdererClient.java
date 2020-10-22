@@ -46,7 +46,7 @@ class OrdererClient {
     private static final Config config = Config.getConfig();
     private static final long ORDERER_WAIT_TIME = config.getOrdererWaitTime();
     private final String channelName;
-    private final ManagedChannelBuilder channelBuilder;
+    private final ManagedChannelBuilder<?> channelBuilder;
     private final String toString;
     private boolean shutdown = false;
 
@@ -127,8 +127,12 @@ class OrdererClient {
     }
 
     @Override
-    public void finalize() {
-        shutdown(true);
+    public void finalize() throws Throwable {
+        try {
+            shutdown(true);
+        } finally {
+            super.finalize();
+        }
     }
 
     Ab.BroadcastResponse sendTransaction(Common.Envelope envelope) throws Exception {
@@ -391,7 +395,7 @@ class OrdererClient {
                 throw e;
             }
 
-            return retList.toArray(new DeliverResponse[retList.size()]);
+            return retList.toArray(new DeliverResponse[0]);
         } catch (Throwable t) {
             managedChannel = null;
             logger.error(toString() + " received error " + t.getMessage(), t);

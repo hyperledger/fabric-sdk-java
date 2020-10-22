@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.net.ssl.SSLException;
 
 import com.google.common.collect.ImmutableMap;
@@ -237,7 +236,7 @@ class Endpoint {
 
         try {
             if (protocol.equalsIgnoreCase("grpc")) {
-                this.channelBuilder = NettyChannelBuilder.forAddress(addr, port).usePlaintext(true);
+                this.channelBuilder = NettyChannelBuilder.forAddress(addr, port).negotiationType(NegotiationType.PLAINTEXT);
                 addNettyBuilderProps(channelBuilder, properties);
             } else if (protocol.equalsIgnoreCase("grpcs")) {
                 if (pemBytes == null) {
@@ -361,7 +360,7 @@ class Endpoint {
                 parmsArray = (Object[]) parmsArrayO;
             }
 
-            Class<?>[] classParms = new Class[parmsArray.length];
+            Class<?>[] classParms = new Class<?>[parmsArray.length];
             int i = -1;
             for (Object oparm : parmsArray) {
                 ++i;
