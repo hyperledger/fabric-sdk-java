@@ -1625,10 +1625,17 @@ public class HFCAClient {
                 String tlsClientCertFile = properties.getProperty("tlsClientCertFile");
 
                 byte[] tlsClientKeyAsBytes = (byte[]) properties.get("tlsClientKeyBytes");
+                if (tlsClientKeyFile != null && tlsClientKeyAsBytes != null) {
+                    logger.warn("SSL CA client key is specified as bytes and as a file path. Using client key specified as bytes.");
+                }
+                if (tlsClientKeyFile != null && tlsClientKeyAsBytes == null) {
+                     tlsClientKeyAsBytes = Files.readAllBytes(Paths.get(tlsClientKeyFile));
+                }
                 byte[] tlsClientCertAsBytes = (byte[]) properties.get("tlsClientCertBytes");
-
-                if (tlsClientCertFile != null && tlsClientKeyFile != null) {
-                    tlsClientKeyAsBytes = Files.readAllBytes(Paths.get(tlsClientKeyFile));
+                if (tlsClientCertFile != null && tlsClientCertAsBytes != null) {
+                    logger.warn("SSL CA client cert is specified as bytes and as a file path. Using client cert specified as bytes.");
+                }
+                if (tlsClientCertFile != null && tlsClientCertAsBytes == null) {
                     tlsClientCertAsBytes = Files.readAllBytes(Paths.get(tlsClientCertFile));
                 }
 
@@ -1648,18 +1655,20 @@ public class HFCAClient {
 
                 SSLContext sslContext = sslContextBuilder.build();
 
-                ConnectionSocketFactory sf;
-                sf = null != properties &&
-                      "true".equals(properties.getProperty("allowAllHostNames")) ?
-                        new SSLConnectionSocketFactory(sslContext, new HostnameVerifier() {
+                final ConnectionSocketFactory sslSocketFactory;
+                if (properties != null &&
+                    Boolean.parseBoolean(properties.getProperty("allowAllHostNames"))) {
+                    sslSocketFactory = new SSLConnectionSocketFactory(sslContext, new HostnameVerifier() {
                             @Override
                             public boolean verify(String hostname, SSLSession session) {
                                 return true;
                             }
-                        }) : new SSLConnectionSocketFactory(sslContext);
-
+                        });
+                } else {
+                    sslSocketFactory = new SSLConnectionSocketFactory(sslContext);
+                }
                 registry = RegistryBuilder.<ConnectionSocketFactory>create()
-                        .register("https", sf)
+                        .register("https", sslSocketFactory)
                         .register("http", new PlainConnectionSocketFactory())
                         .build();
 

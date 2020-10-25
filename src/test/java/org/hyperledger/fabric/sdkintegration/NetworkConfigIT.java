@@ -194,31 +194,24 @@ public class NetworkConfigIT {
         mockuser.setEnrollment(hfcaClient.enroll(mockuser.getName(), mockuser.getEnrollmentSecret()));
         orgRegisteredUsers.put(org.getName(), mockuser);
 
-        Optional<CAInfo> tlsCa = org.getCertificateAuthorities().stream().filter(ca -> ca.getName().equals("ca-tls-org2")).findFirst();
-
-        if (tlsCa.isPresent()) {
+        if (testConfig.isRunningFabricTLS()) {
+            Optional<CAInfo> tlsCa = org.getCertificateAuthorities().stream().filter(ca -> ca.getName().equals("ca-tls-org2")).findFirst();
             caInfo = tlsCa.get();
             out("Checking connectivity to CA with mutual TLS");
             hfcaClient = HFCAClient.createNewInstance(caInfo);
             assertEquals(hfcaClient.getCAName(), caInfo.getCAName());
             info = hfcaClient.info(); //makes actual REST call.
             assertEquals(info.getCAName(), "");
-        }
-
-        Optional<CAInfo> invalidTlsCa = org.getCertificateAuthorities().stream().filter(ca -> ca.getName().equals("ca-tls-invalid-certs-org2")).findFirst();
-
-        if (invalidTlsCa.isPresent()) {
+            Optional<CAInfo> invalidTlsCa = org.getCertificateAuthorities().stream().filter(ca -> ca.getName().equals("ca-tls-invalid-certs-org2")).findFirst();
             caInfo = invalidTlsCa.get();
-
             hfcaClient = HFCAClient.createNewInstance(caInfo);
             assertEquals(hfcaClient.getCAName(), caInfo.getCAName());
             try {
                 out("Checking failure of connectivity to CA with mutual TLS");
                 info = hfcaClient.info(); //makes actual REST call.
-                assertFalse("Mutual TLS handshake should fail due to using unauthorized certs", true);
+                fail("Mutual TLS handshake should fail due to using unauthorized certs");
             } catch (InfoException e) {
-                e.printStackTrace();
-                assertTrue("Mutual TLS handshake fails as expected due to invalid certificates", true);
+                //Mutual TLS handshake fails as expected due to invalid certificates
             }
         }
 
