@@ -22,7 +22,7 @@ variables:
   FABRIC_VERSION: 2.2
 
 pool:
-  vmImage: 'ubuntu-18.04'
+  vmImage: 'ubuntu-20.04'
 
 jobs:
   - job: Integration
