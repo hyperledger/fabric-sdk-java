@@ -378,7 +378,6 @@ public class HFClient {
      *
      * @return InstantiateProposalRequest
      */
-
     public InstantiateProposalRequest newInstantiationProposalRequest() {
         return new InstantiateProposalRequest(userContext);
     }
@@ -589,7 +588,6 @@ public class HFClient {
      * @throws InvalidArgumentException
      * @throws ProposalException
      */
-
     public List<ChaincodeInfo> queryInstalledChaincodes(Peer peer) throws InvalidArgumentException, ProposalException {
 
         clientCheck();
@@ -660,7 +658,6 @@ public class HFClient {
      * @throws InvalidArgumentException
      * @throws ProposalException
      */
-
     public Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest,
                                                             Collection<Peer> peers) throws ProposalException, InvalidArgumentException {
 

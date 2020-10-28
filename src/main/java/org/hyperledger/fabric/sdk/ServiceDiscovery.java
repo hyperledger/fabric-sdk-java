@@ -30,13 +30,13 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
-import io.netty.util.internal.ConcurrentSet;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.discovery.Protocol;
@@ -215,7 +215,7 @@ public class ServiceDiscovery {
 
     private volatile SDNetwork sdNetwork = null;
 
-    private final ConcurrentSet<ByteString> certs = new ConcurrentSet<>();
+    private final Set<ByteString> certs = ConcurrentHashMap.newKeySet();
 
     SDNetwork networkDiscovery(TransactionContext ltransactionContext, boolean force) {
 

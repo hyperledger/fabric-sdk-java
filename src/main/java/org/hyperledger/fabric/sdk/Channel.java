@@ -1546,27 +1546,11 @@ public class Channel implements Serializable {
         byte[][] getTLSIntermediateCerts();
 
         default byte[] getAllTLSCerts() throws ServiceDiscoveryException {
-
-            byte[][] tlsCerts = getTLSCerts();
-            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-                for (byte[] tlsCert : tlsCerts) {
-
-                    outputStream.write(tlsCert);
-                }
-
-                tlsCerts = getTLSIntermediateCerts();
-
-                for (byte[] tlsCert : tlsCerts) {
-
-                    outputStream.write(tlsCert);
-
-                }
-
-                return outputStream.toByteArray();
+            try {
+                return Channel.combineCerts(Arrays.asList(getTLSCerts()), Arrays.asList(getTLSIntermediateCerts()));
             } catch (IOException e) {
                 throw new ServiceDiscoveryException(e);
             }
-
         }
 
         Map<String, Peer> getEndpointMap();
@@ -1624,14 +1608,16 @@ public class Channel implements Serializable {
 
     }
 
+    @SafeVarargs
     private static byte[] combineCerts(Collection<byte[]>... certCollections) throws IOException {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             for (Collection<byte[]> certCollection : certCollections) {
-
                 for (byte[] cert : certCollection) {
                     outputStream.write(cert);
+                    outputStream.write('\n');
                 }
             }
+
             return outputStream.toByteArray();
         }
     }
@@ -1653,27 +1639,11 @@ public class Channel implements Serializable {
         byte[][] getTLSIntermediateCerts();
 
         default byte[] getAllTLSCerts() throws ServiceDiscoveryException {
-
-            byte[][] tlsCerts = getTLSCerts();
-            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-                for (byte[] tlsCert : tlsCerts) {
-
-                    outputStream.write(tlsCert);
-                }
-
-                tlsCerts = getTLSIntermediateCerts();
-
-                for (byte[] tlsCert : tlsCerts) {
-
-                    outputStream.write(tlsCert);
-
-                }
-
-                return outputStream.toByteArray();
+            try {
+                return Channel.combineCerts(Arrays.asList(getTLSCerts()), Arrays.asList(getTLSIntermediateCerts()));
             } catch (IOException e) {
                 throw new ServiceDiscoveryException(e);
             }
-
         }
 
         Map<String, Orderer> getEndpointMap();
@@ -2364,7 +2334,7 @@ public class Channel implements Serializable {
 
             if (!peersToAddHS.contains(s)) {
                 String[] split = s.split(":");
-                anchorPeers.addAnchorPeers(Configuration.AnchorPeer.newBuilder().setHost(split[0]).setPort(new Integer(split[1])).build());
+                anchorPeers.addAnchorPeers(Configuration.AnchorPeer.newBuilder().setHost(split[0]).setPort(Integer.parseInt(split[1])).build());
                 peersFinalHS.add(s);
             }
         }
@@ -2373,7 +2343,7 @@ public class Channel implements Serializable {
             if (!currentAP.contains(s)) {
                 peersAdded.add(s);
                 String[] split = s.split(":");
-                anchorPeers.addAnchorPeers(Configuration.AnchorPeer.newBuilder().setHost(split[0]).setPort(new Integer(split[1])).build());
+                anchorPeers.addAnchorPeers(Configuration.AnchorPeer.newBuilder().setHost(split[0]).setPort(Integer.parseInt(split[1])).build());
                 peersFinalHS.add(s);
             }
         }
@@ -2835,7 +2805,6 @@ public class Channel implements Serializable {
      * @throws InvalidArgumentException
      * @throws ProposalException
      */
-
     public Collection<ProposalResponse> sendInstantiationProposal(InstantiateProposalRequest instantiateProposalRequest) throws InvalidArgumentException, ProposalException {
 
         return sendInstantiationProposal(instantiateProposalRequest, getChaincodePeers());
@@ -2902,7 +2871,6 @@ public class Channel implements Serializable {
      * @throws ProposalException
      * @throws InvalidArgumentException
      */
-
     Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest)
             throws ProposalException, InvalidArgumentException {
         return sendInstallProposal(installProposalRequest, getChaincodePeers());
@@ -2918,7 +2886,6 @@ public class Channel implements Serializable {
      * @throws ProposalException
      * @throws InvalidArgumentException
      */
-
     Collection<ProposalResponse> sendInstallProposal(InstallProposalRequest installProposalRequest, Collection<Peer> peers)
             throws ProposalException, InvalidArgumentException {
 
@@ -2960,7 +2927,6 @@ public class Channel implements Serializable {
      * @throws ProposalException
      * @throws InvalidArgumentException
      */
-
     public Collection<ProposalResponse> sendUpgradeProposal(UpgradeProposalRequest upgradeProposalRequest) throws ProposalException, InvalidArgumentException {
 
         return sendUpgradeProposal(upgradeProposalRequest, getChaincodePeers());
@@ -2976,7 +2942,6 @@ public class Channel implements Serializable {
      * @throws ProposalException
      * @throws InvalidArgumentException
      */
-
     public Collection<ProposalResponse> sendUpgradeProposal(UpgradeProposalRequest upgradeProposalRequest, Collection<Peer> peers)
             throws InvalidArgumentException, ProposalException {
 
@@ -6114,9 +6079,11 @@ public class Channel implements Serializable {
 
     @Override
     protected void finalize() throws Throwable {
-        shutdown(true);
-        super.finalize();
-
+        try {
+            shutdown(true);
+        } finally {
+            super.finalize();
+        }
     }
 
     /**
