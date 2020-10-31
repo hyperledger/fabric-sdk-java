@@ -39,6 +39,7 @@ import org.hyperledger.fabric.sdk.InstallProposalRequest;
 import org.hyperledger.fabric.sdk.InstantiateProposalRequest;
 import org.hyperledger.fabric.sdk.NetworkConfig;
 import org.hyperledger.fabric.sdk.NetworkConfig.CAInfo;
+import org.hyperledger.fabric.sdk.NetworkConfig.OrgInfo;
 import org.hyperledger.fabric.sdk.NetworkConfig.UserInfo;
 import org.hyperledger.fabric.sdk.Orderer;
 import org.hyperledger.fabric.sdk.Peer;
@@ -194,27 +195,6 @@ public class NetworkConfigIT {
         mockuser.setEnrollment(hfcaClient.enroll(mockuser.getName(), mockuser.getEnrollmentSecret()));
         orgRegisteredUsers.put(org.getName(), mockuser);
 
-        if (testConfig.isRunningFabricTLS()) {
-            Optional<CAInfo> tlsCa = org.getCertificateAuthorities().stream().filter(ca -> ca.getName().equals("ca-tls-org2")).findFirst();
-            caInfo = tlsCa.get();
-            out("Checking connectivity to CA with mutual TLS");
-            hfcaClient = HFCAClient.createNewInstance(caInfo);
-            assertEquals(hfcaClient.getCAName(), caInfo.getCAName());
-            info = hfcaClient.info(); //makes actual REST call.
-            assertEquals(info.getCAName(), "");
-            Optional<CAInfo> invalidTlsCa = org.getCertificateAuthorities().stream().filter(ca -> ca.getName().equals("ca-tls-invalid-certs-org2")).findFirst();
-            caInfo = invalidTlsCa.get();
-            hfcaClient = HFCAClient.createNewInstance(caInfo);
-            assertEquals(hfcaClient.getCAName(), caInfo.getCAName());
-            try {
-                out("Checking failure of connectivity to CA with mutual TLS");
-                info = hfcaClient.info(); //makes actual REST call.
-                fail("Mutual TLS handshake should fail due to using unauthorized certs");
-            } catch (InfoException e) {
-                //Mutual TLS handshake fails as expected due to invalid certificates
-            }
-        }
-
         deployChaincodeIfRequired();
     }
 
@@ -326,6 +306,35 @@ public class NetworkConfigIT {
 
         out("testUpdate1 - done");
         out("That's all folks!");
+    }
+
+    @Test
+    public void testMutualTlsConnectivity() throws Exception {
+        OrgInfo org = networkConfig.getOrganizationInfo("Org2");
+        CAInfo caInfo = org.getCertificateAuthorities().get(0);
+
+        Optional<CAInfo> tlsCa = org.getCertificateAuthorities().stream().filter(ca -> "ca-tls-org2".equals(ca.getName())).findFirst();
+        assertTrue("Cannot find preconfigured ca-tls-org2", tlsCa.isPresent());
+
+        caInfo = tlsCa.get();
+        out("Checking connectivity to CA with mutual TLS");
+        HFCAClient hfcaClient = HFCAClient.createNewInstance(caInfo);
+        assertEquals(hfcaClient.getCAName(), caInfo.getCAName());
+        HFCAInfo info = hfcaClient.info(); //makes actual REST call.
+        assertEquals(info.getCAName(), "");
+
+        Optional<CAInfo> invalidTlsCa = org.getCertificateAuthorities().stream().filter(ca -> "ca-tls-invalid-certs-org2".equals(ca.getName())).findFirst();
+        assertTrue("Cannot find preconfigured ca-tls-invalid-certs-org2", tlsCa.isPresent());
+        caInfo = invalidTlsCa.get();
+        hfcaClient = HFCAClient.createNewInstance(caInfo);
+        assertEquals(hfcaClient.getCAName(), caInfo.getCAName());
+        try {
+            out("Checking failure of connectivity to CA with mutual TLS");
+            info = hfcaClient.info(); //makes actual REST call.
+            fail("Mutual TLS handshake should fail due to using unauthorized certs");
+        } catch (InfoException e) {
+            //Mutual TLS handshake fails as expected due to invalid certificates
+        }
     }
 
     private static void queryChaincodeForExpectedValue(HFClient client, Channel channel, final String expect, ChaincodeID chaincodeID) {
