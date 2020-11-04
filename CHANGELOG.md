@@ -1,3 +1,10 @@
+## v1.4.13
+Wed  4 Nov 2020 13:44:18 GMT
+
+* [9826f59](https://github.com/hyperledger/fabric-sdk-java/commit/9826f59) [FGJ-96] Update httpclient (#102)
+* [6f42c9d](https://github.com/hyperledger/fabric-sdk-java/commit/6f42c9d) FABJ-531: Remove deprecated use of NettyChannelBuilder.usePlaintext(boolean) (#95)
+* [970f755](https://github.com/hyperledger/fabric-sdk-java/commit/970f755) Update junit patch level (#94)
+
 ## v1.4.12
 Tue 13 Oct 2020 15:00:11 BST
 
