@@ -1,3 +1,10 @@
+## v2.2.3
+Wed  4 Nov 2020 11:37:06 GMT
+
+* [62eef7a](https://github.com/hyperledger/fabric-sdk-java/commit/62eef7a) [FGJ-96]-Update httpclient version (#100)
+* [9bc7c21](https://github.com/hyperledger/fabric-sdk-java/commit/9bc7c21) FABJ-541: Run builds on Ubuntu 20.04 (#99)
+* [72ce029](https://github.com/hyperledger/fabric-sdk-java/commit/72ce029) Update junit patch level (#93)
+
 ## v2.2.2
 Tue 13 Oct 2020 14:22:40 BST
 
