@@ -36,6 +36,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -56,7 +57,9 @@ import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.json.JsonValue;
 import javax.json.JsonWriter;
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import javax.xml.bind.DatatypeConverter;
@@ -93,6 +96,7 @@ import org.apache.http.impl.client.BasicAuthCache;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
 import org.apache.milagro.amcl.FP256BN.BIG;
@@ -1614,23 +1618,57 @@ public class HFCAClient {
                         }
                     }
                 }
+                SSLContextBuilder sslContextBuilder = SSLContexts.custom()
+                        .loadTrustMaterial(cryptoPrimitives.getTrustStore(), null);
 
-                SSLContext sslContext = SSLContexts.custom()
-                        .loadTrustMaterial(cryptoPrimitives.getTrustStore(), null)
-                        .build();
+                String tlsClientKeyFile = properties.getProperty("tlsClientKeyFile");
+                String tlsClientCertFile = properties.getProperty("tlsClientCertFile");
 
-                ConnectionSocketFactory sf;
-                if (null != properties &&
-                        "true".equals(properties.getProperty("allowAllHostNames"))) {
-                    AllHostsSSLSocketFactory msf = new AllHostsSSLSocketFactory(cryptoPrimitives.getTrustStore());
-                    msf.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-                    sf = msf;
-                } else {
-                    sf = new SSLConnectionSocketFactory(sslContext);
+                byte[] tlsClientKeyAsBytes = (byte[]) properties.get("tlsClientKeyBytes");
+                if (tlsClientKeyFile != null && tlsClientKeyAsBytes != null) {
+                    logger.warn("SSL CA client key is specified as bytes and as a file path. Using client key specified as bytes.");
+                }
+                if (tlsClientKeyFile != null && tlsClientKeyAsBytes == null) {
+                     tlsClientKeyAsBytes = Files.readAllBytes(Paths.get(tlsClientKeyFile));
+                }
+                byte[] tlsClientCertAsBytes = (byte[]) properties.get("tlsClientCertBytes");
+                if (tlsClientCertFile != null && tlsClientCertAsBytes != null) {
+                    logger.warn("SSL CA client cert is specified as bytes and as a file path. Using client cert specified as bytes.");
+                }
+                if (tlsClientCertFile != null && tlsClientCertAsBytes == null) {
+                    tlsClientCertAsBytes = Files.readAllBytes(Paths.get(tlsClientCertFile));
                 }
 
+                if (tlsClientKeyAsBytes != null && tlsClientCertAsBytes != null) {
+                    Certificate tlsClientCertificate = new CryptoPrimitives().bytesToCertificate(tlsClientCertAsBytes);
+                    String alias;
+                    if (tlsClientCertificate instanceof X509Certificate) {
+                        alias = ((X509Certificate) tlsClientCertificate).getSerialNumber().toString();
+                    } else { // not likely ...
+                        alias = Integer.toString(tlsClientCertificate.hashCode());
+                    }
+                    KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+                    keyStore.load(null, null);
+                    keyStore.setKeyEntry(alias, new CryptoPrimitives().bytesToPrivateKey(tlsClientKeyAsBytes), new char[0], new Certificate[] {tlsClientCertificate});
+                    sslContextBuilder.loadKeyMaterial(keyStore, new char[0]);
+                }
+
+                SSLContext sslContext = sslContextBuilder.build();
+
+                final ConnectionSocketFactory sslSocketFactory;
+                if (properties != null &&
+                    Boolean.parseBoolean(properties.getProperty("allowAllHostNames"))) {
+                    sslSocketFactory = new SSLConnectionSocketFactory(sslContext, new HostnameVerifier() {
+                            @Override
+                            public boolean verify(String hostname, SSLSession session) {
+                                return true;
+                            }
+                        });
+                } else {
+                    sslSocketFactory = new SSLConnectionSocketFactory(sslContext);
+                }
                 registry = RegistryBuilder.<ConnectionSocketFactory>create()
-                        .register("https", sf)
+                        .register("https", sslSocketFactory)
                         .register("http", new PlainConnectionSocketFactory())
                         .build();
 
