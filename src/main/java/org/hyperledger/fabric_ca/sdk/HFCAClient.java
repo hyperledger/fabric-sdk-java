@@ -56,7 +56,9 @@ import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.json.JsonValue;
 import javax.json.JsonWriter;
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import javax.xml.bind.DatatypeConverter;
@@ -1615,22 +1617,47 @@ public class HFCAClient {
                     }
                 }
 
-                SSLContext sslContext = SSLContexts.custom()
-                        .loadTrustMaterial(cryptoPrimitives.getTrustStore(), null)
-                        .build();
+                String tlsClientKeyFile = properties.getProperty("tlsClientKeyFile");
+                String tlsClientCertFile = properties.getProperty("tlsClientCertFile");
 
-                ConnectionSocketFactory sf;
-                if (null != properties &&
-                        "true".equals(properties.getProperty("allowAllHostNames"))) {
-                    AllHostsSSLSocketFactory msf = new AllHostsSSLSocketFactory(cryptoPrimitives.getTrustStore());
-                    msf.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-                    sf = msf;
-                } else {
-                    sf = new SSLConnectionSocketFactory(sslContext);
+                byte[] tlsClientKeyAsBytes = (byte[]) properties.get("tlsClientKeyBytes");
+                if (tlsClientKeyFile != null && tlsClientKeyAsBytes != null) {
+                    logger.warn("SSL CA client key is specified as bytes and as a file path. Using client key specified as bytes.");
+                }
+                if (tlsClientKeyFile != null && tlsClientKeyAsBytes == null) {
+                     tlsClientKeyAsBytes = Files.readAllBytes(Paths.get(tlsClientKeyFile));
+                }
+                byte[] tlsClientCertAsBytes = (byte[]) properties.get("tlsClientCertBytes");
+                if (tlsClientCertFile != null && tlsClientCertAsBytes != null) {
+                    logger.warn("SSL CA client cert is specified as bytes and as a file path. Using client cert specified as bytes.");
+                }
+                if (tlsClientCertFile != null && tlsClientCertAsBytes == null) {
+                    tlsClientCertAsBytes = Files.readAllBytes(Paths.get(tlsClientCertFile));
                 }
 
+                if (tlsClientKeyAsBytes != null && tlsClientCertAsBytes != null) {
+                    cryptoPrimitives.addClientCACertificateToTrustStore(tlsClientKeyAsBytes, tlsClientCertAsBytes, null);
+                }
+
+               SSLContext sslContext = SSLContexts.custom()
+               .loadKeyMaterial(cryptoPrimitives.getTrustStore(), new char[0])
+               .loadTrustMaterial(cryptoPrimitives.getTrustStore(), null)
+               .build();
+
+                final ConnectionSocketFactory sslSocketFactory;
+                if (properties != null &&
+                    Boolean.parseBoolean(properties.getProperty("allowAllHostNames"))) {
+                    sslSocketFactory = new SSLConnectionSocketFactory(sslContext, new HostnameVerifier() {
+                            @Override
+                            public boolean verify(String hostname, SSLSession session) {
+                                return true;
+                            }
+                        });
+                } else {
+                    sslSocketFactory = new SSLConnectionSocketFactory(sslContext);
+                }
                 registry = RegistryBuilder.<ConnectionSocketFactory>create()
-                        .register("https", sf)
+                        .register("https", sslSocketFactory)
                         .register("http", new PlainConnectionSocketFactory())
                         .build();
 
