@@ -97,7 +97,7 @@ public class TLSCertificateBuilder {
     private TLSCertificateKeyPair createCert(CertType certType, String subjectAlternativeName) throws Exception {
         KeyPair keyPair = createKeyPair();
         X509Certificate cert = createSelfSignedCertificate(certType, keyPair, subjectAlternativeName);
-        return TLSCertificateKeyPair.fromX509CertKeyPair(cert, keyPair);
+        return TLSCertificateKeyPairImpl.fromX509CertKeyPair(cert, keyPair);
     }
 
     private X509Certificate createSelfSignedCertificate(CertType certType, KeyPair keyPair, String san) throws Exception {

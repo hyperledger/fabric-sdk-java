@@ -110,6 +110,7 @@ import org.hyperledger.fabric.sdk.helper.DiagnosticFileDumper;
 import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.certgen.TLSCertificateBuilder;
 import org.hyperledger.fabric.sdk.security.certgen.TLSCertificateKeyPair;
+import org.hyperledger.fabric.sdk.security.certgen.TLSCertificateKeyPairImpl;
 import org.hyperledger.fabric.sdk.transaction.GetConfigBlockBuilder;
 import org.hyperledger.fabric.sdk.transaction.InstallProposalBuilder;
 import org.hyperledger.fabric.sdk.transaction.InstantiateProposalBuilder;

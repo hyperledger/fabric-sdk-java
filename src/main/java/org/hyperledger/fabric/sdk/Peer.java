@@ -38,6 +38,7 @@ import org.hyperledger.fabric.sdk.exception.PeerException;
 import org.hyperledger.fabric.sdk.exception.TransactionException;
 import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.security.certgen.TLSCertificateKeyPair;
+import org.hyperledger.fabric.sdk.security.certgen.TLSCertificateKeyPairImpl;
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 
 import static java.lang.String.format;

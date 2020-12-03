@@ -44,6 +44,7 @@ import org.hyperledger.fabric.protos.peer.ProposalPackage;
 import org.hyperledger.fabric.protos.peer.ProposalResponsePackage;
 import org.hyperledger.fabric.sdk.security.certgen.TLSCertificateBuilder;
 import org.hyperledger.fabric.sdk.security.certgen.TLSCertificateKeyPair;
+import org.hyperledger.fabric.sdk.security.certgen.TLSCertificateKeyPairImpl;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Ignore;
