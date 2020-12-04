@@ -465,6 +465,24 @@ public class BlockInfo {
                 return input.getArgs(index).toByteArray();
             }
 
+            /**
+             * Checks if this transaction is an init transaction.
+             * The init transaction is the one called to initialize a chaincode that requires the invocation of a
+             * function with an init flag set to true by calling either {@link TransactionRequest#setInit(boolean)}
+             * or passing --isInit if using the cli.
+             * @return boolean value indicating whether this is an init transaction
+             */
+            public boolean getChaincodeInputIsInit() {
+                if (isFiltered()) {
+                    return false;
+                }
+
+                ChaincodeInput input = transactionAction.getPayload().getChaincodeProposalPayload().
+                        getChaincodeInvocationSpec().getChaincodeInput().getChaincodeInput();
+
+                return input.getIsInit();
+            }
+
             int getEndorsementsCount = -1;
 
             public int getEndorsementsCount() {

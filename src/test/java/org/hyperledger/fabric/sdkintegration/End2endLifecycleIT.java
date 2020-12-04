@@ -473,6 +473,10 @@ public class End2endLifecycleIT {
                     chaincodeName, chaincodeType, "a,", "100", "b", "300").get(testConfig.getTransactionWaitTime(), TimeUnit.SECONDS);
             assertTrue(transactionEvent.isValid());
 
+            if (initRequired) {
+                assertTrue(transactionEvent.getTransactionActionInfo(0).getChaincodeInputIsInit());
+            }
+
             transactionEvent = executeChaincode(org2Client, org2.getPeerAdmin(), org2Channel, "move",
                     false, // doInit
                     chaincodeName, chaincodeType, "a,", "b", "10").get(testConfig.getTransactionWaitTime(), TimeUnit.SECONDS);
