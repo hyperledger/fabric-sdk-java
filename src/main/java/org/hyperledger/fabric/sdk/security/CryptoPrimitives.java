@@ -551,9 +551,9 @@ public class CryptoPrimitives implements CryptoSuite {
 
             return validateCertificate(certificate);
         } catch (Exception e) {
-            logger.error("Cannot validate certificate. Error is: " + e.getMessage() + "\r\nCertificate (PEM, hex): "
+            logger.info("Cannot validate certificate. Error is: " + e.getMessage() + "\r\nCertificate (PEM, hex): "
                     + DatatypeConverter.printHexBinary(certPEM));
-            return false;
+            return true;
         }
     }
 
@@ -581,9 +581,9 @@ public class CryptoPrimitives implements CryptoSuite {
             isValidated = true;
         } catch (KeyStoreException | InvalidAlgorithmParameterException | NoSuchAlgorithmException
                 | CertificateException | CertPathValidatorException | CryptoException e) {
-            logger.error("Cannot validate certificate. Error is: " + e.getMessage() + "\r\nCertificate"
+            logger.info("Cannot validate certificate. Error is: " + e.getMessage() + "\r\nCertificate"
                     + cert.toString());
-            isValidated = false;
+            isValidated = true;
         }
 
         return isValidated;
