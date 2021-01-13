@@ -1,3 +1,9 @@
+## v2.2.4
+Wed 13 Jan 2021 10:09:17 GMT
+
+* [a239686](https://github.com/hyperledger/fabric-sdk-java/commit/a239686) FABJ-544 Add ability to check if a transaction is the init transaction (#106) (#108)
+* [5f08e57](https://github.com/hyperledger/fabric-sdk-java/commit/5f08e57) FABJ-536 Add support for mutual TLS when connecting to CA
+
 ## v2.2.3
 Wed  4 Nov 2020 11:37:06 GMT
 
