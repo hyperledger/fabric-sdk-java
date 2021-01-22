@@ -1,3 +1,8 @@
+## v2.2.5
+Fri 22 Jan 2021 13:04:10 GMT
+
+* [45079bc](https://github.com/hyperledger/fabric-sdk-java/commit/45079bc) Fgj 101 update dependency v22 (#111)
+
 ## v2.2.4
 Wed 13 Jan 2021 10:09:17 GMT
 
