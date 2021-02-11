@@ -44,6 +44,7 @@ import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContextBuilder;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslProvider;
+import io.opentelemetry.instrumentation.grpc.v1_5.client.TracingClientInterceptor;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -237,12 +238,12 @@ class Endpoint {
 
         try {
             if (protocol.equalsIgnoreCase("grpc")) {
-                this.channelBuilder = NettyChannelBuilder.forAddress(addr, port).negotiationType(NegotiationType.PLAINTEXT);
+                this.channelBuilder = NettyChannelBuilder.forAddress(addr, port).negotiationType(NegotiationType.PLAINTEXT).intercept(TracingClientInterceptor.newInterceptor());
                 addNettyBuilderProps(channelBuilder, properties);
             } else if (protocol.equalsIgnoreCase("grpcs")) {
                 if (pemBytes == null) {
                     // use root certificate
-                    this.channelBuilder = NettyChannelBuilder.forAddress(addr, port);
+                    this.channelBuilder = NettyChannelBuilder.forAddress(addr, port).intercept(TracingClientInterceptor.newInterceptor());
                     addNettyBuilderProps(channelBuilder, properties);
                 } else {
                     try {
