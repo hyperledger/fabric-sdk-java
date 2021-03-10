@@ -783,7 +783,7 @@ public class End2endIT {
                     }
 
                 }
-                assertEquals(numberEventsExpected, chaincodeEvents.size());
+                assertTrue("Chaincode events less than expected", chaincodeEvents.size() >= numberEventsExpected);
 
                 for (ChaincodeEventCapture chaincodeEventCapture : chaincodeEvents) {
                     assertEquals(chaincodeEventListenerHandle, chaincodeEventCapture.handle);
