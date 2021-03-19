@@ -3,7 +3,7 @@
 <div style="float: right">
 <table align="right">
   <tr><th>Branch</th><th>Build status</th></tr>
-  <tr><td>master</td><td><a href="https://dev.azure.com/Hyperledger/Fabric-SDK-Java/_build/latest?definitionId=36&branchName=master"><img src="https://dev.azure.com/Hyperledger/Fabric-SDK-Java/_apis/build/status/Fabric-SDK-Java?branchName=master"></a></td></tr>
+  <tr><td>main</td><td><a href="https://dev.azure.com/Hyperledger/Fabric-SDK-Java/_build/latest?definitionId=36&branchName=main"><img src="https://dev.azure.com/Hyperledger/Fabric-SDK-Java/_apis/build/status/Fabric-SDK-Java?branchName=main"></a></td></tr>
   <tr><td>release-2.2</td><td><a href="https://dev.azure.com/Hyperledger/Fabric-SDK-Java/_build/latest?definitionId=36&branchName=release-2.2"><img src="https://dev.azure.com/Hyperledger/Fabric-SDK-Java/_apis/build/status/Fabric-SDK-Java?branchName=release-2.2"></a></td></tr>
   <tr><td>release-1.4</td><td><a href="https://dev.azure.com/Hyperledger/Fabric-SDK-Java/_build/latest?definitionId=36&branchName=release-1.4"><img src="https://dev.azure.com/Hyperledger/Fabric-SDK-Java/_apis/build/status/Fabric-SDK-Java?branchName=release-1.4"></a></td></tr>
 </table>
@@ -14,7 +14,7 @@ This project provides a low-level API for interacting with Hyperledger Fabric bl
 high-level **Hyperledger Fabric Gateway SDK for Java**:
 - Documentation: https://hyperledger.github.io/fabric-gateway-java/
 - GitHub repository: https://github.com/hyperledger/fabric-gateway-java/
- 
+
 For building Hyperledger Fabric blockchain client applications, you are strongly encouraged to use the high level API.
 
 The information below is intended for contributors to this repository.

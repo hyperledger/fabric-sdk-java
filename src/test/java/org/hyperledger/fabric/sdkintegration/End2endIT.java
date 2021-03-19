@@ -385,7 +385,7 @@ public class End2endIT {
              * The following is using Fabric v1.0 APIs for testing and demoing backward compatibility.
              * After v2.0 Fabric release unless there is a need for this in your application it is highly
              * encouraged to move to Fabric v2.0 capabilities and use the new v2.0 Lifecycle APIs for managing chaincode.
-             * @see <a href="https://github.com/hyperledger/fabric-sdk-java/blob/master/docs/release_v2.0.0_notes.md#fabj-288-lifecycle-chaincode-management"</a>
+             * @see <a href="https://github.com/hyperledger/fabric-sdk-java/blob/main/docs/release_v2.0.0_notes.md#fabj-288-lifecycle-chaincode-management"</a>
              *
              */
             /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -423,7 +423,7 @@ public class End2endIT {
 
                     if (testConfig.isFabricVersionAtOrAfter("1.1")) { // Fabric 1.1 added support for  META-INF in the chaincode image.
 
-                        //This sets an index on the variable a in the chaincode // see http://hyperledger-fabric.readthedocs.io/en/master/couchdb_as_state_database.html#using-couchdb-from-chaincode
+                        //This sets an index on the variable a in the chaincode // see http://hyperledger-fabric.readthedocs.io/en/main/couchdb_as_state_database.html#using-couchdb-from-chaincode
                         // The file IndexA.json as part of the META-INF will be packaged with the source to create the index.
                         installProposalRequest.setChaincodeMetaInfLocation(new File("src/test/fixture/meta-infs/end2endit"));
                     }

@@ -8,14 +8,14 @@ schedules:
     displayName: "Daily midnight build"
     branches:
       include:
-        - master
+        - main
     always: true
 
 trigger:
-  - master
+  - main
 
 pr:
-  - master
+  - main
 
 variables:
   GOPATH: $(Build.Repository.LocalPath)/src/test/fixture
