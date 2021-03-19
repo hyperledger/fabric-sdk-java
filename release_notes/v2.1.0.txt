@@ -23,4 +23,4 @@ none
 
 Change Log
 ----------
-https://github.com/hyperledger/fabric-sdk-java/blob/master/CHANGELOG.md#v2.1.0
+https://github.com/hyperledger/fabric-sdk-java/blob/main/CHANGELOG.md#v2.1.0

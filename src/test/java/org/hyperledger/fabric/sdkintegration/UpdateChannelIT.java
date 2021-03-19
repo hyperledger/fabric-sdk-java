@@ -69,7 +69,7 @@ import static org.junit.Assert.fail;
 
 /**
  * Update channel scenario
- * See http://hyperledger-fabric.readthedocs.io/en/master/configtxlator.html
+ * See http://hyperledger-fabric.readthedocs.io/en/main/configtxlator.html
  * for details.
  */
 

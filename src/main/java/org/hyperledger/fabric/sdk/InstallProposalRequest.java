@@ -31,7 +31,7 @@ public class InstallProposalRequest extends TransactionRequest {
      * Only applies if source location {@link #chaincodeSourceLocation} for the chaincode is set.
      *
      * @param chaincodeMetaInfLocation The directory where the "META-INF" directory is located..
-     * @see <a href="http://hyperledger-fabric.readthedocs.io/en/master/couchdb_as_state_database.html#using-couchdb-from-chaincode">
+     * @see <a href="http://hyperledger-fabric.readthedocs.io/en/main/couchdb_as_state_database.html#using-couchdb-from-chaincode">
      * Fabric Read the docs couchdb as a state database
      * </a>
      */
