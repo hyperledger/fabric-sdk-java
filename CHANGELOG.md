@@ -1,3 +1,11 @@
+## v2.2.6
+Fri 23 Apr 2021 16:02:16 BST
+
+* [6712c7a](https://github.com/hyperledger/fabric-sdk-java/commit/6712c7a) FGJ-108: Update commons-io dependency (#126)
+* [df1827a](https://github.com/hyperledger/fabric-sdk-java/commit/df1827a) Update netty-codec-http2 dependency (#120)
+* [eff4927](https://github.com/hyperledger/fabric-sdk-java/commit/eff4927) [FABJ-549] Assert fail if less (#118)
+* [389d784](https://github.com/hyperledger/fabric-sdk-java/commit/389d784) [FABJ-545] Move log4j version to 2.14.0 (#114)
+
 ## v2.2.5
 Fri 22 Jan 2021 13:04:10 GMT
 
