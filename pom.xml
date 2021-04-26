@@ -366,6 +366,9 @@
                     <links>
                         <link>http://docs.oracle.com/javase/8/docs/api/</link>
                     </links>
+                    <additionalJOptions>
+                        <additionalJOption>--no-module-directories</additionalJOption>
+                    </additionalJOptions>
                 </configuration>
             </plugin>
             <plugin>
@@ -689,6 +692,9 @@
                             <links>
                                 <link>http://docs.oracle.com/javase/8/docs/api/</link>
                             </links>
+                            <additionalJOptions>
+                                <additionalJOption>--no-module-directories</additionalJOption>
+                            </additionalJOptions>
                         </configuration>
                         <executions>
                             <execution>
