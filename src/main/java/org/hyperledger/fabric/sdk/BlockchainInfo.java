@@ -35,7 +35,7 @@ public class BlockchainInfo {
     }
 
     /**
-     * @return the current bloch hash
+     * @return the current block hash
      */
     public byte[] getCurrentBlockHash() {
         return blockchainInfo.getCurrentBlockHash().toByteArray();
