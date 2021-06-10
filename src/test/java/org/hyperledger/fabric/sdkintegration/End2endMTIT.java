@@ -1155,32 +1155,29 @@ public class End2endMTIT {
 
     void memoryAllocator() {
 
-        memoryThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                long loopSleep = 1000L * 60L;
-                byte[] junk = null;
+        memoryThread = new Thread(() -> {
+            long loopSleep = 1000L * 60L;
+            byte[] junk = null;
 
-                do {
+            do {
 
-                    try {
-                        Thread.sleep(loopSleep);
-                        out("ALLOCATING MEMORY.");
-                        junk = new byte[1000000 * 90];
+                try {
+                    Thread.sleep(loopSleep);
+                    out("ALLOCATING MEMORY.");
+                    junk = new byte[1000000 * 90];
 
-                        Thread.sleep(1000L * 60L * 2L);
-                        out("DEALLOCATING MEMORY.");
-                        junk = null;
-                        System.gc();
-                        loopSleep = 1000L * 60L * (random.nextInt(3)) + 1L;
+                    Thread.sleep(1000L * 60L * 2L);
+                    out("DEALLOCATING MEMORY.");
+                    junk = null;
+                    System.gc();
+                    loopSleep = 1000L * 60L * (random.nextInt(3)) + 1L;
 
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
 
-                } while (true);
+            } while (true);
 
-            }
         });
 
         memoryThread.setDaemon(true);

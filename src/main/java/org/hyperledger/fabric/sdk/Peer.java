@@ -25,7 +25,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
-import io.netty.util.internal.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.discovery.Protocol;
@@ -93,7 +92,7 @@ public class Peer implements Serializable {
 
         }
 
-        if (StringUtil.isNullOrEmpty(name)) {
+        if (isNullOrEmpty(name)) {
             throw new InvalidArgumentException("Invalid name for peer");
         }
 

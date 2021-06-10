@@ -801,23 +801,17 @@ public class HFCAClientIT {
 
         HFCAAffiliation resp = client.getHFCAAffiliations(admin);
 
-        ArrayList<String> expectedFirstLevelAffiliations = new ArrayList<String>(Arrays.asList("org2", "org1"));
+        ArrayList<String> expectedFirstLevelAffiliations = new ArrayList<>(Arrays.asList("org2", "org1"));
         int found = 0;
         for (HFCAAffiliation aff : resp.getChildren()) {
-            for (Iterator<String> iter = expectedFirstLevelAffiliations.iterator(); iter.hasNext();
-            ) {
-                String element = iter.next();
-                if (aff.getName().equals(element)) {
-                    iter.remove();
-                }
-            }
+            expectedFirstLevelAffiliations.removeIf(element -> aff.getName().equals(element));
         }
 
         if (!expectedFirstLevelAffiliations.isEmpty()) {
             fail("Failed to get the correct of affiliations, affiliations not returned: %s" + expectedFirstLevelAffiliations.toString());
         }
 
-        ArrayList<String> expectedSecondLevelAffiliations = new ArrayList<String>(Arrays.asList("org2.department1", "org1.department1", "org1.department2"));
+        ArrayList<String> expectedSecondLevelAffiliations = new ArrayList<>(Arrays.asList("org2.department1", "org1.department1", "org1.department2"));
         for (HFCAAffiliation aff : resp.getChildren()) {
             for (HFCAAffiliation aff2 : aff.getChildren()) {
                 expectedSecondLevelAffiliations.removeIf(element -> aff2.getName().equals(element));
@@ -1247,9 +1241,9 @@ public class HFCAClientIT {
     private boolean resultContains(Collection<HFCACredential> creds, String[] names) {
         int numFound = 0;
         for (HFCACredential cred : creds) {
-            for (int i = 0; i < names.length; i++) {
+            for (String name : names) {
                 HFCAX509Certificate cert = (HFCAX509Certificate) cred;
-                if (cert.getX509().getSubjectDN().toString().contains(names[i])) {
+                if (cert.getX509().getSubjectDN().toString().contains(name)) {
                     numFound++;
                     break;
                 }
@@ -1533,7 +1527,7 @@ public class HFCAClientIT {
         ident.setMaxEnrollments(1);
         ident.setType(type);
 
-        Collection<Attribute> attributes = new ArrayList<Attribute>();
+        Collection<Attribute> attributes = new ArrayList<>();
         attributes.add(new Attribute("testattr1", "valueattr1"));
         ident.setAttributes(attributes);
         return ident;

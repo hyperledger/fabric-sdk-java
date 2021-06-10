@@ -34,7 +34,7 @@ class TransactionActionDeserializer {
 
     TransactionActionDeserializer(TransactionPackage.TransactionAction transactionAction) {
         byteString = transactionAction.toByteString();
-        this.transactionAction = new WeakReference<TransactionPackage.TransactionAction>(transactionAction);
+        this.transactionAction = new WeakReference<>(transactionAction);
     }
 
     TransactionPackage.TransactionAction getTransactionAction() {

@@ -1022,7 +1022,7 @@ public class ServiceDiscovery {
             //returns true if there are still sufficent endorsers for this group.
             boolean ignoreListSDEndorser(Collection<SDEndorser> sdEndorsers) {
                 HashSet<SDEndorser> bnames = new HashSet<>(sdEndorsers);
-                endorsers.removeIf(endorser -> bnames.contains(endorser));
+                endorsers.removeIf(bnames::contains);
                 return endorsers.size() >= required;
             }
 

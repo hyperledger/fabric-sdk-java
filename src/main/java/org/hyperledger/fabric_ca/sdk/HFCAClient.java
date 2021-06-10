@@ -1647,12 +1647,7 @@ public class HFCAClient {
                 final ConnectionSocketFactory sslSocketFactory;
                 if (properties != null &&
                     Boolean.parseBoolean(properties.getProperty("allowAllHostNames"))) {
-                    sslSocketFactory = new SSLConnectionSocketFactory(sslContext, new HostnameVerifier() {
-                            @Override
-                            public boolean verify(String hostname, SSLSession session) {
-                                return true;
-                            }
-                        });
+                    sslSocketFactory = new SSLConnectionSocketFactory(sslContext, (hostname, session) -> true);
                 } else {
                     sslSocketFactory = new SSLConnectionSocketFactory(sslContext);
                 }
