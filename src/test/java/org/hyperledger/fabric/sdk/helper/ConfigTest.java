@@ -14,7 +14,6 @@
 
 package org.hyperledger.fabric.sdk.helper;
 
-import org.apache.log4j.Level;
 import org.hyperledger.fabric.sdk.TestConfigHelper;
 import org.junit.After;
 import org.junit.AfterClass;

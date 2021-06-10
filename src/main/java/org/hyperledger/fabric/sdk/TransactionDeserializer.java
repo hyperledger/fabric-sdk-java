@@ -31,7 +31,7 @@ class TransactionDeserializer {
     private final ByteString byteString;
     private WeakReference<TransactionPackage.Transaction> transaction;
     private final Map<Integer, WeakReference<TransactionActionDeserializer>> transactionActions =
-            Collections.synchronizedMap(new WeakHashMap<Integer, WeakReference<TransactionActionDeserializer>>());
+            Collections.synchronizedMap(new WeakHashMap<>());
 
     TransactionDeserializer(ByteString byteString) {
         this.byteString = byteString;

@@ -211,7 +211,7 @@ public class ClientTest {
         //    ThreadPoolExecutor threadPoolExecutor = ThreadPoolExecutor()
         ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(10, 100,
                 40, TimeUnit.valueOf("MILLISECONDS"),
-                new SynchronousQueue<Runnable>(),
+                new SynchronousQueue<>(),
                 r -> {
                     Thread t = Executors.defaultThreadFactory().newThread(r);
                     t.setDaemon(true);
@@ -232,7 +232,7 @@ public class ClientTest {
 
         ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(10, 100,
                 40, TimeUnit.valueOf("MILLISECONDS"),
-                new SynchronousQueue<Runnable>(),
+                new SynchronousQueue<>(),
                 r -> {
                     Thread t = Executors.defaultThreadFactory().newThread(r);
                     t.setDaemon(true);
@@ -243,7 +243,7 @@ public class ClientTest {
         assertSame(threadPoolExecutor, hfclient.getExecutorService());
         ThreadPoolExecutor threadPoolExecutor2 = new ThreadPoolExecutor(10, 100,
                 40, TimeUnit.valueOf("MILLISECONDS"),
-                new SynchronousQueue<Runnable>(),
+                new SynchronousQueue<>(),
                 r -> {
                     Thread t = Executors.defaultThreadFactory().newThread(r);
                     t.setDaemon(true);
@@ -259,7 +259,7 @@ public class ClientTest {
 
         ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(10, 100,
                 40, TimeUnit.valueOf("MILLISECONDS"),
-                new SynchronousQueue<Runnable>(),
+                new SynchronousQueue<>(),
                 r -> {
                     Thread t = Executors.defaultThreadFactory().newThread(r);
                     t.setDaemon(true);

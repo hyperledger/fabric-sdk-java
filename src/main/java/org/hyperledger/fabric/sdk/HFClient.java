@@ -72,7 +72,7 @@ public class HFClient {
                 if (null == executorService) { // no other thread has done it ...
                     executorService = new ThreadPoolExecutor(CLIENT_THREAD_EXECUTOR_COREPOOLSIZE, CLIENT_THREAD_EXECUTOR_MAXIMUMPOOLSIZE,
                             CLIENT_THREAD_EXECUTOR_KEEPALIVETIME, CLIENT_THREAD_EXECUTOR_KEEPALIVETIMEUNIT,
-                            new SynchronousQueue<Runnable>(),
+                            new SynchronousQueue<>(),
                             r -> {
                                 Thread t = threadFactory.newThread(r);
                                 t.setDaemon(true);

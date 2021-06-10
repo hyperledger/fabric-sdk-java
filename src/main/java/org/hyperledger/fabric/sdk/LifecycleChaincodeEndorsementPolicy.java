@@ -20,7 +20,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.protobuf.ByteString;
-import io.netty.util.internal.StringUtil;
+import io.grpc.netty.shaded.io.netty.util.internal.StringUtil;
 import org.apache.commons.io.IOUtils;
 import org.hyperledger.fabric.protos.common.MspPrincipal.MSPPrincipal;
 import org.hyperledger.fabric.protos.common.MspPrincipal.MSPRole;

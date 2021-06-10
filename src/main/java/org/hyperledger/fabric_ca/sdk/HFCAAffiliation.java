@@ -45,9 +45,9 @@ public class HFCAAffiliation {
     private HFCAClient client;
 
     // Affiliations affected by this affiliation request
-    private Collection<HFCAAffiliation> childHFCAAffiliations = new ArrayList<HFCAAffiliation>();
+    private Collection<HFCAAffiliation> childHFCAAffiliations = new ArrayList<>();
     // Identities affected by this affiliation request
-    private Collection<HFCAIdentity> identities = new ArrayList<HFCAIdentity>();
+    private Collection<HFCAIdentity> identities = new ArrayList<>();
 
     private boolean deleted;
 
@@ -255,7 +255,7 @@ public class HFCAAffiliation {
             createURL = client.getURL(HFCA_AFFILIATION);
             logger.debug(format("affiliation  url: %s, registrar: %s", createURL, registrar.getName()));
 
-            Map<String, String> queryParm = new HashMap<String, String>();
+            Map<String, String> queryParm = new HashMap<>();
             queryParm.put("force", String.valueOf(force));
             String body = client.toJson(affToJsonObject());
             JsonObject result = client.httpPost(createURL, body, registrar);
@@ -311,7 +311,7 @@ public class HFCAAffiliation {
 
         String updateURL = "";
         try {
-            Map<String, String> queryParm = new HashMap<String, String>();
+            Map<String, String> queryParm = new HashMap<>();
             queryParm.put("force", String.valueOf(force));
             updateURL = client.getURL(HFCA_AFFILIATION + "/" + this.name, queryParm);
 
@@ -371,7 +371,7 @@ public class HFCAAffiliation {
 
         String deleteURL = "";
         try {
-            Map<String, String> queryParm = new HashMap<String, String>();
+            Map<String, String> queryParm = new HashMap<>();
             queryParm.put("force", String.valueOf(force));
             deleteURL = client.getURL(HFCA_AFFILIATION + "/" + this.name, queryParm);
 
@@ -402,9 +402,9 @@ public class HFCAAffiliation {
     public static class HFCAAffiliationResp {
 
         // Affiliations affected by this affiliation request
-        private Collection<HFCAAffiliation> childHFCAAffiliations = new ArrayList<HFCAAffiliation>();
+        private Collection<HFCAAffiliation> childHFCAAffiliations = new ArrayList<>();
         // Identities affected by this affiliation request
-        private Collection<HFCAIdentity> identities = new ArrayList<HFCAIdentity>();
+        private Collection<HFCAIdentity> identities = new ArrayList<>();
 
         private int statusCode = 200;
 

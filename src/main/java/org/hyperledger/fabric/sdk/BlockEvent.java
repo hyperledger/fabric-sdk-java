@@ -88,7 +88,7 @@ public class BlockEvent extends BlockInfo {
     }
 
     List<TransactionEvent> getTransactionEventsList() {
-        ArrayList<TransactionEvent> ret = new ArrayList<TransactionEvent>(getTransactionCount());
+        ArrayList<TransactionEvent> ret = new ArrayList<>(getTransactionCount());
         for (TransactionEvent transactionEvent : getTransactionEvents()) {
             ret.add(transactionEvent);
         }
