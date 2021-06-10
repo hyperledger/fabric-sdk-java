@@ -26,6 +26,7 @@ import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.AbstractMap;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,17 +34,16 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.net.ssl.SSLException;
 
 import com.google.common.collect.ImmutableMap;
 import io.grpc.ManagedChannelBuilder;
-import io.grpc.netty.GrpcSslContexts;
-import io.grpc.netty.NegotiationType;
-import io.grpc.netty.NettyChannelBuilder;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslProvider;
+import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
+import io.grpc.netty.shaded.io.grpc.netty.NegotiationType;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslContextBuilder;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslProvider;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -73,7 +73,7 @@ class Endpoint {
     private final String url;
     private byte[] clientTLSCertificateDigest;
     private byte[] tlsClientCertificatePEMBytes;
-    private NettyChannelBuilder channelBuilder = null;
+    private NettyChannelBuilder channelBuilder;
 
     private static final Map<String, String> CN_CACHE = Collections.synchronizedMap(new HashMap<>());
 
@@ -392,15 +392,8 @@ class Endpoint {
             method.invoke(channelBuilder, parmsArray);
 
             if (logger.isTraceEnabled()) {
-                StringBuilder sb = new StringBuilder(200);
-                String sep = "";
-                for (Object p : parmsArray) {
-                    sb.append(sep).append(p + "");
-                    sep = ", ";
-
-                }
                 logger.trace(format("Endpoint with url: %s set managed channel builder method %s (%s) ", url,
-                        method, sb.toString()));
+                        method, Arrays.toString(parmsArray)));
 
             }
 

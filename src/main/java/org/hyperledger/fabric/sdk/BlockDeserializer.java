@@ -29,7 +29,7 @@ import org.hyperledger.fabric.protos.common.Common.BlockData;
 
 class BlockDeserializer {
     private final Block block;
-    private final Map<Integer, WeakReference<EnvelopeDeserializer>> envelopes = Collections.synchronizedMap(new WeakHashMap<Integer, WeakReference<EnvelopeDeserializer>>());
+    private final Map<Integer, WeakReference<EnvelopeDeserializer>> envelopes = Collections.synchronizedMap(new WeakHashMap<>());
 
     public Block getBlock() {
         return block;

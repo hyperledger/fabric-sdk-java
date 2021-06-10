@@ -36,7 +36,6 @@ import java.util.regex.Pattern;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
-import io.netty.util.internal.StringUtil;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
@@ -300,7 +299,7 @@ public final class Utils {
     }
 
     public static Properties parseGrpcUrl(String url) {
-        if (StringUtil.isNullOrEmpty(url)) {
+        if (isNullOrEmpty(url)) {
             throw new RuntimeException("URL cannot be null or empty");
         }
 

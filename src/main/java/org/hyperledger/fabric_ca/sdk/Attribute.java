@@ -52,7 +52,7 @@ public class Attribute {
         ob.add("name", name);
         ob.add("value", value);
         if (ecert != null) {
-            ob.add("ecert", ecert.booleanValue());
+            ob.add("ecert", ecert);
         }
         return ob.build();
     }

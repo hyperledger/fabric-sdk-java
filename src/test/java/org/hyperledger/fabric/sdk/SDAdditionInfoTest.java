@@ -20,7 +20,7 @@ public class SDAdditionInfoTest {
     private static byte[][] asByteArrays(String... strings) {
         return Arrays.stream(strings)
                 .map(cert -> cert.getBytes(StandardCharsets.UTF_8))
-                .toArray(size -> new byte[size][]);
+                .toArray(byte[][]::new);
     }
 
     private static Channel.SDOrdererAdditionInfo newOrdererAdditionInfo(byte[][] tlsCerts, byte[][] tlsIntermediateCerts) {

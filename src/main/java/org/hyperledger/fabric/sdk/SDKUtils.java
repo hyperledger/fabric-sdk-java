@@ -94,7 +94,7 @@ public class SDKUtils {
     public static Collection<Set<ProposalResponse>> getProposalConsistencySets(Collection<ProposalResponse> proposalResponses
     ) throws InvalidArgumentException {
 
-        return getProposalConsistencySets(proposalResponses, new HashSet<ProposalResponse>());
+        return getProposalConsistencySets(proposalResponses, new HashSet<>());
 
     }
 
