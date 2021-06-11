@@ -1,3 +1,9 @@
+## v2.2.7
+Fri 11 Jun 2021 09:48:22 BST
+
+* [043af87](https://github.com/hyperledger/fabric-sdk-java/commit/043af87) FGJ-111: Minimise explicit gRPC dependencies (#135)
+* [66aecdf](https://github.com/hyperledger/fabric-sdk-java/commit/66aecdf) Update BlockchainInfo.java (#133)
+
 ## v2.2.6
 Fri 23 Apr 2021 16:02:16 BST
 
