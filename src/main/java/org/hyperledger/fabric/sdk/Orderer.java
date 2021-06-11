@@ -19,7 +19,6 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Properties;
 
-import io.netty.util.internal.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common;
@@ -54,7 +53,7 @@ public class Orderer implements Serializable {
 
     Orderer(String name, String url, Properties properties) throws InvalidArgumentException {
 
-        if (StringUtil.isNullOrEmpty(name)) {
+        if (isNullOrEmpty(name)) {
             throw new InvalidArgumentException("Invalid name for orderer");
         }
         Exception e = checkGrpcUrl(url);

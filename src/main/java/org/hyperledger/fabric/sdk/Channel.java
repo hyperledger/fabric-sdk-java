@@ -697,7 +697,7 @@ public class Channel implements Serializable {
             if (!isNullOrEmpty(mspid)) {
                 logger.debug(format("Channel %s mapping peer %s to mspid %s", name, peer, mspid));
                 synchronized (peerMSPIDMap) {
-                    peerMSPIDMap.computeIfAbsent(mspid, k -> new HashSet<Peer>()).add(peer);
+                    peerMSPIDMap.computeIfAbsent(mspid, k -> new HashSet<>()).add(peer);
                 }
             }
         }

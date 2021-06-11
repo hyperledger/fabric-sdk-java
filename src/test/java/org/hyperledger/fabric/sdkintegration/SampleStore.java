@@ -196,22 +196,10 @@ public class SampleStore {
             sampleUser.saveState();
 
             return sampleUser;
-        } catch (IOException e) {
+        } catch (IOException | ClassCastException | InvalidKeySpecException | NoSuchProviderException | NoSuchAlgorithmException e) {
             e.printStackTrace();
             throw e;
 
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-            throw e;
-        } catch (NoSuchProviderException e) {
-            e.printStackTrace();
-            throw e;
-        } catch (InvalidKeySpecException e) {
-            e.printStackTrace();
-            throw e;
-        } catch (ClassCastException e) {
-            e.printStackTrace();
-            throw e;
         }
 
     }

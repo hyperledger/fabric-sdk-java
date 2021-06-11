@@ -22,7 +22,7 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Set;
 
-import io.netty.util.internal.StringUtil;
+import io.grpc.netty.shaded.io.netty.util.internal.StringUtil;
 import org.bouncycastle.util.encoders.Hex;
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.User;
