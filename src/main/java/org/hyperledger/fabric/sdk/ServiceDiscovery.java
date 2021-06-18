@@ -32,8 +32,10 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -1280,17 +1282,20 @@ public class ServiceDiscovery {
 
     private static final int SERVICE_DISCOVER_FREQ_SECONDS = config.getServiceDiscoveryFreqSeconds();
 
+    private final AtomicReference<ScheduledExecutorService> serviceDiscoveryExecutorService = new AtomicReference<>();
+
     void run() {
         if (channel.isShutdown() || SERVICE_DISCOVER_FREQ_SECONDS < 1) {
             return;
         }
 
         if (seviceDiscovery == null) {
-            seviceDiscovery = Executors.newSingleThreadScheduledExecutor(r -> {
+            serviceDiscoveryExecutorService.set(Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread t = Executors.defaultThreadFactory().newThread(r);
                 t.setDaemon(true);
                 return t;
-            }).scheduleAtFixedRate(() -> {
+            }));
+            seviceDiscovery = serviceDiscoveryExecutorService.get().scheduleAtFixedRate(() -> {
                 logger.debug(format("Channel %s starting service rediscovery after %d seconds.", channelName, SERVICE_DISCOVER_FREQ_SECONDS));
                 fullNetworkDiscovery(true);
 
@@ -1342,6 +1347,10 @@ public class ServiceDiscovery {
             seviceDiscovery = null;
             if (null != lseviceDiscovery) {
                 lseviceDiscovery.cancel(true);
+            }
+            ScheduledExecutorService lsde = serviceDiscoveryExecutorService.getAndSet(null);
+            if (null != lsde) {
+                lsde.shutdownNow();
             }
         } catch (Exception e) {
             logger.error(e);
