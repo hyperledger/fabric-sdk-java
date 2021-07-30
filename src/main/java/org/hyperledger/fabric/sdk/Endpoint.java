@@ -56,6 +56,7 @@ import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 
 import static java.lang.String.format;
@@ -387,9 +388,9 @@ class Endpoint {
                 }
             }
 
-            final Method method = channelBuilder.getClass().getMethod(methodName, classParms);
+            final Method method = Utils.lookupMethod(channelBuilder.getClass(), methodName, classParms);
 
-            method.invoke(channelBuilder, parmsArray);
+            Utils.invokeMethod(method, channelBuilder, parmsArray);
 
             if (logger.isTraceEnabled()) {
                 logger.trace(format("Endpoint with url: %s set managed channel builder method %s (%s) ", url,

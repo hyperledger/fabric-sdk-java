@@ -19,6 +19,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
@@ -29,10 +31,12 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
@@ -406,6 +410,110 @@ public final class Utils {
 
         return encodeHexString(bytes.getBytes(UTF_8));
 
+    }
+
+    /**
+     * Lookup method by name and params
+     * If there are no strict matches - select method with same name and parameters count
+     * Useful for building network configs from yaml files
+     * */
+    public static Method lookupMethod(Class<?> cls, String name, Class<?>... parameterTypes) throws NoSuchMethodException {
+        try {
+            return cls.getMethod(name, parameterTypes);
+        } catch (NoSuchMethodException originalException) {
+            //trying to find method with same name and parameters count
+            List<Method> candidates = java.util.Arrays.stream(cls.getMethods())
+                    .filter(it -> it.getName().equals(name))
+                    .filter(it -> it.getParameterCount() == parameterTypes.length)
+                    .collect(Collectors.toList());
+
+            if (candidates.isEmpty()) {
+                throw originalException;
+            }
+
+            //if there is only one candidate - return it
+            if (candidates.size() == 1) {
+                return candidates.get(0);
+            }
+
+            //else, it could be same method declared in hierarchy (override). They must be with equal parameter types
+            for (int i = 0; i < candidates.size() - 1; i++) {
+                Class<?>[] types1 = candidates.get(i).getParameterTypes();
+                Class<?>[] types2 = candidates.get(i + 1).getParameterTypes();
+                //otherwise - we found methods with different params and can't choose one
+                if (!java.util.Arrays.equals(types1, types2)) {
+                    throw originalException;
+                }
+            }
+
+            //try to return top-level method
+            List<Method> declaredMethods = java.util.Arrays.stream(cls.getDeclaredMethods()).collect(Collectors.toList());
+            return declaredMethods.stream()
+                    .filter(candidates::contains)
+                    .findFirst()
+                    .orElseGet(() -> candidates.get(0));
+        }
+    }
+
+    /**
+     * Lookup method by name and params
+     * If there are no strict matches - trying to convert args to appropriate type
+     * Useful for building network configs from yaml files
+     * */
+    public static Object invokeMethod(Method method, Object obj, Object... args) throws InvocationTargetException, IllegalAccessException {
+        try {
+            return method.invoke(obj, args);
+        } catch (InvocationTargetException | IllegalArgumentException originalException) {
+            if (method.getParameterCount() != args.length) {
+                throw originalException;
+            }
+            //build converted args array
+            Object[] newArgs = new Object[args.length];
+            Class<?>[] types = method.getParameterTypes();
+
+            for (int i = 0; i < types.length; i++) {
+                if (args[i].getClass().equals(types[i])) {
+                    newArgs[i] = args[i];
+                } else {
+                    if (!args[i].getClass().equals(String.class)) {
+                        throw originalException;
+                    } else {
+                        try {
+                            newArgs[i] = convertStringParamToType((String) args[i], types[i]);
+                        } catch (Exception ex) {
+                            throw originalException;
+                        }
+                    }
+                }
+            }
+            return method.invoke(obj, newArgs);
+        }
+    }
+
+    private static Object convertStringParamToType(String param, Class<?> type) throws InvocationTargetException {
+        if (byte.class.equals(type) || Byte.class.equals(type)) {
+            return Byte.valueOf(param);
+        }
+        if (short.class.equals(type) || Short.class.equals(type)) {
+            return Short.valueOf(param);
+        }
+        if (int.class.equals(type) || Integer.class.equals(type)) {
+            return Integer.valueOf(param);
+        }
+        if (long.class.equals(type) || Long.class.equals(type)) {
+            return Long.valueOf(param);
+        }
+        if (float.class.equals(type) || Float.class.equals(type)) {
+            return Float.valueOf(param);
+        }
+        if (double.class.equals(type) || Double.class.equals(type)) {
+            return Double.valueOf(param);
+        }
+        if (boolean.class.equals(type) || Boolean.class.equals(type)) {
+            return Boolean.valueOf(param);
+        }
+
+        throw new IllegalStateException();
     }
 
     /**

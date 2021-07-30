@@ -15,6 +15,7 @@ package org.hyperledger.fabric.sdk.helper;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Properties;
 
 import com.google.protobuf.ByteString;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import org.bouncycastle.crypto.digests.SHA3Digest;
 import org.bouncycastle.util.encoders.Hex;
 import org.hyperledger.fabric.sdk.testutils.TestUtils;
@@ -377,6 +379,37 @@ public class UtilsTest {
     public void testToHexStringNull() {
         Assert.assertNull(Utils.toHexString((byte[]) null));
         Assert.assertNull(Utils.toHexString((ByteString) null));
+    }
+
+    @Test
+    public void testCorrectMethodLookup() throws NoSuchMethodException {
+        Method originalMethod = NettyChannelBuilder.class.getMethod("maxInboundMessageSize", int.class);
+        Method foundMethod = Utils.lookupMethod(NettyChannelBuilder.class, "maxInboundMessageSize", int.class);
+        Assert.assertEquals(originalMethod, foundMethod);
+    }
+
+    @Test
+    public void testWrongTypedArgsMethodLookup() throws NoSuchMethodException {
+        Method originalMethod = NettyChannelBuilder.class.getMethod("maxInboundMessageSize", int.class);
+        Method foundMethod = Utils.lookupMethod(NettyChannelBuilder.class, "maxInboundMessageSize", String.class);
+
+        Assert.assertEquals(originalMethod.getName(), foundMethod.getName());
+        Assert.assertEquals(originalMethod.getParameterCount(), foundMethod.getParameterCount());
+        Assert.assertArrayEquals(originalMethod.getParameterTypes(), foundMethod.getParameterTypes());
+    }
+
+    @Test
+    public void testInvokeMethodWithCorrectArgs() throws Exception {
+        NettyChannelBuilder testObject = NettyChannelBuilder.forTarget("test");
+        Method method = NettyChannelBuilder.class.getMethod("maxInboundMessageSize", int.class);
+        Utils.invokeMethod(method, testObject, 1024);
+    }
+
+    @Test
+    public void testInvokeMethodWithWrongTypedArgs() throws Exception {
+        NettyChannelBuilder testObject = NettyChannelBuilder.forTarget("test");
+        Method method = NettyChannelBuilder.class.getMethod("maxInboundMessageSize", int.class);
+        Utils.invokeMethod(method, testObject, "1024");
     }
 
     // ==========================================================================================
