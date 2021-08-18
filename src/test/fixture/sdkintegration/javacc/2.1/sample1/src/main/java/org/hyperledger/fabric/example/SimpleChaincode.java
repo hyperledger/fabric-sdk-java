@@ -1,19 +1,16 @@
 package org.hyperledger.fabric.example;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
-import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.shim.ChaincodeBase;
 import org.hyperledger.fabric.shim.ChaincodeStub;
 import org.hyperledger.fabric.shim.ResponseUtils;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 public class SimpleChaincode extends ChaincodeBase {
-
     private static Log _logger = LogFactory.getLog(SimpleChaincode.class);
 
     @Override
@@ -112,9 +109,6 @@ public class SimpleChaincode extends ChaincodeBase {
             }
         }
         return ResponseUtils.newSuccessResponse();
-//        return   newSuccessResponse("invoke finished successfully", ByteString.copyFrom(accountFromKey + ": " + accountFromValue + " " + accountToKey + ": " + accountToValue, UTF_8).
-//
-//                        toByteArray());
     }
 
     // Deletes an entity from state
@@ -140,11 +134,10 @@ public class SimpleChaincode extends ChaincodeBase {
             return ResponseUtils.newErrorResponse(String.format("Error: state for %s is null", key));
         }
         _logger.info(String.format("Query Response:\nName: %s, Amount: %s\n", key, val));
-        return ResponseUtils.newSuccessResponse(val, ByteString.copyFrom(val, UTF_8).toByteArray());
+        return ResponseUtils.newSuccessResponse(val, val.getBytes(StandardCharsets.UTF_8));
     }
 
     public static void main(String[] args) {
         new SimpleChaincode().start(args);
     }
-
 }
