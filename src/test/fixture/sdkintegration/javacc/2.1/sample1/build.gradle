@@ -16,7 +16,8 @@ repositories {
 }
 
 dependencies {
-    implementation group: 'org.hyperledger.fabric-chaincode-java', name: 'fabric-chaincode-shim', version: '2.+'
+    implementation group: 'org.hyperledger.fabric-chaincode-java', name: 'fabric-chaincode-shim', version: '2.2.+'
+    implementation 'commons-logging:commons-logging:1.2'
 }
 
 shadowJar {
