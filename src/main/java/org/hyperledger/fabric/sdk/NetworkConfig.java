@@ -815,6 +815,12 @@ public class NetworkConfig {
             props.put("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls", new Object[] {Boolean.valueOf(value)});
         }
 
+        value = props.getProperty("grpc.max_inbound_message_size");
+        if (null != value) {
+            props.remove("grpc.max_inbound_message_size");
+            props.put("grpc.NettyChannelBuilderOption.maxInboundMessageSize", new Object[] {Integer.valueOf(value)});
+        }
+
         // Extract the pem details
         getTLSCerts(jsonNode, props);
 
