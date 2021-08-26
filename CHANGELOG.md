@@ -1,3 +1,10 @@
+## v2.2.8
+Thu 26 Aug 2021 13:49:18 BST
+
+* [6f84e45](https://github.com/hyperledger/fabric-sdk-java/commit/6f84e45) FABJ-480: Fix maxInboundMessageSize yaml reading (#148)
+* [adf7fce](https://github.com/hyperledger/fabric-sdk-java/commit/adf7fce) Explicit dependencies in integration test chaincode
+* [85b91b8](https://github.com/hyperledger/fabric-sdk-java/commit/85b91b8) Update Chaincode Dependency (#142)
+
 ## v2.2.7
 Fri 11 Jun 2021 09:48:22 BST
 
