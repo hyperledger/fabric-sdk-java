@@ -263,11 +263,6 @@
             <artifactId>opentelemetry-sdk-extension-autoconfigure</artifactId>
             <version>1.5.0-alpha</version>
         </dependency>
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-core</artifactId>
-            <version>1.40.1</version>
-        </dependency>
     </dependencies>
 
 
@@ -636,6 +631,9 @@
                     <skipTestScope>true</skipTestScope>
                     <skipSystemScope>true</skipSystemScope>
                     <failBuildOnCVSS>7</failBuildOnCVSS>
+                    <suppressionFiles>
+                        <suppressionFile>dependencies-suppressions.xml</suppressionFile>
+                    </suppressionFiles>
                 </configuration>
                 <executions>
                     <execution>
