@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.PrivateKey;
@@ -59,6 +58,7 @@ import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.helper.Config;
+import org.hyperledger.fabric.sdk.helper.Utils;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 
 import static java.lang.String.format;
@@ -354,23 +354,15 @@ class Endpoint {
 
             }
             if (null == methodName || "forAddress".equals(methodName) || "build".equals(methodName)) {
-
                 continue;
             }
 
             Object parmsArrayO = es.getValue();
-            Object[] parmsArray;
-            if (!(parmsArrayO instanceof Object[])) {
-                parmsArray = new Object[] {parmsArrayO};
-
-            } else {
-                parmsArray = (Object[]) parmsArrayO;
-            }
+            Object[] parmsArray = !(parmsArrayO instanceof Object[]) ? new Object[] {parmsArrayO} : (Object[]) parmsArrayO;
 
             Class<?>[] classParms = new Class<?>[parmsArray.length];
-            int i = -1;
-            for (Object oparm : parmsArray) {
-                ++i;
+            for (int i = 0; i < parmsArray.length; i++) {
+                Object oparm = parmsArray[i];
 
                 if (null == oparm) {
                     classParms[i] = Object.class;
@@ -381,7 +373,6 @@ class Endpoint {
                 if (null != unwrapped) {
                     classParms[i] = unwrapped;
                 } else {
-
                     Class<?> clz = oparm.getClass();
 
                     Class<?> ecz = clz.getEnclosingClass();
@@ -393,13 +384,11 @@ class Endpoint {
                 }
             }
 
-            final Method method = channelBuilder.getClass().getMethod(methodName, classParms);
-
-            method.invoke(channelBuilder, parmsArray);
+            Utils.invokeMethod(channelBuilder, methodName, classParms, parmsArray);
 
             if (logger.isTraceEnabled()) {
                 logger.trace(format("Endpoint with url: %s set managed channel builder method %s (%s) ", url,
-                        method, Arrays.toString(parmsArray)));
+                        methodName, Arrays.toString(parmsArray)));
 
             }
 
