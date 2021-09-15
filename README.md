@@ -413,5 +413,14 @@ by starting command have the -d parameter.
 
 Upload full logs to the JIRA not just where the issue occurred if possible
 
+### Tracing
+
+The SDK is set up to trace all gRPC communications:
+* All outgoing messages bear trace metadata, allowing correlation with peers.
+* Each request/response is computed as a span.
+* If you use OpenTelemetry in your program, the gRPC span will correlate using the thread local context to the parent context.
+
+The SDK accepts all environment variables as described in the [OpenTelemetry specification](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md).
+
 
 <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
