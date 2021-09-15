@@ -37,6 +37,7 @@ import java.util.regex.Pattern;
 import javax.net.ssl.SSLException;
 
 import com.google.common.collect.ImmutableMap;
+import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NegotiationType;
@@ -44,6 +45,8 @@ import io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.instrumentation.grpc.v1_6.GrpcTracing;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -67,6 +70,8 @@ class Endpoint {
 
     private static final String SSLPROVIDER = Config.getConfig().getDefaultSSLProvider();
     private static final String SSLNEGOTIATION = Config.getConfig().getDefaultSSLNegotiationType();
+    private static final OpenTelemetry openTelemetry = Config.getConfig().getOpenTelemetry();
+    private static final GrpcTracing grpcTracing = GrpcTracing.create(openTelemetry);
 
     private final String addr;
     private final int port;
@@ -236,13 +241,14 @@ class Endpoint {
         }
 
         try {
+            ClientInterceptor clientInterceptor = grpcTracing.newClientInterceptor();
             if (protocol.equalsIgnoreCase("grpc")) {
-                this.channelBuilder = NettyChannelBuilder.forAddress(addr, port).negotiationType(NegotiationType.PLAINTEXT);
+                this.channelBuilder = NettyChannelBuilder.forAddress(addr, port).negotiationType(NegotiationType.PLAINTEXT).intercept(clientInterceptor);
                 addNettyBuilderProps(channelBuilder, properties);
             } else if (protocol.equalsIgnoreCase("grpcs")) {
                 if (pemBytes == null) {
                     // use root certificate
-                    this.channelBuilder = NettyChannelBuilder.forAddress(addr, port);
+                    this.channelBuilder = NettyChannelBuilder.forAddress(addr, port).intercept(clientInterceptor);
                     addNettyBuilderProps(channelBuilder, properties);
                 } else {
                     try {
