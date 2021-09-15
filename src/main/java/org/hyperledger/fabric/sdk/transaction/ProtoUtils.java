@@ -19,7 +19,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.xml.bind.DatatypeConverter;
 
 import com.google.protobuf.ByteString;
@@ -188,7 +187,7 @@ public final class ProtoUtils {
                         //best try.
                     }
                 }
-                if (null != suite && suite instanceof CryptoPrimitives) {
+                if (suite instanceof CryptoPrimitives) {
                     CryptoPrimitives cp = (CryptoPrimitives) suite;
                     byte[] der = cp.certificateToDER(cert);
                     if (null != der && der.length > 0) {
@@ -492,27 +491,4 @@ public final class ProtoUtils {
 
         return updatedMembers;
     }
-
-//     Keep for now as this can be handy in the future....
-//    static void printConfigGroup(Configtx.Config configGroup) throws InvalidProtocolBufferException {
-//        //     final JsonFormat.Parser parser = JsonFormat.parser();
-//        final JsonFormat.Printer printer = JsonFormat.printer();
-//        // Read the input stream and convert to JSON
-//
-//        JsonReader reader = Json.createReader(new StringReader(printer.print(configGroup)));
-//        JsonObject jsonConfig = (JsonObject) reader.read();
-//
-//        //channelGroup
-//        //   final Object read = JsonPath.parse(jsonConfig).read("$", Criteria.where("value").exists(true));
-//        // final Object read = JsonPath.parse(jsonConfig).read("$.channelGroup[?(@.value)]");
-//        //  final Object read = JsonPath.parse(jsonConfig).read("$.channelGroup..value");
-//        // worked got strings  final Object read = JsonPath.parse(jsonConfig).read("$.channelGroup..value");
-//        // final Object read = JsonPath.parse(jsonConfig).read("$.channelGroup..[?(@[?(@.value)])]");
-//        final net.minidev.json.JSONArray read = JsonPath.parse(jsonConfig).read("$.channelGroup..[?(@.value)]");
-//        final Object next = read.iterator().next();
-//        out(read + "");
-//
-//        // out(printer.print(json));
-//
-//    }
 }

@@ -53,7 +53,7 @@ public class HFCAIdentity {
     // Affiliation for a user
     private String affiliation;
     // Array of attribute names and values
-    private Collection<Attribute> attrs = new ArrayList<Attribute>();
+    private Collection<Attribute> attrs = new ArrayList<>();
 
     private HFCAClient client;
     private int statusCode;
@@ -214,7 +214,7 @@ public class HFCAIdentity {
                 affiliation = result.getString("affiliation");
 
                 JsonArray attributes = result.getJsonArray("attrs");
-                Collection<Attribute> attrs = new ArrayList<Attribute>();
+                Collection<Attribute> attrs = new ArrayList<>();
                 if (attributes != null && !attributes.isEmpty()) {
                     for (int i = 0; i < attributes.size(); i++) {
                         JsonObject attribute = attributes.getJsonObject(i);
@@ -383,7 +383,7 @@ public class HFCAIdentity {
         affiliation = result.getString("affiliation");
         JsonArray attributes = result.getJsonArray("attrs");
 
-        Collection<Attribute> attrs = new ArrayList<Attribute>();
+        Collection<Attribute> attrs = new ArrayList<>();
         if (attributes != null && !attributes.isEmpty()) {
             for (int i = 0; i < attributes.size(); i++) {
                 JsonObject attribute = attributes.getJsonObject(i);

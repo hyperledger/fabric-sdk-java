@@ -19,6 +19,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.URI;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
@@ -29,14 +33,17 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
-import io.netty.util.internal.StringUtil;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
@@ -60,6 +67,26 @@ public final class Utils {
     private static final boolean TRACE_ENABED = logger.isTraceEnabled();
     private static final Config config = Config.getConfig();
     private static final int MAX_LOG_STRING_LENGTH = config.maxLogStringLength();
+
+    private static final Map<Class<?>, Function<String, ?>> STRING_CONVERSIONS_BY_TYPE =
+            new ImmutableMap.Builder<Class<?>, Function<String, ?>>()
+                    .put(Byte.class, Byte::valueOf)
+                    .put(byte.class, Byte::valueOf)
+                    .put(Short.class, Short::valueOf)
+                    .put(short.class, Short::valueOf)
+                    .put(Integer.class, Integer::valueOf)
+                    .put(int.class, Integer::valueOf)
+                    .put(Long.class, Long::valueOf)
+                    .put(long.class, Long::valueOf)
+                    .put(Float.class, Float::valueOf)
+                    .put(float.class, Float::valueOf)
+                    .put(Double.class, Double::valueOf)
+                    .put(double.class, Double::valueOf)
+                    .put(Boolean.class, Boolean::valueOf)
+                    .put(boolean.class, Boolean::valueOf)
+                    .put(BigInteger.class, BigInteger::new)
+                    .put(BigDecimal.class, BigDecimal::new)
+                    .build();
 
     /**
      * Generate parameter hash for the given chaincode path,func and args
@@ -300,7 +327,7 @@ public final class Utils {
     }
 
     public static Properties parseGrpcUrl(String url) {
-        if (StringUtil.isNullOrEmpty(url)) {
+        if (isNullOrEmpty(url)) {
             throw new RuntimeException("URL cannot be null or empty");
         }
 
@@ -407,6 +434,76 @@ public final class Utils {
 
         return encodeHexString(bytes.getBytes(UTF_8));
 
+    }
+
+    /**
+     * Lookup method by name and params
+     * If there are no strict matches - trying to convert args to appropriate type
+     * Useful for building network configs from yaml files
+     * */
+    public static Object invokeMethod(final Object target, final String methodName, final Class<?>[] parameterTypes, final Object[] args) throws InvocationTargetException,
+            IllegalAccessException, NoSuchMethodException {
+        if (parameterTypes.length != args.length) {
+            throw new IllegalArgumentException("Parameters types " + java.util.Arrays.toString(parameterTypes) +
+                    " do not match arguments " + java.util.Arrays.toString(args));
+        }
+
+        Method method = lookupMethod(target.getClass(), methodName, parameterTypes);
+
+        //convert args to founded method param's types
+        Object[] coercedArgs = new Object[args.length];
+        Class<?>[] methodParameterTypes = method.getParameterTypes();
+        for (int i = 0; i < args.length; i++) {
+            coercedArgs[i] = convertArgumentToType(args[i], methodParameterTypes[i]);
+        }
+
+        return method.invoke(target, coercedArgs);
+    }
+
+    private static Method lookupMethod(final Class<?> cls, final String name, final Class<?>[] parameterTypes) throws NoSuchMethodException {
+        try {
+            return cls.getMethod(name, parameterTypes);
+        } catch (NoSuchMethodException originalException) {
+            //trying to find method with same name and parameters count
+            List<Method> candidates = java.util.Arrays.stream(cls.getMethods())
+                    .filter(it -> it.getName().equals(name))
+                    .filter(it -> it.getParameterCount() == parameterTypes.length)
+                    .collect(Collectors.toList());
+
+            if (candidates.isEmpty()) {
+                throw originalException;
+            }
+
+            //if there is only one candidate - return it
+            if (candidates.size() == 1) {
+                return candidates.get(0);
+            }
+
+            //else, it could be same method declared in hierarchy (override). They must be with equal parameter types
+            for (int i = 0; i < candidates.size() - 1; i++) {
+                Class<?>[] types1 = candidates.get(i).getParameterTypes();
+                Class<?>[] types2 = candidates.get(i + 1).getParameterTypes();
+                //otherwise - we found methods with different params and can't choose one
+                if (!java.util.Arrays.equals(types1, types2)) {
+                    throw originalException;
+                }
+            }
+
+            return candidates.get(0);
+        }
+    }
+
+    private static Object convertArgumentToType(final Object arg, final Class<?> type) {
+        if (arg.getClass().equals(type) || !(arg instanceof String)) {
+            return arg;
+        }
+
+        Function<String, ?> convert = STRING_CONVERSIONS_BY_TYPE.get(type);
+        if (null == convert) {
+            throw new IllegalArgumentException("Unable to convert \"" + arg + "\" to " + type.getTypeName());
+        }
+
+        return convert.apply((String) arg);
     }
 
     /**

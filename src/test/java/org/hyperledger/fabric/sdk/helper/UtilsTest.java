@@ -19,8 +19,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -33,6 +31,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.Mockito;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.assertArrayListEquals;
@@ -44,6 +43,16 @@ public class UtilsTest {
     // These are automatically deleted when each test completes
     @Rule
     public final TemporaryFolder tempFolder = new TemporaryFolder();
+
+    public static class InvocationStub {
+        public InvocationStub intParameter(int i) {
+            return this;
+        }
+
+        public InvocationStub complexParameter(InvocationStub that) {
+            return this;
+        }
+    }
 
     @Test
     public void testGenerateParameterHash() {
@@ -379,6 +388,70 @@ public class UtilsTest {
     public void testToHexStringNull() {
         Assert.assertNull(Utils.toHexString((byte[]) null));
         Assert.assertNull(Utils.toHexString((ByteString) null));
+    }
+
+    @Test
+    public void testInvokeMethodMismatchedTypesAndArgs() {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            Utils.invokeMethod(new InvocationStub(), "intParameter", new Class<?>[] {int.class}, new Object[0]);
+        });
+    }
+
+    @Test
+    public void testInvokeMethodInvalidParameterType() {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            Utils.invokeMethod(new InvocationStub(), "complexParameter", new Class<?>[] {InvocationStub.class}, new Object[] {"wrong"});
+        });
+    }
+
+    @Test
+    public void testInvokeMethodWithCorrectArgs() throws Exception {
+        InvocationStub testObject = Mockito.spy(new InvocationStub());
+
+        Object result = Utils.invokeMethod(testObject, "intParameter", new Class<?>[] {int.class}, new Object[] {1024});
+
+        Mockito.verify(testObject, Mockito.atLeastOnce()).intParameter(1024);
+        Assert.assertEquals(testObject, result);
+    }
+
+    @Test
+    public void testInvokeMethodWithCoercedArgs() throws Exception {
+        InvocationStub testObject = Mockito.spy(new InvocationStub());
+
+        Object result = Utils.invokeMethod(testObject, "intParameter", new Class<?>[] {int.class}, new Object[] {"1024"});
+
+        Mockito.verify(testObject, Mockito.atLeastOnce()).intParameter(1024);
+        Assert.assertEquals(testObject, result);
+    }
+
+    @Test
+    public void testInvokeMethodWithAlternativeTypedArgs() throws Exception {
+        InvocationStub testObject = Mockito.spy(new InvocationStub());
+
+        Object result = Utils.invokeMethod(testObject, "intParameter", new Class<?>[] {Integer.class}, new Object[] {"1024"});
+
+        Mockito.verify(testObject, Mockito.atLeastOnce()).intParameter(1024);
+        Assert.assertEquals(testObject, result);
+    }
+
+    @Test
+    public void testInvokeMethodWithCoercedArgsAndParameters() throws Exception {
+        InvocationStub testObject = Mockito.spy(new InvocationStub());
+
+        Object result = Utils.invokeMethod(testObject, "intParameter", new Class<?>[] {String.class}, new Object[] {"1024"});
+
+        Mockito.verify(testObject, Mockito.atLeastOnce()).intParameter(1024);
+        Assert.assertEquals(testObject, result);
+    }
+
+    @Test
+    public void testInvokeMethodWithComplexArgs() throws Exception {
+        InvocationStub testObject = Mockito.spy(new InvocationStub());
+
+        Object result = Utils.invokeMethod(testObject, "complexParameter", new Class<?>[] {InvocationStub.class}, new Object[] {testObject});
+
+        Mockito.verify(testObject, Mockito.atLeastOnce()).complexParameter(testObject);
+        Assert.assertEquals(testObject, result);
     }
 
     // ==========================================================================================

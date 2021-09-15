@@ -1,3 +1,24 @@
+## v2.2.8
+Thu 26 Aug 2021 13:49:18 BST
+
+* [6f84e45](https://github.com/hyperledger/fabric-sdk-java/commit/6f84e45) FABJ-480: Fix maxInboundMessageSize yaml reading (#148)
+* [adf7fce](https://github.com/hyperledger/fabric-sdk-java/commit/adf7fce) Explicit dependencies in integration test chaincode
+* [85b91b8](https://github.com/hyperledger/fabric-sdk-java/commit/85b91b8) Update Chaincode Dependency (#142)
+
+## v2.2.7
+Fri 11 Jun 2021 09:48:22 BST
+
+* [043af87](https://github.com/hyperledger/fabric-sdk-java/commit/043af87) FGJ-111: Minimise explicit gRPC dependencies (#135)
+* [66aecdf](https://github.com/hyperledger/fabric-sdk-java/commit/66aecdf) Update BlockchainInfo.java (#133)
+
+## v2.2.6
+Fri 23 Apr 2021 16:02:16 BST
+
+* [6712c7a](https://github.com/hyperledger/fabric-sdk-java/commit/6712c7a) FGJ-108: Update commons-io dependency (#126)
+* [df1827a](https://github.com/hyperledger/fabric-sdk-java/commit/df1827a) Update netty-codec-http2 dependency (#120)
+* [eff4927](https://github.com/hyperledger/fabric-sdk-java/commit/eff4927) [FABJ-549] Assert fail if less (#118)
+* [389d784](https://github.com/hyperledger/fabric-sdk-java/commit/389d784) [FABJ-545] Move log4j version to 2.14.0 (#114)
+
 ## v2.2.5
 Fri 22 Jan 2021 13:04:10 GMT
 

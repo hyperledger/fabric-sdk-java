@@ -24,8 +24,8 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslProvider;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslContextBuilder;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslProvider;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;

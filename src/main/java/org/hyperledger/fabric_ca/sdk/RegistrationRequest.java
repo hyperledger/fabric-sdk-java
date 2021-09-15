@@ -42,7 +42,7 @@ public class RegistrationRequest {
     // Affiliation for a user
     private String affiliation;
     // Array of attribute names and values
-    private Collection<Attribute> attrs = new ArrayList<Attribute>();
+    private Collection<Attribute> attrs = new ArrayList<>();
 
     private String caName;
 

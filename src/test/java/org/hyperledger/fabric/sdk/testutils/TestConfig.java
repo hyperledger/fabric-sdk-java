@@ -18,20 +18,16 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -355,7 +351,7 @@ public class TestConfig {
     }
 
     public boolean getRunIdemixMTTest() {
-        return Boolean.valueOf(getProperty(RUNIDEMIXMTTEST));
+        return Boolean.parseBoolean(getProperty(RUNIDEMIXMTTEST));
     }
 
     public Collection<SampleOrg> getIntegrationTestsSampleOrgs() {
