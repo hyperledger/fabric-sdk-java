@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -17,6 +18,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -28,7 +30,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 
+import com.google.common.io.Closer;
 import com.google.protobuf.InvalidProtocolBufferException;
+import io.grpc.Server;
+import io.grpc.Status;
+import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
+import io.grpc.stub.StreamObserver;
+import io.opentelemetry.proto.collector.trace.v1.ExportTraceServiceRequest;
+import io.opentelemetry.proto.collector.trace.v1.ExportTraceServiceResponse;
+import io.opentelemetry.proto.collector.trace.v1.TraceServiceGrpc;
+import io.opentelemetry.proto.trace.v1.ResourceSpans;
 import org.hyperledger.fabric.sdk.BlockEvent.TransactionEvent;
 import org.hyperledger.fabric.sdk.ChaincodeCollectionConfiguration;
 import org.hyperledger.fabric.sdk.ChaincodeResponse;
@@ -116,6 +127,38 @@ public class End2endLifecycleIT {
         TX_EXPECTED.put("writeset1", "Missing writeset for channel bar block 1");
     }
 
+    private static final class FakeCollector extends TraceServiceGrpc.TraceServiceImplBase {
+        private final List<ResourceSpans> receivedSpans = new ArrayList<>();
+        private Status returnedStatus = Status.OK;
+
+        @Override
+        public void export(
+                final ExportTraceServiceRequest request,
+                final StreamObserver<ExportTraceServiceResponse> responseObserver) {
+            receivedSpans.addAll(request.getResourceSpansList());
+            responseObserver.onNext(ExportTraceServiceResponse.newBuilder().build());
+            if (!returnedStatus.isOk()) {
+                if (returnedStatus.getCode() == Status.Code.DEADLINE_EXCEEDED) {
+                    // Do not call onCompleted to simulate a deadline exceeded.
+                    return;
+                }
+                responseObserver.onError(returnedStatus.asRuntimeException());
+                return;
+            }
+            responseObserver.onCompleted();
+        }
+
+        List<ResourceSpans> getReceivedSpans() {
+            return receivedSpans;
+        }
+
+        void setReturnedStatus(final Status returnedStatus) {
+            this.returnedStatus = returnedStatus;
+        }
+    }
+
+    private final Closer closer = Closer.create();
+    private final FakeCollector fakeTracesCollector = new FakeCollector();
     private final TestConfigHelper configHelper = new TestConfigHelper();
     String testName = "End2endLifecycleIT";
 
@@ -144,8 +187,15 @@ public class End2endLifecycleIT {
     @Before
     public void checkConfig() throws Exception {
         out("\n\n\nRUNNING: %s.\n", testName);
+        Server server =
+                NettyServerBuilder.forPort(4317)
+                        .addService(fakeTracesCollector)
+                        .build()
+                        .start();
+        closer.register(server::shutdownNow);
         //   configHelper.clearConfig();
         //   assertEquals(256, Config.getConfig().getSecurityLevel());
+        System.setProperty("OTEL_TRACES_SAMPLER", "always_on");
         resetConfig();
         configHelper.customizeConfig();
 
@@ -335,6 +385,8 @@ public class End2endLifecycleIT {
 
         assertNull(org1Client.getChannel(CHANNEL_NAME));
         out("\n");
+
+        assertFalse(fakeTracesCollector.receivedSpans.isEmpty());
 
         out("That's all folks!");
     }
