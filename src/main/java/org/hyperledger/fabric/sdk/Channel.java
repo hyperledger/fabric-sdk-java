@@ -6411,16 +6411,37 @@ public class Channel implements Serializable {
     public static class PeerOptions implements Cloneable, Serializable {
         private static final long serialVersionUID = -6906605662806520793L;
 
+        /**
+         * Event type information, can be used for setting the PeerOptions.
+         * Can request for one of filtered block, block and block with private data.
+         */
+        enum EventType {
+            FILTERED_BLOCK("Filtered Block"),
+            BLOCK("Block"),
+            BLOCK_WITH_PRIVATE_DATA("Block and Private Data");
+
+            final String description;
+
+            EventType(final String description) {
+                this.description = description;
+            }
+
+            @Override
+            public String toString() {
+                return this.description;
+            }
+        }
+
         protected EnumSet<PeerRole> peerRoles;
         protected Boolean newest = true;
         protected Long startEvents;
         protected Long stopEvents = Long.MAX_VALUE;
-        protected boolean registerEventsForFilteredBlocks = false;
+        protected EventType eventType = EventType.BLOCK;
 
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder(1000);
-            sb.append("PeerOptions( " + format("newest: %s, startEvents: %s, stopEvents: %s, registerEventsForFilteredBlocks: %s", "" + newest, "" + startEvents, "" + stopEvents, registerEventsForFilteredBlocks));
+            sb.append("PeerOptions( " + format("newest: %s, startEvents: %s, stopEvents: %s, eventType: %s", "" + newest, "" + startEvents, "" + stopEvents, eventType));
 
             if (peerRoles != null && !peerRoles.isEmpty()) {
                 sb.append(", PeerRoles:[");
@@ -6437,12 +6458,12 @@ public class Channel implements Serializable {
         }
 
         /**
-         * Is the peer eventing service registered for filtered blocks
+         * Returns requested event type
          *
-         * @return true if filtered blocks will be returned by the peer eventing service.
+         * @return enum value of the event type
          */
-        public boolean isRegisterEventsForFilteredBlocks() {
-            return registerEventsForFilteredBlocks;
+        EventType getEventType() {
+            return this.eventType;
         }
 
         /**
@@ -6451,7 +6472,17 @@ public class Channel implements Serializable {
          * @return the PeerOptions instance.
          */
         public PeerOptions registerEventsForFilteredBlocks() {
-            registerEventsForFilteredBlocks = true;
+            this.eventType = EventType.FILTERED_BLOCK;
+            return this;
+        }
+
+        /**
+         * Register the peer eventing services to return private data maps with the blocks.
+         *
+         * @return the PeerOptions instance.
+         */
+        public PeerOptions registerEventsForPrivateData() {
+            this.eventType = EventType.BLOCK_WITH_PRIVATE_DATA;
             return this;
         }
 
@@ -6461,7 +6492,7 @@ public class Channel implements Serializable {
          * @return the PeerOptions instance.
          */
         public PeerOptions registerEventsForBlocks() {
-            registerEventsForFilteredBlocks = false;
+            this.eventType = EventType.BLOCK;
             return this;
         }
 

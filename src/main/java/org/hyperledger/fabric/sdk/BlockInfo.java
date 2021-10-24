@@ -38,12 +38,14 @@ import static java.lang.String.format;
  * BlockInfo contains the data from a {@link Block}
  */
 public class BlockInfo {
-    private final BlockDeserializer block; //can be only one or the other.
+    private final BlockDeserializer block; // block deserializer
     private final EventsPackage.FilteredBlock filteredBlock;
+    private final EventsPackage.BlockAndPrivateData blockAndPrivateData;
 
     BlockInfo(Block block) {
 
         filteredBlock = null;
+        blockAndPrivateData = null;
         this.block = new BlockDeserializer(block);
     }
 
@@ -54,6 +56,7 @@ public class BlockInfo {
         if (type == EventsPackage.DeliverResponse.TypeCase.BLOCK) {
             final Block respBlock = resp.getBlock();
             filteredBlock = null;
+            blockAndPrivateData = null;
             if (respBlock == null) {
                 throw new AssertionError("DeliverResponse type block but block is null");
             }
@@ -61,24 +64,47 @@ public class BlockInfo {
         } else if (type == EventsPackage.DeliverResponse.TypeCase.FILTERED_BLOCK) {
             filteredBlock = resp.getFilteredBlock();
             block = null;
+            blockAndPrivateData = null;
             if (filteredBlock == null) {
                 throw new AssertionError("DeliverResponse type filter block but filter block is null");
             }
 
+        } else if (type == EventsPackage.DeliverResponse.TypeCase.BLOCK_AND_PRIVATE_DATA) {
+            blockAndPrivateData = resp.getBlockAndPrivateData();
+            filteredBlock = null;
+            if (blockAndPrivateData == null || blockAndPrivateData.getBlock() == null) {
+                throw new AssertionError("DeliverResponse type block and private data is null");
+            }
+            block = new BlockDeserializer(blockAndPrivateData.getBlock());
         } else {
             throw new AssertionError(format("DeliverResponse type has unexpected type: %s, %d", type.name(), type.getNumber()));
         }
 
     }
 
-    public boolean isFiltered() {
-        if (filteredBlock == null && block == null) {
-            throw new AssertionError("Both block and filter is null.");
+    private void checkOneSetOrError() {
+        if (filteredBlock == null && block == null && blockAndPrivateData == null) {
+            throw new AssertionError("Block, filter and private data are all null.");
         }
         if (filteredBlock != null && block != null) {
             throw new AssertionError("Both block and filter are set.");
         }
+        if (filteredBlock != null && blockAndPrivateData != null) {
+            throw new AssertionError("Both private data block and filter are set.");
+        }
+        if (blockAndPrivateData != null && block == null) {
+            throw new AssertionError("Block with private data does not have sufficient block data");
+        }
+    }
+
+    public boolean isFiltered() {
+        checkOneSetOrError();
         return filteredBlock != null;
+    }
+
+    public boolean isBlockAndPrivate() {
+        checkOneSetOrError();
+        return blockAndPrivateData != null;
     }
 
     public String getChannelId() throws InvalidProtocolBufferException {
@@ -97,6 +123,13 @@ public class BlockInfo {
      */
     public EventsPackage.FilteredBlock getFilteredBlock() {
         return !isFiltered() ? null : filteredBlock;
+    }
+
+    /**
+     * @return the raw {@link org.hyperledger.fabric.protos.peer.EventsPackage.BlockAndPrivateData}
+     */
+    public EventsPackage.BlockAndPrivateData getBlockAndPrivateData() {
+        return !isBlockAndPrivate() ? null : blockAndPrivateData;
     }
 
     /**
