@@ -152,7 +152,8 @@ class PeerEventServiceClient {
                 boolean isTerminated = false;
 
                 try {
-                    isTerminated = lchannel.shutdown().awaitTermination(3, TimeUnit.SECONDS);
+                    long shutdownWaitTime = Config.getConfig().getConnectionShutdownWaitTime();
+                    isTerminated = lchannel.shutdown().awaitTermination(shutdownWaitTime, TimeUnit.MILLISECONDS);
                 } catch (Exception e) {
                     logger.debug(me + " error message: " + e.getMessage(), e); //best effort
                 }

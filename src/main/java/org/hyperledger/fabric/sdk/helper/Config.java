@@ -25,9 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
-import io.opentelemetry.sdk.OpenTelemetrySdkBuilder;
 import io.opentelemetry.sdk.autoconfigure.OpenTelemetrySdkAutoConfiguration;
-import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.Level;
@@ -89,6 +87,7 @@ public class Config {
 
     public static final String CONN_SSL_PROVIDER = "org.hyperledger.fabric.sdk.connections.ssl.sslProvider";
     public static final String CONN_SSL_NEGTYPE = "org.hyperledger.fabric.sdk.connections.ssl.negotiationType";
+    public static final String CONNECTION_SHUTDOWN_WAIT_TIME = "org.hyperledger.fabric.sdk.connections.shutdown.wait_time";
 
     /**
      * Default HFClient thread executor settings.
@@ -177,6 +176,7 @@ public class Config {
 
             defaultProperty(CONN_SSL_PROVIDER, "openSSL");
             defaultProperty(CONN_SSL_NEGTYPE, "TLS");
+            defaultProperty(CONNECTION_SHUTDOWN_WAIT_TIME, "3000");
 
             /**
              * Default HFClient thread executor settings.
@@ -184,7 +184,7 @@ public class Config {
 
             defaultProperty(CLIENT_THREAD_EXECUTOR_COREPOOLSIZE, "0");
             defaultProperty(CLIENT_THREAD_EXECUTOR_MAXIMUMPOOLSIZE, "" + Integer.MAX_VALUE);
-            defaultProperty(CLIENT_THREAD_EXECUTOR_KEEPALIVETIME, "" + "60");
+            defaultProperty(CLIENT_THREAD_EXECUTOR_KEEPALIVETIME, "60");
             defaultProperty(CLIENT_THREAD_EXECUTOR_KEEPALIVETIMEUNIT, "SECONDS");
 
             /**
@@ -353,6 +353,15 @@ public class Config {
     public String getDefaultSSLNegotiationType() {
         return getProperty(CONN_SSL_NEGTYPE);
 
+    }
+
+    /**
+     * Time to wait for gRPC connections to shut down before forcefully closing them. A zero or negative value indicates
+     * that connections should be forcefully closed with no wait time.
+     * @return Wait time in milliseconds.
+     */
+    public long getConnectionShutdownWaitTime() {
+        return Long.parseLong(getProperty(CONNECTION_SHUTDOWN_WAIT_TIME));
     }
 
     public OpenTelemetry getOpenTelemetry() {

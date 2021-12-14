@@ -86,6 +86,7 @@ class EndorserClient {
         if (lchannel == null) {
             return;
         }
+
         if (force) {
 
             try {
@@ -98,7 +99,8 @@ class EndorserClient {
             boolean isTerminated = false;
 
             try {
-                isTerminated = lchannel.shutdown().awaitTermination(3, TimeUnit.SECONDS);
+                long shutdownWaitTime = Config.getConfig().getConnectionShutdownWaitTime();
+                isTerminated = lchannel.shutdown().awaitTermination(shutdownWaitTime, TimeUnit.MILLISECONDS);
             } catch (Exception e) {
                 logger.debug(toString(), e); //best effort
             }

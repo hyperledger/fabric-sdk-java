@@ -6259,6 +6259,11 @@ public class Channel implements Serializable {
             return;
         }
 
+        long shutdownWaitTime = Config.getConfig().getConnectionShutdownWaitTime();
+        if (shutdownWaitTime <= 0) {
+            force = true;
+        }
+
         String ltransactionListenerProcessorHandle = transactionListenerProcessorHandle;
         transactionListenerProcessorHandle = null;
         if (null != ltransactionListenerProcessorHandle) {
