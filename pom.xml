@@ -625,7 +625,7 @@
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-                <version>6.2.2</version>
+                <version>6.5.0</version>
                 <configuration>
                     <skipProvidedScope>true</skipProvidedScope>
                     <skipTestScope>true</skipTestScope>
