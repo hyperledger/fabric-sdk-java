@@ -1,3 +1,9 @@
+## v2.2.9
+Tue 14 Dec 2021 09:02:34 GMT
+
+* [f5580d3](https://github.com/hyperledger/fabric-sdk-java/commit/f5580d3) Bump log4j-core from 2.14.0 to 2.15.0
+* [e83c506](https://github.com/hyperledger/fabric-sdk-java/commit/e83c506) Add OpenTelemetry tracing (#151)
+
 ## v2.2.8
 Thu 26 Aug 2021 13:49:18 BST
 
