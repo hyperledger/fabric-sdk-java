@@ -37,7 +37,7 @@
         <alpn-boot-version>8.1.7.v20160121</alpn-boot-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jacoco.version>0.8.5</jacoco.version>
-        <log4j.version>2.13.3</log4j.version>
+        <log4j.version>2.16.0</log4j.version>
         <org.hyperledger.fabric.sdktest.ITSuite>IntegrationSuite.java</org.hyperledger.fabric.sdktest.ITSuite>
         <gpg.executable>gpg2</gpg.executable>
     </properties>
