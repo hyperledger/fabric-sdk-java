@@ -1,3 +1,10 @@
+## v1.4.14
+Thu 16 Dec 2021 11:27:13 GMT
+
+* [24e3759](https://github.com/hyperledger/fabric-sdk-java/commit/24e3759) Bump log4j-core from 2.15.0 to 2.16.0 (#166)
+* [fc5d278](https://github.com/hyperledger/fabric-sdk-java/commit/fc5d278) Update netty-codec-http2 dependency (#121)
+* [49b66e5](https://github.com/hyperledger/fabric-sdk-java/commit/49b66e5) FABJ-536 Add support for mutual TLS when connecting to CA
+
 ## v1.4.13
 Wed  4 Nov 2020 13:44:18 GMT
 
