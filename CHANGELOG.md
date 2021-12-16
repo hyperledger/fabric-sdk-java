@@ -1,3 +1,8 @@
+## v2.2.10
+Thu 16 Dec 2021 10:03:26 GMT
+
+* [519ba09](https://github.com/hyperledger/fabric-sdk-java/commit/519ba09) Bump log4j-core from 2.15.0 to 2.16.0 (#166)
+
 ## v2.2.9
 Tue 14 Dec 2021 09:02:34 GMT
 
