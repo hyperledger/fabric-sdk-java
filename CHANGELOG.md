@@ -1,3 +1,9 @@
+## v2.2.11
+Tue  4 Jan 2022 13:34:24 GMT
+
+* [f22299c](https://github.com/hyperledger/fabric-sdk-java/commit/f22299c) Update dependencies (#180)
+* [a3d5112](https://github.com/hyperledger/fabric-sdk-java/commit/a3d5112) Bump log4j-core from 2.16.0 to 2.17.0
+
 ## v2.2.10
 Thu 16 Dec 2021 10:03:26 GMT
 
