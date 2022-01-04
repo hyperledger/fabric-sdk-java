@@ -15,6 +15,7 @@ package org.hyperledger.fabric.sdk.helper;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -204,8 +205,7 @@ public class UtilsTest {
     }
 
     // Test compressing a non-existent directory
-    // Note that this currently throws an IllegalArgumentException, and not an IOException!
-    @Test (expected = IllegalArgumentException.class)
+    @Test (expected = UncheckedIOException.class)
     public void testGenerateTarGzNoDirectory() throws Exception {
         File rootDir = tempFolder.getRoot().getAbsoluteFile();
         File nonExistentDir = new File(rootDir, "temp");
