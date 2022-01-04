@@ -1,3 +1,9 @@
+## v1.14.15
+Tue  4 Jan 2022 15:00:35 GMT
+
+* [aa181d3](https://github.com/hyperledger/fabric-sdk-java/commit/aa181d3) Update dependencies (#181)
+* [f72a6c4](https://github.com/hyperledger/fabric-sdk-java/commit/f72a6c4) Bump log4j-core from 2.16.0 to 2.17.0
+
 ## v1.4.14
 Thu 16 Dec 2021 11:27:13 GMT
 
