@@ -27,16 +27,16 @@
         <url>http://github.com/hyperledger/fabric-sdk-java</url>
     </scm>
     <properties>
-        <grpc.version>1.38.0</grpc.version><!-- CURRENT_GRPC_VERSION -->
-        <protobuf.version>3.17.3</protobuf.version>
-        <bouncycastle.version>1.69</bouncycastle.version>
+        <grpc.version>1.43.1</grpc.version>
+        <protobuf.version>3.19.1</protobuf.version> <!-- Must match version used by grpc-protobuf -->
+        <bouncycastle.version>1.70</bouncycastle.version>
         <httpclient.version>4.5.13</httpclient.version>
         <javadoc.version>3.2.0</javadoc.version>
         <skipITs>true</skipITs>
         <alpn-boot-version>8.1.7.v20160121</alpn-boot-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jacoco.version>0.8.5</jacoco.version>
-        <log4j.version>2.17.0</log4j.version>
+        <log4j.version>2.17.1</log4j.version>
         <org.hyperledger.fabric.sdktest.ITSuite>IntegrationSuite.java</org.hyperledger.fabric.sdktest.ITSuite>
         <gpg.executable>gpg</gpg.executable>
     </properties>
@@ -84,19 +84,19 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>3.3.3</version>
+            <version>4.2.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.13.1</version>
+            <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-tcnative-boringssl-static</artifactId>
-            <version>2.0.39.Final</version>
+            <version>2.0.46.Final</version>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
@@ -143,7 +143,7 @@
         <dependency>
             <groupId>commons-cli</groupId>
             <artifactId>commons-cli</artifactId>
-            <version>1.4</version>
+            <version>1.5.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -153,7 +153,7 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.8.0</version>
+            <version>2.11.0</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core -->
@@ -189,12 +189,12 @@
         <dependency>
             <groupId>com.spotify</groupId>
             <artifactId>futures-extra</artifactId>
-            <version>4.2.0</version>
+            <version>4.3.1</version>
         </dependency>
         <dependency>
             <groupId>com.google.api</groupId>
             <artifactId>api-common</artifactId>
-            <version>1.9.0</version>
+            <version>2.1.1</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.glassfish/javax.json -->
@@ -208,7 +208,7 @@
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
-            <version>1.26</version>
+            <version>1.30</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.miracl.milagro.amcl/milagro-crypto-java -->
@@ -621,7 +621,7 @@
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-                <version>6.5.0</version>
+                <version>6.5.2</version>
                 <configuration>
                     <skipProvidedScope>true</skipProvidedScope>
                     <skipTestScope>true</skipTestScope>
