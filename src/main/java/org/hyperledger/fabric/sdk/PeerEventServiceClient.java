@@ -58,7 +58,7 @@ class PeerEventServiceClient {
     private long peerEventRegistrationWaitTimeMilliSecs = PEER_EVENT_REGISTRATION_WAIT_TIME;
 
     private final PeerOptions peerOptions;
-    private final PeerOptions.EventType eventType;
+    private final BlockInfo.Type eventType;
     private byte[] clientTLSCertificateDigest;
     StreamObserver<Envelope> nso = null;
     StreamObserver<EventsPackage.DeliverResponse> so = null;
