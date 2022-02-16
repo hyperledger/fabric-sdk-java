@@ -6411,32 +6411,11 @@ public class Channel implements Serializable {
     public static class PeerOptions implements Cloneable, Serializable {
         private static final long serialVersionUID = -6906605662806520793L;
 
-        /**
-         * Event type information, can be used for setting the PeerOptions.
-         * Can request for one of filtered block, block and block with private data.
-         */
-        enum EventType {
-            FILTERED_BLOCK("Filtered Block"),
-            BLOCK("Block"),
-            BLOCK_WITH_PRIVATE_DATA("Block and Private Data");
-
-            final String description;
-
-            EventType(final String description) {
-                this.description = description;
-            }
-
-            @Override
-            public String toString() {
-                return this.description;
-            }
-        }
-
         protected EnumSet<PeerRole> peerRoles;
         protected Boolean newest = true;
         protected Long startEvents;
         protected Long stopEvents = Long.MAX_VALUE;
-        protected EventType eventType = EventType.BLOCK;
+        protected BlockInfo.Type eventType = BlockInfo.Type.BLOCK;
 
         @Override
         public String toString() {
@@ -6462,7 +6441,7 @@ public class Channel implements Serializable {
          *
          * @return enum value of the event type
          */
-        EventType getEventType() {
+        BlockInfo.Type getEventType() {
             return this.eventType;
         }
 
@@ -6472,7 +6451,7 @@ public class Channel implements Serializable {
          * @return the PeerOptions instance.
          */
         public PeerOptions registerEventsForFilteredBlocks() {
-            this.eventType = EventType.FILTERED_BLOCK;
+            this.eventType = BlockInfo.Type.FILTERED_BLOCK;
             return this;
         }
 
@@ -6482,7 +6461,7 @@ public class Channel implements Serializable {
          * @return the PeerOptions instance.
          */
         public PeerOptions registerEventsForPrivateData() {
-            this.eventType = EventType.BLOCK_WITH_PRIVATE_DATA;
+            this.eventType = BlockInfo.Type.BLOCK_WITH_PRIVATE_DATA;
             return this;
         }
 
@@ -6492,7 +6471,7 @@ public class Channel implements Serializable {
          * @return the PeerOptions instance.
          */
         public PeerOptions registerEventsForBlocks() {
-            this.eventType = EventType.BLOCK;
+            this.eventType = BlockInfo.Type.BLOCK;
             return this;
         }
 

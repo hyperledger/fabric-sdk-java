@@ -470,7 +470,7 @@ public class NetworkConfigTest {
         for (Peer peer : channel.getPeers()) {
             Channel.PeerOptions peersOptions = channel.getPeersOptions(peer);
             assertNotNull(peersOptions);
-            assertEquals(peersOptions.getEventType(), Channel.PeerOptions.EventType.FILTERED_BLOCK);
+            assertEquals(peersOptions.getEventType(), BlockInfo.Type.FILTERED_BLOCK);
             assertEquals(expectedStartEvents, peersOptions.startEvents);
             assertEquals(expectedStopEvents, peersOptions.stopEvents);
             assertEquals(expectmaxMessageSizePeer, peer.getProperties().get("grpc.NettyChannelBuilderOption.maxInboundMessageSize"));

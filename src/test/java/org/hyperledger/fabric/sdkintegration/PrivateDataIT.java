@@ -564,8 +564,8 @@ public class PrivateDataIT {
                 BlockEvent seen = blockEvents.put(blockNumber, blockEvent);
                 assertNull(format("Block number %d seen twice", blockNumber), seen);
 
-                assertTrue(format("Wrong type of block seen block number %d. expected block with private data but got %s",
-                                blockNumber, blockEvent.isFiltered() ? "filtered" : "block"), blockEvent.isBlockAndPrivate());
+                assertEquals(format("Wrong type of block seen block number %d. expected block with private data but got %s",
+                                blockNumber, blockEvent.getType()), BlockInfo.Type.BLOCK_WITH_PRIVATE_DATA, blockEvent.getType());
                 final long count = bcount.getAndIncrement(); //count starts with 0 not 1 !
 
                 if (count == 0 && stop == -1L) {
@@ -613,7 +613,7 @@ public class PrivateDataIT {
             for (long i = stopValue.longValue(); i >= start; i--) {
 
                 final BlockEvent blockEvent = blockEvents.get(i);
-                assertTrue(blockEvent.isBlockAndPrivate()); // check again
+                assertEquals(BlockInfo.Type.BLOCK_WITH_PRIVATE_DATA, blockEvent.getType()); // check again
 
                 assertNotNull(blockEvent.getBlock()); // should have block.
                 assertNull(blockEvent.getFilteredBlock()); // should not have filtered block.
