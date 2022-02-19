@@ -889,8 +889,8 @@ public class End2endAndBackAgainIT {
                     assertNull(blockEvent.getBlock()); // should not have raw block event.
                     assertNotNull(blockEvent.getFilteredBlock()); // should have raw filtered block.
                 } else {
-                    assertNotNull(blockEvent.getBlock()); // should not have raw block event.
-                    assertNull(blockEvent.getFilteredBlock()); // should have raw filtered block.
+                    assertNotNull(blockEvent.getBlock()); // should have raw block event.
+                    assertNull(blockEvent.getFilteredBlock()); // should not have raw filtered block.
                 }
 
                 assertEquals(replayTestChannel.getName(), blockEvent.getChannelId());

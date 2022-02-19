@@ -38,47 +38,62 @@ import static java.lang.String.format;
  * BlockInfo contains the data from a {@link Block}
  */
 public class BlockInfo {
-    private final BlockDeserializer block; //can be only one or the other.
+    private final BlockDeserializer block; // block deserializer
     private final EventsPackage.FilteredBlock filteredBlock;
+    private final EventsPackage.BlockAndPrivateData blockAndPrivateData;
+    private final Type type;
 
     BlockInfo(Block block) {
-
         filteredBlock = null;
+        blockAndPrivateData = null;
         this.block = new BlockDeserializer(block);
+        type = Type.BLOCK;
     }
 
     BlockInfo(EventsPackage.DeliverResponse resp) {
+        final EventsPackage.DeliverResponse.TypeCase responseType = resp.getTypeCase();
 
-        final EventsPackage.DeliverResponse.TypeCase type = resp.getTypeCase();
-
-        if (type == EventsPackage.DeliverResponse.TypeCase.BLOCK) {
+        if (responseType == EventsPackage.DeliverResponse.TypeCase.BLOCK) {
             final Block respBlock = resp.getBlock();
-            filteredBlock = null;
             if (respBlock == null) {
                 throw new AssertionError("DeliverResponse type block but block is null");
             }
+            filteredBlock = null;
+            blockAndPrivateData = null;
             this.block = new BlockDeserializer(respBlock);
-        } else if (type == EventsPackage.DeliverResponse.TypeCase.FILTERED_BLOCK) {
+            type = Type.BLOCK;
+        } else if (responseType == EventsPackage.DeliverResponse.TypeCase.FILTERED_BLOCK) {
             filteredBlock = resp.getFilteredBlock();
-            block = null;
             if (filteredBlock == null) {
                 throw new AssertionError("DeliverResponse type filter block but filter block is null");
             }
-
+            block = null;
+            blockAndPrivateData = null;
+            type = Type.FILTERED_BLOCK;
+        } else if (responseType == EventsPackage.DeliverResponse.TypeCase.BLOCK_AND_PRIVATE_DATA) {
+            blockAndPrivateData = resp.getBlockAndPrivateData();
+            if (blockAndPrivateData == null || blockAndPrivateData.getBlock() == null) {
+                throw new AssertionError("DeliverResponse type block and private data is null");
+            }
+            filteredBlock = null;
+            block = new BlockDeserializer(blockAndPrivateData.getBlock());
+            type = Type.BLOCK_WITH_PRIVATE_DATA;
         } else {
-            throw new AssertionError(format("DeliverResponse type has unexpected type: %s, %d", type.name(), type.getNumber()));
+            throw new AssertionError(format("DeliverResponse type has unexpected type: %s, %d", responseType.name(), responseType.getNumber()));
         }
 
     }
 
     public boolean isFiltered() {
-        if (filteredBlock == null && block == null) {
-            throw new AssertionError("Both block and filter is null.");
-        }
-        if (filteredBlock != null && block != null) {
-            throw new AssertionError("Both block and filter are set.");
-        }
-        return filteredBlock != null;
+        return type == Type.FILTERED_BLOCK;
+    }
+
+    /**
+     * Block type information. The block type determines the values returned by {@link #getBlock()}, {@link #getFilteredBlock()}
+     * and {@link #getBlockAndPrivateData()}.
+     */
+    public Type getType() {
+        return type;
     }
 
     public String getChannelId() throws InvalidProtocolBufferException {
@@ -86,17 +101,27 @@ public class BlockInfo {
     }
 
     /**
-     * @return the raw {@link Block}
+     * @return If {@link #getType()} is {@link Type#BLOCK} or {@link Type#BLOCK_WITH_PRIVATE_DATA}, the raw {@link Block};
+     * otherwise {@code null}.
      */
     public Block getBlock() {
         return isFiltered() ? null : block.getBlock();
     }
 
     /**
-     * @return the raw {@link org.hyperledger.fabric.protos.peer.EventsPackage.FilteredBlock}
+     * @return If {@link #getType()} is {@link Type#FILTERED_BLOCK}, the raw {@link EventsPackage.FilteredBlock};
+     * otherwise {@code null}.
      */
     public EventsPackage.FilteredBlock getFilteredBlock() {
-        return !isFiltered() ? null : filteredBlock;
+        return filteredBlock;
+    }
+
+    /**
+     * @return If {@link #getType()} is {@link Type#BLOCK_WITH_PRIVATE_DATA}, the raw {@link EventsPackage.BlockAndPrivateData};
+     * otherwise {@code null}.
+     */
+    public EventsPackage.BlockAndPrivateData getBlockAndPrivateData() {
+        return blockAndPrivateData;
     }
 
     /**
@@ -177,6 +202,26 @@ public class BlockInfo {
             transactionCount = ltransactionCount;
         }
         return transactionCount;
+    }
+
+    /**
+     * Block event type information.
+     */
+    public enum Type {
+        FILTERED_BLOCK("Filtered Block"),
+        BLOCK("Block"),
+        BLOCK_WITH_PRIVATE_DATA("Block and Private Data");
+
+        final String description;
+
+        Type(final String description) {
+            this.description = description;
+        }
+
+        @Override
+        public String toString() {
+            return this.description;
+        }
     }
 
     /**
