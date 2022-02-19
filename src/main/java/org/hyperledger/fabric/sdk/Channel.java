@@ -6415,12 +6415,12 @@ public class Channel implements Serializable {
         protected Boolean newest = true;
         protected Long startEvents;
         protected Long stopEvents = Long.MAX_VALUE;
-        protected boolean registerEventsForFilteredBlocks = false;
+        protected BlockInfo.Type eventType = BlockInfo.Type.BLOCK;
 
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder(1000);
-            sb.append("PeerOptions( " + format("newest: %s, startEvents: %s, stopEvents: %s, registerEventsForFilteredBlocks: %s", "" + newest, "" + startEvents, "" + stopEvents, registerEventsForFilteredBlocks));
+            sb.append("PeerOptions( " + format("newest: %s, startEvents: %s, stopEvents: %s, eventType: %s", "" + newest, "" + startEvents, "" + stopEvents, eventType));
 
             if (peerRoles != null && !peerRoles.isEmpty()) {
                 sb.append(", PeerRoles:[");
@@ -6437,12 +6437,12 @@ public class Channel implements Serializable {
         }
 
         /**
-         * Is the peer eventing service registered for filtered blocks
+         * Returns requested event type
          *
-         * @return true if filtered blocks will be returned by the peer eventing service.
+         * @return enum value of the event type
          */
-        public boolean isRegisterEventsForFilteredBlocks() {
-            return registerEventsForFilteredBlocks;
+        BlockInfo.Type getEventType() {
+            return this.eventType;
         }
 
         /**
@@ -6451,7 +6451,17 @@ public class Channel implements Serializable {
          * @return the PeerOptions instance.
          */
         public PeerOptions registerEventsForFilteredBlocks() {
-            registerEventsForFilteredBlocks = true;
+            this.eventType = BlockInfo.Type.FILTERED_BLOCK;
+            return this;
+        }
+
+        /**
+         * Register the peer eventing services to return private data maps with the blocks.
+         *
+         * @return the PeerOptions instance.
+         */
+        public PeerOptions registerEventsForPrivateData() {
+            this.eventType = BlockInfo.Type.BLOCK_WITH_PRIVATE_DATA;
             return this;
         }
 
@@ -6461,7 +6471,7 @@ public class Channel implements Serializable {
          * @return the PeerOptions instance.
          */
         public PeerOptions registerEventsForBlocks() {
-            registerEventsForFilteredBlocks = false;
+            this.eventType = BlockInfo.Type.BLOCK;
             return this;
         }
 
