@@ -58,7 +58,7 @@ class PeerEventServiceClient {
     private long peerEventRegistrationWaitTimeMilliSecs = PEER_EVENT_REGISTRATION_WAIT_TIME;
 
     private final PeerOptions peerOptions;
-    private final boolean filterBlock;
+    private final BlockInfo.Type eventType;
     private byte[] clientTLSCertificateDigest;
     StreamObserver<Envelope> nso = null;
     StreamObserver<EventsPackage.DeliverResponse> so = null;
@@ -73,7 +73,7 @@ class PeerEventServiceClient {
      */
     PeerEventServiceClient(Peer peer, Endpoint endpoint, Properties properties, PeerOptions peerOptions) {
         this.channelBuilder = endpoint.getChannelBuilder();
-        this.filterBlock = peerOptions.isRegisterEventsForFilteredBlocks();
+        this.eventType = peerOptions.getEventType();
         this.peer = peer;
         this.peerOptions = peerOptions;
         name = peer.getName();
@@ -230,13 +230,17 @@ class PeerEventServiceClient {
                             throwableList.add(peerEventingServiceException);
                         }
                     } else if (typeCase == EventsPackage.DeliverResponse.TypeCase.FILTERED_BLOCK ||
-                            typeCase == EventsPackage.DeliverResponse.TypeCase.BLOCK) {
+                            typeCase == EventsPackage.DeliverResponse.TypeCase.BLOCK ||
+                            typeCase == EventsPackage.DeliverResponse.TypeCase.BLOCK_AND_PRIVATE_DATA) {
                         if (typeCase == EventsPackage.DeliverResponse.TypeCase.BLOCK) {
                             logger.trace(format("%s got event block hex hashcode: %016x, block number: %d",
                                     PeerEventServiceClient.this.toString(), resp.getBlock().hashCode(), resp.getBlock().getHeader().getNumber()));
-                        } else {
+                        } else if (typeCase == EventsPackage.DeliverResponse.TypeCase.FILTERED_BLOCK) {
                             logger.trace(format("%s got event block hex hashcode: %016x, block number: %d",
                                     PeerEventServiceClient.this.toString(), resp.getFilteredBlock().hashCode(), resp.getFilteredBlock().getNumber()));
+                        } else {
+                            logger.trace(format("%s got event block hex hashcode: %016x, block number: %d",
+                                    PeerEventServiceClient.this.toString(), resp.getBlockAndPrivateData().getBlock().hashCode(), resp.getBlockAndPrivateData().getBlock().getHeader().getNumber()));
                         }
 
                         peer.setLastConnectTime(System.currentTimeMillis());
@@ -303,7 +307,16 @@ class PeerEventServiceClient {
                 }
             };
 
-            nso = filterBlock ? broadcast.deliverFiltered(so) : broadcast.deliver(so);
+            switch (this.eventType) {
+                case FILTERED_BLOCK:
+                    nso = broadcast.deliverFiltered(so);
+                    break;
+                case BLOCK_WITH_PRIVATE_DATA:
+                    nso = broadcast.deliverWithPrivateData(so);
+                    break;
+                default:
+                    nso = broadcast.deliver(so);
+            }
 
             nso.onNext(envelope);
 
