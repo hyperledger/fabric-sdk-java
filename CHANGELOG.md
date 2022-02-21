@@ -1,3 +1,9 @@
+## v2.2.12
+Mon Feb 21 09:06:33 GMT 2022
+
+* [07cc133](https://github.com/hyperledger/fabric-sdk-java/commit/07cc133) Listen to private data in the events (#190)
+* [2481e5d](https://github.com/hyperledger/fabric-sdk-java/commit/2481e5d) Update dependency versions (#187)
+
 ## v2.2.11
 Tue  4 Jan 2022 13:34:24 GMT
 
