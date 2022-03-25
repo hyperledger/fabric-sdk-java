@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.OpenTelemetrySdkBuilder;
-import io.opentelemetry.sdk.autoconfigure.OpenTelemetrySdkAutoConfiguration;
+import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -247,7 +247,11 @@ public class Config {
 
             }
 
-            openTelemetry = OpenTelemetrySdkAutoConfiguration.initialize(false);
+            openTelemetry = AutoConfiguredOpenTelemetrySdk
+                .builder()
+                .setResultAsGlobal(false)
+                .build()
+                .getOpenTelemetrySdk();
         }
 
     }
