@@ -420,6 +420,9 @@
                     <links>
                         <link>http://docs.oracle.com/javase/8/docs/api/</link>
                     </links>
+                    <additionalJOptions>
+                        <additionalJOption>${additionalJavadocOpts}</additionalJOption>
+                    </additionalJOptions>
                 </configuration>
             </plugin>
             <plugin>
@@ -632,27 +635,6 @@
                     </archive>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.owasp</groupId>
-                <artifactId>dependency-check-maven</artifactId>
-                <version>6.5.3</version>
-                <configuration>
-                    <skipProvidedScope>true</skipProvidedScope>
-                    <skipTestScope>true</skipTestScope>
-                    <skipSystemScope>true</skipSystemScope>
-                    <failBuildOnCVSS>7</failBuildOnCVSS>
-                    <suppressionFiles>
-                        <suppressionFile>dependencies-suppressions.xml</suppressionFile>
-                    </suppressionFiles>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
     <distributionManagement>
@@ -670,7 +652,16 @@
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>5.3.2</version>
+                        <version>7.0.1</version>
+                        <configuration>
+                            <skipProvidedScope>true</skipProvidedScope>
+                            <skipTestScope>true</skipTestScope>
+                            <skipSystemScope>true</skipSystemScope>
+                            <failBuildOnCVSS>7</failBuildOnCVSS>
+                            <suppressionFiles>
+                                <suppressionFile>dependency-suppressions.xml</suppressionFile>
+                            </suppressionFiles>
+                        </configuration>
                         <executions>
                             <execution>
                                 <goals>
@@ -679,10 +670,17 @@
                             </execution>
                         </executions>
                     </plugin>
-
                 </plugins>
             </build>
-
+        </profile>
+        <profile>
+            <id>javadoc-no-module-directories</id>
+            <activation>
+                <jdk>[11,13)</jdk>
+            </activation>
+            <properties>
+                <additionalJavadocOpts>--no-module-directories</additionalJavadocOpts>
+            </properties>
         </profile>
         <profile>
             <id>release</id>
@@ -762,6 +760,9 @@
                             <links>
                                 <link>http://docs.oracle.com/javase/8/docs/api/</link>
                             </links>
+                            <additionalJOptions>
+                                <additionalJOption>${additionalJavadocOpts}</additionalJOption>
+                            </additionalJOptions>
                         </configuration>
                         <executions>
                             <execution>

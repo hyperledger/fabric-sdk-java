@@ -21,11 +21,48 @@ variables:
   GOPATH: $(Build.Repository.LocalPath)/src/test/fixture
   FABRIC_VERSION: 2.2
 
-pool:
-  vmImage: 'ubuntu-20.04'
+stages:
+  - stage: Test
+    displayName: Setup and Run Tests
+    dependsOn: [ ]
+    jobs:
+      - job: Integration
+        displayName: Integration tests
+        pool:
+          vmImage: ubuntu-20.04
+        strategy:
+          matrix:
+            Java8:
+              JAVAVER: 8
+            Java11:
+              JAVAVER: 11
+            Java17:
+              JAVAVER: 17
+        steps:
+          - task: JavaToolInstaller@0
+            inputs:
+              versionSpec: $(JAVAVER)
+              jdkArchitectureOption: 'x64'
+              jdkSourceOption: 'PreInstalled'
+          - script: ./scripts/run-integration-tests.sh
+            displayName: Run integration tests
 
-jobs:
-  - job: Integration
-    steps:
-      - script: ./scripts/run-integration-tests.sh
-        displayName: Run Tests
+  # Only run security vulnerability scan on scheduled builds
+  - stage: Scan
+    dependsOn: [ ]
+    condition: eq(variables['Build.Reason'], 'Schedule')
+    jobs:
+      - job: ScanDependencies
+        pool:
+          vmImage: ubuntu-20.04
+        dependsOn: [ ]
+        timeoutInMinutes: 60
+        steps:
+          - task: Maven@3
+            displayName: 'Maven dependency-check'
+            inputs:
+              mavenPomFile: 'pom.xml'
+              goals: '-P owasp dependency-check:check'
+          - publish: $(System.DefaultWorkingDirectory)/target/dependency-check-report.html
+            artifact: DependencyCheck
+            displayName: 'Upload dependency-check report'
