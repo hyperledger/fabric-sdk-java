@@ -1,3 +1,9 @@
+## v2.2.13
+Tue 29 Mar 2022 15:17:20 BST
+
+* [ab5f8db](https://github.com/hyperledger/fabric-sdk-java/commit/ab5f8db) upgrade opentelemetry version to 1.12.0 (#196)
+* [de6968c](https://github.com/hyperledger/fabric-sdk-java/commit/de6968c) Run vulnerability scan only in the nightly build (#195)
+
 ## v2.2.12
 Mon Feb 21 09:06:33 GMT 2022
 
