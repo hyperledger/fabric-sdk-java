@@ -1,3 +1,8 @@
+## v2.2.14
+Thu 12 May 2022 13:41:46 BST
+
+* [7c96d5a](https://github.com/hyperledger/fabric-sdk-java/commit/7c96d5a) Address security vulnerability CVE-2022-25647 (#199) (#200)
+
 ## v2.2.13
 Tue 29 Mar 2022 15:17:20 BST
 
