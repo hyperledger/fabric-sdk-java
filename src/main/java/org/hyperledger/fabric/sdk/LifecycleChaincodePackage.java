@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
@@ -29,8 +30,8 @@ import java.nio.file.Paths;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
+import javax.json.JsonWriter;
 
-import com.google.gson.Gson;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
@@ -46,7 +47,6 @@ import org.hyperledger.fabric.sdk.helper.DiagnosticFileDumper;
 import org.hyperledger.fabric.sdk.helper.Utils;
 
 import static java.lang.String.format;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * A wrapper for the Hyperledger Fabric Policy object
@@ -323,10 +323,21 @@ public class LifecycleChaincodePackage {
     }
 
     static byte[] generatePackageMataDataBytes(String label, String path, TransactionRequest.Type type) {
-        if (path == null) {
-            path = "";
+        JsonObject metadata = Json.createObjectBuilder()
+                .add("path", path != null ? path : "")
+                .add("type", type.toPackageName())
+                .add("label", label)
+                .build();
+
+        try (ByteArrayOutputStream byteStream = new ByteArrayOutputStream()) {
+            try (JsonWriter writer = Json.createWriter(byteStream)) {
+                writer.writeObject(metadata);
+            }
+            return byteStream.toByteArray();
+        } catch (IOException e) {
+            // Never happens with ByteArrayOutputStream
+            throw new UncheckedIOException(e);
         }
-        return format("{\"path\":%s,\"type\":\"%s\",\"label\":%s}", new Gson().toJson(path), type.toPackageName(), new Gson().toJson(label)).getBytes(UTF_8);
     }
 
     public JsonObject getMetaInfJson() throws IOException {
