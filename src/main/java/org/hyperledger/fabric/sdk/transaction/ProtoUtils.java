@@ -24,7 +24,6 @@ import javax.xml.bind.DatatypeConverter;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
-import com.google.protobuf.util.Timestamps;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hyperledger.fabric.protos.common.Common;
@@ -252,14 +251,22 @@ public final class ProtoUtils {
     }
 
     public static Date getDateFromTimestamp(Timestamp timestamp) {
-        return new Date(Timestamps.toMillis(timestamp));
+        return Date.from(Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanos()));
     }
 
     static Timestamp getTimestampFromDate(Date date) {
+<<<<<<< HEAD
 
         long millis = date.getTime();
         return Timestamp.newBuilder().setSeconds(millis / 1000)
                 .setNanos((int) ((millis % 1000) * 1000000)).build();
+=======
+        Instant instant = date.toInstant();
+        return Timestamp.newBuilder()
+                .setSeconds(instant.getEpochSecond())
+                .setNanos(instant.getNano())
+                .build();
+>>>>>>> 37169e3 (Address security vulnerability CVE-2022-25647 (#199))
     }
 
     public static Envelope createSeekInfoEnvelope(TransactionContext transactionContext, SeekInfo seekInfo, byte[] tlsCertHash) throws CryptoException, InvalidArgumentException {
