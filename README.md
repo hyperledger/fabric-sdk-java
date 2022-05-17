@@ -306,7 +306,7 @@ Go lang chaincode dependencies must be contained in vendor folder.
 
 ### Where can I find the Javadoc?
 
-Look in the [Maven repository](http://central.maven.org/maven2/org/hyperledger/fabric-sdk-java/fabric-sdk-java/)
+Look in the [Maven repository](https://search.maven.org/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java)
 for the release in question there should be a file fabric-sdk-java-_&lt;release&gt;_-javadoc.jar
 
 For SNAPSHOT builds look in [Sonatype repository](https://oss.sonatype.org/content/repositories/snapshots/org/hyperledger/fabric-sdk-java/fabric-sdk-java/)
@@ -327,7 +327,7 @@ can be on all requests overridden by setting the user context on that specific r
 ### Idemix users or Idemix test cases (IdemixIdentitiesTest) just seems to hang or take forever.
 
 Most likely this is running on a virtual machine that does not have sufficient entropy.
-Google for adding entropy on virtual machines or look at [virtual machines entropy](http://giovannitorres.me/increasing-entropy-on-virtual-machines.html)
+Google for adding entropy on virtual machines or look at [virtual machines entropy](https://web.archive.org/web/20191202062101/http://giovannitorres.me/increasing-entropy-on-virtual-machines.html)
 If linux try installing rng-tools package as this suggests.
 
 ### Firewalls, load balancers, network proxies
@@ -417,7 +417,7 @@ CORE_LOGGING_LEVEL=DEBUG
 Fabric CA
 by starting command have the -d parameter.
 
-Upload full logs to the JIRA not just where the issue occurred if possible
+Upload full logs to JIRA, not just where the issue occurred if possible
 
 ### Tracing
 
