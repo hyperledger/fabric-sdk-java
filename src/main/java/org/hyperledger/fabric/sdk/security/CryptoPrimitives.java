@@ -206,6 +206,48 @@ public class CryptoPrimitives implements CryptoSuite {
      * @param pemCertificate
      * @return
      */
+    private X509Certificate getX509CertificateInternal(byte[] pemCertificate) throws CryptoException {
+        X509Certificate ret = null;
+        CryptoException rete = null;
+
+        List<Provider> providerList = new LinkedList<>(Arrays.asList(Security.getProviders()));
+        if (SECURITY_PROVIDER != null) {
+            // Add if overridden. Note it is added to the end of the provider list so is only invoked if all other providers fail.
+            providerList.add(SECURITY_PROVIDER);
+        }
+
+        providerList.add(BOUNCY_CASTLE_PROVIDER);
+
+        for (Provider provider : providerList) {
+            try {
+                if (null == provider) {
+                   continue;
+                }
+                CertificateFactory certFactory = CertificateFactory.getInstance(CERTIFICATE_FORMAT, provider);
+                try (ByteArrayInputStream bis = new ByteArrayInputStream(pemCertificate)) {
+                    Certificate certificate = certFactory.generateCertificate(bis);
+
+                    if (certificate instanceof X509Certificate) {
+                        ret = (X509Certificate) certificate;
+                        rete = null;
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                rete = new CryptoException(e.getMessage(), e);
+            }
+        }
+
+        if (null != rete) {
+            throw rete;
+        }
+
+        if (ret == null) {
+            logger.error("Could not convert pem bytes");
+        }
+
+        return ret;
+    }
 
     private X509Certificate getX509Certificate(byte[] pemCertificate) throws CryptoException {
         return getCertificateValue(pemCertificate).getX509();
@@ -1109,54 +1151,6 @@ public class CryptoPrimitives implements CryptoSuite {
 
     private X509Certificate getValidCertificate(byte[] pemCertificate) throws CryptoException {
         return getCertificateValue(pemCertificate).getValid();
-    }
-
-    /**
-     * Return X509Certificate  from pem bytes.
-     * So you may ask why this ?  Well some providers (BC) seems to have problems with creating the
-     * X509 cert from bytes so here we go through all available providers till one can convert. :)
-     */
-    private X509Certificate getX509CertificateInternal(byte[] pemCertificate) throws CryptoException {
-        X509Certificate ret = null;
-        CryptoException rete = null;
-
-        List<Provider> providerList = new LinkedList<>(Arrays.asList(Security.getProviders()));
-        if (SECURITY_PROVIDER != null) {
-            // Add if overridden. Note it is added to the end of the provider list so is only invoked if all other providers fail.
-            providerList.add(SECURITY_PROVIDER);
-        }
-
-        providerList.add(BOUNCY_CASTLE_PROVIDER);
-
-        for (Provider provider : providerList) {
-            try {
-                if (null == provider) {
-                    continue;
-                }
-                CertificateFactory certFactory = CertificateFactory.getInstance(CERTIFICATE_FORMAT, provider);
-                try (ByteArrayInputStream bis = new ByteArrayInputStream(pemCertificate)) {
-                    Certificate certificate = certFactory.generateCertificate(bis);
-
-                    if (certificate instanceof X509Certificate) {
-                        ret = (X509Certificate) certificate;
-                        rete = null;
-                        break;
-                    }
-                }
-          } catch (Exception e) {
-              rete = new CryptoException(e.getMessage(), e);
-          }
-      }
-
-      if (null != rete) {
-          throw rete;
-      }
-
-      if (ret == null) {
-          logger.error("Could not convert pem bytes");
-      }
-
-      return ret;
     }
 
 }
