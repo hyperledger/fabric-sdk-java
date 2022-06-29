@@ -1008,11 +1008,7 @@ public class CryptoPrimitives implements CryptoSuite {
             this.pemData = pemData.clone();
 
             // pre-calculate the hash code
-            int h = 1;
-            for (byte b : pemData) {
-                h = (h * 31) + b;
-            }
-            hashCode = h;
+            hashCode = Arrays.hashCode(pemData);
         }
 
 
