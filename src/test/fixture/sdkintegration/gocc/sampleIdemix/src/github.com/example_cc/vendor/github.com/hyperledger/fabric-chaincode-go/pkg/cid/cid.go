@@ -55,6 +55,15 @@ func AssertAttributeValue(stub ChaincodeStubInterface, attrName, attrValue strin
 	return c.AssertAttributeValue(attrName, attrValue)
 }
 
+// HasOUValue checks if an OU with the specified value is present
+func HasOUValue(stub ChaincodeStubInterface, OUValue string) (bool, error) {
+	c, err := New(stub)
+	if err != nil {
+		return false, err
+	}
+	return c.HasOUValue(OUValue)
+}
+
 // GetX509Certificate returns the X509 certificate associated with the client,
 // or nil if it was not identified by an X509 certificate.
 func GetX509Certificate(stub ChaincodeStubInterface) (*x509.Certificate, error) {
@@ -65,17 +74,17 @@ func GetX509Certificate(stub ChaincodeStubInterface) (*x509.Certificate, error) 
 	return c.GetX509Certificate()
 }
 
-// ClientIdentityImpl implements the ClientIdentity interface
-type clientIdentityImpl struct {
+// ClientID holds the information of the transaction creator.
+type ClientID struct {
 	stub  ChaincodeStubInterface
 	mspID string
 	cert  *x509.Certificate
 	attrs *attrmgr.Attributes
 }
 
-// New returns an instance of ClientIdentity
-func New(stub ChaincodeStubInterface) (ClientIdentity, error) {
-	c := &clientIdentityImpl{stub: stub}
+// New returns an instance of ClientID
+func New(stub ChaincodeStubInterface) (*ClientID, error) {
+	c := &ClientID{stub: stub}
 	err := c.init()
 	if err != nil {
 		return nil, err
@@ -84,7 +93,12 @@ func New(stub ChaincodeStubInterface) (ClientIdentity, error) {
 }
 
 // GetID returns a unique ID associated with the invoking identity.
-func (c *clientIdentityImpl) GetID() (string, error) {
+func (c *ClientID) GetID() (string, error) {
+	// When IdeMix, c.cert is nil for x509 type
+	// Here will return "", as there is no x509 type cert for generate id value with logic below.
+	if c.cert == nil {
+		return "", fmt.Errorf("cannot determine identity")
+	}
 	// The leading "x509::" distinguishes this as an X509 certificate, and
 	// the subject and issuer DNs uniquely identify the X509 certificate.
 	// The resulting ID will remain the same if the certificate is renewed.
@@ -94,12 +108,12 @@ func (c *clientIdentityImpl) GetID() (string, error) {
 
 // GetMSPID returns the ID of the MSP associated with the identity that
 // submitted the transaction
-func (c *clientIdentityImpl) GetMSPID() (string, error) {
+func (c *ClientID) GetMSPID() (string, error) {
 	return c.mspID, nil
 }
 
 // GetAttributeValue returns value of the specified attribute
-func (c *clientIdentityImpl) GetAttributeValue(attrName string) (value string, found bool, err error) {
+func (c *ClientID) GetAttributeValue(attrName string) (value string, found bool, err error) {
 	if c.attrs == nil {
 		return "", false, nil
 	}
@@ -107,7 +121,7 @@ func (c *clientIdentityImpl) GetAttributeValue(attrName string) (value string, f
 }
 
 // AssertAttributeValue checks to see if an attribute value equals the specified value
-func (c *clientIdentityImpl) AssertAttributeValue(attrName, attrValue string) error {
+func (c *ClientID) AssertAttributeValue(attrName, attrValue string) error {
 	val, ok, err := c.GetAttributeValue(attrName)
 	if err != nil {
 		return err
@@ -121,14 +135,30 @@ func (c *clientIdentityImpl) AssertAttributeValue(attrName, attrValue string) er
 	return nil
 }
 
+// HasOUValue checks if an OU with the specified value is present
+func (c *ClientID) HasOUValue(OUValue string) (bool, error) {
+	x509Cert := c.cert
+	if x509Cert == nil {
+		// Here it will return false and an error, as there is no x509 type cert to check for OU values.
+		return false, fmt.Errorf("cannot obtain an X509 certificate for the identity")
+	}
+
+	for _, OU := range x509Cert.Subject.OrganizationalUnit {
+		if OU == OUValue {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // GetX509Certificate returns the X509 certificate associated with the client,
 // or nil if it was not identified by an X509 certificate.
-func (c *clientIdentityImpl) GetX509Certificate() (*x509.Certificate, error) {
+func (c *ClientID) GetX509Certificate() (*x509.Certificate, error) {
 	return c.cert, nil
 }
 
 // Initialize the client
-func (c *clientIdentityImpl) init() error {
+func (c *ClientID) init() error {
 	signingID, err := c.getIdentity()
 	if err != nil {
 		return err
@@ -158,7 +188,7 @@ func (c *clientIdentityImpl) init() error {
 
 // Unmarshals the bytes returned by ChaincodeStubInterface.GetCreator method and
 // returns the resulting msp.SerializedIdentity object
-func (c *clientIdentityImpl) getIdentity() (*msp.SerializedIdentity, error) {
+func (c *ClientID) getIdentity() (*msp.SerializedIdentity, error) {
 	sid := &msp.SerializedIdentity{}
 	creator, err := c.stub.GetCreator()
 	if err != nil || creator == nil {
@@ -171,7 +201,7 @@ func (c *clientIdentityImpl) getIdentity() (*msp.SerializedIdentity, error) {
 	return sid, nil
 }
 
-func (c *clientIdentityImpl) getAttributesFromIdemix() error {
+func (c *ClientID) getAttributesFromIdemix() error {
 	creator, err := c.stub.GetCreator()
 	attrs, err := attrmgr.New().GetAttributesFromIdemix(creator)
 	if err != nil {

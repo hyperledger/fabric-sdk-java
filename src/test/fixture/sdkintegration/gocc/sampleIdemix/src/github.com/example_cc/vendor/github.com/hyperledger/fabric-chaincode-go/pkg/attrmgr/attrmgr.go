@@ -1,7 +1,7 @@
 // Copyright the Hyperledger Fabric contributors. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-// The attrmgr package contains utilities for managing attributes.
+// Package attrmgr contains utilities for managing attributes.
 // Attributes are added to an X509 certificate as an extension.
 package attrmgr
 
@@ -118,6 +118,7 @@ func (mgr *Mgr) GetAttributesFromCert(cert *x509.Certificate) (*Attributes, erro
 	return attrs, nil
 }
 
+// GetAttributesFromIdemix ...
 func (mgr *Mgr) GetAttributesFromIdemix(creator []byte) (*Attributes, error) {
 	if creator == nil {
 		return nil, errors.New("creator is nil")
