@@ -14,4 +14,11 @@
         <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin\-stdlib\-common@1\.4\.0$</packageUrl>
         <cve>CVE-2020-15824</cve>
     </suppress>
+    <suppress>
+        <notes><![CDATA[
+        Vulnerability is reported against an AWS hotfix, not the Apache log4j package
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.logging\.log4j/log4j\-.*$</packageUrl>
+        <cve>CVE-2022-33915</cve>
+    </suppress>
 </suppressions>
