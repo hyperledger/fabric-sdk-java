@@ -594,12 +594,12 @@ public class Peer implements Serializable {
          */
         LEDGER_QUERY("ledgerQuery"),
         /**
-         * Peer will monitor block events for the channel it belongs to.
+         * Event Source is used to set peer to eventing.
          */
         EVENT_SOURCE("eventSource"),
 
         /**
-         * Peer will monitor block events for the channel it belongs to.
+         * Service Discovery will be used to discover other peers, orderers.
          */
         SERVICE_DISCOVERY("serviceDiscovery");
 
