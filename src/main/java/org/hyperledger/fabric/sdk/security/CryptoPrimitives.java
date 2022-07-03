@@ -55,10 +55,15 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.security.auth.x500.X500Principal;
 import javax.xml.bind.DatatypeConverter;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -80,7 +85,6 @@ import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
@@ -97,6 +101,7 @@ import static org.hyperledger.fabric.sdk.helper.Utils.isNullOrEmpty;
 
 public class CryptoPrimitives implements CryptoSuite {
     private static final Log logger = LogFactory.getLog(CryptoPrimitives.class);
+    private static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
     private static final Config config = Config.getConfig();
     private static final boolean IS_TRACE_LEVEL = logger.isTraceEnabled();
 
@@ -144,16 +149,10 @@ public class CryptoPrimitives implements CryptoSuite {
         }
 
         Class<?> aClass = Class.forName(securityProviderClassName);
-        if (null == aClass) {
-            throw new InstantiationException(format("Getting class for security provider %s returned null  ", securityProviderClassName));
-        }
         if (!Provider.class.isAssignableFrom(aClass)) {
             throw new InstantiationException(format("Class for security provider %s is not a Java security provider", aClass.getName()));
         }
         Provider securityProvider = (Provider) aClass.newInstance();
-        if (securityProvider == null) {
-            throw new InstantiationException(format("Creating instance of security %s returned null  ", aClass.getName()));
-        }
         return securityProvider;
     }
 
@@ -207,61 +206,51 @@ public class CryptoPrimitives implements CryptoSuite {
      * @param pemCertificate
      * @return
      */
-
-    private X509Certificate getX509Certificate(byte[] pemCertificate) throws CryptoException {
+    private X509Certificate getX509CertificateInternal(byte[] pemCertificate) throws CryptoException {
         X509Certificate ret = null;
         CryptoException rete = null;
 
         List<Provider> providerList = new LinkedList<>(Arrays.asList(Security.getProviders()));
-        if (SECURITY_PROVIDER != null) { //Add if overridden
+        if (SECURITY_PROVIDER != null) {
+            // Add if overridden. Note it is added to the end of the provider list so is only invoked if all other providers fail.
             providerList.add(SECURITY_PROVIDER);
         }
-        try {
-            providerList.add(BouncyCastleProvider.class.newInstance()); // bouncy castle is there always.
-        } catch (Exception e) {
-            logger.warn(e);
 
-        }
+        providerList.add(BOUNCY_CASTLE_PROVIDER);
+
         for (Provider provider : providerList) {
             try {
                 if (null == provider) {
-                    continue;
+                   continue;
                 }
                 CertificateFactory certFactory = CertificateFactory.getInstance(CERTIFICATE_FORMAT, provider);
-                if (null != certFactory) {
-                    try (ByteArrayInputStream bis = new ByteArrayInputStream(pemCertificate)) {
-                        Certificate certificate = certFactory.generateCertificate(bis);
+                try (ByteArrayInputStream bis = new ByteArrayInputStream(pemCertificate)) {
+                    Certificate certificate = certFactory.generateCertificate(bis);
 
-                        if (certificate instanceof X509Certificate) {
-                            ret = (X509Certificate) certificate;
-                            rete = null;
-                            break;
-                        }
+                    if (certificate instanceof X509Certificate) {
+                        ret = (X509Certificate) certificate;
+                        rete = null;
+                        break;
                     }
-
                 }
             } catch (Exception e) {
-
                 rete = new CryptoException(e.getMessage(), e);
-
             }
-
         }
 
         if (null != rete) {
-
             throw rete;
-
         }
 
         if (ret == null) {
-
             logger.error("Could not convert pem bytes");
-
         }
 
         return ret;
+    }
 
+    private X509Certificate getX509Certificate(byte[] pemCertificate) throws CryptoException {
+        return getCertificateValue(pemCertificate).getX509();
     }
 
     /**
@@ -309,20 +298,14 @@ public class CryptoPrimitives implements CryptoSuite {
             }
         }
 
+        X509Certificate certificate = getValidCertificate(pemCertificate);
+
         try {
-
-            X509Certificate certificate = getX509Certificate(pemCertificate);
-
             if (certificate != null) {
-
-                isVerified = validateCertificate(certificate);
-                if (isVerified) { // only proceed if cert is trusted
-
-                    Signature sig = Signature.getInstance(signatureAlgorithm);
-                    sig.initVerify(certificate);
-                    sig.update(plainText);
-                    isVerified = sig.verify(signature);
-                }
+                Signature sig = Signature.getInstance(signatureAlgorithm);
+                sig.initVerify(certificate);
+                sig.update(plainText);
+                isVerified = sig.verify(signature);
             }
         } catch (InvalidKeyException e) {
             CryptoException ex = new CryptoException("Cannot verify signature. Error is: "
@@ -570,14 +553,8 @@ public class CryptoPrimitives implements CryptoSuite {
         }
 
         try {
-
-            X509Certificate certificate = getX509Certificate(certPEM);
-            if (null == certificate) {
-                throw new Exception("Certificate transformation returned null");
-            }
-
-            return validateCertificate(certificate);
-        } catch (Exception e) {
+            return x509Cache.get(new CertKey(certPEM)).isValid();
+        } catch (ExecutionException | CryptoException e) {
             logger.error("Cannot validate certificate. Error is: " + e.getMessage() + "\r\nCertificate (PEM, hex): "
                     + DatatypeConverter.printHexBinary(certPEM));
             return false;
@@ -1005,6 +982,171 @@ public class CryptoPrimitives implements CryptoSuite {
         }
 
         return content;
+    }
+
+
+    private static final long X509_RECHECK_MILLIS = TimeUnit.MINUTES.toMillis(30);
+
+    /**
+     * Cache for key for X.509 certificates.
+     */
+    private static class CertKey {
+        /** Pre-generated hash code for performance. */
+        final int hashCode;
+
+        /** The raw PEM data. */
+        final byte[] pemData;
+
+
+        /**
+         * New instance.
+         *
+         * @param pemData the PEM data
+         */
+        CertKey(byte[] pemData) {
+            // defensive copy
+            this.pemData = pemData.clone();
+
+            // pre-calculate the hash code
+            hashCode = Arrays.hashCode(pemData);
+        }
+
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                 return true;
+            }
+            if (!(o instanceof CertKey)) {
+                return false;
+            }
+            CertKey certKey = (CertKey) o;
+            return hashCode == certKey.hashCode && Arrays.equals(pemData, certKey.pemData);
+        }
+
+
+        @Override
+        public int hashCode() {
+            return hashCode;
+        }
+
+    }
+
+
+    /** A cached X.509 certificate. */
+    private class CertValue {
+        /** Link back to the cache key. */
+        final CertKey key;
+
+        /** Indicator if the X.509 certificate is currently valid. Note: it may become valid at some point in the future. */
+        boolean isValid;
+
+        /** The next time this certificate will be checked, in milliseconds since the epoch. */
+        long nextCheckTime;
+
+        /** The certificate derived from the PEM data. */
+        X509Certificate x509;
+
+
+        /**
+         * New instance.
+         *
+         * @param key the cache key
+         */
+        CertValue(CertKey key) {
+            this.key = key;
+            x509 = null;
+            isValid = false;
+            nextCheckTime = Long.MIN_VALUE;
+        }
+
+
+        /**
+         * Get the certificate if it is valid.
+         *
+         * @return the certificate, or null
+         *
+         * @throws CryptoException if the certificate cannot be parsed.
+         */
+        public synchronized X509Certificate getValid() throws CryptoException {
+            return isValid() ? getX509() : null;
+        }
+
+
+        /**
+         * Get the X.509 certificate.
+         *
+         * @return the certificate
+         *
+         * @throws CryptoException if the PEM data cannot be parsed.
+         */
+        public synchronized X509Certificate getX509() throws CryptoException {
+            if (x509 == null) {
+                // If the security providers change then something that could not be parsed could become parsable.
+                try {
+                    x509 = getX509CertificateInternal(key.pemData);
+                } catch (CryptoException e) {
+                    isValid = false;
+                    nextCheckTime = System.currentTimeMillis() + X509_RECHECK_MILLIS;
+                    logger.error("Unable to recover X.509 certificate from provided binary data", e);
+                    throw e;
+                }
+            }
+            return x509;
+        }
+
+
+        /**
+         * Is the X.509 certificate currently valid?
+         *
+         * @return true if the certificate is valid
+         *
+         * @throws CryptoException if the certificate cannot be validated
+         */
+        public synchronized boolean isValid() throws CryptoException {
+            // Only re-check if a reasonable amount of time has passed.
+            long now = System.currentTimeMillis();
+            if (nextCheckTime >= now) {
+                return isValid;
+            }
+
+            nextCheckTime = now + X509_RECHECK_MILLIS;
+            isValid = validateCertificate(getX509());
+            return isValid;
+        }
+
+    }
+
+
+    private final LoadingCache<CertKey, CertValue> x509Cache = CacheBuilder.newBuilder().maximumSize(1000).build(new CacheLoader<CertKey, CertValue>() {
+        @Override
+        public CertValue load(CertKey key) {
+            return new CertValue(key);
+        }
+    });
+
+    public void clearCertificateCache() {
+      x509Cache.invalidateAll();
+    }
+
+    private CertValue getCertificateValue(byte[] pemCertificate) throws CryptoException {
+        try {
+            return x509Cache.get(new CertKey(pemCertificate));
+        } catch (ExecutionException e) {
+            Throwable thrown = e.getCause();
+            if (thrown instanceof CryptoException) {
+                throw (CryptoException) thrown;
+            }
+            if (thrown instanceof Exception) {
+                throw new CryptoException("Error whilst processing certificate", (Exception) thrown);
+            }
+            throw new CryptoException("Error whilst processing certificate", e);
+        }
+    }
+
+
+    private X509Certificate getValidCertificate(byte[] pemCertificate) throws CryptoException {
+        return getCertificateValue(pemCertificate).getValid();
     }
 
 }
