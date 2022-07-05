@@ -1,7 +1,7 @@
 #!/bin/bash -e
 set -euo pipefail
 
-# FABRIC_VERSION is set in ci/azure-pipelines.yml
+# FABRIC_VERSION is set in .github/workflows/build.yml
 VERSION=${FABRIC_VERSION:-2.2}
 STABLE_TAG=amd64-${VERSION}-stable
 
