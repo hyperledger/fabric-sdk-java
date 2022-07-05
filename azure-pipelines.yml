@@ -46,23 +46,3 @@ stages:
               jdkSourceOption: 'PreInstalled'
           - script: ./scripts/run-integration-tests.sh
             displayName: Run integration tests
-
-  # Only run security vulnerability scan on scheduled builds
-  - stage: Scan
-    dependsOn: [ ]
-    condition: eq(variables['Build.Reason'], 'Schedule')
-    jobs:
-      - job: ScanDependencies
-        pool:
-          vmImage: ubuntu-20.04
-        dependsOn: [ ]
-        timeoutInMinutes: 60
-        steps:
-          - task: Maven@3
-            displayName: 'Maven dependency-check'
-            inputs:
-              mavenPomFile: 'pom.xml'
-              goals: '-P owasp dependency-check:check'
-          - publish: $(System.DefaultWorkingDirectory)/target/dependency-check-report.html
-            artifact: DependencyCheck
-            displayName: 'Upload dependency-check report'
