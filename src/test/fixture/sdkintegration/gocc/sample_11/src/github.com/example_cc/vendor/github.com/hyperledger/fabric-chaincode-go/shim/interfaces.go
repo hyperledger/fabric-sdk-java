@@ -46,14 +46,15 @@ type ChaincodeStubInterface interface {
 	GetArgsSlice() ([]byte, error)
 
 	// GetTxID returns the tx_id of the transaction proposal, which is unique per
-	// transaction and per client. See ChannelHeader in protos/common/common.proto
+	// transaction and per client. See
+	// https://godoc.org/github.com/hyperledger/fabric-protos-go/common#ChannelHeader
 	// for further details.
 	GetTxID() string
 
 	// GetChannelID returns the channel the proposal is sent to for chaincode to process.
-	// This would be the channel_id of the transaction proposal (see ChannelHeader
-	// in protos/common/common.proto) except where the chaincode is calling another on
-	// a different channel
+	// This would be the channel_id of the transaction proposal (see
+	// https://godoc.org/github.com/hyperledger/fabric-protos-go/common#ChannelHeader )
+	// except where the chaincode is calling another on a different channel.
 	GetChannelID() string
 
 	// InvokeChaincode locally calls the specified chaincode `Invoke` using the
@@ -228,6 +229,11 @@ type ChaincodeStubInterface interface {
 	// detected at validation/commit time. Applications susceptible to this
 	// should therefore not use GetHistoryForKey as part of transactions that
 	// update ledger, and should limit use to read-only chaincode operations.
+	// Starting in Fabric v2.0, the GetHistoryForKey chaincode API
+	// will return results from newest to oldest in terms of ordered transaction
+	// height (block height and transaction height within block).
+	// This will allow applications to efficiently iterate through the top results
+	// to understand recent changes to a key.
 	GetHistoryForKey(key string) (HistoryQueryIteratorInterface, error)
 
 	// GetPrivateData returns the value of the specified `key` from the specified
@@ -344,6 +350,9 @@ type ChaincodeStubInterface interface {
 	// proposal to be included as part of a transaction. The event will be
 	// available within the transaction in the committed block regardless of the
 	// validity of the transaction.
+	// Only a single event can be included in a transaction, and must originate
+	// from the outer-most invoked chaincode in chaincode-to-chaincode scenarios.
+	// The marshaled ChaincodeEvent will be available in the transaction's ChaincodeAction.events field.
 	SetEvent(name string, payload []byte) error
 }
 
