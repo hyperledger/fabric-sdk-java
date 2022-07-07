@@ -1,12 +1,8 @@
-name: Build
+name: Scheduled build
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  schedule:
+    - cron: "5 0 * * *"
 
 env:
   FABRIC_VERSION: "2.2"
@@ -22,8 +18,12 @@ jobs:
           - "8"
           - "11"
           - "17"
+        ref:
+          - main
+          - release-2.2
     steps:
       - uses: actions/checkout@v3
+        ref: ${{ matrix.ref }}
       - name: Set up JDK ${{ matrix.java-version }}
         uses: actions/setup-java@v3
         with:
