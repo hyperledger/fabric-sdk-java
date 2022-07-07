@@ -1,3 +1,11 @@
+## v2.2.15
+Thu  7 Jul 2022 13:35:21 BST
+
+* [f5cd62a](https://github.com/hyperledger/fabric-sdk-java/commit/f5cd62a) GitHub Actions build (#218)
+* [19b7291](https://github.com/hyperledger/fabric-sdk-java/commit/19b7291) Update chaincode dependencies to avoid dependabot alerts (#217)
+* [599fe3d](https://github.com/hyperledger/fabric-sdk-java/commit/599fe3d) Performance improvement for CryptoPrimitives (#214)
+* [0e4098d](https://github.com/hyperledger/fabric-sdk-java/commit/0e4098d) Disabled scehduled security vulnerability scan (#213)
+
 ## v2.2.14
 Thu 12 May 2022 13:41:46 BST
 
