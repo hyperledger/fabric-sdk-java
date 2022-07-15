@@ -23,7 +23,8 @@ jobs:
           - release-2.2
     steps:
       - uses: actions/checkout@v3
-        ref: ${{ matrix.ref }}
+        with:
+          ref: ${{ matrix.ref }}
       - name: Set up JDK ${{ matrix.java-version }}
         uses: actions/setup-java@v3
         with:
