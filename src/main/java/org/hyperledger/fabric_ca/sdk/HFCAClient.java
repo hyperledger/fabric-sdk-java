@@ -113,6 +113,7 @@ import org.hyperledger.fabric.sdk.idemix.IdemixCredential;
 import org.hyperledger.fabric.sdk.idemix.IdemixIssuerPublicKey;
 import org.hyperledger.fabric.sdk.idemix.IdemixUtils;
 import org.hyperledger.fabric.sdk.identity.IdemixEnrollment;
+import org.hyperledger.fabric.sdk.identity.IdemixEnrollmentSerialized;
 import org.hyperledger.fabric.sdk.identity.X509Enrollment;
 import org.hyperledger.fabric.sdk.security.CryptoPrimitives;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
@@ -1188,6 +1189,106 @@ public class HFCAClient {
 
             // Return the idemix enrollment
             return new IdemixEnrollment(ipk, rpk, mspID, sk, cred, cri, ou, role);
+
+        } catch (EnrollmentException ee) {
+            logger.error(ee.getMessage(), ee);
+            throw ee;
+        } catch (Exception e) {
+            EnrollmentException ee = new EnrollmentException("Failed to get Idemix credential", e);
+            logger.error(e.getMessage(), e);
+            throw ee;
+        }
+    }
+
+    /**
+     * idemixEnrollSerializedStr returns an Identity Mixer Enrollment As a Serialized String, which supports anonymity and unlinkability
+     *
+     * @param enrollment a x509 enrollment credential
+     * @return IdemixEnrollment
+     * @throws EnrollmentException
+     * @throws InvalidArgumentException
+     */
+    public Enrollment idemixEnrollSerializedStr(Enrollment enrollment, String mspID) throws EnrollmentException, InvalidArgumentException {
+        if (cryptoSuite == null) {
+            throw new InvalidArgumentException("Crypto primitives not set");
+        }
+
+        if (enrollment == null) {
+            throw new InvalidArgumentException("enrollment is missing");
+        }
+
+        if (Utils.isNullOrEmpty(mspID)) {
+            throw new InvalidArgumentException("mspID cannot be null or empty");
+        }
+
+        if (enrollment instanceof IdemixEnrollment) {
+            throw new InvalidArgumentException("enrollment type must be x509");
+        }
+        final RAND rng = IdemixUtils.getRand();
+        try {
+            setUpSSL();
+
+            // Get nonce
+            IdemixEnrollmentRequest idemixEnrollReq = new IdemixEnrollmentRequest();
+            String body = idemixEnrollReq.toJson();
+            JsonObject result = httpPost(url + HFCA_IDEMIXCRED, body, enrollment);
+            if (result == null) {
+                throw new EnrollmentException("No response received for idemix enrollment request");
+            }
+            String nonceString = result.getString("Nonce");
+            if (Utils.isNullOrEmpty(nonceString)) {
+                throw new InvalidArgumentException("fabric-ca-server did not return a nonce in the response from " + HFCA_IDEMIXCRED);
+            }
+            byte[] nonceBytes = Base64.getDecoder().decode(nonceString.getBytes());
+            BIG nonce = BIG.fromBytes(nonceBytes);
+
+            // Get issuer public key and revocation key from the cainfo section of response
+            JsonObject info = result.getJsonObject("CAInfo");
+            if (info == null) {
+                throw new Exception("fabric-ca-server did not return 'cainfo' in the response from " + HFCA_IDEMIXCRED);
+            }
+            IdemixIssuerPublicKey ipk = getIssuerPublicKey(info.getString("IssuerPublicKey"));
+
+            String ipkSerializedString = info.getString("IssuerPublicKey");
+            String rpkSerializedString = info.getString("IssuerRevocationPublicKey");
+
+            // Create and send idemix credential request
+            BIG sk = new BIG(IdemixUtils.randModOrder(rng));
+            byte[] skBytes = IdemixUtils.bigToBytes(sk);
+            String skSerializedString = Base64.getEncoder().encodeToString(skBytes);
+            IdemixCredRequest idemixCredRequest = new IdemixCredRequest(sk, nonce, ipk);
+            idemixEnrollReq.setIdemixCredReq(idemixCredRequest);
+            body = idemixEnrollReq.toJson();
+            result = httpPost(url + HFCA_IDEMIXCRED, body, enrollment);
+            if (result == null) {
+                throw new EnrollmentException("No response received for idemix enrollment request");
+            }
+
+            // Get idemix credential
+            String credentialSerializedString = result.getString("Credential");
+            if (Utils.isNullOrEmpty(credentialSerializedString)) {
+                throw new InvalidArgumentException("fabric-ca-server did not return a 'credential' in the response from " + HFCA_IDEMIXCRED);
+            }
+
+            // Get idemix cri (Credential Revocation Information)
+            String criSerializedString = result.getString("CRI");
+            if (Utils.isNullOrEmpty(criSerializedString)) {
+                throw new InvalidArgumentException("fabric-ca-server did not return a 'CRI' in the response from " + HFCA_IDEMIXCRED);
+            }
+
+            JsonObject attrs = result.getJsonObject("Attrs");
+            if (attrs == null) {
+                throw new EnrollmentException("fabric-ca-server did not return 'attrs' in the response from " + HFCA_IDEMIXCRED);
+            }
+            String ouString = attrs.getString("OU");
+            if (Utils.isNullOrEmpty(ouString)) {
+                throw new InvalidArgumentException("fabric-ca-server did not return a 'ou' attribute in the response from " + HFCA_IDEMIXCRED);
+            }
+            int role = attrs.getInt("Role"); // Encoded IdemixRole from Fabric-Ca
+            String roleString = String.valueOf(role);
+
+            // Return the idemix enrollment
+            return new IdemixEnrollmentSerialized(ipkSerializedString, rpkSerializedString, mspID, skSerializedString, credentialSerializedString, criSerializedString, ouString, roleString);
 
         } catch (EnrollmentException ee) {
             logger.error(ee.getMessage(), ee);
