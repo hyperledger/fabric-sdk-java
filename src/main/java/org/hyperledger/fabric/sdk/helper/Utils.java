@@ -14,11 +14,7 @@
 
 package org.hyperledger.fabric.sdk.helper;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
@@ -243,6 +239,26 @@ public final class Utils {
      */
     public static byte[] readFile(File input) throws IOException {
         return Files.readAllBytes(Paths.get(input.getAbsolutePath()));
+    }
+
+    /**
+     * get the content from a file
+     * @param file
+     * @return
+     */
+    public static String getFileContent(File file) {
+        StringBuilder sb = new StringBuilder();
+
+        try (FileInputStream inputStream = new FileInputStream(file);
+             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream))) {
+            String str = null;
+            while ((str = bufferedReader.readLine()) != null) {
+                sb.append(str);
+            }
+        } catch (Exception e) {
+
+        }
+        return sb.toString();
     }
 
     /**
