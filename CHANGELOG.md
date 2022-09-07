@@ -1,3 +1,8 @@
+## v1.4.16
+Wed  7 Sep 2022 11:29:23 BST
+
+* [6b2059a](https://github.com/hyperledger/fabric-sdk-java/commit/6b2059a) Fix CVE-2022-25857 (#224) (#226)
+
 ## v1.14.15
 Tue  4 Jan 2022 15:00:35 GMT
 
