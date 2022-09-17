@@ -17,9 +17,7 @@
 package org.hyperledger.fabric.sdk;
 
 import java.lang.ref.WeakReference;
-import java.util.Collections;
-import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.*;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -81,8 +79,12 @@ class BlockDeserializer {
     }
 
     byte[] getTransActionsMetaData() {
-
-        return block.getMetadata().getMetadata(Common.BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE).toByteArray();
+        List<ByteString> metadataList = block.getMetadata().getMetadataList();
+        if (metadataList != null && metadataList.size() > Common.BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE) {
+            return block.getMetadata().getMetadata(Common.BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE).toByteArray();
+        } else {
+            return null;
+        }
 
     }
 
