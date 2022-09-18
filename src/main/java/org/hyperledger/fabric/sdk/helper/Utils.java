@@ -241,25 +241,6 @@ public final class Utils {
         return Files.readAllBytes(Paths.get(input.getAbsolutePath()));
     }
 
-    /**
-     * get the content from a file
-     * @param file
-     * @return
-     */
-    public static String getFileContent(File file) {
-        StringBuilder sb = new StringBuilder();
-
-        try (FileInputStream inputStream = new FileInputStream(file);
-             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream))) {
-            String str = null;
-            while ((str = bufferedReader.readLine()) != null) {
-                sb.append(str);
-            }
-        } catch (Exception e) {
-
-        }
-        return sb.toString();
-    }
 
     /**
      * Generate a v4 UUID
