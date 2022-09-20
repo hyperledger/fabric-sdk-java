@@ -24,6 +24,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import org.hyperledger.fabric.protos.common.Common;
 import org.hyperledger.fabric.protos.common.Common.Block;
 import org.hyperledger.fabric.protos.common.Common.BlockData;
+import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
 
 class BlockDeserializer {
     private final Block block;
@@ -78,13 +79,13 @@ class BlockDeserializer {
 
     }
 
-    byte[] getTransActionsMetaData() {
+    byte[] getTransActionsMetaData() throws InvalidProtocolBufferRuntimeException {
 
         List<ByteString> metadataList = block.getMetadata().getMetadataList();
         if (metadataList != null && metadataList.size() > Common.BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE) {
             return block.getMetadata().getMetadata(Common.BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE).toByteArray();
         } else {
-            return new byte[]{};
+            throw new InvalidProtocolBufferRuntimeException(new InvalidProtocolBufferException("empty meta data from fabric"));
         }
     }
 
