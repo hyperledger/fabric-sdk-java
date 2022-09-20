@@ -83,7 +83,7 @@ class BlockDeserializer {
         if (metadataList != null && metadataList.size() > Common.BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE) {
             return block.getMetadata().getMetadata(Common.BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE).toByteArray();
         } else {
-            return metadataList.get(0).toByteArray();
+            return new byte[]{};
         }
 
     }
