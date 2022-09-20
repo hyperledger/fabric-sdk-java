@@ -79,13 +79,13 @@ class BlockDeserializer {
     }
 
     byte[] getTransActionsMetaData() {
+
         List<ByteString> metadataList = block.getMetadata().getMetadataList();
         if (metadataList != null && metadataList.size() > Common.BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE) {
             return block.getMetadata().getMetadata(Common.BlockMetadataIndex.TRANSACTIONS_FILTER_VALUE).toByteArray();
         } else {
             return new byte[]{};
         }
-
     }
 
 }
