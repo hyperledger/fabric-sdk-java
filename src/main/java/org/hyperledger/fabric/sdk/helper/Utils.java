@@ -245,7 +245,6 @@ public final class Utils {
         return Files.readAllBytes(Paths.get(input.getAbsolutePath()));
     }
 
-
     /**
      * Generate a v4 UUID
      *
