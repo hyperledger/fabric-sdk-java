@@ -1,3 +1,9 @@
+## v2.2.17
+Wed 21 Sep 2022 14:41:42 BST
+
+* [234774d](https://github.com/hyperledger/fabric-sdk-java/commit/234774d) Update dependencies to address CVE-2022-38752 (#231) (#233)
+* [d1bbf2f](https://github.com/hyperledger/fabric-sdk-java/commit/d1bbf2f) Update dependencies to support Apple silicon (M1 / arm64) (#232)
+
 ## v2.2.16
 Wed  7 Sep 2022 11:10:37 BST
 
