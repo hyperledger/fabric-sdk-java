@@ -28,8 +28,8 @@
         <tag>fabric-sdk-java-1.0</tag>
     </scm>
     <properties>
-        <grpc.version>1.49.1</grpc.version>
-        <protobuf.version>3.21.1</protobuf.version> <!-- Must match version used by grpc-protobuf -->
+        <grpc.version>1.49.2</grpc.version>
+        <protobuf.version>3.21.7</protobuf.version> <!-- Must match version used by grpc-protobuf -->
         <bouncycastle.version>1.70</bouncycastle.version>
         <httpclient.version>4.5.13</httpclient.version>
         <javadoc.version>3.2.0</javadoc.version>
@@ -215,7 +215,7 @@
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
-            <version>1.32</version>
+            <version>1.33</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.miracl.milagro.amcl/milagro-crypto-java -->
