@@ -1,3 +1,8 @@
+## v2.2.18
+Fri  7 Oct 2022 09:54:17 BST
+
+* [641286f](https://github.com/hyperledger/fabric-sdk-java/commit/641286f) Update protobuf-java dependency to address CVE-2022-3171 (#238)
+
 ## v2.2.17
 Wed 21 Sep 2022 14:41:42 BST
 
