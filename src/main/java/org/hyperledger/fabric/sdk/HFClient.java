@@ -28,9 +28,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -66,18 +64,15 @@ public class HFClient {
         }
     }
 
-    ExecutorService getExecutorService() {
+    public ExecutorService getExecutorService() {
         if (null == executorService) {
             synchronized (this) { //was null so lets get a lock for safe update.
                 if (null == executorService) { // no other thread has done it ...
-                    executorService = new ThreadPoolExecutor(CLIENT_THREAD_EXECUTOR_COREPOOLSIZE, CLIENT_THREAD_EXECUTOR_MAXIMUMPOOLSIZE,
-                            CLIENT_THREAD_EXECUTOR_KEEPALIVETIME, CLIENT_THREAD_EXECUTOR_KEEPALIVETIMEUNIT,
-                            new SynchronousQueue<>(),
-                            r -> {
-                                Thread t = threadFactory.newThread(r);
-                                t.setDaemon(true);
-                                return t;
-                            });
+                    executorService = Executors.newFixedThreadPool(CLIENT_THREAD_EXECUTOR_POOLSIZE, r -> {
+                        Thread t = threadFactory.newThread(r);
+                        t.setDaemon(true);
+                        return t;
+                    });
                 }
             }
 
@@ -97,10 +92,7 @@ public class HFClient {
 
     protected final ThreadFactory threadFactory = Executors.defaultThreadFactory();
 
-    private static final int CLIENT_THREAD_EXECUTOR_COREPOOLSIZE = config.getClientThreadExecutorCorePoolSize();
-    private static final int CLIENT_THREAD_EXECUTOR_MAXIMUMPOOLSIZE = config.getClientThreadExecutorMaxiumPoolSize();
-    private static final long CLIENT_THREAD_EXECUTOR_KEEPALIVETIME = config.getClientThreadExecutorKeepAliveTime();
-    private static final TimeUnit CLIENT_THREAD_EXECUTOR_KEEPALIVETIMEUNIT = config.getClientThreadExecutorKeepAliveTimeUnit();
+    private static final int CLIENT_THREAD_EXECUTOR_POOLSIZE = Math.max(config.getClientThreadExecutorCorePoolSize(), config.getClientThreadExecutorMaxiumPoolSize());
 
     private HFClient() {
     }
