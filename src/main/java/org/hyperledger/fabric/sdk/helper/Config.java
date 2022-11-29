@@ -25,9 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
-import io.opentelemetry.sdk.OpenTelemetrySdkBuilder;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
-import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.Level;
@@ -182,9 +180,10 @@ public class Config {
              * Default HFClient thread executor settings.
              */
 
-            defaultProperty(CLIENT_THREAD_EXECUTOR_COREPOOLSIZE, "0");
-            defaultProperty(CLIENT_THREAD_EXECUTOR_MAXIMUMPOOLSIZE, "" + Integer.MAX_VALUE);
-            defaultProperty(CLIENT_THREAD_EXECUTOR_KEEPALIVETIME, "" + "60");
+            int availableProcessors = Runtime.getRuntime().availableProcessors();
+            defaultProperty(CLIENT_THREAD_EXECUTOR_COREPOOLSIZE, Integer.toString(availableProcessors + 1));
+            defaultProperty(CLIENT_THREAD_EXECUTOR_MAXIMUMPOOLSIZE, Integer.toString(availableProcessors + 1));
+            defaultProperty(CLIENT_THREAD_EXECUTOR_KEEPALIVETIME, "60");
             defaultProperty(CLIENT_THREAD_EXECUTOR_KEEPALIVETIMEUNIT, "SECONDS");
 
             /**
