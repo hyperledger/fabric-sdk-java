@@ -1,3 +1,9 @@
+## v2.2.19
+Tue 29 Nov 2022 15:34:43 GMT
+
+* [df2a61d](https://github.com/hyperledger/fabric-sdk-java/commit/df2a61d) Update dependencies
+* [058f33e](https://github.com/hyperledger/fabric-sdk-java/commit/058f33e) Change executor service defaults (#242)
+
 ## v2.2.18
 Fri  7 Oct 2022 09:54:17 BST
 
