@@ -1106,7 +1106,7 @@ public class HFCAClientIT {
             assertNotNull("client.info returned null.", info);
             String version = info.getVersion();
             assertNotNull("client.info.getVersion returned null.", version);
-            assertTrue(format("Version '%s' didn't match expected pattern", version), version.matches("^\\d+\\.\\d+\\.\\d+($|-.*)"));
+            assertTrue(format("Version '%s' didn't match expected pattern", version), version.matches("^v?\\d+\\.\\d+\\.\\d+($|-.*)"));
         }
 
     }
