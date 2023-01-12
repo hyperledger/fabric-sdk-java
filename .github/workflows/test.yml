@@ -1,15 +1,19 @@
 name: Build
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_call:
+    inputs:
+      fabric-version:
+        default: '2.2'
+        required: false
+        type: string
+      checkout-ref:
+        default: ''
+        required: false
+        type: string
 
 env:
-  FABRIC_VERSION: "2.2"
+  FABRIC_VERSION: ${{ inputs.fabric-version }}
   GOPATH: ${{ github.workspace }}/src/test/fixture
 
 jobs:
@@ -24,6 +28,8 @@ jobs:
           - "17"
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.checkout-ref }}
       - name: Set up JDK ${{ matrix.java-version }}
         uses: actions/setup-java@v3
         with:
