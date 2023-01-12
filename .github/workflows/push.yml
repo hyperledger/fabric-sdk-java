@@ -1,0 +1,10 @@
+name: Push
+
+on:
+  push:
+    branches:
+      - release-2.2
+
+jobs:
+  build:
+    uses: ./.github/workflows/test.yml
