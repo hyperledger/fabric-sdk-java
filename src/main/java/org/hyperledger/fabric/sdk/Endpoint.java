@@ -45,7 +45,7 @@ import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContextBuilder;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslProvider;
 import io.opentelemetry.api.OpenTelemetry;
-import io.opentelemetry.instrumentation.grpc.v1_6.GrpcTracing;
+import io.opentelemetry.instrumentation.grpc.v1_6.GrpcTelemetry;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -71,7 +71,7 @@ class Endpoint {
     private static final String SSLPROVIDER = Config.getConfig().getDefaultSSLProvider();
     private static final String SSLNEGOTIATION = Config.getConfig().getDefaultSSLNegotiationType();
     private static final OpenTelemetry openTelemetry = Config.getConfig().getOpenTelemetry();
-    private static final GrpcTracing grpcTracing = GrpcTracing.create(openTelemetry);
+    private static final GrpcTelemetry grpcTelemetry = GrpcTelemetry.create(openTelemetry);
 
     private final String addr;
     private final int port;
@@ -241,7 +241,7 @@ class Endpoint {
         }
 
         try {
-            ClientInterceptor clientInterceptor = grpcTracing.newClientInterceptor();
+            ClientInterceptor clientInterceptor = grpcTelemetry.newClientInterceptor();
             if (protocol.equalsIgnoreCase("grpc")) {
                 this.channelBuilder = NettyChannelBuilder.forAddress(addr, port).negotiationType(NegotiationType.PLAINTEXT).intercept(clientInterceptor);
                 addNettyBuilderProps(channelBuilder, properties);
