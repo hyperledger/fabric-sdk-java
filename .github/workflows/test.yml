@@ -1,0 +1,27 @@
+name: Test
+
+on:
+  workflow_call:
+    inputs:
+      checkout-ref:
+        default: ''
+        required: false
+        type: string
+
+jobs:
+  test:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.checkout-ref }}
+      - name: Set up JDK ${{ matrix.java-version }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: 8
+          distribution: temurin
+          cache: maven
+      - name: Integration tests
+        run: ./src/test/cirun.sh
+        env:
+          WD: ${{ github.workspace }}
