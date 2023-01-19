@@ -12,3 +12,10 @@ concurrency:
 jobs:
   build:
     uses: ./.github/workflows/test.yml
+
+  pull-request:
+    needs: build
+    name: Pull request success
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
