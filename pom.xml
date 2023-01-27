@@ -4,9 +4,9 @@
     <groupId>org.hyperledger.fabric-sdk-java</groupId>
     <artifactId>fabric-sdk-java</artifactId>
     <packaging>jar</packaging>
-    <version>2.2.0</version>
-    <name>fabric-java-sdk</name>
-    <description>Java SDK for Hyperledger fabric project</description>
+    <version>2.3.0-SNAPSHOT</version>
+    <name>fabric-sdk-java</name>
+    <description>Java SDK for Hyperledger Fabric</description>
     <url>https://www.hyperledger.org/community/projects</url>
     <licenses>
         <license>
@@ -19,13 +19,13 @@
         <developer>
             <name>Fabric JAVA SDK Developers</name>
             <email>hyperledger-technical-discuss@lists.hyperledger.org</email>
+            <organization>https://www.hyperledger.org/</organization>
         </developer>
     </developers>
     <scm>
-        <connection>scm:git:git://github.com/hyperledger/fabric-sdk-java.git</connection>
-        <developerConnection>scm:git:ssh://github.com/hyperledger/fabric-sdk-java.git</developerConnection>
+        <connection>scm:git:https://github.com/hyperledger/fabric-sdk-java.git</connection>
+        <developerConnection>scm:git:git://github.com/hyperledger/fabric-sdk-java.git</developerConnection>
         <url>http://github.com/hyperledger/fabric-sdk-java</url>
-        <tag>fabric-sdk-java-1.0</tag>
     </scm>
     <properties>
         <grpc.version>1.51.0</grpc.version>
@@ -420,6 +420,14 @@
                         <additionalJOption>${additionalJavadocOpts}</additionalJOption>
                     </additionalJOptions>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -631,12 +639,27 @@
                     </archive>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
     <distributionManagement>
         <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+            <uniqueVersion>true</uniqueVersion>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/hyperledger/fabric-sdk-java</url>
         </snapshotRepository>
     </distributionManagement>
     <profiles>
@@ -683,19 +706,8 @@
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.6.8</version>  <!-- was 1.6.7 -->
-                        <extensions>true</extensions>
-                        <configuration>
-                            <serverId>ossrh</serverId>
-                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                            <autoReleaseAfterClose>false</autoReleaseAfterClose>
-                        </configuration>
-                    </plugin>
-                    <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
-                        <version>3.3.0</version>  <!-- was 2.3 -->
+                        <version>3.4.2</version>
                         <configuration>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
@@ -713,10 +725,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <configuration>
-                            <useAgent>true</useAgent>
-                        </configuration>
-                        <version>1.6</version>  <!-- was 1.5 -->
+                        <version>3.0.1</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
@@ -724,50 +733,49 @@
                                 <goals>
                                     <goal>sign</goal>
                                 </goals>
+                                <configuration>
+                                    <gpgArguments>
+                                        <arg>--pinentry-mode</arg>
+                                        <arg>loopback</arg>
+                                    </gpgArguments>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>github</id>
+            <distributionManagement>
+                <repository>
+                    <id>github</id>
+                    <name>GitHub Packages</name>
+                    <url>https://maven.pkg.github.com/hyperledger/fabric-sdk-java</url>
+                </repository>
+            </distributionManagement>
+        </profile>
+        <profile>
+            <id>ossrh</id>
+            <distributionManagement>
+                <repository>
+                    <id>ossrh</id>
+                    <name>Central Repository OSSRH</name>
+                    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+                </repository>
+            </distributionManagement>
+            <build>
+                <plugins>
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-source-plugin</artifactId>
-                        <version>3.2.1</version>  <!-- was 2.2.1 -->
-                        <executions>
-                            <execution>
-                                <id>attach-sources</id>
-                                <goals>
-                                    <goal>jar-no-fork</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>${javadoc.version}</version>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <version>1.6.13</version>
+                        <extensions>true</extensions>
                         <configuration>
-                            <excludePackageNames>
-                                org.hyperledger.fabric_ca.sdk.helper:org.hyperledger.fabric.protos.*:org.hyperledger.fabric.sdk.helper:org.hyperledger.fabric.sdk.transaction:org.hyperledger.fabric.sdk.security
-                            </excludePackageNames>
-                            <show>public</show>
-                            <doctitle>Hyperledger Fabric Java SDK</doctitle>
-                            <nohelp>true</nohelp>
-                            <failOnError>true</failOnError>
-                            <source>8</source>
-                            <links>
-                                <link>http://docs.oracle.com/javase/8/docs/api/</link>
-                            </links>
-                            <additionalJOptions>
-                                <additionalJOption>${additionalJavadocOpts}</additionalJOption>
-                            </additionalJOptions>
+                            <serverId>ossrh</serverId>
+                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
                         </configuration>
-                        <executions>
-                            <execution>
-                                <id>attach-javadocs</id>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals>
-                            </execution>
-                        </executions>
                     </plugin>
                 </plugins>
             </build>
