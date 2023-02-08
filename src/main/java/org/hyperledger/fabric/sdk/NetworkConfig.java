@@ -843,22 +843,22 @@ public class NetworkConfig {
                 String certfile = getJsonValueAsString(jsonTlsClientCerts.get("certfile"));
 
                 if (keyfile != null) {
-                    props.put("tlsClientKeyFile", keyfile);
+                    props.put("clientKeyFile", keyfile);
                 }
 
                 if (certfile != null) {
-                    props.put("tlsClientCertFile", certfile);
+                    props.put("clientCertFile", certfile);
                 }
 
                 String keyBytes = getJsonValueAsString(jsonTlsClientCerts.get("keyPem"));
                 String certBytes = getJsonValueAsString(jsonTlsClientCerts.get("certPem"));
 
                 if (keyBytes != null) {
-                    props.put("tlsClientKeyBytes", keyBytes.getBytes());
+                    props.put("clientKeyBytes", keyBytes.getBytes());
                 }
 
                 if (certBytes != null) {
-                    props.put("tlsClientCertBytes", certBytes.getBytes());
+                    props.put("clientCertBytes", certBytes.getBytes());
                 }
             }
         }
