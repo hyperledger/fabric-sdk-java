@@ -72,6 +72,14 @@ import static org.hyperledger.fabric.sdk.helper.Utils.isNullOrEmpty;
  */
 
 public class NetworkConfig {
+    public static final String CLIENT_CERT_BYTES = "clientCertBytes";
+
+    public static final String CLIENT_KEY_BYTES = "clientKeyBytes";
+
+    public static final String CLIENT_CERT_FILE = "clientCertFile";
+
+    public static final String CLIENT_KEY_FILE = "clientKeyFile";
+
     private static final String URL_PROP_NAME = "url";
 
     private final JsonObject jsonConfig;
@@ -843,22 +851,22 @@ public class NetworkConfig {
                 String certfile = getJsonValueAsString(jsonTlsClientCerts.get("certfile"));
 
                 if (keyfile != null) {
-                    props.put("clientKeyFile", keyfile);
+                    props.put(CLIENT_KEY_FILE, keyfile);
                 }
 
                 if (certfile != null) {
-                    props.put("clientCertFile", certfile);
+                    props.put(CLIENT_CERT_FILE, certfile);
                 }
 
                 String keyBytes = getJsonValueAsString(jsonTlsClientCerts.get("keyPem"));
                 String certBytes = getJsonValueAsString(jsonTlsClientCerts.get("certPem"));
 
                 if (keyBytes != null) {
-                    props.put("clientKeyBytes", keyBytes.getBytes());
+                    props.put(CLIENT_KEY_BYTES, keyBytes.getBytes());
                 }
 
                 if (certBytes != null) {
-                    props.put("clientCertBytes", certBytes.getBytes());
+                    props.put(CLIENT_CERT_BYTES, certBytes.getBytes());
                 }
             }
         }

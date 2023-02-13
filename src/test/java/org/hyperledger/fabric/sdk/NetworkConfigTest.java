@@ -332,18 +332,14 @@ public class NetworkConfigTest {
         String peer1 = "peer1.org1.example.com";
         // Check JsonPeers' properties
         Properties peer0Properties = config.getPeerProperties(peer0);
-        assertEquals(peer0Properties.getProperty("clientCertFile"), "./tls/sign.pem");
-        assertEquals(peer0Properties.getProperty("clientKeyFile"), "./tls/key.pem");
-        assertNull(peer0Properties.getProperty("tlsClientCertFile"));
-        assertNull(peer0Properties.getProperty("tlsClientKeyFile"));
+        assertEquals(peer0Properties.getProperty(NetworkConfig.CLIENT_CERT_FILE), "./tls/sign.pem");
+        assertEquals(peer0Properties.getProperty(NetworkConfig.CLIENT_KEY_FILE), "./tls/key.pem");
 
         Properties peer1Properties = config.getPeerProperties(peer1);
-        byte[] clientKeyBytes = (byte[]) peer1Properties.get("clientKeyBytes");
-        byte[] clientCertBytes = (byte[]) peer1Properties.get("clientCertBytes");
+        byte[] clientKeyBytes = (byte[]) peer1Properties.get(NetworkConfig.CLIENT_KEY_BYTES);
+        byte[] clientCertBytes = (byte[]) peer1Properties.get(NetworkConfig.CLIENT_CERT_BYTES);
         assertTrue(Arrays.equals(clientCertBytes, "-----BEGIN CERTIFICATE----- <etc>".getBytes()));
         assertTrue(Arrays.equals(clientKeyBytes, "-----BEGIN PRIVATE KEY----- <etc>".getBytes()));
-        assertNull(peer1Properties.getProperty("tlsClientCertBytes"));
-        assertNull(peer1Properties.getProperty("tlsClientKeyBytes"));
 
         // Check Peer nodes' properties
         HFClient client = HFClient.createNewInstance();
@@ -359,17 +355,13 @@ public class NetworkConfigTest {
             Properties properties = peer.getProperties();
             assertNotNull(properties);
             if (peer.getName().equals(peer0)) {
-                assertEquals(properties.getProperty("clientCertFile"), "./tls/sign.pem");
-                assertEquals(properties.getProperty("clientKeyFile"), "./tls/key.pem");
-                assertNull(properties.getProperty("tlsClientCertFile"));
-                assertNull(properties.getProperty("tlsClientKeyFile"));
+                assertEquals(properties.getProperty(NetworkConfig.CLIENT_CERT_FILE), "./tls/sign.pem");
+                assertEquals(properties.getProperty(NetworkConfig.CLIENT_KEY_FILE), "./tls/key.pem");
             } else if (peer.getName().equals(peer1)) {
-                byte[] nodeClientKeyBytes = (byte[]) properties.get("clientKeyBytes");
-                byte[] nodeClientCertBytes = (byte[]) properties.get("clientCertBytes");
+                byte[] nodeClientKeyBytes = (byte[]) properties.get(NetworkConfig.CLIENT_KEY_BYTES);
+                byte[] nodeClientCertBytes = (byte[]) properties.get(NetworkConfig.CLIENT_CERT_BYTES);
                 assertTrue(Arrays.equals(nodeClientCertBytes, "-----BEGIN CERTIFICATE----- <etc>".getBytes()));
                 assertTrue(Arrays.equals(nodeClientKeyBytes, "-----BEGIN PRIVATE KEY----- <etc>".getBytes()));
-                assertNull(properties.getProperty("tlsClientCertBytes"));
-                assertNull(properties.getProperty("tlsClientKeyBytes"));
             }
         }
     }

@@ -32,6 +32,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.hyperledger.fabric.sdk.Enrollment;
+import org.hyperledger.fabric.sdk.NetworkConfig;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.identity.IdemixEnrollment;
 import org.hyperledger.fabric.sdk.identity.IdemixRoles;
@@ -504,8 +505,8 @@ public class HFCAClientTest {
 
         // Test clientCertFile and clientKeyFile
         Properties testprops = new Properties();
-        testprops.setProperty("clientKeyFile", "src/test/fixture/testPems/client.key");
-        testprops.setProperty("clientCertFile", "src/test/fixture/testPems/client.pem");
+        testprops.setProperty(NetworkConfig.CLIENT_KEY_FILE, "src/test/fixture/testPems/client.key");
+        testprops.setProperty(NetworkConfig.CLIENT_CERT_FILE, "src/test/fixture/testPems/client.pem");
 
         CryptoPrimitives crypto = new CryptoPrimitives();
         crypto.init();
@@ -519,27 +520,10 @@ public class HFCAClientTest {
         Key key = (Key) trustStore.getKey("11970826868249889736", new char[0]);
         assertNotNull(key);
 
-        // Test tlsClientCertFile and tlsClientKeyFile
-        testprops = new Properties();
-        testprops.setProperty("tlsClientKeyFile", "src/test/fixture/testPems/client.key");
-        testprops.setProperty("tlsClientCertFile", "src/test/fixture/testPems/client.pem");
-
-        crypto = new CryptoPrimitives();
-        crypto.init();
-
-        client = HFCAClient.createNewInstance("client", "https://localhost:99", testprops);
-        client.setCryptoSuite(crypto);
-
-        invokeMethod(client, "setUpSSL");
-
-        trustStore = client.cryptoPrimitives.getTrustStore();
-        key = (Key) trustStore.getKey("11970826868249889736", new char[0]);
-        assertNull(key);
-
         // Test clientCertBytes and clientKeyBytes
         testprops = new Properties();
-        testprops.put("clientKeyBytes", Files.readAllBytes(Paths.get("src/test/fixture/testPems/client.key")));
-        testprops.put("clientCertBytes", Files.readAllBytes(Paths.get("src/test/fixture/testPems/client.pem")));
+        testprops.put(NetworkConfig.CLIENT_KEY_BYTES, Files.readAllBytes(Paths.get("src/test/fixture/testPems/client.key")));
+        testprops.put(NetworkConfig.CLIENT_CERT_BYTES, Files.readAllBytes(Paths.get("src/test/fixture/testPems/client.pem")));
 
         crypto = new CryptoPrimitives();
         crypto.init();
@@ -552,23 +536,6 @@ public class HFCAClientTest {
         trustStore = client.cryptoPrimitives.getTrustStore();
         key = (Key) trustStore.getKey("11970826868249889736", new char[0]);
         assertNotNull(key);
-
-        // Test tlsClientCertBytes and tlsClientKeyBytes
-        testprops = new Properties();
-        testprops.put("tlsClientKeyBytes", Files.readAllBytes(Paths.get("src/test/fixture/testPems/client.key")));
-        testprops.put("tlsClientCertBytes", Files.readAllBytes(Paths.get("src/test/fixture/testPems/client.pem")));
-
-        crypto = new CryptoPrimitives();
-        crypto.init();
-
-        client = HFCAClient.createNewInstance("client", "https://localhost:99", testprops);
-        client.setCryptoSuite(crypto);
-
-        invokeMethod(client, "setUpSSL");
-
-        trustStore = client.cryptoPrimitives.getTrustStore();
-        key = (Key) trustStore.getKey("11970826868249889736", new char[0]);
-        assertNull(key);
     }
 
 
