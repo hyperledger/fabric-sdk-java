@@ -1617,17 +1617,17 @@ public class HFCAClient {
                     }
                 }
 
-                String tlsClientKeyFile = properties.getProperty("tlsClientKeyFile");
-                String tlsClientCertFile = properties.getProperty("tlsClientCertFile");
+                String tlsClientKeyFile = properties.getProperty(NetworkConfig.CLIENT_KEY_FILE);
+                String tlsClientCertFile = properties.getProperty(NetworkConfig.CLIENT_CERT_FILE);
 
-                byte[] tlsClientKeyAsBytes = (byte[]) properties.get("tlsClientKeyBytes");
+                byte[] tlsClientKeyAsBytes = (byte[]) properties.get(NetworkConfig.CLIENT_KEY_BYTES);
                 if (tlsClientKeyFile != null && tlsClientKeyAsBytes != null) {
                     logger.warn("SSL CA client key is specified as bytes and as a file path. Using client key specified as bytes.");
                 }
                 if (tlsClientKeyFile != null && tlsClientKeyAsBytes == null) {
                      tlsClientKeyAsBytes = Files.readAllBytes(Paths.get(tlsClientKeyFile));
                 }
-                byte[] tlsClientCertAsBytes = (byte[]) properties.get("tlsClientCertBytes");
+                byte[] tlsClientCertAsBytes = (byte[]) properties.get(NetworkConfig.CLIENT_CERT_BYTES);
                 if (tlsClientCertFile != null && tlsClientCertAsBytes != null) {
                     logger.warn("SSL CA client cert is specified as bytes and as a file path. Using client cert specified as bytes.");
                 }

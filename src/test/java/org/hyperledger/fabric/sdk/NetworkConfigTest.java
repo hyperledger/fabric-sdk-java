@@ -47,12 +47,14 @@ import static org.hyperledger.fabric.sdk.testutils.TestUtils.getField;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class NetworkConfigTest {
     private static final Path NETWORK_CONFIG_DIR = Paths.get("src", "test", "fixture", "sdkintegration", "network_configs");
     private static final Path NETWORK_CONFIG_JSON = NETWORK_CONFIG_DIR.resolve("network-config.json");
     private static final Path NETWORK_CONFIG_YAML = NETWORK_CONFIG_DIR.resolve("network-config.yaml");
+    private static final Path NETWORK_CONFIG_CLIENT_TLS_JSON = NETWORK_CONFIG_DIR.resolve("network-config-client-tls.json");
 
     private static final String CHANNEL_NAME = "myChannel";
     private static final String CLIENT_ORG_NAME = "Org1";
@@ -317,6 +319,53 @@ public class NetworkConfigTest {
         }
 
     }
+
+    @Test
+    public void testLoadFromConfigFileJsonNOOverridesClientTls() throws Exception {
+
+        File f = NETWORK_CONFIG_CLIENT_TLS_JSON.toFile();
+        NetworkConfig config = NetworkConfig.fromJsonFile(f);
+
+        assertNotNull(config);
+
+        String peer0 = "peer0.org1.example.com";
+        String peer1 = "peer1.org1.example.com";
+        // Check JsonPeers' properties
+        Properties peer0Properties = config.getPeerProperties(peer0);
+        assertEquals(peer0Properties.getProperty(NetworkConfig.CLIENT_CERT_FILE), "./tls/sign.pem");
+        assertEquals(peer0Properties.getProperty(NetworkConfig.CLIENT_KEY_FILE), "./tls/key.pem");
+
+        Properties peer1Properties = config.getPeerProperties(peer1);
+        byte[] clientKeyBytes = (byte[]) peer1Properties.get(NetworkConfig.CLIENT_KEY_BYTES);
+        byte[] clientCertBytes = (byte[]) peer1Properties.get(NetworkConfig.CLIENT_CERT_BYTES);
+        assertTrue(Arrays.equals(clientCertBytes, "-----BEGIN CERTIFICATE----- <etc>".getBytes()));
+        assertTrue(Arrays.equals(clientKeyBytes, "-----BEGIN PRIVATE KEY----- <etc>".getBytes()));
+
+        // Check Peer nodes' properties
+        HFClient client = HFClient.createNewInstance();
+        client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+        client.setUserContext(TestUtils.getMockUser(USER_NAME, USER_MSP_ID));
+
+        Channel channel = client.loadChannelFromConfig("mychannel", config);
+        assertNotNull(channel);
+
+        assertFalse(channel.getPeers().isEmpty());
+
+        for (Peer peer : channel.getPeers()) {
+            Properties properties = peer.getProperties();
+            assertNotNull(properties);
+            if (peer.getName().equals(peer0)) {
+                assertEquals(properties.getProperty(NetworkConfig.CLIENT_CERT_FILE), "./tls/sign.pem");
+                assertEquals(properties.getProperty(NetworkConfig.CLIENT_KEY_FILE), "./tls/key.pem");
+            } else if (peer.getName().equals(peer1)) {
+                byte[] nodeClientKeyBytes = (byte[]) properties.get(NetworkConfig.CLIENT_KEY_BYTES);
+                byte[] nodeClientCertBytes = (byte[]) properties.get(NetworkConfig.CLIENT_CERT_BYTES);
+                assertTrue(Arrays.equals(nodeClientCertBytes, "-----BEGIN CERTIFICATE----- <etc>".getBytes()));
+                assertTrue(Arrays.equals(nodeClientKeyBytes, "-----BEGIN PRIVATE KEY----- <etc>".getBytes()));
+            }
+        }
+    }
+
 
     @Test
     public void testLoadFromConfigFileYamlNOOverridesButSet() throws Exception {
