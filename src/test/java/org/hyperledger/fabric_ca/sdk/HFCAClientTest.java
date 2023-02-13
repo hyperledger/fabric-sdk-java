@@ -20,6 +20,7 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.Key;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -31,6 +32,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.hyperledger.fabric.sdk.Enrollment;
+import org.hyperledger.fabric.sdk.NetworkConfig;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.identity.IdemixEnrollment;
 import org.hyperledger.fabric.sdk.identity.IdemixRoles;
@@ -55,6 +57,7 @@ import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.invokeMethod;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class HFCAClientTest {
@@ -496,6 +499,45 @@ public class HFCAClientTest {
         }
         assertEquals("Number of CA certificates mismatch", expected.size(), count);
     }
+
+    @Test
+    public void testClientTlsTrustedCertProperites() throws Throwable {
+
+        // Test clientCertFile and clientKeyFile
+        Properties testprops = new Properties();
+        testprops.setProperty(NetworkConfig.CLIENT_KEY_FILE, "src/test/fixture/testPems/client.key");
+        testprops.setProperty(NetworkConfig.CLIENT_CERT_FILE, "src/test/fixture/testPems/client.pem");
+
+        CryptoPrimitives crypto = new CryptoPrimitives();
+        crypto.init();
+
+        HFCAClient client = HFCAClient.createNewInstance("client", "https://localhost:99", testprops);
+        client.setCryptoSuite(crypto);
+
+        invokeMethod(client, "setUpSSL");
+
+        KeyStore trustStore = client.cryptoPrimitives.getTrustStore();
+        Key key = (Key) trustStore.getKey("11970826868249889736", new char[0]);
+        assertNotNull(key);
+
+        // Test clientCertBytes and clientKeyBytes
+        testprops = new Properties();
+        testprops.put(NetworkConfig.CLIENT_KEY_BYTES, Files.readAllBytes(Paths.get("src/test/fixture/testPems/client.key")));
+        testprops.put(NetworkConfig.CLIENT_CERT_BYTES, Files.readAllBytes(Paths.get("src/test/fixture/testPems/client.pem")));
+
+        crypto = new CryptoPrimitives();
+        crypto.init();
+
+        client = HFCAClient.createNewInstance("client", "https://localhost:99", testprops);
+        client.setCryptoSuite(crypto);
+
+        invokeMethod(client, "setUpSSL");
+
+        trustStore = client.cryptoPrimitives.getTrustStore();
+        key = (Key) trustStore.getKey("11970826868249889736", new char[0]);
+        assertNotNull(key);
+    }
+
 
     @Test
     public void testIdemixNullEnrollment() throws Exception {

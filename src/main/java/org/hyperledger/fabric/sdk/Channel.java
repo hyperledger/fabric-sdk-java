@@ -1627,25 +1627,25 @@ public class Channel implements Serializable {
 
             String protocol = (String) findClientProp(config, "protocol", mspid, endpoint, sdOrdererAdditionInfo.isTLS() ? "grpcs:" : "grpc:");
 
-            String clientCertFile = (String) findClientProp(config, "clientCertFile", mspid, endpoint, null);
+            String clientCertFile = (String) findClientProp(config, NetworkConfig.CLIENT_CERT_FILE, mspid, endpoint, null);
 
             if (null != clientCertFile) {
-                properties.put("clientCertFile", clientCertFile);
+                properties.put(NetworkConfig.CLIENT_CERT_FILE, clientCertFile);
             }
 
-            String clientKeyFile = (String) findClientProp(config, "clientKeyFile", mspid, endpoint, null);
+            String clientKeyFile = (String) findClientProp(config, NetworkConfig.CLIENT_KEY_FILE, mspid, endpoint, null);
             if (null != clientKeyFile) {
-                properties.put("clientKeyFile", clientKeyFile);
+                properties.put(NetworkConfig.CLIENT_KEY_FILE, clientKeyFile);
             }
 
-            byte[] clientCertBytes = (byte[]) findClientProp(config, "clientCertBytes", mspid, endpoint, null);
+            byte[] clientCertBytes = (byte[]) findClientProp(config, NetworkConfig.CLIENT_CERT_BYTES, mspid, endpoint, null);
             if (null != clientCertBytes) {
-                properties.put("clientCertBytes", clientCertBytes);
+                properties.put(NetworkConfig.CLIENT_CERT_BYTES, clientCertBytes);
             }
 
-            byte[] clientKeyBytes = (byte[]) findClientProp(config, "clientKeyBytes", mspid, endpoint, null);
+            byte[] clientKeyBytes = (byte[]) findClientProp(config, NetworkConfig.CLIENT_KEY_BYTES, mspid, endpoint, null);
             if (null != clientKeyBytes) {
-                properties.put("clientKeyBytes", clientKeyBytes);
+                properties.put(NetworkConfig.CLIENT_KEY_BYTES, clientKeyBytes);
             }
 
             String hostnameOverride = (String) findClientProp(config, "hostnameOverride", mspid, endpoint, null);
@@ -1693,23 +1693,23 @@ public class Channel implements Serializable {
 
             }
 
-            String clientCertFile = (String) findClientProp(config, "clientCertFile", mspid, endpoint, null);
+            String clientCertFile = (String) findClientProp(config, NetworkConfig.CLIENT_CERT_FILE, mspid, endpoint, null);
 
-            byte[] clientCertBytes = (byte[]) findClientProp(config, "clientCertBytes", mspid, endpoint, null);
+            byte[] clientCertBytes = (byte[]) findClientProp(config, NetworkConfig.CLIENT_CERT_BYTES, mspid, endpoint, null);
             if (null != clientCertBytes) {
-                properties.put("clientCertBytes", clientCertBytes);
+                properties.put(NetworkConfig.CLIENT_CERT_BYTES, clientCertBytes);
             } else if (null != clientCertFile) {
-                properties.put("clientCertFile", clientCertFile);
+                properties.put(NetworkConfig.CLIENT_CERT_FILE, clientCertFile);
             }
 
             properties.put(Peer.PEER_ORGANIZATION_MSPID_PROPERTY, sdPeerAddition.getMspId());
 
-            byte[] clientKeyBytes = (byte[]) findClientProp(config, "clientKeyBytes", mspid, endpoint, null);
-            String clientKeyFile = (String) findClientProp(config, "clientKeyFile", mspid, endpoint, null);
+            byte[] clientKeyBytes = (byte[]) findClientProp(config, NetworkConfig.CLIENT_KEY_BYTES, mspid, endpoint, null);
+            String clientKeyFile = (String) findClientProp(config, NetworkConfig.CLIENT_KEY_FILE, mspid, endpoint, null);
             if (null != clientKeyBytes) {
-                properties.put("clientKeyBytes", clientKeyBytes);
+                properties.put(NetworkConfig.CLIENT_KEY_BYTES, clientKeyBytes);
             } else if (null != clientKeyFile) {
-                properties.put("clientKeyFile", clientKeyFile);
+                properties.put(NetworkConfig.CLIENT_KEY_FILE, clientKeyFile);
             }
 
             String hostnameOverride = (String) findClientProp(config, "hostnameOverride", mspid, endpoint, null);
