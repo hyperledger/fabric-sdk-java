@@ -22,16 +22,10 @@ jobs:
           gpg-private-key: ${{ secrets.OSSRH_GPG_SECRET_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
       - name: Publish
-        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }}
-          PUBLISH_PROFILE: github
-        run: |
-          POM_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:evaluate -Dexpression=project.version -q -DforceStdout)
-          PUBLISH_VERSION="${POM_VERSION%%-*}"
-          mvn --batch-mode --no-transfer-progress versions:set -DnewVersion="${PUBLISH_VERSION}"
-          mvn --batch-mode --no-transfer-progress --activate-profiles "release,${PUBLISH_PROFILE}" -DskipTests deploy
+        run: ${{ github.workspace }}/.github/scripts/maven_publish_release.sh github
 
   publish-ossrh:
     name: Publish Java artifact to Maven Central
@@ -49,14 +43,8 @@ jobs:
           gpg-private-key: ${{ secrets.OSSRH_GPG_SECRET_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
       - name: Publish
-        shell: bash
         env:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }}
-          PUBLISH_PROFILE: ossrh
-        run: |
-          POM_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:evaluate -Dexpression=project.version -q -DforceStdout)
-          PUBLISH_VERSION="${POM_VERSION%%-*}"
-          mvn --batch-mode --no-transfer-progress versions:set -DnewVersion="${PUBLISH_VERSION}"
-          mvn --batch-mode --no-transfer-progress --activate-profiles "release,${PUBLISH_PROFILE}" -DskipTests deploy
+        run: ${{ github.workspace }}/.github/scripts/maven_publish_release.sh ossrh
