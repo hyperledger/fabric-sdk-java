@@ -1016,14 +1016,14 @@ public class ServiceDiscovery {
             boolean ignoreList(Collection<String> names) {
                 HashSet<String> bnames = new HashSet<>(names);
                 endorsers.removeIf(endorser -> bnames.contains(endorser.getEndpoint()));
-                return endorsers.size() >= required;
+                return endorsers.size() >= getStillRequired();
             }
 
             //returns true if there are still sufficent endorsers for this group.
             boolean ignoreListSDEndorser(Collection<SDEndorser> sdEndorsers) {
                 HashSet<SDEndorser> bnames = new HashSet<>(sdEndorsers);
                 endorsers.removeIf(bnames::contains);
-                return endorsers.size() >= required;
+                return endorsers.size() >= getStillRequired();
             }
 
             // retrun true if th endorsements have been meet.
@@ -1041,7 +1041,7 @@ public class ServiceDiscovery {
 
                     endorsers.removeIf(endorser -> {
                         if (enames.contains(endorser.getEndpoint())) {
-                            endorsed = Math.min(required, endorsed++);
+                            endorsed = Math.min(required, endorsed + 1);
                             return true; // remove it.
                         }
                         return false; // needs to stay in the list.
