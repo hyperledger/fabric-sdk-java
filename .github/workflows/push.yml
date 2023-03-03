@@ -8,25 +8,3 @@ on:
 jobs:
   build:
     uses: ./.github/workflows/test.yml
-
-  publish:
-    needs: build
-    name: Publish Java artifact to GitHub Packages
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-java@v3
-        with:
-          java-version: 8
-          distribution: temurin
-          cache: maven
-          gpg-private-key: ${{ secrets.OSSRH_GPG_SECRET_KEY }}
-          gpg-passphrase: MAVEN_GPG_PASSPHRASE
-      - name: Publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }}
-        run: ${{ github.workspace }}/.github/scripts/maven_publish_snapshot.sh
