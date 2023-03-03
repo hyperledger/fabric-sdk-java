@@ -32,6 +32,7 @@ import static org.hyperledger.fabric.sdk.ServiceDiscovery.SDEndorser;
 import static org.hyperledger.fabric.sdk.ServiceDiscovery.SDEndorserState;
 import static org.hyperledger.fabric.sdk.ServiceDiscovery.SDLayout;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -333,6 +334,48 @@ public class ServiceDiscoveryTest {
             ));
         }
 
+    }
+
+    /**
+     * Test to ensure layouts and groups are correctly classified
+     * as (un)satisfied and (un)satisfiable during proposal response
+     * collection by the methods `endorsedList` and `ignoreListSDEndorser`.
+     */
+    @Test
+    public void loopGoodAndBadTest() {
+
+        // Let's say we have a group with 3 endorsers of which we require 2.
+        final int requiredInGroup = 2;
+        SDEndorser endorser1 = new MockSDEndorser("org1", "localhost:81", 0);
+        SDEndorser endorser2 = new MockSDEndorser("org1", "localhost:82", 0);
+        SDEndorser endorser3 = new MockSDEndorser("org1", "localhost:83", 0);
+        LinkedList<SDEndorser> endorsers = new LinkedList<>();
+        endorsers.add(endorser1);
+        endorsers.add(endorser2);
+        endorsers.add(endorser3);
+        SDLayout layout = new SDLayout();
+        layout.addGroup("G0", requiredInGroup, endorsers);
+        SDLayout.SDGroup group = layout.getSDLGroups().iterator().next();
+
+        // If 'endorser1' endorses successfully call `endorsedList`,
+        // the group should not be satisfied as we still require 1 more endorser.
+        LinkedList<SDEndorser> loopGood = new LinkedList<>();
+        loopGood.add(endorser1);
+        assertFalse(layout.endorsedList(loopGood)); // false i.e. not yet satisfied.
+        assertEquals(1, group.getStillRequired());
+
+        // If 'endorser2' fails to endorse call `ignoreListSDEndorser`,
+        // the group should still be satisfiable as we still have 1 more endorser to try.
+        LinkedList<SDEndorser> loopBad = new LinkedList<>();
+        loopBad.add(endorser2);
+        assertTrue(layout.ignoreListSDEndorser(loopBad)); // true i.e. still possible to satisfy.
+        assertEquals(1, group.getStillRequired());
+
+        // If 'endorser3' endorses, then the group should be satisfied.
+        loopGood = new LinkedList<>();
+        loopGood.add(endorser3);
+        assertTrue(layout.endorsedList(loopGood)); // true i.e .satisfied.
+        assertEquals(0, group.getStillRequired());
     }
 
     private static class MockSDEndorser extends SDEndorser {
