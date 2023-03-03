@@ -1,10 +1,14 @@
+# Changelog
+
+Notable changes in each release are documented on the project's [GitHub releases](https://github.com/hyperledger/fabric-sdk-java/releases) page.
+
 ## v2.2.0
 Wed 15 Jul 2020 14:36:07 BST
 
 * [e9152db](https://github.com/hyperledger/fabric-sdk-java/commit/e9152db) Prune missleading legacy document (#66)
 * [4e24e47](https://github.com/hyperledger/fabric-sdk-java/commit/4e24e47) Add baseos to vendored images and bump fab version (#67)
 
-## 2.1.4
+## v2.1.4
 Fri  3 Jul 2020 11:18:31 BST
 
 * [f9755b5](https://github.com/hyperledger/fabric-sdk-java/commit/f9755b5) [FABJ-521] Allow arrays of PEM content in connection profile (#62)

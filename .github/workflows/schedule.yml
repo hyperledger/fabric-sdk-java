@@ -7,8 +7,3 @@ on:
 jobs:
   main:
     uses: ./.github/workflows/test.yml
-  release-2_2:
-    name: release-2.2
-    uses: hyperledger/fabric-sdk-java/.github/workflows/test.yml@release-2.2
-    with:
-      checkout-ref: release-2.2
