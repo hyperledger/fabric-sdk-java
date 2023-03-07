@@ -1,10 +1,11 @@
-# Hyperledger Fabric SDK for Java
+# Hyperledger Fabric SDK for Java <a href="https://github.com/hyperledger/fabric-sdk-java/actions/workflows/schedule.yml"><img src="https://github.com/hyperledger/fabric-sdk-java/actions/workflows/schedule.yml/badge.svg" alt="Build status" style="float: right"></a>
+
+> **Note:** This API is deprecated. When developing applications for Hyperledger Fabric v2.4 and later, you should use the [Fabric Gateway client API](https://hyperledger.github.io/fabric-gateway/). When developing applications for earlier Fabric versions, you are strongly encouraged to use the high-level API detailed below.
+
 This project provides a low-level API for interacting with Hyperledger Fabric blockchain networks, and is used by the
 high-level **Hyperledger Fabric Gateway SDK for Java**:
 - Documentation: https://hyperledger.github.io/fabric-gateway-java/
 - GitHub repository: https://github.com/hyperledger/fabric-gateway-java/
- 
-For building Hyperledger Fabric blockchain client applications, you are strongly encouraged to use the high level API.
 
 The information below is intended for contributors to this repository.
 
@@ -104,21 +105,9 @@ You may also need to on your <span style="color:red"><b>v2.1</b> </span>  Fabric
 
 ## Known limitations and restrictions
 
-* TCerts are not supported: JIRA FAB-1401
+* TCerts are not supported: [JIRA FAB-1401](https://jira.hyperledger.org/browse/FAB-1401)
 
 ---
-
-## v2.1 builds of Fabric and Fabric-ca needed for the integration test
-
-To get a functioning Fabric v2.1 network needed by the SDK Integration tests.
-In the directory `src/test/fixture/sdkintegration` issue :
-
-`./fabric.sh restart`
-
-This command needs to be rerun each time the Integration tests are run.
-
-### Setting Up Eclipse
-To get started using the Fabric Java SDK with Eclipse, refer to the instructions at: ./docs/EclipseSetup.md
 
 ## SDK dependencies
 SDK depends on few third party libraries that must be included in your classpath when using the JAR file. To get a list of dependencies, refer to pom.xml file or run
@@ -134,6 +123,10 @@ To run the integration tests Fabric and Fabric CA is needed which require
  * Docker compose 1.21.2
 
 ## Using the SDK
+
+### Setting Up Eclipse
+
+If you want to get started using the Fabric Java SDK with Eclipse, refer to the instructions at: ./docs/EclipseSetup.md
 
 ### Compiling
 
@@ -154,9 +147,12 @@ To run the unit tests, please use <code>mvn install</code> which will run the un
 **[INFO] BUILD SUCCESS**  **_At the end is usually a very reliable indication that all tests have passed successfully!_**
 
 ### Running the integration tests
-You must be running local instances of Fabric-ca, Fabric peers, and Fabric orderers to be able to run the integration tests. See above for for how to get a Fabric network running.
-Use this `maven` command to run the integration tests:
- * _mvn clean install -DskipITs=false -Dmaven.test.failure.ignore=false javadoc:javadoc_
+
+The script below both sets up the test environment and runs the tests.
+
+```sh
+./scripts/run-integration-tests.sh
+```
 
 ### End to end test scenario
 
@@ -300,7 +296,7 @@ Go lang chaincode dependencies must be contained in vendor folder.
 
 ### Where can I find the Javadoc?
 
-Look in the [Maven repository](http://central.maven.org/maven2/org/hyperledger/fabric-sdk-java/fabric-sdk-java/)
+Look in the [Maven repository](https://search.maven.org/artifact/org.hyperledger.fabric-sdk-java/fabric-sdk-java)
 for the release in question there should be a file fabric-sdk-java-_&lt;release&gt;_-javadoc.jar
 
 For SNAPSHOT builds look in [Sonatype repository](https://oss.sonatype.org/content/repositories/snapshots/org/hyperledger/fabric-sdk-java/fabric-sdk-java/)
@@ -321,7 +317,7 @@ can be on all requests overridden by setting the user context on that specific r
 ### Idemix users or Idemix test cases (IdemixIdentitiesTest) just seems to hang or take forever.
 
 Most likely this is running on a virtual machine that does not have sufficient entropy.
-Google for adding entropy on virtual machines or look at [virtual machines entropy](http://giovannitorres.me/increasing-entropy-on-virtual-machines.html)
+Google for adding entropy on virtual machines or look at [virtual machines entropy](https://web.archive.org/web/20191202062101/http://giovannitorres.me/increasing-entropy-on-virtual-machines.html)
 If linux try installing rng-tools package as this suggests.
 
 ### Firewalls, load balancers, network proxies
@@ -411,7 +407,16 @@ CORE_LOGGING_LEVEL=DEBUG
 Fabric CA
 by starting command have the -d parameter.
 
-Upload full logs to the JIRA not just where the issue occurred if possible
+Upload full logs to JIRA, not just where the issue occurred if possible
+
+### Tracing
+
+The SDK is set up to trace all gRPC communications:
+* All outgoing messages bear trace metadata, allowing correlation with peers.
+* Each request/response is computed as a span.
+* If you use OpenTelemetry in your program, the gRPC span will correlate using the thread local context to the parent context.
+
+The SDK accepts all environment variables as described in the [OpenTelemetry specification](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md).
 
 ### Tracing
 

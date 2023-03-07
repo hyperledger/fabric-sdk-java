@@ -8,7 +8,7 @@ v2.0 capabilities are enabled the deprecated pre v2.0 APIs ( [InstallProposalReq
 [UpgradeProposalRequest](https://github.com/hyperledger/fabric-sdk-java/blob/df422e10fa38bf8a627dd81e7ad038404d625576/src/main/java/org/hyperledger/fabric/sdk/UpgradeProposalRequest.java) ) can no longer be used to manage any chaincode using that channel.
 
 The v2.0 Lifecycle can require organizations to endorse (consent) to new chaincode being run on the channel. The default is to require a majority of organizations on the channel
- to endorse chaincode before it can be run.  For more details on Lifecycle chaincode management see [Fabric read the docs: Chaincode for Operators](https://hyperledger-fabric.readthedocs.io/en/latest/chaincode4noah.html)
+ to endorse chaincode before it can be run.  For more details on Lifecycle chaincode management see the [Fabric chaincode lifecycle](https://hyperledger-fabric.readthedocs.io/en/release-2.0/chaincode_lifecycle.html)
 
 The [End2endLifecycleIT.java](https://github.com/hyperledger/fabric-sdk-java/blob/df422e10fa38bf8a627dd81e7ad038404d625576/src/test/java/org/hyperledger/fabric/sdkintegration/End2endLifecycleIT.java) integration test
 tests and demonstrates these APIs between two organizations.
