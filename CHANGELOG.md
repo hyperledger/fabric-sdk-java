@@ -1,3 +1,7 @@
+# Changelog
+
+Notable changes in each release are documented on the project's [GitHub releases](https://github.com/hyperledger/fabric-sdk-java/releases) page. Historic changelog is retained below for reference.
+
 ## v2.2.19
 Tue 29 Nov 2022 15:34:43 GMT
 

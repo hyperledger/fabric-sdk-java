@@ -1,16 +1,14 @@
 #!/bin/bash -e
 set -euo pipefail
 
-# FABRIC_VERSION is set overridden by CI pipeline
-VERSION=${FABRIC_VERSION:-2.2}
-STABLE_TAG=amd64-${VERSION}-stable
+# FABRIC_VERSION is overridden by CI pipeline
+FABRIC_VERSION=${FABRIC_VERSION:-2.2}
+CA_VERSION=${CA_VERSION:-1.4}
 
 for image in peer orderer tools ccenv baseos javaenv nodeenv; do
-	docker pull -q hyperledger-fabric.jfrog.io/fabric-${image}:${STABLE_TAG}
-	docker tag hyperledger-fabric.jfrog.io/fabric-${image}:${STABLE_TAG} hyperledger/fabric-${image}
-	docker rmi -f hyperledger-fabric.jfrog.io/fabric-${image}:${STABLE_TAG} >/dev/null
+	docker pull -q "hyperledger/fabric-${image}:${FABRIC_VERSION}"
+	docker tag "hyperledger/fabric-${image}:${FABRIC_VERSION}" "hyperledger/fabric-${image}"
 done
 
-docker pull -q hyperledger/fabric-ca:1.4
-docker tag hyperledger/fabric-ca:1.4 hyperledger/fabric-ca
-docker rmi -f hyperledger/fabric-ca:1.4 >/dev/null
+docker pull -q "hyperledger/fabric-ca:${CA_VERSION}"
+docker tag "hyperledger/fabric-ca:${CA_VERSION}" hyperledger/fabric-ca
