@@ -3,7 +3,7 @@ set -euo pipefail
 
 # FABRIC_VERSION is overridden by CI pipeline
 FABRIC_VERSION=${FABRIC_VERSION:-2.2}
-CA_VERSION=${CA_VERSION:-1.4}
+CA_VERSION=${CA_VERSION:-1.5}
 
 for image in peer orderer tools ccenv baseos javaenv nodeenv; do
 	docker pull -q "hyperledger/fabric-${image}:${FABRIC_VERSION}"
