@@ -6,7 +6,7 @@
     <packaging>jar</packaging>
     <version>2.2.22-SNAPSHOT</version>
     <name>fabric-java-sdk</name>
-    <description>Java SDK for Hyperledger Fabric</description>
+    <description>Java SDK for Hyperledger Fabric. Deprecated as of Fabric v2.5, replaced by org.hyperledger.fabric:fabric-gateway.</description>
     <url>https://www.hyperledger.org/community/projects</url>
     <licenses>
         <license>
