@@ -11,6 +11,7 @@ package org.hyperledger.fabric.sdk;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -28,6 +29,7 @@ import org.hyperledger.fabric.protos.common.Policies;
 import org.hyperledger.fabric.protos.common.Policies.SignaturePolicy;
 import org.hyperledger.fabric.protos.peer.Policy;
 import org.hyperledger.fabric.sdk.exception.ChaincodeEndorsementPolicyParseException;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
@@ -225,8 +227,8 @@ public class LifecycleChaincodeEndorsementPolicy {
 //    }
 
     public static LifecycleChaincodeEndorsementPolicy fromSignaturePolicyYamlFile(Path yamlPolicyFile) throws IOException, ChaincodeEndorsementPolicyParseException {
-        final Yaml yaml = new Yaml(new SafeConstructor());
-        final Map<?, ?> load = (Map<?, ?>) yaml.load(new FileInputStream(yamlPolicyFile.toFile()));
+        final Yaml yaml = new Yaml(new SafeConstructor(new LoaderOptions()));
+        final Map<?, ?> load = (Map<?, ?>) yaml.load(Files.newInputStream(yamlPolicyFile.toFile().toPath()));
 
         Map<?, ?> mp = (Map<?, ?>) load.get("policy");
 

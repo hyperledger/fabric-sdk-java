@@ -42,6 +42,7 @@ import org.hyperledger.fabric.protos.common.Policies.SignaturePolicy;
 import org.hyperledger.fabric.protos.peer.Collection;
 import org.hyperledger.fabric.sdk.exception.ChaincodeCollectionConfigurationException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
@@ -117,7 +118,7 @@ public class ChaincodeCollectionConfiguration {
             throw new InvalidArgumentException("ConfigStream must be specified");
         }
 
-        Yaml yaml = new Yaml(new SafeConstructor());
+        Yaml yaml = new Yaml(new SafeConstructor(new LoaderOptions()));
 
         List<Object> map = yaml.load(configStream);
 

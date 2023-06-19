@@ -36,6 +36,7 @@ import org.hyperledger.fabric.protos.common.MspPrincipal.MSPRole;
 import org.hyperledger.fabric.protos.common.Policies;
 import org.hyperledger.fabric.protos.common.Policies.SignaturePolicy;
 import org.hyperledger.fabric.sdk.exception.ChaincodeEndorsementPolicyParseException;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
@@ -255,7 +256,7 @@ public class ChaincodeEndorsementPolicy {
     }
 
     private static Policies.SignaturePolicyEnvelope loadPolicyFromYaml(Reader yamlReader) throws ChaincodeEndorsementPolicyParseException {
-        Yaml yaml = new Yaml(new SafeConstructor());
+        Yaml yaml = new Yaml(new SafeConstructor(new LoaderOptions()));
         Map<?, Map<?, ?>> load = yaml.load(yamlReader);
 
         Map<?, ?> mp = load.get("policy");
