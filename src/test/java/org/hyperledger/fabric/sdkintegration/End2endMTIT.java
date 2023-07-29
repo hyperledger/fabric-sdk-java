@@ -153,16 +153,7 @@ public class End2endMTIT {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
-
-//        System.err.flush();
-//        System.out.flush();
-//
-//        System.out.println(Thread.currentThread().getName() + ": " + format(format, args));
-//        System.err.flush();
-//        System.out.flush();
-
     }
-    //CHECKSTYLE.ON: Method length is 320 lines (max allowed is 150).
 
     static String printableString(final String string) {
         int maxLogStringLength = 64;

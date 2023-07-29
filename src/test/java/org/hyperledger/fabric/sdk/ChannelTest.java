@@ -14,27 +14,6 @@
 
 package org.hyperledger.fabric.sdk;
 
-//Allow throwing undeclared checked execeptions in mock code.
-//CHECKSTYLE.OFF: IllegalImport
-
-import java.io.File;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
 import com.google.protobuf.ByteString;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -57,7 +36,24 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import sun.misc.Unsafe;
+
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import static org.hyperledger.fabric.sdk.Channel.PeerOptions.createPeerOptions;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.assertArrayListEquals;
@@ -70,8 +66,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-
-//CHECKSTYLE.ON: IllegalImport
 
 public class ChannelTest {
     @Rule
@@ -882,10 +876,7 @@ public class ChannelTest {
         final Channel channel = createRunningChannel(null);
         Peer peer = channel.getPeers().iterator().next();
 
-        final CompletableFuture<ProposalResponsePackage.ProposalResponse> settableFuture = new CompletableFuture<>();
-        //  settableFuture.setException(new Error("Error bad bad bad"));
-        settableFuture.completeExceptionally(new Error("Error bad bad bad"));
-        setField(peer, "endorserClent", new MockEndorserClient(settableFuture));
+        setField(peer, "endorserClent", new MockEndorserClient(new Error("Error bad bad bad")));
 
         hfclient.queryChannels(peer);
     }
@@ -898,10 +889,7 @@ public class ChannelTest {
         final Channel channel = createRunningChannel(null);
         Peer peer = channel.getPeers().iterator().next();
 
-        final CompletableFuture<ProposalResponsePackage.ProposalResponse> settableFuture = new CompletableFuture<>();
-        settableFuture.completeExceptionally(new StatusRuntimeException(Status.ABORTED));
-
-        setField(peer, "endorserClent", new MockEndorserClient(settableFuture));
+        setField(peer, "endorserClent", new MockEndorserClient(new StatusRuntimeException(Status.ABORTED)));
 
         hfclient.queryChannels(peer);
     }
@@ -1173,30 +1161,18 @@ public class ChannelTest {
         channel.registerBlockListener(new LinkedBlockingQueue<>());
     }
 
-    class MockEndorserClient extends EndorserClient {
-        final Throwable throwThis;
+    private static class MockEndorserClient extends EndorserClient {
         private final CompletableFuture<ProposalResponsePackage.ProposalResponse> returnedFuture;
 
         MockEndorserClient(Throwable throwThis) {
             super("blahchannlname", "blahpeerName", "blahURL", new Endpoint("grpc://loclhost:99", null).getChannelBuilder());
-            if (throwThis == null) {
-                throw new IllegalArgumentException("Can't throw a null!");
-            }
-            this.throwThis = throwThis;
-            this.returnedFuture = null;
-        }
-
-        MockEndorserClient(CompletableFuture<ProposalResponsePackage.ProposalResponse> returnedFuture) {
-            super("blahchannlname", "blahpeerName", "blahURL", new Endpoint("grpc://loclhost:99", null).getChannelBuilder());
-            this.throwThis = null;
-            this.returnedFuture = returnedFuture;
+            Objects.requireNonNull(throwThis);
+            returnedFuture = new CompletableFuture<>();
+            returnedFuture.completeExceptionally(throwThis);
         }
 
         @Override
         public CompletableFuture<ProposalResponsePackage.ProposalResponse> sendProposalAsync(ProposalPackage.SignedProposal proposal) {
-            if (throwThis != null) {
-                getUnsafe().throwException(throwThis);
-            }
             return returnedFuture;
         }
 
@@ -1204,16 +1180,5 @@ public class ChannelTest {
         public boolean isChannelActive() {
             return true;
         }
-
-        private Unsafe getUnsafe() {  //lets us throw undeclared exceptions.
-            try {
-                Field field = Unsafe.class.getDeclaredField("theUnsafe");
-                field.setAccessible(true);
-                return (Unsafe) field.get(null);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
     }
-
 }

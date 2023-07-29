@@ -8,13 +8,11 @@
 
 package org.hyperledger.fabric.sdk;
 
-import java.util.Collection;
-
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 
 /**
  * LifecycleInstallChaincodeRequest parameters for installing chaincode with lifecycle
- * see also {@link HFClient#sendLifecycleInstallChaincodeRequest(LifecycleInstallChaincodeRequest, Collection)}
+ * see also {@link HFClient#sendLifecycleInstallChaincodeRequest(LifecycleInstallChaincodeRequest, java.util.Collection)}
  */
 public class LifecycleInstallChaincodeRequest extends LifecycleRequest {
 

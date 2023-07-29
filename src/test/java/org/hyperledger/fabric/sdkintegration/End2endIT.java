@@ -319,7 +319,7 @@ public class End2endIT {
 
     Map<String, Long> expectedMoveRCMap = new HashMap<>(); // map from channel name to move chaincode's return code.
 
-    //CHECKSTYLE.OFF: Method length is 320 lines (max allowed is 150).
+    // checkstyle:ignore-next-line:MethodLength
     void runChannel(HFClient client, Channel channel, boolean installChaincode, SampleOrg sampleOrg, int delta) {
 
         class ChaincodeEventCapture { //A test class to capture chaincode events

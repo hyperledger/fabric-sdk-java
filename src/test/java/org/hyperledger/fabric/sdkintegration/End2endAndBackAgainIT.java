@@ -296,7 +296,6 @@ public class End2endAndBackAgainIT {
 
     // Disable MethodLength as this method is for instructional purposes and hence
     // we don't want to split it into smaller pieces
-    // CHECKSTYLE:OFF: MethodLength
     void runChannel(HFClient client, Channel channel, SampleOrg sampleOrg, final int delta) {
         final String channelName = channel.getName();
         try {

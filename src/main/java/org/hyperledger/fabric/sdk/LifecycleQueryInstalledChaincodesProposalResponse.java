@@ -8,7 +8,6 @@
 
 package org.hyperledger.fabric.sdk;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -75,7 +74,7 @@ public class LifecycleQueryInstalledChaincodesProposalResponse extends ProposalR
         }
 
         /**
-         * The label used by this chaincode. This is defined by the installed chaincode. See label parameter in {@link LifecycleChaincodePackage#fromSource(String, Path, TransactionRequest.Type, String, Path)}
+         * The label used by this chaincode. This is defined by the installed chaincode. See label parameter in {@link LifecycleChaincodePackage#fromSource(String, java.nio.file.Path, TransactionRequest.Type, String, java.nio.file.Path)}
          *
          * @return Label
          */
