@@ -13,19 +13,18 @@
  */
 package org.hyperledger.fabric.sdk;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+import org.hyperledger.fabric.protos.peer.EventsPackage;
+import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-import org.hyperledger.fabric.protos.common.Common.Block;
-import org.hyperledger.fabric.protos.peer.EventsPackage;
-import org.hyperledger.fabric.sdk.exception.InvalidProtocolBufferRuntimeException;
-
 /**
  * A wrapper for the Block returned in an Event
  *
- * @see Block
+ * @see org.hyperledger.fabric.protos.common.Common.Block
  */
 public class BlockEvent extends BlockInfo {
     private final Peer peer;

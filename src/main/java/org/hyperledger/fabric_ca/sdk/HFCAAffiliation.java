@@ -387,7 +387,7 @@ public class HFCAAffiliation {
             AffiliationException affiliationException = new AffiliationException(msg, e);
             logger.error(msg);
             throw affiliationException;
-        }  catch (Exception e) {
+        } catch (Exception e) {
             String msg = format("Error while deleting affiliation %s url: %s  %s ", this.name, deleteURL, e.getMessage());
             AffiliationException affiliationException = new AffiliationException(msg, e);
             logger.error(msg);

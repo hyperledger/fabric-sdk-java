@@ -8,13 +8,11 @@
 
 package org.hyperledger.fabric.sdk;
 
-import java.util.Collection;
-
 import org.hyperledger.fabric.sdk.transaction.TransactionContext;
 
 /**
  * Result of sending a {@link LifecycleApproveChaincodeDefinitionForMyOrgRequest}.
- * Also see {@link Channel#sendLifecycleApproveChaincodeDefinitionForMyOrgProposal(LifecycleApproveChaincodeDefinitionForMyOrgRequest, Collection)}
+ * Also see {@link Channel#sendLifecycleApproveChaincodeDefinitionForMyOrgProposal(LifecycleApproveChaincodeDefinitionForMyOrgRequest, java.util.Collection)}
  * <p>
  * Does not return any request specific results.
  */

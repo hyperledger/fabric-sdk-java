@@ -21,7 +21,6 @@ import java.util.Properties;
 
 import org.hyperledger.fabric.sdk.exception.CryptoException;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
-import org.hyperledger.fabric.sdk.helper.Config;
 
 /**
  * Factory to produce a set of crypto suite implementations offering differing cryptographic algorithms and strengths.
@@ -60,7 +59,7 @@ public interface CryptoSuiteFactory {
     /**
      * This will return the default Crypto Suite Factory implementation.
      * Can be overwritten by org.hyperledger.fabric.sdk.crypto.default_crypto_suite_factory property.
-     * see {@link Config#getDefaultCryptoSuiteFactory()}
+     * see {@link org.hyperledger.fabric.sdk.helper.Config#getDefaultCryptoSuiteFactory()}
      * Classes specified by this property must implement a public static method <b>instance</b> that
      * returns back a single instance of this factory.
      *

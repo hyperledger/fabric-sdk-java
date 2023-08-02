@@ -8,8 +8,6 @@
 
 package org.hyperledger.fabric.sdk;
 
-import java.util.Collection;
-
 import com.google.protobuf.ByteString;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.helper.Config;
@@ -17,7 +15,7 @@ import org.hyperledger.fabric.sdk.helper.Utils;
 
 /**
  * LifecycleApproveChaincodeDefinitionForMyOrgRequest parameters for approving chaincode with lifecycle.
- * Send to peers with {@link Channel#sendLifecycleApproveChaincodeDefinitionForMyOrgProposal(LifecycleApproveChaincodeDefinitionForMyOrgRequest, Collection)}
+ * Send to peers with {@link Channel#sendLifecycleApproveChaincodeDefinitionForMyOrgProposal(LifecycleApproveChaincodeDefinitionForMyOrgRequest, java.util.Collection)}
  */
 public class LifecycleApproveChaincodeDefinitionForMyOrgRequest extends LifecycleRequest {
     private static final Config config = Config.getConfig();

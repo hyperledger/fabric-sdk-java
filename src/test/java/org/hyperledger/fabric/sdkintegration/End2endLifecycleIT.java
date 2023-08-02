@@ -391,7 +391,7 @@ public class End2endLifecycleIT {
         out("That's all folks!");
     }
 
-    //CHECKSTYLE.OFF: ParameterNumber
+    // checkstyle:ignore-next-line:ParameterNumber
     void runChannel(HFClient org1Client, Channel org1Channel, SampleOrg org1, Collection<Peer> org1MyPeers, Collection<Peer> org1OtherPeers,
                     HFClient org2Client, Channel org2Channel, SampleOrg org2, Collection<Peer> org2MyPeers, Collection<Peer> org2OtherPeers,
                     LifecycleChaincodePackage lifecycleChaincodePackage, String chaincodeName,
@@ -618,6 +618,7 @@ public class End2endLifecycleIT {
 
     }
 
+    // checkstyle:ignore-next-line:ParameterNumber
     CompletableFuture<TransactionEvent> lifecycleApproveChaincodeDefinitionForMyOrg(HFClient client, Channel channel,
                                                                                     Collection<Peer> peers, long sequence,
                                                                                     String chaincodeName, String chaincodeVersion, LifecycleChaincodeEndorsementPolicy chaincodeEndorsementPolicy, ChaincodeCollectionConfiguration chaincodeCollectionConfiguration, boolean initRequired, String org1ChaincodePackageID) throws InvalidArgumentException, ProposalException {
@@ -654,6 +655,7 @@ public class End2endLifecycleIT {
 
     }
 
+    // checkstyle:ignore-next-line:ParameterNumber
     private CompletableFuture<TransactionEvent> commitChaincodeDefinitionRequest(HFClient client, Channel channel, long definitionSequence, String chaincodeName, String chaincodeVersion,
                                                                                  LifecycleChaincodeEndorsementPolicy chaincodeEndorsementPolicy,
                                                                                  ChaincodeCollectionConfiguration chaincodeCollectionConfiguration,
@@ -687,6 +689,7 @@ public class End2endLifecycleIT {
 
     // Lifecycle Queries to used to verify code...
 
+    // checkstyle:ignore-next-line:ParameterNumber
     private void verifyByCheckCommitReadinessStatus(HFClient client, Channel channel, long definitionSequence, String chaincodeName,
                                                     String chaincodeVersion, LifecycleChaincodeEndorsementPolicy chaincodeEndorsementPolicy,
                                                     ChaincodeCollectionConfiguration chaincodeCollectionConfiguration, boolean initRequired, Collection<Peer> org1MyPeers,

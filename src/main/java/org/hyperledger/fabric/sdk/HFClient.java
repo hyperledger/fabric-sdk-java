@@ -156,7 +156,7 @@ public class HFClient {
             props.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {20L, TimeUnit.SECONDS});
         }
         if (!props.containsKey("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls")) {
-            props.put("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls",  new Object[] {true});
+            props.put("grpc.NettyChannelBuilderOption.keepAliveWithoutCalls", new Object[] {true});
         }
     }
 

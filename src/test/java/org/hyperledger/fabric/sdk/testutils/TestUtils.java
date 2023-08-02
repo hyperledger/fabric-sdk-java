@@ -16,28 +16,10 @@
 
 package org.hyperledger.fabric.sdk.testutils;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.security.PrivateKey;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.zip.GZIPInputStream;
-
 import com.google.protobuf.ByteString;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.bouncycastle.openssl.PEMWriter;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -56,12 +38,27 @@ import org.hyperledger.fabric.sdk.identity.X509Enrollment;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.junit.Assert;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.security.PrivateKey;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.zip.GZIPInputStream;
+
 import static java.lang.String.format;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-
-//import org.hyperledger.fabric.sdk.MockUser;
-//import org.hyperledger.fabric.sdk.ClientTest.MockEnrollment;
 
 public class TestUtils {
 
@@ -489,12 +486,10 @@ public class TestUtils {
 
     public static String getPEMStringFromPrivateKey(PrivateKey privateKey) throws IOException {
         StringWriter pemStrWriter = new StringWriter();
-        PEMWriter pemWriter = new PEMWriter(pemStrWriter);
-
-        pemWriter.writeObject(privateKey);
-
-        pemWriter.close();
-
+        try (JcaPEMWriter pemWriter = new JcaPEMWriter(pemStrWriter)) {
+            pemWriter.writeObject(privateKey);
+            pemWriter.flush();
+        }
         return pemStrWriter.toString();
     }
 

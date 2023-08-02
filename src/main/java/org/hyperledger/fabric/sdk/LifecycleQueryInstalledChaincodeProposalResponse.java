@@ -8,8 +8,6 @@
 
 package org.hyperledger.fabric.sdk;
 
-import java.nio.file.Path;
-
 import com.google.protobuf.ByteString;
 import org.hyperledger.fabric.protos.peer.ProposalResponsePackage;
 import org.hyperledger.fabric.protos.peer.lifecycle.Lifecycle;
@@ -72,7 +70,7 @@ public class LifecycleQueryInstalledChaincodeProposalResponse extends ProposalRe
     }
 
     /**
-     * The lable used by this chaincode. This is defined by the installed chaincode. See label parameter in {@link LifecycleChaincodePackage#fromSource(String, Path, TransactionRequest.Type, String, Path)}
+     * The lable used by this chaincode. This is defined by the installed chaincode. See label parameter in {@link LifecycleChaincodePackage#fromSource(String, java.nio.file.Path, TransactionRequest.Type, String, java.nio.file.Path)}
      * @return the label
      * @throws ProposalException
      */

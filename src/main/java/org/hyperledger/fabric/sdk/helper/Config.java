@@ -213,7 +213,6 @@ public class Config {
                 org.apache.log4j.Level setTo;
 
                 switch (inLogLevel.toUpperCase()) {
-
                     case "TRACE":
                         setTo = org.apache.log4j.Level.TRACE;
                         break;
@@ -237,22 +236,18 @@ public class Config {
                     default:
                         setTo = Level.INFO;
                         break;
-
                 }
 
                 if (null != setTo) {
                     org.apache.log4j.Logger.getLogger("org.hyperledger.fabric").setLevel(setTo);
                 }
-
             }
 
             openTelemetry = AutoConfiguredOpenTelemetrySdk
-                .builder()
-                .setResultAsGlobal(false)
-                .build()
-                .getOpenTelemetrySdk();
+                    .builder()
+                    .build()
+                    .getOpenTelemetrySdk();
         }
-
     }
 
     /**
@@ -265,7 +260,6 @@ public class Config {
             config = new Config();
         }
         return config;
-
     }
 
     /**

@@ -14,23 +14,6 @@
 
 package org.hyperledger.fabric_ca.sdk;
 
-import java.io.File;
-import java.math.BigInteger;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.Key;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.KeyStore;
-import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Properties;
-import java.util.Set;
-
 import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.NetworkConfig;
 import org.hyperledger.fabric.sdk.exception.CryptoException;
@@ -53,11 +36,27 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.io.File;
+import java.math.BigInteger;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.Key;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Properties;
+import java.util.Set;
+
 import static java.lang.String.format;
 import static org.hyperledger.fabric.sdk.testutils.TestUtils.invokeMethod;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class HFCAClientTest {
