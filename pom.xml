@@ -28,7 +28,7 @@
         <url>http://github.com/hyperledger/fabric-sdk-java</url>
     </scm>
     <properties>
-        <grpc.version>1.57.1</grpc.version>
+        <grpc.version>1.57.2</grpc.version>
         <protobuf.version>3.22.5</protobuf.version> <!-- Must match version used by grpc-protobuf -->
         <bouncycastle.version>1.76</bouncycastle.version>
         <httpclient.version>4.5.14</httpclient.version>
@@ -222,7 +222,7 @@
         <dependency>
             <groupId>io.opentelemetry.instrumentation</groupId>
             <artifactId>opentelemetry-grpc-1.6</artifactId>
-            <version>1.28.0-alpha</version>
+            <version>1.29.0-alpha</version>
         </dependency>
         <dependency>
             <groupId>io.opentelemetry.proto</groupId>
