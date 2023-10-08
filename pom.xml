@@ -28,15 +28,15 @@
         <url>http://github.com/hyperledger/fabric-sdk-java</url>
     </scm>
     <properties>
-        <grpc.version>1.57.2</grpc.version>
-        <protobuf.version>3.22.5</protobuf.version> <!-- Must match version used by grpc-protobuf -->
-        <bouncycastle.version>1.76</bouncycastle.version>
+        <grpc.version>1.59.0</grpc.version>
+        <protobuf.version>3.24.4</protobuf.version> <!-- Must match version used by grpc-protobuf -->
+        <bouncycastle.version>1.77</bouncycastle.version>
         <httpclient.version>4.5.14</httpclient.version>
-        <javadoc.version>3.5.0</javadoc.version>
+        <javadoc.version>3.6.2</javadoc.version>
         <skipITs>true</skipITs>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jacoco.version>0.8.10</jacoco.version>
-        <log4j.version>2.20.0</log4j.version>
+        <jacoco.version>0.8.11</jacoco.version>
+        <log4j.version>2.21.1</log4j.version>
         <org.hyperledger.fabric.sdktest.ITSuite>IntegrationSuite.java</org.hyperledger.fabric.sdktest.ITSuite>
         <gpg.executable>gpg</gpg.executable>
         <javaVersion>8</javaVersion>
@@ -54,7 +54,7 @@
             <dependency>
                 <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-bom</artifactId>
-                <version>1.29.0</version>
+                <version>1.32.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -116,7 +116,7 @@
         <dependency>
             <groupId>commons-cli</groupId>
             <artifactId>commons-cli</artifactId>
-            <version>1.5.0</version>
+            <version>1.6.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -126,7 +126,7 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.13.0</version>
+            <version>2.15.0</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core -->
@@ -162,12 +162,12 @@
         <dependency>
             <groupId>com.spotify</groupId>
             <artifactId>futures-extra</artifactId>
-            <version>4.3.1</version>
+            <version>4.3.3</version>
         </dependency>
         <dependency>
             <groupId>com.google.api</groupId>
             <artifactId>api-common</artifactId>
-            <version>2.15.0</version>
+            <version>2.20.0</version>
         </dependency>
 
         <dependency>
@@ -179,7 +179,7 @@
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
-            <version>2.1</version>
+            <version>2.2</version>
         </dependency>
 
         <dependency>
@@ -222,7 +222,7 @@
         <dependency>
             <groupId>io.opentelemetry.instrumentation</groupId>
             <artifactId>opentelemetry-grpc-1.6</artifactId>
-            <version>1.29.0-alpha</version>
+            <version>1.32.0-alpha</version>
         </dependency>
         <dependency>
             <groupId>io.opentelemetry.proto</groupId>
@@ -255,7 +255,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.1.2</version>
+                <version>3.2.2</version>
                 <configuration>
                     <argLine>${surefireArgLine}</argLine>
                     <includes>
@@ -267,7 +267,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.1.2</version>
+                <version>3.2.2</version>
                 <configuration>
                     <argLine>${failsafeArgLine}</argLine>
                     <includes>
@@ -584,7 +584,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.3.0</version>
+                <version>3.4.1</version>
                 <executions>
                     <execution>
                         <id>enforce-maven</id>
@@ -619,7 +619,7 @@
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>8.3.1</version>
+                        <version>8.4.3</version>
                         <configuration>
                             <skipProvidedScope>true</skipProvidedScope>
                             <skipTestScope>true</skipTestScope>
@@ -668,7 +668,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>3.3.0</version>
+                    <version>3.3.1</version>
                     <executions>
                         <execution>
                             <id>validate</id>
@@ -695,7 +695,7 @@
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>10.12.2</version>
+                            <version>10.12.5</version>
                         </dependency>
                     </dependencies>
                 </plugin>
