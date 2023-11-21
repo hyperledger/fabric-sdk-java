@@ -272,7 +272,8 @@ class Endpoint {
                         channelBuilder = NettyChannelBuilder
                                 .forAddress(addr, port)
                                 .sslContext(sslContext)
-                                .negotiationType(ntype);
+                                .negotiationType(ntype)
+                                .intercept(clientInterceptor);
 
                         if (cn != null) {
                             logger.debug(format("Endpoint %s, using CN overrideAuthority: '%s'", url, cn));
