@@ -248,7 +248,7 @@ public class EndpointTest {
         try {
             new Endpoint("grpcs://localhost:594", testprops);
         } catch (RuntimeException e) {
-            Assert.assertEquals("Properties \"clientKeyFile\" and \"clientKeyBytes\" must cannot both be set", e.getMessage());
+            Assert.assertEquals("Properties \"clientKeyFile\" and \"clientKeyBytes\" cannot both be set", e.getMessage());
         }
 
         testprops.remove("clientKeyFile");
@@ -258,7 +258,7 @@ public class EndpointTest {
         try {
             new Endpoint("grpcs://localhost:594", testprops);
         } catch (RuntimeException e) {
-            Assert.assertEquals("Properties \"clientCertFile\" and \"clientCertBytes\" must cannot both be set", e.getMessage());
+            Assert.assertEquals("Properties \"clientCertFile\" and \"clientCertBytes\" cannot both be set", e.getMessage());
         }
 
         testprops.remove("clientCertFile");
@@ -305,7 +305,7 @@ public class EndpointTest {
         Properties testprops = new Properties();
 
         testprops.setProperty("pemFile", "src/test/fixture/testPems/caBundled.pems," + // has 4 certs
-                "src/test/fixture/testPems/AnotherUniqCA.pem"); // has 1
+                                             "src/test/fixture/testPems/AnotherUniqCA.pem"); // has 1
 
         testprops.put("pemBytes", Files.readAllBytes(Paths.get("src/test/fixture/testPems/Org2MSP_CA.pem"))); //Can have pem bytes too. 1 cert
 
@@ -328,12 +328,12 @@ public class EndpointTest {
         X509Certificate[] certs = (X509Certificate[]) getField(endpoint.sslContextBuilder, "trustCertCollection");
 
         Set<BigInteger> expected = new HashSet<>(Arrays.asList(
-                new BigInteger("4804555946196630157804911090140692961"),
-                new BigInteger("127556113420528788056877188419421545986539833585"),
-                new BigInteger("704500179517916368023344392810322275871763581896"),
-                new BigInteger("70307443136265237483967001545015671922421894552"),
-                new BigInteger("276393268186007733552859577416965113792"),
-                new BigInteger("217904166635533061823782766071154643254")));
+            new BigInteger("4804555946196630157804911090140692961"),
+            new BigInteger("127556113420528788056877188419421545986539833585"),
+            new BigInteger("704500179517916368023344392810322275871763581896"),
+            new BigInteger("70307443136265237483967001545015671922421894552"),
+            new BigInteger("276393268186007733552859577416965113792"),
+            new BigInteger("217904166635533061823782766071154643254")));
 
         for (X509Certificate cert : certs) {
             final BigInteger serialNumber = cert.getSerialNumber();
@@ -350,8 +350,8 @@ public class EndpointTest {
         Properties testprops = new Properties();
 
         testprops.setProperty("pemFile", "src/test/fixture/testPems/caBundled.pems," + // has 3 certs
-                "src/test/fixture/testPems/IMBAD" +
-                ",src/test/fixture/testPems/Org1MSP_CA.pem"); // has 1
+                                             "src/test/fixture/testPems/IMBAD" +
+                                             ",src/test/fixture/testPems/Org1MSP_CA.pem"); // has 1
 
         Endpoint endpoint = new Endpoint("grpcs://localhost:594", testprops);
 
