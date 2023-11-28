@@ -188,6 +188,8 @@ class Endpoint {
                 sslContext = clientContextBuilder
                                  .trustManager(myInputStream)
                                  .build();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
             }
 
             channelBuilder = NettyChannelBuilder
