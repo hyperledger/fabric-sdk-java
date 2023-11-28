@@ -38,6 +38,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -48,6 +49,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -91,6 +93,7 @@ class Endpoint {
     public static final String PROPERTY_SSL_PROVIDER = "sslProvider";
     public static final String PROPERTY_NEGOTIATION_TYPE = "negotiationType";
     public static final String PROPERTY_PEM_FILE = "pemFile";
+    public static final String PROPERTY_PEM_BYTES = "pemBytes";
 
     private final String addr;
     private final int port;
@@ -105,115 +108,104 @@ class Endpoint {
         logger.trace(format("Creating endpoint for url %s", url));
         this.url = url;
         Properties purl = parseGrpcUrl(url);
-        ProtocolType protocol = ProtocolType.from(purl.getProperty(PROPERTY_PROTOCOL));
+        String protocol = purl.getProperty(PROPERTY_PROTOCOL).toLowerCase(Locale.ROOT);
         addr = purl.getProperty(PROPERTY_HOST);
         port = Integer.parseInt(purl.getProperty(PROPERTY_PORT));
 
         try {
-            ClientInterceptor clientInterceptor = GRPC_TELEMETRY.newClientInterceptor();
             switch (protocol) {
-                case GRPC:
-                    channelBuilder = createGrpcChannelBuilder(properties, clientInterceptor);
+                case "grpc":
+                    channelBuilder = createChannelBuilder(properties)
+                                         .negotiationType(NegotiationType.PLAINTEXT);
                     break;
-                case GRPCS:
-                    channelBuilder = createGrpcsChannelBuilder(url, properties, clientInterceptor);
+                case "grpcs":
+                    channelBuilder = createGrpcsChannelBuilder(url, properties);
                     break;
                 default:
-                    // Impossible to reach, but compiler doesn't know. Fixed in Java 14.
-                    channelBuilder = null;
+                    throw new RuntimeException("invalid protocol: " + protocol);
             }
         } catch (RuntimeException e) {
             logger.error(format("Endpoint %s, exception '%s'", url, e.getMessage()), e);
             throw e;
+        } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+            logger.error(format("Endpoint %s, exception '%s'", url, e.getMessage()), e);
+            logger.error(e);
+            throw new RuntimeException(e);
         }
     }
 
-    private NettyChannelBuilder createGrpcChannelBuilder(Properties properties, ClientInterceptor clientInterceptor) {
+    private NettyChannelBuilder createChannelBuilder(Properties properties)
+        throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
+
+        ClientInterceptor clientInterceptor = GRPC_TELEMETRY.newClientInterceptor();
 
         final NettyChannelBuilder channelBuilder = NettyChannelBuilder.forAddress(addr, port)
-                                                       .negotiationType(NegotiationType.PLAINTEXT)
                                                        .intercept(clientInterceptor);
         addNettyBuilderProps(channelBuilder, properties);
         return channelBuilder;
     }
 
-    private NettyChannelBuilder createGrpcsChannelBuilder(
-        String url, Properties properties, ClientInterceptor clientInterceptor) {
+    private NettyChannelBuilder createGrpcsChannelBuilder(String url, Properties properties)
+        throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
 
-        final NettyChannelBuilder channelBuilder;
-        Optional<Pair<PrivateKey, X509Certificate[]>> clientTLSPropsOpt =
-            readClientTLSProps(url, properties);
+        Pair<PrivateKey, X509Certificate[]> clientTLSProps = readClientTLSProps(url, properties);
 
-        Optional<PrivateKey> clientKey = clientTLSPropsOpt.map(Pair::getKey);
-        Optional<X509Certificate[]> clientCert = clientTLSPropsOpt.map(Pair::getValue);
+        PrivateKey clientKey = clientTLSProps.getKey();
+        X509Certificate[] clientCert = clientTLSProps.getValue();
 
-        Optional<GrpcsContext> grpcsContext = readGrpcsProps(url, properties);
-        Optional<byte[]> pemBytesOpt = grpcsContext.flatMap(GrpcsContext::getPemBytes);
-        Optional<String> cnOpt = grpcsContext.flatMap(GrpcsContext::getCn);
+        GrpcsContext grpcsContext = readGrpcsProps(url, properties);
+        Optional<byte[]> pemBytesOpt = grpcsContext.getPemBytes();
+        Optional<String> cnOpt = grpcsContext.getCn();
 
-        String sslp = readSslpProperty(url, properties);
-        String nt = readNtProperty(url, properties);
+        String sslp = readSslProviderProperty(url, properties);
+        String nt = readNegotionTypeProperty(url, properties);
 
         if (!pemBytesOpt.isPresent()) {
             // use root certificate
-            channelBuilder = NettyChannelBuilder
-                                 .forAddress(addr, port)
-                                 .intercept(clientInterceptor);
-
-            addNettyBuilderProps(channelBuilder, properties);
-            return channelBuilder;
+            return createChannelBuilder(properties);
         }
 
         byte[] pemBytes = pemBytesOpt.get();
-        try {
 
-            logger.trace(format("Endpoint %s Negotiation type: '%s', SSLprovider: '%s'",
-                url, nt, sslp
-            ));
-            SslProvider sslprovider = sslp.equals("openSSL") ? SslProvider.OPENSSL : SslProvider.JDK;
-            NegotiationType ntype = nt.equals("TLS") ? NegotiationType.TLS : NegotiationType.PLAINTEXT;
+        logger.trace(format("Endpoint %s Negotiation type: '%s', SSLprovider: '%s'",
+            url, nt, sslp
+        ));
+        SslProvider sslprovider = sslp.equals("openSSL") ? SslProvider.OPENSSL : SslProvider.JDK;
+        NegotiationType ntype = nt.equals("TLS") ? NegotiationType.TLS : NegotiationType.PLAINTEXT;
 
-            SslContextBuilder clientContextBuilder = getSslContextBuilder(
-                clientCert.orElse(null), clientKey.orElse(null), sslprovider
-            );
+        SslContextBuilder clientContextBuilder = getSslContextBuilder(clientCert, clientKey, sslprovider);
 
-            logger.trace(
-                format("Endpoint %s  final server pemBytes: %s",
-                    url, Hex.encodeHexString(pemBytes)
-                )
-            );
+        logger.trace(
+            format("Endpoint %s  final server pemBytes: %s",
+                url, Hex.encodeHexString(pemBytes)
+            )
+        );
 
-            SslContext sslContext;
-            try (InputStream myInputStream = new ByteArrayInputStream(pemBytes)) {
-                sslContext = clientContextBuilder
-                                 .trustManager(myInputStream)
-                                 .build();
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-
-            channelBuilder = NettyChannelBuilder
-                                 .forAddress(addr, port)
-                                 .sslContext(sslContext)
-                                 .negotiationType(ntype)
-                                 .intercept(clientInterceptor);
-
-            if (cnOpt.isPresent()) {
-                String cn = cnOpt.get();
-                logger.debug(format("Endpoint %s, using CN overrideAuthority: '%s'", url, cn));
-                channelBuilder.overrideAuthority(cn);
-            }
-            addNettyBuilderProps(channelBuilder, properties);
-            return channelBuilder;
-
+        SslContext sslContext;
+        try (InputStream myInputStream = new ByteArrayInputStream(pemBytes)) {
+            sslContext = clientContextBuilder
+                             .trustManager(myInputStream)
+                             .build();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
+
+        NettyChannelBuilder channelBuilder = createChannelBuilder(properties)
+                                                       .sslContext(sslContext)
+                                                       .negotiationType(ntype);
+
+        if (cnOpt.isPresent()) {
+            String cn = cnOpt.get();
+            logger.debug(format("Endpoint %s, using CN overrideAuthority: '%s'", url, cn));
+            channelBuilder.overrideAuthority(cn);
+        }
+        return channelBuilder;
+
     }
 
-    private static Optional<GrpcsContext> readGrpcsProps(String url, Properties properties) {
+    private static GrpcsContext readGrpcsProps(String url, Properties properties) {
         if (properties == null) {
-            return Optional.empty();
+            return new GrpcsContext(null, null);
         }
 
         CryptoPrimitives cp;
@@ -254,7 +246,7 @@ class Endpoint {
             }
         }
 
-        return Optional.of(new GrpcsContext(cn, pemBytesOpt.orElse(null)));
+        return new GrpcsContext(cn, pemBytesOpt.orElse(null));
     }
 
     private static String readNegotionTypeProperty(String url, Properties properties) {
@@ -328,25 +320,10 @@ class Endpoint {
         }
     }
 
-    private enum ProtocolType {
-        GRPC,
-        GRPCS;
-
-        private static ProtocolType from(String protocol) {
-            if ("grpc".equalsIgnoreCase(protocol)) {
-                return GRPC;
-            }
-            if ("grpcs".equalsIgnoreCase(protocol)) {
-                return GRPCS;
-            }
-            throw new RuntimeException("invalid protocol: " + protocol);
-        }
-    }
-
     private static Optional<byte[]> getPEMFile(String url, Properties properties) {
         byte[] pemBytes;
         try (ByteArrayOutputStream bis = new ByteArrayOutputStream(64000)) {
-            @SuppressWarnings("UseOfPropertiesAsHashtable") byte[] pb = (byte[]) properties.get("pemBytes");
+            @SuppressWarnings("UseOfPropertiesAsHashtable") byte[] pb = (byte[]) properties.get(PROPERTY_PEM_BYTES);
             if (null != pb) {
                 bis.write(pb);
             }
@@ -424,7 +401,8 @@ class Endpoint {
                                                                         .put(Short.class, short.class)
                                                                         .put(Void.class, void.class).build();
 
-    private void addNettyBuilderProps(NettyChannelBuilder channelBuilder, Properties props) {
+    private void addNettyBuilderProps(NettyChannelBuilder channelBuilder, Properties props)
+        throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
 
         if (props == null) {
             return;
@@ -477,28 +455,19 @@ class Endpoint {
                 }
             }
 
-            try {
-                Utils.invokeMethod(channelBuilder, methodName, classParms, parmsArray);
-            } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
-                logger.error(format("Endpoint %s, exception '%s'", url, e.getMessage()), e);
-                logger.error(e);
-                throw new RuntimeException(e);
-            }
+            Utils.invokeMethod(channelBuilder, methodName, classParms, parmsArray);
 
             if (logger.isTraceEnabled()) {
                 logger.trace(format("Endpoint with url: %s set managed channel builder method %s (%s) ", url,
                     methodName, Arrays.toString(parmsArray)
                 ));
-
             }
-
         }
-
     }
 
-    private Optional<Pair<PrivateKey, X509Certificate[]>> readClientTLSProps(String url, Properties properties) {
+    private Pair<PrivateKey, X509Certificate[]> readClientTLSProps(String url, Properties properties) {
         if (properties == null) {
-            return Optional.empty();
+            return Pair.create(null, null);
         }
 
         // check for mutual TLS - both clientKey and clientCert must be present
@@ -511,24 +480,24 @@ class Endpoint {
             String propertyClientKeyFile = properties.getProperty(CLIENT_KEY_FILE);
             String propertyClientCertFile = properties.getProperty(CLIENT_CERT_FILE);
 
-            if (propertyClientKeyFile != null && propertyClientCertFile != null) {
-                try {
-                    logger.trace(format("Endpoint %s reading clientKeyFile: %s", url,
-                        new File(propertyClientKeyFile).getAbsolutePath()
-                    ));
-                    ckb = Files.readAllBytes(Paths.get(propertyClientKeyFile));
-                    logger.trace(format("Endpoint %s reading clientCertFile: %s", url,
-                        new File(propertyClientCertFile).getAbsolutePath()
-                    ));
-                    ccb = Files.readAllBytes(Paths.get(propertyClientCertFile));
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to parse TLS client key and/or cert", e);
-                }
-            } else {
+            if (propertyClientKeyFile == null || propertyClientCertFile == null) {
                 throw new RuntimeException(format(
                     "Properties \"%s\" and \"%s\" must both be set or both be null",
                     CLIENT_KEY_FILE, CLIENT_CERT_FILE
                 ));
+            }
+
+            try {
+                logger.trace(format("Endpoint %s reading clientKeyFile: %s", url,
+                    new File(propertyClientKeyFile).getAbsolutePath()
+                ));
+                ckb = Files.readAllBytes(Paths.get(propertyClientKeyFile));
+                logger.trace(format("Endpoint %s reading clientCertFile: %s", url,
+                    new File(propertyClientCertFile).getAbsolutePath()
+                ));
+                ccb = Files.readAllBytes(Paths.get(propertyClientCertFile));
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to parse TLS client key and/or cert", e);
             }
         } else if (properties.containsKey(CLIENT_KEY_BYTES) || properties.containsKey(CLIENT_CERT_BYTES)) {
             //noinspection UseOfPropertiesAsHashtable
@@ -543,13 +512,13 @@ class Endpoint {
                 ));
             }
         } else {
-            return Optional.empty();
+            return Pair.create(null, null);
         }
 
         return parsePrivateKey(url, ckb, ccb);
     }
 
-    private Optional<Pair<PrivateKey, X509Certificate[]>> parsePrivateKey(String url, byte[] ckb, byte[] ccb) {
+    private Pair<PrivateKey, X509Certificate[]> parsePrivateKey(String url, byte[] ckb, byte[] ccb) {
         String what = "private key";
         byte[] whatBytes = new byte[0];
         try {
@@ -573,7 +542,7 @@ class Endpoint {
             logger.trace("converted client TLS certificate.");
             tlsClientCertificatePEMBytes = ccb; // Save this away it's the exact pem we used.
 
-            return Optional.of(new Pair<>(clientKey, clientCert));
+            return new Pair<>(clientKey, clientCert);
         } catch (CryptoException e) {
             logger.error(format("Failed endpoint %s to parse %s TLS client %s", url, what, new String(
                 whatBytes,
