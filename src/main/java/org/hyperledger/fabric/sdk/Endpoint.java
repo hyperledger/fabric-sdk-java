@@ -276,7 +276,7 @@ class Endpoint {
         return nt;
     }
 
-    private static String readSslpProperty(String url, Properties properties) {
+    private static String readSslProviderProperty(String url, Properties properties) {
         if (properties == null) {
             return null;
         }
