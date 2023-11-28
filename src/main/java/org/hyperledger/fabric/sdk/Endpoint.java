@@ -255,7 +255,7 @@ class Endpoint {
         return Optional.of(new GrpcsContext(cn, pemBytesOpt.orElse(null)));
     }
 
-    private static String readNtProperty(String url, Properties properties) {
+    private static String readNegotionTypeProperty(String url, Properties properties) {
         if (properties == null) {
             return null;
         }
