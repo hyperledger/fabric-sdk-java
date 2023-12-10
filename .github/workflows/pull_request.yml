@@ -18,4 +18,4 @@ jobs:
     name: Pull request success
     runs-on: ubuntu-latest
     steps:
-      - run: true
+      - run: 'true'
