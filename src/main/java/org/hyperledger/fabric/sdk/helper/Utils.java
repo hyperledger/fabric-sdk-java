@@ -14,11 +14,27 @@
 
 package org.hyperledger.fabric.sdk.helper;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Timestamp;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.crypto.Digest;
+import org.bouncycastle.crypto.digests.SHA3Digest;
+import org.bouncycastle.util.Arrays;
+import org.bouncycastle.util.encoders.Hex;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
@@ -40,22 +56,6 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Timestamp;
-import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.crypto.Digest;
-import org.bouncycastle.crypto.digests.SHA3Digest;
-import org.bouncycastle.util.Arrays;
-import org.bouncycastle.util.encoders.Hex;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -144,7 +144,7 @@ public final class Utils {
                         hashBuilder.setLength(0);
                         hashBuilder.append(Hex.toHexString(hash(toHash, new SHA3Digest())));
                     } catch (IOException ex) {
-                        throw new RuntimeException(format("Error while reading file %s", file.getAbsolutePath()), ex);
+                        throw new UncheckedIOException(format("Error while reading file %s", file.getAbsolutePath()), ex);
                     }
                 });
 
@@ -178,7 +178,7 @@ public final class Utils {
 
             Collection<File> childrenFiles = org.apache.commons.io.FileUtils.listFiles(sourceDirectory, null, true);
 
-            ArchiveEntry archiveEntry;
+            TarArchiveEntry archiveEntry;
             for (File childFile : childrenFiles) {
                 String childPath = childFile.getAbsolutePath();
                 String relativePath = childPath.substring((sourcePath.length() + 1));

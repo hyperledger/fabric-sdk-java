@@ -16,6 +16,13 @@
 
 package org.hyperledger.fabric.sdkintegration;
 
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
+import org.hyperledger.fabric.sdk.helper.Utils;
+
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -24,14 +31,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
-
-import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
-import org.hyperledger.fabric.sdk.helper.Utils;
 
 import static java.lang.String.format;
 
@@ -64,7 +63,7 @@ class Util {
         try {
             Collection<File> childrenFiles = org.apache.commons.io.FileUtils.listFiles(sourceDirectory, null, true);
 
-            ArchiveEntry archiveEntry;
+            TarArchiveEntry archiveEntry;
             FileInputStream fileInputStream;
             for (File childFile : childrenFiles) {
                 String childPath = childFile.getAbsolutePath();
