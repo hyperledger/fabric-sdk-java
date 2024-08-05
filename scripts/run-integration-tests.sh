@@ -23,7 +23,7 @@ cd "$(dirname "$0")"
 source pull-fabric-images.sh
 
 pushd ../src/test/fixture/sdkintegration/ >/dev/null
-docker-compose up --force-recreate -d
+docker compose up --force-recreate -d
 popd >/dev/null && cd ..
 
 docker ps -a
@@ -33,4 +33,4 @@ export MAVEN_OPTS="-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Sl
 mvn -B clean install -DskipITs=false -Dmaven.test.failure.ignore=false javadoc:javadoc -DdisableXmlReport=true
 
 pushd src/test/fixture/sdkintegration/ >/dev/null
-docker-compose down --volumes
+docker compose down --volumes
