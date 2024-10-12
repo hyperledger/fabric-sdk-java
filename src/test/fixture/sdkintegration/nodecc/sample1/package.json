@@ -13,6 +13,6 @@
     },
     "license": "Apache-2.0",
     "dependencies": {
-        "fabric-shim": "^2.2.0"
+        "fabric-shim": "~2.2.0"
     }
 }
