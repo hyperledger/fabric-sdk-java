@@ -7,7 +7,7 @@ repository:
   has_issues: true
   has_projects: false
   has_wiki: false
-  archived: false
+  archived: true
   private: false
   allow_squash_merge: true
   allow_merge_commit: false
